@@ -63,7 +63,11 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
   return {
     port: chrome.port,
     close: async () => {
-      await chrome.kill();
+      try {
+        await chrome.kill();
+      } catch {
+        return;
+      }
     },
   };
 }
