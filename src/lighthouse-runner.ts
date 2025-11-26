@@ -1,5 +1,5 @@
 import lighthouse from "lighthouse";
-import chromeLauncher from "chrome-launcher";
+import { launch as launchChrome } from "chrome-launcher";
 import type { ApexConfig, ApexDevice, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
 
 interface ChromeSession {
@@ -48,7 +48,7 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
   if (typeof chromePort === "number") {
     return { port: chromePort };
   }
-  const chrome = await chromeLauncher.launch({
+  const chrome = await launchChrome({
     chromeFlags: [
       "--headless=new",
       "--disable-gpu",
