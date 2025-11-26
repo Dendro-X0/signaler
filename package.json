@@ -1,6 +1,6 @@
 {
   "name": "apex-auditor",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "CLI to run structured Lighthouse audits (Performance, Accessibility, Best Practices, SEO) across routes.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "chrome-launcher": "^0.15.2",
-    "lighthouse": "^12.6.1",
+    "chrome-launcher": "^1.2.1",
+    "lighthouse": "^13.0.1",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
@@ -27,6 +27,6 @@
     "typescript": "^5.9.3",
     "@types/node": "^22.0.0",
     "@types/prompts": "^2.4.9",
-    "vitest": "^1.3.1"
+    "vitest": "^4.0.14"
   }
 }

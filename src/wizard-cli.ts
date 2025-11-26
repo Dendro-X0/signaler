@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import prompts, { type PromptObject } from "prompts";
 import { detectRoutes, type DetectedRoute, type RouteDetectorId } from "./route-detectors.js";
 import { pathExists } from "./fs-utils.js";
+import { discoverNextProjects, type DiscoveredProject } from "./project-discovery.js";
 import type { ApexConfig, ApexDevice, ApexPageConfig } from "./types.js";
 
 interface WizardArgs {
@@ -39,6 +40,10 @@ interface ProjectProfileAnswer {
 
 interface DetectorChoiceAnswer {
   readonly detector: RouteDetectorId;
+}
+
+interface ProjectSelectionAnswer {
+  readonly projectRoot: string;
 }
 
 type ProjectProfileId = "next-app" | "next-pages" | "spa" | "remix" | "custom";
@@ -244,17 +249,50 @@ async function maybeDetectPages(profile: ProjectProfileId): Promise<ApexPageConf
   }
   const preferredDetector = await selectDetector(profile);
   const projectRootAnswer = await ask<ProjectRootAnswer>(projectRootQuestion);
-  const absoluteRoot = resolve(projectRootAnswer.projectRoot);
-  if (!(await pathExists(absoluteRoot))) {
-    console.log(`No project found at ${absoluteRoot}. Skipping auto-detection.`);
+  const repoRoot = resolve(projectRootAnswer.projectRoot);
+  if (!(await pathExists(repoRoot))) {
+    console.log(`No project found at ${repoRoot}. Skipping auto-detection.`);
     return [];
   }
-  const routes = await detectRoutes({ projectRoot: absoluteRoot, preferredDetectorId: preferredDetector });
+  const detectionRoot = await chooseDetectionRoot({ profile, repoRoot });
+  const routes = await detectRoutes({ projectRoot: detectionRoot, preferredDetectorId: preferredDetector });
   if (routes.length === 0) {
     console.log("No routes detected. Add pages manually.");
     return [];
   }
   return selectDetectedRoutes(routes);
+}
+
+async function chooseDetectionRoot({
+  profile,
+  repoRoot,
+}: {
+  readonly profile: ProjectProfileId;
+  readonly repoRoot: string;
+}): Promise<string> {
+  if (profile !== "next-app" && profile !== "next-pages") {
+    return repoRoot;
+  }
+  const projects: readonly DiscoveredProject[] = await discoverNextProjects({ repoRoot });
+  if (projects.length === 0) {
+    return repoRoot;
+  }
+  if (projects.length === 1) {
+    const onlyProject = projects[0] as DiscoveredProject;
+    console.log(`Detected Next.js app at ${onlyProject.root}.`);
+    return onlyProject.root;
+  }
+  const choices = projects.map((project) => ({
+    title: `${project.name} (${project.root})`,
+    value: project.root,
+  }));
+  const answer = await ask<ProjectSelectionAnswer>({
+    type: "select",
+    name: "projectRoot",
+    message: "Multiple Next.js apps found. Which one do you want to audit?",
+    choices,
+  });
+  return answer.projectRoot ?? repoRoot;
 }
 
 async function selectDetector(profile: ProjectProfileId): Promise<RouteDetectorId | undefined> {
