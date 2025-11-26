@@ -8,6 +8,11 @@ interface CliArgs {
   readonly configPath: string;
 }
 
+const ANSI_RESET = "\u001B[0m" as const;
+const ANSI_RED = "\u001B[31m" as const;
+const ANSI_YELLOW = "\u001B[33m" as const;
+const ANSI_GREEN = "\u001B[32m" as const;
+
 function parseArgs(argv: readonly string[]): CliArgs {
   let configPath: string | undefined;
   for (let i = 2; i < argv.length; i += 1) {
@@ -35,9 +40,11 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
   const markdown: string = buildMarkdown(summary.results);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
-  // Also echo a compact table to stdout for quick viewing.
+  // Also echo a compact, colourised table to stdout for quick viewing.
+  const consoleTable: string = buildConsoleTable(summary.results);
   // eslint-disable-next-line no-console
-  console.log(markdown);
+  console.log(consoleTable);
+  printRedIssues(summary.results);
 }
 
 function buildMarkdown(results: readonly PageDeviceSummary[]): string {
@@ -46,6 +53,15 @@ function buildMarkdown(results: readonly PageDeviceSummary[]): string {
     "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|-------|-----------|",
   ].join("\n");
   const lines: string[] = results.map((result) => buildRow(result));
+  return `${header}\n${lines.join("\n")}`;
+}
+
+function buildConsoleTable(results: readonly PageDeviceSummary[]): string {
+  const header: string = [
+    "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | Error | Top issues |",
+    "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|-------|-----------|",
+  ].join("\n");
+  const lines: string[] = results.map((result) => buildConsoleRow(result));
   return `${header}\n${lines.join("\n")}`;
 }
 
@@ -62,6 +78,23 @@ function buildRow(result: PageDeviceSummary): string {
   return `| ${result.label} | ${result.path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${error} | ${issues} |`;
 }
 
+function buildConsoleRow(result: PageDeviceSummary): string {
+  const scores = result.scores;
+  const metrics = result.metrics;
+  const lcpSeconds: string = metrics.lcpMs !== undefined ? (metrics.lcpMs / 1000).toFixed(1) : "-";
+  const fcpSeconds: string = metrics.fcpMs !== undefined ? (metrics.fcpMs / 1000).toFixed(1) : "-";
+  const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs).toString() : "-";
+  const cls: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
+  const issues: string = formatTopIssues(result.opportunities);
+  const error: string =
+    result.runtimeErrorCode ?? (result.runtimeErrorMessage !== undefined ? result.runtimeErrorMessage : "");
+  const performanceText: string = colourScore(scores.performance);
+  const accessibilityText: string = colourScore(scores.accessibility);
+  const bestPracticesText: string = colourScore(scores.bestPractices);
+  const seoText: string = colourScore(scores.seo);
+  return `| ${result.label} | ${result.path} | ${result.device} | ${performanceText} | ${accessibilityText} | ${bestPracticesText} | ${seoText} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${error} | ${issues} |`;
+}
+
 function formatTopIssues(opportunities: readonly OpportunitySummary[]): string {
   if (opportunities.length === 0) {
     return "";
@@ -74,4 +107,61 @@ function formatTopIssues(opportunities: readonly OpportunitySummary[]): string {
     return `${opp.id}${suffix}`;
   });
   return items.join("; ");
+}
+
+function colourScore(score: number | undefined): string {
+  if (score === undefined) {
+    return "-";
+  }
+  const value: number = score;
+  const text: string = value.toString();
+  let colour: string;
+  if (value < 50) {
+    colour = ANSI_RED;
+  } else if (value < 90) {
+    colour = ANSI_YELLOW;
+  } else {
+    colour = ANSI_GREEN;
+  }
+  return `${colour}${text}${ANSI_RESET}`;
+}
+
+function isRedScore(score: number | undefined): boolean {
+  return typeof score === "number" && score < 50;
+}
+
+function printRedIssues(results: readonly PageDeviceSummary[]): void {
+  const redResults: PageDeviceSummary[] = results.filter((result) => {
+    const scores = result.scores;
+    return (
+      isRedScore(scores.performance) ||
+      isRedScore(scores.accessibility) ||
+      isRedScore(scores.bestPractices) ||
+      isRedScore(scores.seo)
+    );
+  });
+  if (redResults.length === 0) {
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log("\nRed issues (scores below 50):");
+  for (const result of redResults) {
+    const scores = result.scores;
+    const badParts: string[] = [];
+    if (isRedScore(scores.performance)) {
+      badParts.push(`P:${scores.performance}`);
+    }
+    if (isRedScore(scores.accessibility)) {
+      badParts.push(`A:${scores.accessibility}`);
+    }
+    if (isRedScore(scores.bestPractices)) {
+      badParts.push(`BP:${scores.bestPractices}`);
+    }
+    if (isRedScore(scores.seo)) {
+      badParts.push(`SEO:${scores.seo}`);
+    }
+    const issues: string = formatTopIssues(result.opportunities);
+    // eslint-disable-next-line no-console
+    console.log(`- ${result.label} ${result.path} [${result.device}] – ${badParts.join(", ")} – ${issues}`);
+  }
 }

@@ -126,6 +126,11 @@ export async function runAuditsForConfig({
   const firstPage = config.pages[0];
   const healthCheckUrl: string = buildUrl({ baseUrl: config.baseUrl, path: firstPage.path, query: config.query });
   await ensureUrlReachable(healthCheckUrl);
+  const totalSteps: number = config.pages.reduce(
+    (sum: number, page) => sum + page.devices.length * runs,
+    0,
+  );
+  let completedSteps = 0;
   const session: ChromeSession = await createChromeSession(config.chromePort);
   try {
     for (const page of config.pages) {
@@ -142,6 +147,13 @@ export async function runAuditsForConfig({
             logLevel: config.logLevel ?? "error",
           });
           summaries.push(summary);
+          completedSteps += 1;
+          logProgress({
+            completed: completedSteps,
+            total: totalSteps,
+            path: page.path,
+            device,
+          });
         }
         results.push(aggregateSummaries(summaries));
       }
@@ -159,6 +171,31 @@ function buildUrl({ baseUrl, path, query }: { baseUrl: string; path: string; que
   const cleanPath: string = path.startsWith("/") ? path : `/${path}`;
   const queryPart: string = query && query.length > 0 ? query : "";
   return `${cleanBase}${cleanPath}${queryPart}`;
+}
+
+function logProgress({
+  completed,
+  total,
+  path,
+  device,
+}: {
+  readonly completed: number;
+  readonly total: number;
+  readonly path: string;
+  readonly device: ApexDevice;
+}): void {
+  const percentage: number = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const message: string = `Running audits ${completed}/${total} (${percentage}%) – ${path} [${device}]`;
+  if (typeof process !== "undefined" && process.stdout && typeof process.stdout.write === "function" && process.stdout.isTTY) {
+    const padded: string = message.padEnd(80, " ");
+    process.stdout.write(`\r${padded}`);
+    if (completed === total) {
+      process.stdout.write("\n");
+    }
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(message);
 }
 
 async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary> {
