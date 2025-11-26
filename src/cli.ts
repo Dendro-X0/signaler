@@ -2,10 +2,26 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { runAuditsForConfig } from "./lighthouse-runner.js";
-import type { RunSummary, PageDeviceSummary, OpportunitySummary } from "./types.js";
+import type {
+  ApexBudgets,
+  ApexConfig,
+  ApexDevice,
+  CategoryBudgetThresholds,
+  MetricBudgetThresholds,
+  OpportunitySummary,
+  PageDeviceSummary,
+  RunSummary,
+} from "./types.js";
+
+type CliLogLevel = "silent" | "error" | "info" | "verbose";
+
+type CliColorMode = "auto" | "on" | "off";
 
 interface CliArgs {
   readonly configPath: string;
+  readonly ci: boolean;
+  readonly colorMode: CliColorMode;
+  readonly logLevelOverride?: CliLogLevel;
 }
 
 const ANSI_RESET = "\u001B[0m" as const;
@@ -15,15 +31,32 @@ const ANSI_GREEN = "\u001B[32m" as const;
 
 function parseArgs(argv: readonly string[]): CliArgs {
   let configPath: string | undefined;
+  let ci: boolean = false;
+  let colorMode: CliColorMode = "auto";
+  let logLevelOverride: CliLogLevel | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
       configPath = argv[i + 1];
       i += 1;
+    } else if (arg === "--ci") {
+      ci = true;
+    } else if (arg === "--no-color") {
+      colorMode = "off";
+    } else if (arg === "--color") {
+      colorMode = "on";
+    } else if (arg === "--log-level" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "silent" || value === "error" || value === "info" || value === "verbose") {
+        logLevelOverride = value;
+      } else {
+        throw new Error(`Invalid --log-level value: ${value}`);
+      }
+      i += 1;
     }
   }
   const finalConfigPath: string = configPath ?? "apex.config.json";
-  return { configPath: finalConfigPath };
+  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride };
 }
 
 /**
@@ -34,17 +67,24 @@ function parseArgs(argv: readonly string[]): CliArgs {
 export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const args: CliArgs = parseArgs(argv);
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
-  const summary: RunSummary = await runAuditsForConfig({ config, configPath });
+  const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
+  const effectiveConfig: ApexConfig = {
+    ...config,
+    logLevel: effectiveLogLevel,
+  };
+  const summary: RunSummary = await runAuditsForConfig({ config: effectiveConfig, configPath });
   const outputDir: string = resolve(".apex-auditor");
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
   const markdown: string = buildMarkdown(summary.results);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
   // Also echo a compact, colourised table to stdout for quick viewing.
-  const consoleTable: string = buildConsoleTable(summary.results);
+  const useColor: boolean = shouldUseColor(args.ci, args.colorMode);
+  const consoleTable: string = buildConsoleTable(summary.results, useColor);
   // eslint-disable-next-line no-console
   console.log(consoleTable);
   printRedIssues(summary.results);
+  printCiSummary(args, summary.results, effectiveConfig.budgets);
 }
 
 function buildMarkdown(results: readonly PageDeviceSummary[]): string {
@@ -56,12 +96,12 @@ function buildMarkdown(results: readonly PageDeviceSummary[]): string {
   return `${header}\n${lines.join("\n")}`;
 }
 
-function buildConsoleTable(results: readonly PageDeviceSummary[]): string {
+function buildConsoleTable(results: readonly PageDeviceSummary[], useColor: boolean): string {
   const header: string = [
     "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | Error | Top issues |",
     "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|-------|-----------|",
   ].join("\n");
-  const lines: string[] = results.map((result) => buildConsoleRow(result));
+  const lines: string[] = results.map((result) => buildConsoleRow(result, useColor));
   return `${header}\n${lines.join("\n")}`;
 }
 
@@ -78,7 +118,7 @@ function buildRow(result: PageDeviceSummary): string {
   return `| ${result.label} | ${result.path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${error} | ${issues} |`;
 }
 
-function buildConsoleRow(result: PageDeviceSummary): string {
+function buildConsoleRow(result: PageDeviceSummary, useColor: boolean): string {
   const scores = result.scores;
   const metrics = result.metrics;
   const lcpSeconds: string = metrics.lcpMs !== undefined ? (metrics.lcpMs / 1000).toFixed(1) : "-";
@@ -88,10 +128,10 @@ function buildConsoleRow(result: PageDeviceSummary): string {
   const issues: string = formatTopIssues(result.opportunities);
   const error: string =
     result.runtimeErrorCode ?? (result.runtimeErrorMessage !== undefined ? result.runtimeErrorMessage : "");
-  const performanceText: string = colourScore(scores.performance);
-  const accessibilityText: string = colourScore(scores.accessibility);
-  const bestPracticesText: string = colourScore(scores.bestPractices);
-  const seoText: string = colourScore(scores.seo);
+  const performanceText: string = colourScore(scores.performance, useColor);
+  const accessibilityText: string = colourScore(scores.accessibility, useColor);
+  const bestPracticesText: string = colourScore(scores.bestPractices, useColor);
+  const seoText: string = colourScore(scores.seo, useColor);
   return `| ${result.label} | ${result.path} | ${result.device} | ${performanceText} | ${accessibilityText} | ${bestPracticesText} | ${seoText} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${error} | ${issues} |`;
 }
 
@@ -109,12 +149,15 @@ function formatTopIssues(opportunities: readonly OpportunitySummary[]): string {
   return items.join("; ");
 }
 
-function colourScore(score: number | undefined): string {
+function colourScore(score: number | undefined, useColor: boolean): string {
   if (score === undefined) {
     return "-";
   }
   const value: number = score;
   const text: string = value.toString();
+  if (!useColor) {
+    return text;
+  }
   let colour: string;
   if (value < 50) {
     colour = ANSI_RED;
@@ -164,4 +207,141 @@ function printRedIssues(results: readonly PageDeviceSummary[]): void {
     // eslint-disable-next-line no-console
     console.log(`- ${result.label} ${result.path} [${result.device}] – ${badParts.join(", ")} – ${issues}`);
   }
+}
+
+function shouldUseColor(ci: boolean, colorMode: CliColorMode): boolean {
+  if (colorMode === "on") {
+    return true;
+  }
+  if (colorMode === "off") {
+    return false;
+  }
+  if (ci) {
+    return false;
+  }
+  return typeof process !== "undefined" && Boolean(process.stdout && process.stdout.isTTY);
+}
+
+interface BudgetViolation {
+  readonly pageLabel: string;
+  readonly path: string;
+  readonly device: ApexDevice;
+  readonly kind: "category" | "metric";
+  readonly id: string;
+  readonly value: number;
+  readonly limit: number;
+}
+
+function printCiSummary(args: CliArgs, results: readonly PageDeviceSummary[], budgets: ApexBudgets | undefined): void {
+  if (!args.ci) {
+    return;
+  }
+  if (!budgets) {
+    // eslint-disable-next-line no-console
+    console.log("\nCI mode: no budgets configured. Skipping threshold checks.");
+    return;
+  }
+  const violations: BudgetViolation[] = collectBudgetViolations(results, budgets);
+  if (violations.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log("\nCI budgets PASSED.");
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`\nCI budgets FAILED (${violations.length} violations):`);
+  for (const violation of violations) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `- ${violation.pageLabel} ${violation.path} [${violation.device}] – ${violation.kind} ${violation.id}: ${violation.value} vs limit ${violation.limit}`,
+    );
+  }
+  process.exitCode = 1;
+}
+
+function collectBudgetViolations(
+  results: readonly PageDeviceSummary[],
+  budgets: ApexBudgets,
+): BudgetViolation[] {
+  const violations: BudgetViolation[] = [];
+  for (const result of results) {
+    if (budgets.categories) {
+      collectCategoryViolations(result, budgets.categories, violations);
+    }
+    if (budgets.metrics) {
+      collectMetricViolations(result, budgets.metrics, violations);
+    }
+  }
+  return violations;
+}
+
+function collectCategoryViolations(
+  result: PageDeviceSummary,
+  categories: CategoryBudgetThresholds,
+  allViolations: BudgetViolation[],
+): void {
+  const scores = result.scores;
+  addCategoryViolation("performance", scores.performance, categories.performance, result, allViolations);
+  addCategoryViolation("accessibility", scores.accessibility, categories.accessibility, result, allViolations);
+  addCategoryViolation("bestPractices", scores.bestPractices, categories.bestPractices, result, allViolations);
+  addCategoryViolation("seo", scores.seo, categories.seo, result, allViolations);
+}
+
+function addCategoryViolation(
+  id: string,
+  actual: number | undefined,
+  limit: number | undefined,
+  result: PageDeviceSummary,
+  allViolations: BudgetViolation[],
+): void {
+  if (limit === undefined || actual === undefined) {
+    return;
+  }
+  if (actual >= limit) {
+    return;
+  }
+  allViolations.push({
+    pageLabel: result.label,
+    path: result.path,
+    device: result.device,
+    kind: "category",
+    id,
+    value: actual,
+    limit,
+  });
+}
+
+function collectMetricViolations(
+  result: PageDeviceSummary,
+  metricsBudgets: MetricBudgetThresholds,
+  allViolations: BudgetViolation[],
+): void {
+  const metrics = result.metrics;
+  addMetricViolation("lcpMs", metrics.lcpMs, metricsBudgets.lcpMs, result, allViolations);
+  addMetricViolation("fcpMs", metrics.fcpMs, metricsBudgets.fcpMs, result, allViolations);
+  addMetricViolation("tbtMs", metrics.tbtMs, metricsBudgets.tbtMs, result, allViolations);
+  addMetricViolation("cls", metrics.cls, metricsBudgets.cls, result, allViolations);
+}
+
+function addMetricViolation(
+  id: string,
+  actual: number | undefined,
+  limit: number | undefined,
+  result: PageDeviceSummary,
+  allViolations: BudgetViolation[],
+): void {
+  if (limit === undefined || actual === undefined) {
+    return;
+  }
+  if (actual <= limit) {
+    return;
+  }
+  allViolations.push({
+    pageLabel: result.label,
+    path: result.path,
+    device: result.device,
+    kind: "metric",
+    id,
+    value: actual,
+    limit,
+  });
 }

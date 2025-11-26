@@ -2,8 +2,9 @@
 
 import { runAuditCli } from "./cli.js";
 import { runWizardCli } from "./wizard-cli.js";
+import { runQuickstartCli } from "./quickstart-cli.js";
 
-type ApexCommandId = "audit" | "wizard" | "help";
+type ApexCommandId = "audit" | "wizard" | "quickstart" | "help";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -15,9 +16,9 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
   if (rawCommand === undefined || rawCommand === "help" || rawCommand === "--help" || rawCommand === "-h") {
     return { command: "help", argv };
   }
-  if (rawCommand === "audit" || rawCommand === "wizard") {
+  if (rawCommand === "audit" || rawCommand === "wizard" || rawCommand === "quickstart") {
     const commandArgv: readonly string[] = ["node", "apex-auditor", ...argv.slice(3)];
-    return { command: rawCommand, argv: commandArgv };
+    return { command: rawCommand as ApexCommandId, argv: commandArgv };
   }
   return { command: "help", argv };
 }
@@ -28,13 +29,21 @@ function printHelp(): void {
       "ApexAuditor CLI",
       "",
       "Usage:",
+      "  apex-auditor quickstart --base-url <url> [--project-root <path>]",
       "  apex-auditor wizard [--config <path>]",
-      "  apex-auditor audit [--config <path>]",
+      "  apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
       "",
       "Commands:",
+      "  quickstart  Detect routes and run a one-off audit with sensible defaults",
       "  wizard   Run interactive config wizard",
       "  audit    Run Lighthouse audits using apex.config.json",
       "  help     Show this help message",
+      "",
+      "Options (audit):",
+      "  --ci               Enable CI mode with budgets and non-zero exit code on failure",
+      "  --no-color         Disable ANSI colours in console output (default in CI mode)",
+      "  --color            Force ANSI colours in console output",
+      "  --log-level <lvl>  Override Lighthouse log level: silent|error|info|verbose",
     ].join("\n"),
   );
 }
@@ -43,6 +52,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
   const parsed: ParsedBinArgs = parseBinArgs(argv);
   if (parsed.command === "help") {
     printHelp();
+    return;
+  }
+  if (parsed.command === "quickstart") {
+    await runQuickstartCli(parsed.argv);
     return;
   }
   if (parsed.command === "audit") {

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ApexConfig } from "./types.js";
+import type { ApexBudgets, ApexConfig, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
  * Load and minimally validate the ApexAuditor configuration file.
@@ -27,6 +27,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly runs?: unknown;
     readonly pages?: unknown;
     readonly logLevel?: unknown;
+    readonly budgets?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
     throw new Error(`Invalid config at ${absolutePath}: baseUrl must be a non-empty string`);
@@ -45,6 +46,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     rawLogLevel === "silent" || rawLogLevel === "error" || rawLogLevel === "info" || rawLogLevel === "verbose"
       ? rawLogLevel
       : undefined;
+  const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
   return {
     baseUrl,
     query,
@@ -52,6 +54,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     runs,
     logLevel,
     pages,
+    budgets,
   };
 }
 
@@ -84,4 +87,111 @@ function normalisePage(page: unknown, index: number, absolutePath: string) {
     label,
     devices,
   } as const;
+}
+
+function normaliseBudgets(input: unknown, absolutePath: string): ApexBudgets | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!input || typeof input !== "object") {
+    throw new Error(`Invalid budgets in ${absolutePath}: expected object`);
+  }
+  const maybeBudgets = input as {
+    readonly categories?: unknown;
+    readonly metrics?: unknown;
+  };
+  const categories: CategoryBudgetThresholds | undefined = normaliseCategoryBudgets(maybeBudgets.categories, absolutePath);
+  const metrics: MetricBudgetThresholds | undefined = normaliseMetricBudgets(maybeBudgets.metrics, absolutePath);
+  if (!categories && !metrics) {
+    return undefined;
+  }
+  return {
+    categories,
+    metrics,
+  };
+}
+
+function normaliseCategoryBudgets(input: unknown, absolutePath: string): CategoryBudgetThresholds | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!input || typeof input !== "object") {
+    throw new Error(`Invalid budgets.categories in ${absolutePath}: expected object`);
+  }
+  const maybeCategories = input as {
+    readonly performance?: unknown;
+    readonly accessibility?: unknown;
+    readonly bestPractices?: unknown;
+    readonly seo?: unknown;
+  };
+  const performance: number | undefined = normaliseScoreBudget(maybeCategories.performance, "performance", absolutePath);
+  const accessibility: number | undefined = normaliseScoreBudget(maybeCategories.accessibility, "accessibility", absolutePath);
+  const bestPractices: number | undefined = normaliseScoreBudget(maybeCategories.bestPractices, "bestPractices", absolutePath);
+  const seo: number | undefined = normaliseScoreBudget(maybeCategories.seo, "seo", absolutePath);
+  if (
+    performance === undefined &&
+    accessibility === undefined &&
+    bestPractices === undefined &&
+    seo === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    performance,
+    accessibility,
+    bestPractices,
+    seo,
+  };
+}
+
+function normaliseMetricBudgets(input: unknown, absolutePath: string): MetricBudgetThresholds | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!input || typeof input !== "object") {
+    throw new Error(`Invalid budgets.metrics in ${absolutePath}: expected object`);
+  }
+  const maybeMetrics = input as {
+    readonly lcpMs?: unknown;
+    readonly fcpMs?: unknown;
+    readonly tbtMs?: unknown;
+    readonly cls?: unknown;
+  };
+  const lcpMs: number | undefined = normaliseMetricBudget(maybeMetrics.lcpMs, "lcpMs", absolutePath);
+  const fcpMs: number | undefined = normaliseMetricBudget(maybeMetrics.fcpMs, "fcpMs", absolutePath);
+  const tbtMs: number | undefined = normaliseMetricBudget(maybeMetrics.tbtMs, "tbtMs", absolutePath);
+  const cls: number | undefined = normaliseMetricBudget(maybeMetrics.cls, "cls", absolutePath);
+  if (lcpMs === undefined && fcpMs === undefined && tbtMs === undefined && cls === undefined) {
+    return undefined;
+  }
+  return {
+    lcpMs,
+    fcpMs,
+    tbtMs,
+    cls,
+  };
+}
+
+function normaliseScoreBudget(value: unknown, key: string, absolutePath: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "number" || value < 0 || value > 100) {
+    throw new Error(
+      `Invalid budgets.categories.${key} in ${absolutePath}: expected number between 0 and 100`,
+    );
+  }
+  return value;
+}
+
+function normaliseMetricBudget(value: unknown, key: string, absolutePath: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "number" || value < 0) {
+    throw new Error(
+      `Invalid budgets.metrics.${key} in ${absolutePath}: expected non-negative number`,
+    );
+  }
+  return value;
 }

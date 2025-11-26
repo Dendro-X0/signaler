@@ -6,6 +6,25 @@ export interface ApexPageConfig {
   readonly devices: readonly ApexDevice[];
 }
 
+export interface CategoryBudgetThresholds {
+  readonly performance?: number;
+  readonly accessibility?: number;
+  readonly bestPractices?: number;
+  readonly seo?: number;
+}
+
+export interface MetricBudgetThresholds {
+  readonly lcpMs?: number;
+  readonly fcpMs?: number;
+  readonly tbtMs?: number;
+  readonly cls?: number;
+}
+
+export interface ApexBudgets {
+  readonly categories?: CategoryBudgetThresholds;
+  readonly metrics?: MetricBudgetThresholds;
+}
+
 export interface ApexConfig {
   readonly baseUrl: string;
   readonly query?: string;
@@ -13,6 +32,7 @@ export interface ApexConfig {
   readonly runs?: number;
   readonly logLevel?: "silent" | "error" | "info" | "verbose";
   readonly pages: readonly ApexPageConfig[];
+  readonly budgets?: ApexBudgets;
 }
 
 export interface MetricValues {
