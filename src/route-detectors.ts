@@ -88,16 +88,44 @@ export async function detectRoutes(options: DetectRoutesOptions): Promise<Detect
 function createNextAppDetector(): RouteDetector {
   return {
     id: SOURCE_NEXT_APP,
-    canDetect: async (options) => pathExists(join(options.projectRoot, "app")),
-    detect: async (options) => detectAppRoutes(join(options.projectRoot, "app"), options.limit),
+    canDetect: async (options) => {
+      const roots: readonly string[] = await findNextAppRoots(options.projectRoot);
+      return roots.length > 0;
+    },
+    detect: async (options) => {
+      const roots: readonly string[] = await findNextAppRoots(options.projectRoot);
+      const allRoutes: DetectedRoute[] = [];
+      for (const root of roots) {
+        const routes = await detectAppRoutes(root, options.limit);
+        allRoutes.push(...routes);
+        if (allRoutes.length >= options.limit) {
+          break;
+        }
+      }
+      return allRoutes;
+    },
   };
 }
 
 function createNextPagesDetector(): RouteDetector {
   return {
     id: SOURCE_NEXT_PAGES,
-    canDetect: async (options) => pathExists(join(options.projectRoot, "pages")),
-    detect: async (options) => detectPagesRoutes(join(options.projectRoot, "pages"), options.limit),
+    canDetect: async (options) => {
+      const roots: readonly string[] = await findNextPagesRoots(options.projectRoot);
+      return roots.length > 0;
+    },
+    detect: async (options) => {
+      const roots: readonly string[] = await findNextPagesRoots(options.projectRoot);
+      const allRoutes: DetectedRoute[] = [];
+      for (const root of roots) {
+        const routes = await detectPagesRoutes(root, options.limit);
+        allRoutes.push(...routes);
+        if (allRoutes.length >= options.limit) {
+          break;
+        }
+      }
+      return allRoutes;
+    },
   };
 }
 
@@ -115,6 +143,92 @@ function createSpaHtmlDetector(): RouteDetector {
     canDetect: async (options) => Boolean(await findSpaHtml(options.projectRoot)),
     detect: async (options) => detectSpaRoutes(options.projectRoot, options.limit),
   };
+}
+
+async function findNextAppRoots(projectRoot: string): Promise<string[]> {
+  const roots: string[] = [];
+  const seen: Set<string> = new Set();
+  const addRoot = (candidate: string) => {
+    if (!seen.has(candidate)) {
+      seen.add(candidate);
+      roots.push(candidate);
+    }
+  };
+  const directCandidates: readonly string[] = [
+    join(projectRoot, "app"),
+    join(projectRoot, "src", "app"),
+  ];
+  for (const candidate of directCandidates) {
+    if (await pathExists(candidate)) {
+      addRoot(candidate);
+    }
+  }
+  const containers: readonly string[] = ["apps", "packages"] as const;
+  for (const container of containers) {
+    const containerPath: string = join(projectRoot, container);
+    if (!(await pathExists(containerPath))) {
+      continue;
+    }
+    const entries: Dirent[] = await readdir(containerPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const appRoot: string = join(containerPath, entry.name, "app");
+      const srcAppRoot: string = join(containerPath, entry.name, "src", "app");
+      if (await pathExists(appRoot)) {
+        addRoot(appRoot);
+        continue;
+      }
+      if (await pathExists(srcAppRoot)) {
+        addRoot(srcAppRoot);
+      }
+    }
+  }
+  return roots;
+}
+
+async function findNextPagesRoots(projectRoot: string): Promise<string[]> {
+  const roots: string[] = [];
+  const seen: Set<string> = new Set();
+  const addRoot = (candidate: string) => {
+    if (!seen.has(candidate)) {
+      seen.add(candidate);
+      roots.push(candidate);
+    }
+  };
+  const directCandidates: readonly string[] = [
+    join(projectRoot, "pages"),
+    join(projectRoot, "src", "pages"),
+  ];
+  for (const candidate of directCandidates) {
+    if (await pathExists(candidate)) {
+      addRoot(candidate);
+    }
+  }
+  const containers: readonly string[] = ["apps", "packages"] as const;
+  for (const container of containers) {
+    const containerPath: string = join(projectRoot, container);
+    if (!(await pathExists(containerPath))) {
+      continue;
+    }
+    const entries: Dirent[] = await readdir(containerPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const pagesRoot: string = join(containerPath, entry.name, "pages");
+      const srcPagesRoot: string = join(containerPath, entry.name, "src", "pages");
+      if (await pathExists(pagesRoot)) {
+        addRoot(pagesRoot);
+        continue;
+      }
+      if (await pathExists(srcPagesRoot)) {
+        addRoot(srcPagesRoot);
+      }
+    }
+  }
+  return roots;
 }
 
 async function detectAppRoutes(appRoot: string, limit: number): Promise<DetectedRoute[]> {
