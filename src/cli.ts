@@ -6,6 +6,7 @@ import type {
   ApexBudgets,
   ApexConfig,
   ApexDevice,
+  ApexPageConfig,
   CategoryBudgetThresholds,
   MetricBudgetThresholds,
   OpportunitySummary,
@@ -22,6 +23,7 @@ interface CliArgs {
   readonly ci: boolean;
   readonly colorMode: CliColorMode;
   readonly logLevelOverride?: CliLogLevel;
+  readonly deviceFilter?: ApexDevice;
 }
 
 const ANSI_RESET = "\u001B[0m" as const;
@@ -45,6 +47,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let ci: boolean = false;
   let colorMode: CliColorMode = "auto";
   let logLevelOverride: CliLogLevel | undefined;
+  let deviceFilter: ApexDevice | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -64,10 +67,20 @@ function parseArgs(argv: readonly string[]): CliArgs {
         throw new Error(`Invalid --log-level value: ${value}`);
       }
       i += 1;
+    } else if (arg === "--mobile-only") {
+      if (deviceFilter !== undefined && deviceFilter !== "mobile") {
+        throw new Error("Cannot combine --mobile-only and --desktop-only");
+      }
+      deviceFilter = "mobile";
+    } else if (arg === "--desktop-only") {
+      if (deviceFilter !== undefined && deviceFilter !== "desktop") {
+        throw new Error("Cannot combine --mobile-only and --desktop-only");
+      }
+      deviceFilter = "desktop";
     }
   }
   const finalConfigPath: string = configPath ?? "apex.config.json";
-  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride };
+  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter };
 }
 
 /**
@@ -84,7 +97,14 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     ...config,
     logLevel: effectiveLogLevel,
   };
-  const summary: RunSummary = await runAuditsForConfig({ config: effectiveConfig, configPath });
+  const filteredConfig: ApexConfig = filterConfigDevices(effectiveConfig, args.deviceFilter);
+  if (filteredConfig.pages.length === 0) {
+    // eslint-disable-next-line no-console
+    console.error("No pages remain after applying device filter. Check your config and device flags.");
+    process.exitCode = 1;
+    return;
+  }
+  const summary: RunSummary = await runAuditsForConfig({ config: filteredConfig, configPath });
   const outputDir: string = resolve(".apex-auditor");
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
@@ -110,6 +130,30 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   );
 }
 
+function filterConfigDevices(config: ApexConfig, deviceFilter: ApexDevice | undefined): ApexConfig {
+  if (deviceFilter === undefined) {
+    return config;
+  }
+  const filteredPages: ApexPageConfig[] = config.pages
+    .map((page) => filterPageDevices(page, deviceFilter))
+    .filter((page): page is ApexPageConfig => page !== undefined);
+  return {
+    ...config,
+    pages: filteredPages,
+  };
+}
+
+function filterPageDevices(page: ApexPageConfig, deviceFilter: ApexDevice): ApexPageConfig | undefined {
+  const devices: readonly ApexDevice[] = page.devices.filter((device) => device === deviceFilter);
+  if (devices.length === 0) {
+    return undefined;
+  }
+  return {
+    ...page,
+    devices,
+  };
+}
+
 function buildMarkdown(results: readonly PageDeviceSummary[]): string {
   const header: string = [
     "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | Error | Top issues |",
@@ -121,8 +165,8 @@ function buildMarkdown(results: readonly PageDeviceSummary[]): string {
 
 function buildConsoleTable(results: readonly PageDeviceSummary[], useColor: boolean): string {
   const header: string = [
-    "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS |",
-    "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|",
+    "| Label | Path | Device | P | A | BP | SEO |",
+    "|-------|------|--------|---|---|----|-----|",
   ].join("\n");
   const rows: string[] = [];
   let previousKey: string | undefined;
@@ -172,7 +216,7 @@ function buildConsoleScoreLine(result: PageDeviceSummary, useColor: boolean): st
   const bestPracticesText: string = colourScore(scores.bestPractices, useColor);
   const seoText: string = colourScore(scores.seo, useColor);
   const deviceText: string = formatDeviceLabel(result.device, useColor);
-  return `| ${result.label} | ${result.path} | ${deviceText} | ${performanceText} | ${accessibilityText} | ${bestPracticesText} | ${seoText} |  |  |  |  |`;
+  return `| ${result.label} | ${result.path} | ${deviceText} | ${performanceText} | ${accessibilityText} | ${bestPracticesText} | ${seoText} |`;
 }
 
 function buildConsoleMetricsLine(result: PageDeviceSummary, useColor: boolean): string {
@@ -181,7 +225,8 @@ function buildConsoleMetricsLine(result: PageDeviceSummary, useColor: boolean): 
   const fcpText: string = formatMetricSeconds(metrics.fcpMs, FCP_GOOD_MS, FCP_WARN_MS, useColor);
   const tbtText: string = formatMetricMilliseconds(metrics.tbtMs, TBT_GOOD_MS, TBT_WARN_MS, useColor);
   const clsText: string = formatMetricRatio(metrics.cls, CLS_GOOD, CLS_WARN, useColor);
-  return `|  |  |  |  |  |  |  | ${lcpText} | ${fcpText} | ${tbtText} | ${clsText} |`;
+  const parts: string[] = [`LCP ${lcpText}`, `FCP ${fcpText}`, `TBT ${tbtText}`, `CLS ${clsText}`];
+  return `  ↳ Metrics: ${parts.join("  |  ")}`;
 }
 
 function buildConsoleErrorLine(result: PageDeviceSummary, useColor: boolean): string {

@@ -44,6 +44,8 @@ function printHelp(): void {
       "  --no-color         Disable ANSI colours in console output (default in CI mode)",
       "  --color            Force ANSI colours in console output",
       "  --log-level <lvl>  Override Lighthouse log level: silent|error|info|verbose",
+      "  --mobile-only      Run audits only for 'mobile' devices defined in the config",
+      "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
     ].join("\n"),
   );
 }
