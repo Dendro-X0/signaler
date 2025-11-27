@@ -124,7 +124,16 @@ function buildConsoleTable(results: readonly PageDeviceSummary[], useColor: bool
     "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS |",
     "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|",
   ].join("\n");
-  const rows: string[] = results.map((result) => buildConsoleRow(result, useColor));
+  const rows: string[] = [];
+  let previousKey: string | undefined;
+  for (const result of results) {
+    const key: string = `${result.label}:::${result.path}`;
+    if (previousKey !== undefined && key !== previousKey) {
+      rows.push("");
+    }
+    rows.push(buildConsoleRow(result, useColor));
+    previousKey = key;
+  }
   return `${header}\n${rows.join("\n")}`;
 }
 
@@ -198,14 +207,42 @@ function formatTopIssues(opportunities: readonly OpportunitySummary[]): string {
   if (opportunities.length === 0) {
     return "";
   }
-  const items: string[] = opportunities.map((opp) => {
-    const savingsMs: string = opp.estimatedSavingsMs !== undefined ? `${Math.round(opp.estimatedSavingsMs)}ms` : "";
-    const savingsBytes: string = opp.estimatedSavingsBytes !== undefined ? `${Math.round(opp.estimatedSavingsBytes / 1024)}KB` : "";
-    const parts: string[] = [savingsMs, savingsBytes].filter((p) => p.length > 0);
-    const suffix: string = parts.length > 0 ? ` (${parts.join(", ")})` : "";
-    return `${opp.id}${suffix}`;
-  });
+  const meaningful: OpportunitySummary[] = opportunities.filter((opp) => hasMeaningfulSavings(opp));
+  const source: readonly OpportunitySummary[] = meaningful.length > 0 ? meaningful : opportunities;
+  const sorted: OpportunitySummary[] = [...source].sort(compareOpportunitiesByImpact);
+  const limit: number = 2;
+  const top: OpportunitySummary[] = sorted.slice(0, limit);
+  const items: string[] = top.map((opp) => formatOpportunityLabel(opp));
   return items.join("; ");
+}
+
+function hasMeaningfulSavings(opportunity: OpportunitySummary): boolean {
+  const savingsMs: number = opportunity.estimatedSavingsMs ?? 0;
+  const savingsBytes: number = opportunity.estimatedSavingsBytes ?? 0;
+  return savingsMs > 0 || savingsBytes > 0;
+}
+
+function compareOpportunitiesByImpact(a: OpportunitySummary, b: OpportunitySummary): number {
+  const aMs: number = a.estimatedSavingsMs ?? 0;
+  const bMs: number = b.estimatedSavingsMs ?? 0;
+  if (aMs !== bMs) {
+    return bMs - aMs;
+  }
+  const aBytes: number = a.estimatedSavingsBytes ?? 0;
+  const bBytes: number = b.estimatedSavingsBytes ?? 0;
+  return bBytes - aBytes;
+}
+
+function formatOpportunityLabel(opportunity: OpportunitySummary): string {
+  const savingsMs: string =
+    opportunity.estimatedSavingsMs !== undefined ? `${Math.round(opportunity.estimatedSavingsMs)}ms` : "";
+  const savingsBytes: string =
+    opportunity.estimatedSavingsBytes !== undefined
+      ? `${Math.round(opportunity.estimatedSavingsBytes / 1024)}KB`
+      : "";
+  const parts: string[] = [savingsMs, savingsBytes].filter((part) => part.length > 0);
+  const suffix: string = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+  return `${opportunity.id}${suffix}`;
 }
 
 function formatMetricSeconds(
