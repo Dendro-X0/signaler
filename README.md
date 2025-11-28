@@ -2,144 +2,90 @@
 
 ApexAuditor is a small, framework-agnostic Lighthouse runner that gives you **fast, structured insights** across multiple pages and devices.
 
-It is designed to:
+It focuses on:
 
-- **Run anywhere**: attach to an existing Chrome instance (remote debugging) on Windows, macOS, or Linux.
-- **Work with any web stack**: Next.js, Vite, Rails, static sites, etc. – as long as there is an HTTP server.
-- **Summarize multiple pages at once**: homepage, blog, auth, search, and more.
-- **Output developer-friendly reports**: one Markdown table + JSON, ready to paste into PRs or chat.
-
-> V1 focuses on a solid, single-project core. Route auto-detection and monorepo orchestration will land in later versions.
+- **Multi-page, multi-device audits**: run Lighthouse across your key flows in one shot.
+- **Framework flexibility**: works with any stack that serves HTTP (Next.js, Remix, Vite/React, SvelteKit, Rails, static sites, etc.).
+- **Smart route discovery**: auto-detects routes for Next.js (App/Pages), Remix, SvelteKit, and can crawl generic SPAs.
+- **Developer-friendly reports**: readable console output, Markdown tables, and JSON summaries for CI.
 
 ---
 
-## Quick start (single project)
+## Example output
 
-### 1. Install dependencies
+Terminal summary:
 
-From the `apex-auditor` directory:
+![Example terminal output 1](./public/example_output_1.png)
 
-```bash
-pnpm install
-```
+![Example terminal output 2](./public/example_output_2.png)
 
-### 2. Start your web app
+Wizard route selection:
 
-In your application repo (for example, a Next.js app running on port 3000):
-
-```bash
-pnpm start
-# or: pnpm dev, npm run dev, etc.
-```
-
-Make sure the app is reachable at the `baseUrl` you will configure (default example: `http://localhost:3000`).
-
-### 3. Start Chrome with remote debugging
-
-ApexAuditor connects to an existing Chrome instance instead of launching its own. Start Chrome once with a debugging port (example for Windows):
-
-```bash
-"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" \
-  --remote-debugging-port=9222 \
-  --user-data-dir="%LOCALAPPDATA%\\ChromeApex"
-```
-
-On macOS or Linux the flags are the same; only the Chrome path changes.
-
-### 4. Configure pages (wizard-friendly)
-
-Run the guided wizard to scaffold `apex.config.json` and optionally auto-discover routes:
-
-```bash
-pnpm wizard
-```
-
-The wizard asks for the base URL, optional query string, desired Chrome port, run count, and can crawl popular frameworks (Next.js app/pages) to prefill routes before you fine-tune the list. You can still edit the file manually afterwards:
-
-```jsonc
-{
-  "baseUrl": "http://localhost:3000",
-  "query": "?lhci=1",
-  "chromePort": 9222,
-  "runs": 1,
-  "pages": [
-    { "path": "/", "label": "home", "devices": ["mobile", "desktop"] },
-    { "path": "/blog", "label": "blog", "devices": ["mobile", "desktop"] },
-    { "path": "/contact", "label": "contact", "devices": ["mobile"] }
-  ]
-}
-```
-
-> Tip: rerun `pnpm wizard -- --config custom/path.json` to regenerate configs for multiple projects, or pass a different `--project-root` when prompted to detect routes from another app.
-
-- `baseUrl`: root URL of your running app.
-- `query` (optional): query string appended to every URL (for example `?lhci=1` to disable analytics).
-- `chromePort` (optional): remote debugging port (defaults to `9222`).
-- `runs` (optional): how many times to run Lighthouse per page/device (results are averaged).
-- `pages`: list of paths and devices to audit.
-
-### 5. Run an audit
-
-```bash
-pnpm audit
-```
-
-This will:
-
-- Run Lighthouse for every `page × device` defined in `apex.config.json`.
-- Write structured results to `.apex-auditor/summary.json`.
-- Write a human-readable table to `.apex-auditor/summary.md`.
-- Print the same table to the terminal.
-
-Example output:
-
-```text
-| Label | Path | Device  | P  | A  | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS   | Top issues |
-|-------|------|---------|----|----|----|-----|---------|---------|----------|-------|-----------|
-| home  | /    | mobile  | 95 |100 |100 |100  | 2.9     | 0.9     |   160    | 0.002 | render-blocking-resources (140ms); unused-javascript (55KB) |
-| home  | /    | desktop |100 |100 |100 |100  | 0.6     | 0.4     |     0    | 0.016 | unused-javascript (55KB) |
-```
-
-You can paste this table directly into PRs, tickets, or chat to discuss optimizations.
+![Wizard screenshot](./public/wizard_1.png)
 
 ---
 
-## Configuration reference (V1)
+## Installation
 
-```ts
-// apex.config.json (TypeScript shape)
-interface ApexPageConfig {
-  path: string;          // URL path, must start with "/"
-  label: string;         // short label for reports
-  devices: ("mobile" | "desktop")[];
-}
+Install as a dev dependency (recommended):
 
-interface ApexConfig {
-  baseUrl: string;       // e.g. "http://localhost:3000"
-  query?: string;        // e.g. "?lhci=1"
-  chromePort?: number;   // default: 9222
-  runs?: number;         // default: 1
-  pages: ApexPageConfig[];
-}
+```bash
+pnpm add -D apex-auditor
+# or
+npm install --save-dev apex-auditor
 ```
 
-Future versions will add:
+You can also run it without installing by using your package manager's "dlx"/"npx" style command, for example:
 
-- Automatic route discovery (for example, from Next.js `app/` routes or a crawler).
-- Workspace-level configs for monorepos.
-- CI integration recipes and HTML dashboards.
+```bash
+pnpm dlx apex-auditor@latest wizard
+```
 
 ---
 
-## Code structure (V1)
+## Common commands
 
-The codebase is intentionally small and modular:
+All commands are available as a CLI named `apex-auditor` once installed.
 
-- `src/types.ts` – shared type definitions for config and results.
-- `src/config.ts` – loads and validates `apex.config.json`.
-- `src/lighthouse-runner.ts` – runs Lighthouse for each page/device and normalises results.
-- `src/cli.ts` – CLI entry point; orchestrates config + runner, writes JSON/Markdown.
+### Quickstart (auto-detect routes and run a one-off audit)
 
-All public modules use explicit TypeScript types and are written to be reusable in future integrations (route detectors, monorepo orchestration, CI adapters).
+```bash
+apex-auditor quickstart --base-url http://localhost:3000
+```
 
-See `ROADMAP.md` for planned features and phases.
+### Wizard (interactive config with route auto-detection)
+
+```bash
+apex-auditor wizard
+```
+
+The wizard can detect routes for:
+
+- Next.js (App Router / Pages Router)
+- Remix
+- SvelteKit
+- Single Page Apps (Vite/CRA/etc., via HTML crawl)
+
+### Audit (run using an existing config)
+
+```bash
+apex-auditor audit --config apex.config.json
+```
+
+Useful flags:
+
+- `--ci` – enable CI mode with budgets and non-zero exit codes.
+- `--no-color` / `--color` – control ANSI colours in console output.
+- `--log-level <silent|error|info|verbose>` – override Lighthouse log level.
+
+---
+
+## Further documentation
+
+For detailed guides, configuration options, and CI examples, see the `docs/` directory:
+
+- `docs/getting-started.md` – installation, quickstart, wizard, and audit flows.
+- `docs/configuration-and-routes.md` – `apex.config.json` schema and route detection details.
+- `docs/cli-and-ci.md` – CLI flags, CI mode, budgets, and example workflows.
+
+For the longer-term vision and planned features, see `ROADMAP.md`.
