@@ -39,7 +39,7 @@ apex-auditor wizard [--config <path>]
 ### `audit`
 
 ```bash
-apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]
+apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>] [--throttling <method>] [--cpu-slowdown <multiplier>] [--parallel <count>] [--warm-up] [--open] [--json]
 ```
 
 - **Purpose:** run Lighthouse audits based on an existing config file.
@@ -49,18 +49,43 @@ apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <l
   - `--no-color` – disable ANSI colours in console output.
   - `--color` – force ANSI colours even when stdout is not a TTY.
   - `--log-level <level>` – override Lighthouse log level (`silent`, `error`, `info`, `verbose`).
+  - `--throttling <method>` – override throttling method (`simulate` or `devtools`).
+  - `--cpu-slowdown <multiplier>` – override CPU slowdown multiplier (0-20).
+  - `--parallel <count>` – number of pages to audit in parallel (default: 1).
+  - `--warm-up` – perform warm-up requests to all pages before auditing (helps avoid cold start penalties).
+  - `--open` – auto-open the HTML report in your default browser after audit completes.
+  - `--json` – output JSON to stdout instead of the console table (useful for piping).
+  - `--mobile-only` – only audit mobile device configurations.
+  - `--desktop-only` – only audit desktop device configurations.
 - **Behavior:**
   - Runs a pre-flight HTTP request to ensure the first page is reachable.
   - Launches a dedicated headless Chrome instance (unless `chromePort` is set in config).
   - Runs Lighthouse for each `page × device` combination, `runs` times.
   - Aggregates scores and metrics across runs.
-  - Writes results to `.apex-auditor/summary.json` and `.apex-auditor/summary.md`.
-  - Prints a compact table to stdout with Lighthouse-style colour coding.
+  - Writes results to `.apex-auditor/summary.json`, `.apex-auditor/summary.md`, and `.apex-auditor/report.html`.
+  - Prints a compact table to stdout with Lighthouse-style colour coding (unless `--json` is used).
 
 Exit codes:
 
 - `0` – audits completed, and CI budgets (if any) passed.
 - `1` – a runtime error occurred or CI budgets failed.
+
+### Performance score differences
+
+ApexAuditor CLI typically reports **10-20 points lower** Performance scores compared to Chrome DevTools Lighthouse. This is expected behavior due to:
+
+- **Headless Chrome environment** – CLI runs in headless mode which has different performance characteristics
+- **Server cold start** – First requests to localhost may be slower than subsequent ones
+- **Resource isolation** – DevTools shares browser resources; CLI spawns isolated Chrome instances
+
+**Other scores (Accessibility, Best Practices, SEO) are nearly identical** between CLI and DevTools.
+
+**Recommendation:** Use CLI scores for:
+- Relative comparisons between pages
+- Tracking performance changes over time
+- CI/CD budget enforcement
+
+Use DevTools for absolute performance validation when needed.
 
 ---
 

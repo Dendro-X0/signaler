@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { exec } from "node:child_process";
 import { loadConfig } from "./config.js";
 import { runAuditsForConfig } from "./lighthouse-runner.js";
 import type {
@@ -7,6 +8,7 @@ import type {
   ApexConfig,
   ApexDevice,
   ApexPageConfig,
+  ApexThrottlingMethod,
   CategoryBudgetThresholds,
   MetricBudgetThresholds,
   OpportunitySummary,
@@ -24,6 +26,12 @@ interface CliArgs {
   readonly colorMode: CliColorMode;
   readonly logLevelOverride?: CliLogLevel;
   readonly deviceFilter?: ApexDevice;
+  readonly throttlingMethodOverride?: ApexThrottlingMethod;
+  readonly cpuSlowdownOverride?: number;
+  readonly parallelOverride?: number;
+  readonly openReport: boolean;
+  readonly warmUp: boolean;
+  readonly jsonOutput: boolean;
 }
 
 const ANSI_RESET = "\u001B[0m" as const;
@@ -41,6 +49,8 @@ const TBT_GOOD_MS: number = 200;
 const TBT_WARN_MS: number = 600;
 const CLS_GOOD: number = 0.1;
 const CLS_WARN: number = 0.25;
+const INP_GOOD_MS: number = 200;
+const INP_WARN_MS: number = 500;
 
 function parseArgs(argv: readonly string[]): CliArgs {
   let configPath: string | undefined;
@@ -48,6 +58,12 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let colorMode: CliColorMode = "auto";
   let logLevelOverride: CliLogLevel | undefined;
   let deviceFilter: ApexDevice | undefined;
+  let throttlingMethodOverride: ApexThrottlingMethod | undefined;
+  let cpuSlowdownOverride: number | undefined;
+  let parallelOverride: number | undefined;
+  let openReport: boolean = false;
+  let warmUp: boolean = false;
+  let jsonOutput: boolean = false;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -77,10 +93,38 @@ function parseArgs(argv: readonly string[]): CliArgs {
         throw new Error("Cannot combine --mobile-only and --desktop-only");
       }
       deviceFilter = "desktop";
+    } else if (arg === "--throttling" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "simulate" || value === "devtools") {
+        throttlingMethodOverride = value;
+      } else {
+        throw new Error(`Invalid --throttling value: ${value}. Expected "simulate" or "devtools".`);
+      }
+      i += 1;
+    } else if (arg === "--cpu-slowdown" && i + 1 < argv.length) {
+      const value: number = parseFloat(argv[i + 1]);
+      if (Number.isNaN(value) || value <= 0 || value > 20) {
+        throw new Error(`Invalid --cpu-slowdown value: ${argv[i + 1]}. Expected number between 0 and 20.`);
+      }
+      cpuSlowdownOverride = value;
+      i += 1;
+    } else if (arg === "--parallel" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value < 1 || value > 10) {
+        throw new Error(`Invalid --parallel value: ${argv[i + 1]}. Expected integer between 1 and 10.`);
+      }
+      parallelOverride = value;
+      i += 1;
+    } else if (arg === "--open") {
+      openReport = true;
+    } else if (arg === "--warm-up") {
+      warmUp = true;
+    } else if (arg === "--json") {
+      jsonOutput = true;
     }
   }
   const finalConfigPath: string = configPath ?? "apex.config.json";
-  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter };
+  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter, throttlingMethodOverride, cpuSlowdownOverride, parallelOverride, openReport, warmUp, jsonOutput };
 }
 
 /**
@@ -93,9 +137,17 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
   const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
+  const effectiveThrottling: ApexThrottlingMethod | undefined = args.throttlingMethodOverride ?? config.throttlingMethod;
+  const effectiveCpuSlowdown: number | undefined = args.cpuSlowdownOverride ?? config.cpuSlowdownMultiplier;
+  const effectiveParallel: number | undefined = args.parallelOverride ?? config.parallel;
+  const effectiveWarmUp: boolean = args.warmUp || config.warmUp === true;
   const effectiveConfig: ApexConfig = {
     ...config,
     logLevel: effectiveLogLevel,
+    throttlingMethod: effectiveThrottling,
+    cpuSlowdownMultiplier: effectiveCpuSlowdown,
+    parallel: effectiveParallel,
+    warmUp: effectiveWarmUp,
   };
   const filteredConfig: ApexConfig = filterConfigDevices(effectiveConfig, args.deviceFilter);
   if (filteredConfig.pages.length === 0) {
@@ -110,11 +162,25 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
   const markdown: string = buildMarkdown(summary.results);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
+  const html: string = buildHtmlReport(summary.results, summary.configPath);
+  const reportPath: string = resolve(outputDir, "report.html");
+  await writeFile(reportPath, html, "utf8");
+  // Open HTML report in browser if requested
+  if (args.openReport) {
+    openInBrowser(reportPath);
+  }
+  // If JSON output requested, print JSON and exit early
+  if (args.jsonOutput) {
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
   // Also echo a compact, colourised table to stdout for quick viewing.
   const useColor: boolean = shouldUseColor(args.ci, args.colorMode);
   const consoleTable: string = buildConsoleTable(summary.results, useColor);
   // eslint-disable-next-line no-console
   console.log(consoleTable);
+  printSummaryStats(summary.results, useColor);
   printRedIssues(summary.results);
   printCiSummary(args, summary.results, effectiveConfig.budgets);
   printLowestPerformancePages(summary.results, useColor);
@@ -156,11 +222,114 @@ function filterPageDevices(page: ApexPageConfig, deviceFilter: ApexDevice): Apex
 
 function buildMarkdown(results: readonly PageDeviceSummary[]): string {
   const header: string = [
-    "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | Error | Top issues |",
-    "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|-------|-----------|",
+    "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | INP (ms) | Error | Top issues |",
+    "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|----------|-------|-----------|",
   ].join("\n");
   const lines: string[] = results.map((result) => buildRow(result));
   return `${header}\n${lines.join("\n")}`;
+}
+
+function buildHtmlReport(results: readonly PageDeviceSummary[], configPath: string): string {
+  const timestamp: string = new Date().toISOString();
+  const rows: string = results.map((result) => buildHtmlRow(result)).join("\n");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexAuditor Report</title>
+  <style>
+    :root { --green: #0cce6b; --yellow: #ffa400; --red: #ff4e42; --bg: #1a1a2e; --card: #16213e; --text: #eee; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; }
+    h1 { margin-bottom: 0.5rem; }
+    .meta { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
+    .cards { display: grid; gap: 1.5rem; }
+    .card { background: var(--card); border-radius: 12px; padding: 1.5rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+    .card-title { font-size: 1.1rem; font-weight: 600; }
+    .device-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #333; }
+    .device-badge.mobile { background: #0891b2; }
+    .device-badge.desktop { background: #7c3aed; }
+    .scores { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .score-item { text-align: center; flex: 1; }
+    .score-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; margin: 0 auto 0.5rem; border: 3px solid; }
+    .score-circle.green { border-color: var(--green); color: var(--green); }
+    .score-circle.yellow { border-color: var(--yellow); color: var(--yellow); }
+    .score-circle.red { border-color: var(--red); color: var(--red); }
+    .score-label { font-size: 0.75rem; color: #888; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; }
+    .metric { background: #1a1a2e; padding: 0.75rem; border-radius: 8px; text-align: center; }
+    .metric-value { font-size: 1.1rem; font-weight: 600; }
+    .metric-value.green { color: var(--green); }
+    .metric-value.yellow { color: var(--yellow); }
+    .metric-value.red { color: var(--red); }
+    .metric-label { font-size: 0.7rem; color: #888; margin-top: 0.25rem; }
+    .issues { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; }
+    .issues-title { font-size: 0.8rem; color: #888; margin-bottom: 0.5rem; }
+    .issue { font-size: 0.85rem; color: #ccc; padding: 0.25rem 0; }
+  </style>
+</head>
+<body>
+  <h1>ApexAuditor Report</h1>
+  <p class="meta">Generated: ${timestamp} | Config: ${escapeHtml(configPath)}</p>
+  <div class="cards">
+${rows}
+  </div>
+</body>
+</html>`;
+}
+
+function buildHtmlRow(result: PageDeviceSummary): string {
+  const scores = result.scores;
+  const metrics = result.metrics;
+  const lcpSeconds: string = metrics.lcpMs !== undefined ? (metrics.lcpMs / 1000).toFixed(1) + "s" : "-";
+  const fcpSeconds: string = metrics.fcpMs !== undefined ? (metrics.fcpMs / 1000).toFixed(1) + "s" : "-";
+  const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs) + "ms" : "-";
+  const clsVal: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
+  const inpMs: string = metrics.inpMs !== undefined ? Math.round(metrics.inpMs) + "ms" : "-";
+  const issues: string = result.opportunities.slice(0, 3).map((o) => 
+    `<div class="issue">${escapeHtml(o.title)}${o.estimatedSavingsMs ? ` (${Math.round(o.estimatedSavingsMs)}ms)` : ""}</div>`
+  ).join("");
+  return `    <div class="card">
+      <div class="card-header">
+        <div class="card-title">${escapeHtml(result.label)} <span style="color:#888">${escapeHtml(result.path)}</span></div>
+        <span class="device-badge ${result.device}">${result.device}</span>
+      </div>
+      <div class="scores">
+        ${buildScoreCircle("P", scores.performance)}
+        ${buildScoreCircle("A", scores.accessibility)}
+        ${buildScoreCircle("BP", scores.bestPractices)}
+        ${buildScoreCircle("SEO", scores.seo)}
+      </div>
+      <div class="metrics">
+        ${buildMetricBox("LCP", lcpSeconds, getMetricClass(metrics.lcpMs, 2500, 4000))}
+        ${buildMetricBox("FCP", fcpSeconds, getMetricClass(metrics.fcpMs, 1800, 3000))}
+        ${buildMetricBox("TBT", tbtMs, getMetricClass(metrics.tbtMs, 200, 600))}
+        ${buildMetricBox("CLS", clsVal, getMetricClass(metrics.cls, 0.1, 0.25))}
+        ${buildMetricBox("INP", inpMs, getMetricClass(metrics.inpMs, 200, 500))}
+      </div>
+      ${issues ? `<div class="issues"><div class="issues-title">Top Issues</div>${issues}</div>` : ""}
+    </div>`;
+}
+
+function buildScoreCircle(label: string, score: number | undefined): string {
+  const value: string = score !== undefined ? score.toString() : "-";
+  const colorClass: string = score === undefined ? "" : score >= 90 ? "green" : score >= 50 ? "yellow" : "red";
+  return `<div class="score-item"><div class="score-circle ${colorClass}">${value}</div><div class="score-label">${label}</div></div>`;
+}
+
+function buildMetricBox(label: string, value: string, colorClass: string): string {
+  return `<div class="metric"><div class="metric-value ${colorClass}">${value}</div><div class="metric-label">${label}</div></div>`;
+}
+
+function getMetricClass(value: number | undefined, good: number, warn: number): string {
+  if (value === undefined) return "";
+  return value <= good ? "green" : value <= warn ? "yellow" : "red";
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function buildConsoleTable(results: readonly PageDeviceSummary[], useColor: boolean): string {
@@ -188,10 +357,11 @@ function buildRow(result: PageDeviceSummary): string {
   const fcpSeconds: string = metrics.fcpMs !== undefined ? (metrics.fcpMs / 1000).toFixed(1) : "-";
   const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs).toString() : "-";
   const cls: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
+  const inpMs: string = metrics.inpMs !== undefined ? Math.round(metrics.inpMs).toString() : "-";
   const issues: string = formatTopIssues(result.opportunities);
   const error: string =
     result.runtimeErrorCode ?? (result.runtimeErrorMessage !== undefined ? result.runtimeErrorMessage : "");
-  return `| ${result.label} | ${result.path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${error} | ${issues} |`;
+  return `| ${result.label} | ${result.path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${inpMs} | ${error} | ${issues} |`;
 }
 
 function buildConsoleRow(result: PageDeviceSummary, useColor: boolean): string {
@@ -225,7 +395,8 @@ function buildConsoleMetricsLine(result: PageDeviceSummary, useColor: boolean): 
   const fcpText: string = formatMetricSeconds(metrics.fcpMs, FCP_GOOD_MS, FCP_WARN_MS, useColor);
   const tbtText: string = formatMetricMilliseconds(metrics.tbtMs, TBT_GOOD_MS, TBT_WARN_MS, useColor);
   const clsText: string = formatMetricRatio(metrics.cls, CLS_GOOD, CLS_WARN, useColor);
-  const parts: string[] = [`LCP ${lcpText}`, `FCP ${fcpText}`, `TBT ${tbtText}`, `CLS ${clsText}`];
+  const inpText: string = formatMetricMilliseconds(metrics.inpMs, INP_GOOD_MS, INP_WARN_MS, useColor);
+  const parts: string[] = [`LCP ${lcpText}`, `FCP ${fcpText}`, `TBT ${tbtText}`, `CLS ${clsText}`, `INP ${inpText}`];
   return `  ↳ Metrics: ${parts.join("  |  ")}`;
 }
 
@@ -383,6 +554,47 @@ function colourScore(score: number | undefined, useColor: boolean): string {
 
 function isRedScore(score: number | undefined): boolean {
   return typeof score === "number" && score < 50;
+}
+
+function printSummaryStats(results: readonly PageDeviceSummary[], useColor: boolean): void {
+  if (results.length === 0) return;
+  
+  const scores = {
+    performance: results.map((r) => r.scores.performance).filter((s): s is number => s !== undefined),
+    accessibility: results.map((r) => r.scores.accessibility).filter((s): s is number => s !== undefined),
+    bestPractices: results.map((r) => r.scores.bestPractices).filter((s): s is number => s !== undefined),
+    seo: results.map((r) => r.scores.seo).filter((s): s is number => s !== undefined),
+  };
+
+  const avg = (arr: number[]): number => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+  const countGreen = (arr: number[]): number => arr.filter((s) => s >= 90).length;
+  const countYellow = (arr: number[]): number => arr.filter((s) => s >= 50 && s < 90).length;
+  const countRed = (arr: number[]): number => arr.filter((s) => s < 50).length;
+
+  const avgP = avg(scores.performance);
+  const avgA = avg(scores.accessibility);
+  const avgBP = avg(scores.bestPractices);
+  const avgSEO = avg(scores.seo);
+
+  const greenCount = countGreen(scores.performance) + countGreen(scores.accessibility) + countGreen(scores.bestPractices) + countGreen(scores.seo);
+  const yellowCount = countYellow(scores.performance) + countYellow(scores.accessibility) + countYellow(scores.bestPractices) + countYellow(scores.seo);
+  const redCount = countRed(scores.performance) + countRed(scores.accessibility) + countRed(scores.bestPractices) + countRed(scores.seo);
+  const totalScores = greenCount + yellowCount + redCount;
+
+  const formatAvg = (val: number): string => {
+    if (!useColor) return val.toString();
+    const color = val >= 90 ? ANSI_GREEN : val >= 50 ? ANSI_YELLOW : ANSI_RED;
+    return `${color}${val}${ANSI_RESET}`;
+  };
+
+  // eslint-disable-next-line no-console
+  console.log(`\n📊 Summary: Avg P:${formatAvg(avgP)} A:${formatAvg(avgA)} BP:${formatAvg(avgBP)} SEO:${formatAvg(avgSEO)}`);
+  
+  const greenText = useColor ? `${ANSI_GREEN}${greenCount}${ANSI_RESET}` : greenCount.toString();
+  const yellowText = useColor ? `${ANSI_YELLOW}${yellowCount}${ANSI_RESET}` : yellowCount.toString();
+  const redText = useColor ? `${ANSI_RED}${redCount}${ANSI_RESET}` : redCount.toString();
+  // eslint-disable-next-line no-console
+  console.log(`   Scores: ${greenText} green (90+) | ${yellowText} yellow (50-89) | ${redText} red (<50) of ${totalScores} total`);
 }
 
 function printRedIssues(results: readonly PageDeviceSummary[]): void {
@@ -574,6 +786,7 @@ function collectMetricViolations(
   addMetricViolation("fcpMs", metrics.fcpMs, metricsBudgets.fcpMs, result, allViolations);
   addMetricViolation("tbtMs", metrics.tbtMs, metricsBudgets.tbtMs, result, allViolations);
   addMetricViolation("cls", metrics.cls, metricsBudgets.cls, result, allViolations);
+  addMetricViolation("inpMs", metrics.inpMs, metricsBudgets.inpMs, result, allViolations);
 }
 
 function addMetricViolation(
@@ -597,5 +810,23 @@ function addMetricViolation(
     id,
     value: actual,
     limit,
+  });
+}
+
+function openInBrowser(filePath: string): void {
+  const platform = process.platform;
+  let command: string;
+  if (platform === "win32") {
+    command = `start "" "${filePath}"`;
+  } else if (platform === "darwin") {
+    command = `open "${filePath}"`;
+  } else {
+    command = `xdg-open "${filePath}"`;
+  }
+  exec(command, (error) => {
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Could not open report: ${error.message}`);
+    }
   });
 }

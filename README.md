@@ -7,7 +7,9 @@ It focuses on:
 - **Multi-page, multi-device audits**: run Lighthouse across your key flows in one shot.
 - **Framework flexibility**: works with any stack that serves HTTP (Next.js, Remix, Vite/React, SvelteKit, Rails, static sites, etc.).
 - **Smart route discovery**: auto-detects routes for Next.js (App/Pages), Remix, SvelteKit, and can crawl generic SPAs.
-- **Developer-friendly reports**: readable console output, Markdown tables, and JSON summaries for CI.
+- **Developer-friendly reports**: readable console output, Markdown tables, HTML reports, and JSON summaries for CI.
+- **Configurable throttling**: tune CPU/network throttling for accuracy vs speed trade-offs.
+- **Parallel execution**: speed up batch testing with multiple Chrome instances.
 
 ---
 
@@ -72,11 +74,66 @@ The wizard can detect routes for:
 apex-auditor audit --config apex.config.json
 ```
 
-Useful flags:
+**CLI flags:**
 
-- `--ci` – enable CI mode with budgets and non-zero exit codes.
-- `--no-color` / `--color` – control ANSI colours in console output.
-- `--log-level <silent|error|info|verbose>` – override Lighthouse log level.
+| Flag | Description |
+|------|-------------|
+| `--ci` | Enable CI mode with budgets and non-zero exit codes |
+| `--no-color` / `--color` | Control ANSI colours in console output |
+| `--log-level <level>` | Override Lighthouse log level (`silent`, `error`, `info`, `verbose`) |
+| `--throttling <method>` | Throttling method: `simulate` (fast) or `devtools` (accurate) |
+| `--cpu-slowdown <n>` | CPU slowdown multiplier (1-20, default: 4) |
+| `--parallel <n>` | Number of pages to audit in parallel (1-10) |
+| `--warm-up` | Perform warm-up requests before auditing |
+| `--open` | Auto-open HTML report in browser after audit |
+| `--json` | Output JSON to stdout (for piping) |
+| `--mobile-only` | Only audit mobile device configurations |
+| `--desktop-only` | Only audit desktop device configurations |
+
+---
+
+## Output files
+
+After each audit, results are saved to `.apex-auditor/`:
+
+- `summary.json` – structured JSON results
+- `summary.md` – Markdown table
+- `report.html` – visual HTML report with score circles and metrics
+
+---
+
+## Configuration
+
+Example `apex.config.json`:
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "runs": 3,
+  "throttlingMethod": "devtools",
+  "cpuSlowdownMultiplier": 4,
+  "parallel": 2,
+  "warmUp": true,
+  "pages": [
+    { "path": "/", "label": "home", "devices": ["mobile", "desktop"] },
+    { "path": "/docs", "label": "docs", "devices": ["mobile"] }
+  ],
+  "budgets": {
+    "categories": { "performance": 80, "accessibility": 90 },
+    "metrics": { "lcpMs": 2500, "inpMs": 200 }
+  }
+}
+```
+
+---
+
+## Metrics tracked
+
+- **LCP** (Largest Contentful Paint)
+- **FCP** (First Contentful Paint)
+- **TBT** (Total Blocking Time)
+- **CLS** (Cumulative Layout Shift)
+- **INP** (Interaction to Next Paint) - Core Web Vital
 
 ---
 
@@ -88,4 +145,8 @@ For detailed guides, configuration options, and CI examples, see the `docs/` dir
 - `docs/configuration-and-routes.md` – `apex.config.json` schema and route detection details.
 - `docs/cli-and-ci.md` – CLI flags, CI mode, budgets, and example workflows.
 
-For the longer-term vision and planned features, see `ROADMAP.md`.
+---
+
+## License
+
+MIT

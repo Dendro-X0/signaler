@@ -36,12 +36,18 @@ export interface ApexBudgets {
   readonly metrics?: MetricBudgetThresholds;
 }
 
+export type ApexThrottlingMethod = "simulate" | "devtools";
+
 export interface ApexConfig {
   readonly baseUrl: string;
   readonly query?: string;
   readonly chromePort?: number;
   readonly runs?: number;
   readonly logLevel?: "silent" | "error" | "info" | "verbose";
+  readonly throttlingMethod?: ApexThrottlingMethod;
+  readonly cpuSlowdownMultiplier?: number;
+  readonly parallel?: number;
+  readonly warmUp?: boolean;
   readonly pages: readonly ApexPageConfig[];
   readonly budgets?: ApexBudgets;
 }
@@ -70,6 +76,25 @@ export interface ApexConfig {
 - **`logLevel`**
   - Lighthouse log level; one of `"silent" | "error" | "info" | "verbose"`.
   - Can be overridden at runtime with `--log-level` on the CLI.
+- **`throttlingMethod`**
+  - Controls how Lighthouse simulates network/CPU throttling.
+  - `"simulate"` (default): Fast, uses Lantern simulation. May produce lower scores than Chrome DevTools.
+  - `"devtools"`: More accurate, applies real throttling via DevTools protocol. Matches Chrome DevTools results but slower.
+  - Can be overridden at runtime with `--throttling` on the CLI.
+- **`cpuSlowdownMultiplier`**
+  - CPU throttling multiplier. Default is `4` (simulates mid-tier mobile device).
+  - Lower values (1-2) for weaker host machines, higher (6-10) for powerful desktops.
+  - Use [Lighthouse's benchmark calculator](https://lighthouse-cpu-throttling-calculator.vercel.app/) to find optimal value.
+  - Can be overridden at runtime with `--cpu-slowdown` on the CLI.
+- **`parallel`**
+  - Number of pages to audit in parallel. Default is `1` (sequential).
+  - Higher values speed up batch testing but may reduce accuracy due to resource contention.
+  - Recommended: `2-4` for speed, `1` for most accurate results.
+  - Can be overridden at runtime with `--parallel` on the CLI.
+- **`warmUp`**
+  - Whether to perform warm-up HTTP requests to all pages before auditing.
+  - Helps avoid cold start penalties on the first audit.
+  - Can be overridden at runtime with `--warm-up` on the CLI.
 - **`budgets`**
   - Optional thresholds for CI gating; see `cli-and-ci.md`.
 

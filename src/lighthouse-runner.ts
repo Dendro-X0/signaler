@@ -2,7 +2,7 @@ import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexConfig, ApexDevice, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
+import type { ApexConfig, ApexDevice, ApexThrottlingMethod, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
 
 interface ChromeSession {
   readonly port: number;
@@ -49,6 +49,19 @@ interface RunAuditParams {
   readonly device: ApexDevice;
   readonly port: number;
   readonly logLevel: "silent" | "error" | "info" | "verbose";
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly cpuSlowdownMultiplier: number;
+}
+
+interface AuditTask {
+  readonly url: string;
+  readonly path: string;
+  readonly label: string;
+  readonly device: ApexDevice;
+  readonly runs: number;
+  readonly logLevel: "silent" | "error" | "info" | "verbose";
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly cpuSlowdownMultiplier: number;
 }
 
 async function createChromeSession(chromePort?: number): Promise<ChromeSession> {
@@ -65,6 +78,18 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
       "--disable-default-apps",
       "--no-first-run",
       "--no-default-browser-check",
+      // Additional flags for more consistent and accurate results
+      "--disable-background-networking",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-client-side-phishing-detection",
+      "--disable-sync",
+      "--disable-translate",
+      "--metrics-recording-only",
+      "--safebrowsing-disable-auto-update",
+      "--password-store=basic",
+      "--use-mock-keychain",
     ],
   });
   return {
@@ -111,6 +136,48 @@ async function ensureUrlReachable(url: string): Promise<void> {
   });
 }
 
+async function performWarmUp(config: ApexConfig): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log("Performing warm-up requests...");
+  const uniqueUrls: Set<string> = new Set();
+  for (const page of config.pages) {
+    const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
+    uniqueUrls.add(url);
+  }
+  // Make parallel warm-up requests to all unique URLs
+  const warmUpPromises: Promise<void>[] = Array.from(uniqueUrls).map(async (url) => {
+    try {
+      await fetchUrl(url);
+    } catch {
+      // Ignore warm-up errors, the actual audit will catch real issues
+    }
+  });
+  await Promise.all(warmUpPromises);
+  // eslint-disable-next-line no-console
+  console.log(`Warm-up complete (${uniqueUrls.size} pages).`);
+}
+
+async function fetchUrl(url: string): Promise<void> {
+  const parsed = new URL(url);
+  const client = parsed.protocol === "https:" ? httpsRequest : httpRequest;
+  await new Promise<void>((resolve, reject) => {
+    const request = client(
+      {
+        hostname: parsed.hostname,
+        port: parsed.port ? Number(parsed.port) : parsed.protocol === "https:" ? 443 : 80,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: "GET",
+      },
+      (response) => {
+        response.resume();
+        resolve();
+      },
+    );
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 /**
  * Run audits for all pages defined in the config and return a structured summary.
  */
@@ -122,48 +189,150 @@ export async function runAuditsForConfig({
   readonly configPath: string;
 }): Promise<RunSummary> {
   const runs: number = config.runs ?? 1;
-  const results: PageDeviceSummary[] = [];
+  const parallelCount: number = config.parallel ?? 1;
   const firstPage = config.pages[0];
   const healthCheckUrl: string = buildUrl({ baseUrl: config.baseUrl, path: firstPage.path, query: config.query });
   await ensureUrlReachable(healthCheckUrl);
-  const totalSteps: number = config.pages.reduce(
-    (sum: number, page) => sum + page.devices.length * runs,
-    0,
-  );
+  
+  // Perform warm-up requests if enabled
+  if (config.warmUp) {
+    await performWarmUp(config);
+  }
+  
+  const throttlingMethod: ApexThrottlingMethod = config.throttlingMethod ?? "simulate";
+  const cpuSlowdownMultiplier: number = config.cpuSlowdownMultiplier ?? 4;
+  const logLevel = config.logLevel ?? "error";
+
+  // Build list of all audit tasks
+  const tasks: AuditTask[] = [];
+  for (const page of config.pages) {
+    for (const device of page.devices) {
+      const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
+      tasks.push({
+        url,
+        path: page.path,
+        label: page.label,
+        device,
+        runs,
+        logLevel,
+        throttlingMethod,
+        cpuSlowdownMultiplier,
+      });
+    }
+  }
+
+  const totalSteps: number = tasks.length * runs;
   let completedSteps = 0;
-  const session: ChromeSession = await createChromeSession(config.chromePort);
+  const progressLock = { count: 0 };
+
+  const updateProgress = (path: string, device: ApexDevice): void => {
+    progressLock.count += 1;
+    completedSteps = progressLock.count;
+    logProgress({ completed: completedSteps, total: totalSteps, path, device });
+  };
+
+  let results: PageDeviceSummary[];
+
+  if (parallelCount <= 1 || config.chromePort !== undefined) {
+    // Sequential execution (original behavior) or using external Chrome
+    results = await runSequential(tasks, config.chromePort, updateProgress);
+  } else {
+    // Parallel execution with multiple Chrome instances
+    results = await runParallel(tasks, parallelCount, updateProgress);
+  }
+
+  return { configPath, results };
+}
+
+async function runSequential(
+  tasks: AuditTask[],
+  chromePort: number | undefined,
+  updateProgress: (path: string, device: ApexDevice) => void,
+): Promise<PageDeviceSummary[]> {
+  const results: PageDeviceSummary[] = [];
+  const session: ChromeSession = await createChromeSession(chromePort);
   try {
-    for (const page of config.pages) {
-      for (const device of page.devices) {
-        const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
-        const summaries: PageDeviceSummary[] = [];
-        for (let index = 0; index < runs; index += 1) {
-          const summary: PageDeviceSummary = await runSingleAudit({
-            url,
-            path: page.path,
-            label: page.label,
-            device,
-            port: session.port,
-            logLevel: config.logLevel ?? "error",
-          });
-          summaries.push(summary);
-          completedSteps += 1;
-          logProgress({
-            completed: completedSteps,
-            total: totalSteps,
-            path: page.path,
-            device,
-          });
-        }
-        results.push(aggregateSummaries(summaries));
+    for (const task of tasks) {
+      const summaries: PageDeviceSummary[] = [];
+      for (let index = 0; index < task.runs; index += 1) {
+        const summary: PageDeviceSummary = await runSingleAudit({
+          url: task.url,
+          path: task.path,
+          label: task.label,
+          device: task.device,
+          port: session.port,
+          logLevel: task.logLevel,
+          throttlingMethod: task.throttlingMethod,
+          cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        });
+        summaries.push(summary);
+        updateProgress(task.path, task.device);
       }
+      results.push(aggregateSummaries(summaries));
     }
   } finally {
     if (session.close) {
       await session.close();
     }
   }
-  return { configPath, results };
+  return results;
+}
+
+async function runParallel(
+  tasks: AuditTask[],
+  parallelCount: number,
+  updateProgress: (path: string, device: ApexDevice) => void,
+): Promise<PageDeviceSummary[]> {
+  // Create a pool of Chrome sessions
+  const sessions: ChromeSession[] = [];
+  const effectiveParallel: number = Math.min(parallelCount, tasks.length);
+  
+  for (let i = 0; i < effectiveParallel; i += 1) {
+    sessions.push(await createChromeSession());
+  }
+
+  const results: PageDeviceSummary[] = new Array(tasks.length);
+  let taskIndex = 0;
+
+  const runWorker = async (session: ChromeSession, workerIndex: number): Promise<void> => {
+    while (taskIndex < tasks.length) {
+      const currentIndex = taskIndex;
+      taskIndex += 1;
+      const task = tasks[currentIndex];
+      
+      const summaries: PageDeviceSummary[] = [];
+      for (let run = 0; run < task.runs; run += 1) {
+        const summary: PageDeviceSummary = await runSingleAudit({
+          url: task.url,
+          path: task.path,
+          label: task.label,
+          device: task.device,
+          port: session.port,
+          logLevel: task.logLevel,
+          throttlingMethod: task.throttlingMethod,
+          cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        });
+        summaries.push(summary);
+        updateProgress(task.path, task.device);
+      }
+      results[currentIndex] = aggregateSummaries(summaries);
+    }
+  };
+
+  try {
+    await Promise.all(sessions.map((session, index) => runWorker(session, index)));
+  } finally {
+    // Close all Chrome sessions
+    await Promise.all(
+      sessions.map(async (session) => {
+        if (session.close) {
+          await session.close();
+        }
+      }),
+    );
+  }
+
+  return results;
 }
 
 function buildUrl({ baseUrl, path, query }: { baseUrl: string; path: string; query?: string }): string {
@@ -204,7 +373,22 @@ async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary
     output: "json" as const,
     logLevel: params.logLevel,
     onlyCategories: ["performance", "accessibility", "best-practices", "seo"] as const,
-    emulatedFormFactor: params.device,
+    formFactor: params.device,
+    // Throttling configuration for more accurate results
+    throttlingMethod: params.throttlingMethod,
+    throttling: {
+      // CPU throttling - adjustable via config
+      cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
+      // Network throttling (Slow 4G / Fast 3G preset - Lighthouse default)
+      rttMs: 150,
+      throughputKbps: 1638.4,
+      requestLatencyMs: 150 * 3.75,
+      downloadThroughputKbps: 1638.4,
+      uploadThroughputKbps: 750,
+    },
+    screenEmulation: params.device === "mobile"
+      ? { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false }
+      : { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },
   };
   const runnerResult = await lighthouse(params.url, options);
   const lhrUnknown: unknown = runnerResult.lhr as unknown;
@@ -254,15 +438,18 @@ function extractMetrics(lhr: LighthouseResultLike): MetricValues {
   const fcpAudit = audits["first-contentful-paint"] as LighthouseAuditLike | undefined;
   const tbtAudit = audits["total-blocking-time"] as LighthouseAuditLike | undefined;
   const clsAudit = audits["cumulative-layout-shift"] as LighthouseAuditLike | undefined;
+  const inpAudit = audits["interaction-to-next-paint"] as LighthouseAuditLike | undefined;
   const lcpMs: number | undefined = typeof lcpAudit?.numericValue === "number" ? lcpAudit.numericValue : undefined;
   const fcpMs: number | undefined = typeof fcpAudit?.numericValue === "number" ? fcpAudit.numericValue : undefined;
   const tbtMs: number | undefined = typeof tbtAudit?.numericValue === "number" ? tbtAudit.numericValue : undefined;
   const cls: number | undefined = typeof clsAudit?.numericValue === "number" ? clsAudit.numericValue : undefined;
+  const inpMs: number | undefined = typeof inpAudit?.numericValue === "number" ? inpAudit.numericValue : undefined;
   return {
     lcpMs,
     fcpMs,
     tbtMs,
     cls,
+    inpMs,
   };
 }
 
@@ -301,6 +488,7 @@ function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
     fcpMs: averageOf(summaries.map((s) => s.metrics.fcpMs)),
     tbtMs: averageOf(summaries.map((s) => s.metrics.tbtMs)),
     cls: averageOf(summaries.map((s) => s.metrics.cls)),
+    inpMs: averageOf(summaries.map((s) => s.metrics.inpMs)),
   };
   const opportunities: readonly OpportunitySummary[] = summaries[0].opportunities;
   return {

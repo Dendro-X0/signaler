@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ApexBudgets, ApexConfig, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
+import type { ApexBudgets, ApexConfig, ApexThrottlingMethod, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
  * Load and minimally validate the ApexAuditor configuration file.
@@ -27,6 +27,10 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly runs?: unknown;
     readonly pages?: unknown;
     readonly logLevel?: unknown;
+    readonly throttlingMethod?: unknown;
+    readonly cpuSlowdownMultiplier?: unknown;
+    readonly parallel?: unknown;
+    readonly warmUp?: unknown;
     readonly budgets?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
@@ -46,6 +50,23 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     rawLogLevel === "silent" || rawLogLevel === "error" || rawLogLevel === "info" || rawLogLevel === "verbose"
       ? rawLogLevel
       : undefined;
+  const rawThrottlingMethod: unknown = maybeConfig.throttlingMethod;
+  const throttlingMethod: ApexThrottlingMethod | undefined =
+    rawThrottlingMethod === "simulate" || rawThrottlingMethod === "devtools"
+      ? rawThrottlingMethod
+      : undefined;
+  const rawCpuSlowdown: unknown = maybeConfig.cpuSlowdownMultiplier;
+  const cpuSlowdownMultiplier: number | undefined =
+    typeof rawCpuSlowdown === "number" && rawCpuSlowdown > 0 && rawCpuSlowdown <= 20
+      ? rawCpuSlowdown
+      : undefined;
+  const rawParallel: unknown = maybeConfig.parallel;
+  const parallel: number | undefined =
+    typeof rawParallel === "number" && Number.isInteger(rawParallel) && rawParallel >= 1 && rawParallel <= 10
+      ? rawParallel
+      : undefined;
+  const warmUp: boolean | undefined =
+    typeof maybeConfig.warmUp === "boolean" ? maybeConfig.warmUp : undefined;
   const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
   return {
     baseUrl,
@@ -53,6 +74,10 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     chromePort,
     runs,
     logLevel,
+    throttlingMethod,
+    cpuSlowdownMultiplier,
+    parallel,
+    warmUp,
     pages,
     budgets,
   };
@@ -156,12 +181,14 @@ function normaliseMetricBudgets(input: unknown, absolutePath: string): MetricBud
     readonly fcpMs?: unknown;
     readonly tbtMs?: unknown;
     readonly cls?: unknown;
+    readonly inpMs?: unknown;
   };
   const lcpMs: number | undefined = normaliseMetricBudget(maybeMetrics.lcpMs, "lcpMs", absolutePath);
   const fcpMs: number | undefined = normaliseMetricBudget(maybeMetrics.fcpMs, "fcpMs", absolutePath);
   const tbtMs: number | undefined = normaliseMetricBudget(maybeMetrics.tbtMs, "tbtMs", absolutePath);
   const cls: number | undefined = normaliseMetricBudget(maybeMetrics.cls, "cls", absolutePath);
-  if (lcpMs === undefined && fcpMs === undefined && tbtMs === undefined && cls === undefined) {
+  const inpMs: number | undefined = normaliseMetricBudget(maybeMetrics.inpMs, "inpMs", absolutePath);
+  if (lcpMs === undefined && fcpMs === undefined && tbtMs === undefined && cls === undefined && inpMs === undefined) {
     return undefined;
   }
   return {
@@ -169,6 +196,7 @@ function normaliseMetricBudgets(input: unknown, absolutePath: string): MetricBud
     fcpMs,
     tbtMs,
     cls,
+    inpMs,
   };
 }
 
