@@ -1,13 +1,233 @@
+import { mkdtemp, rm, mkdir, readFile, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
-import { cpus, freemem } from "node:os";
+import { cpus, freemem, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexConfig, ApexDevice, ApexThrottlingMethod, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
+import type { ApexCategory, ApexConfig, ApexDevice, ApexThrottlingMethod, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
 
 interface ChromeSession {
   readonly port: number;
   readonly close?: () => Promise<void>;
+}
+
+type IncrementalCache = {
+  readonly version: 1;
+  readonly entries: Record<string, PageDeviceSummary>;
+};
+
+const CACHE_VERSION = 1 as const;
+const CACHE_DIR = ".apex-auditor" as const;
+const CACHE_FILE = "cache.json" as const;
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function buildCacheKey(params: {
+  readonly buildId: string;
+  readonly url: string;
+  readonly path: string;
+  readonly label: string;
+  readonly device: ApexDevice;
+  readonly runs: number;
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly cpuSlowdownMultiplier: number;
+  readonly onlyCategories?: readonly ApexCategory[];
+}): string {
+  const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? [];
+  return stableStringify({
+    buildId: params.buildId,
+    url: params.url,
+    path: params.path,
+    label: params.label,
+    device: params.device,
+    runs: params.runs,
+    throttlingMethod: params.throttlingMethod,
+    cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
+    onlyCategories,
+  });
+}
+
+async function loadIncrementalCache(): Promise<IncrementalCache | undefined> {
+  const cachePath: string = resolve(CACHE_DIR, CACHE_FILE);
+  try {
+    const raw: string = await readFile(cachePath, "utf8");
+    const parsed: unknown = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    const maybe = parsed as { readonly version?: unknown; readonly entries?: unknown };
+    if (maybe.version !== CACHE_VERSION || !maybe.entries || typeof maybe.entries !== "object") {
+      return undefined;
+    }
+    return { version: CACHE_VERSION, entries: maybe.entries as Record<string, PageDeviceSummary> };
+  } catch {
+    return undefined;
+  }
+}
+
+async function saveIncrementalCache(cache: IncrementalCache): Promise<void> {
+  await mkdir(resolve(CACHE_DIR), { recursive: true });
+  const cachePath: string = resolve(CACHE_DIR, CACHE_FILE);
+  await writeFile(cachePath, JSON.stringify(cache, null, 2), "utf8");
+}
+
+function resolveWorkerEntryUrl(): { readonly entry: URL; readonly useTsx: boolean } {
+  const jsEntry: URL = new URL("./lighthouse-worker.js", import.meta.url);
+  const tsEntry: URL = new URL("./lighthouse-worker.ts", import.meta.url);
+  const isSourceRun: boolean = import.meta.url.endsWith(".ts");
+  return { entry: isSourceRun ? tsEntry : jsEntry, useTsx: isSourceRun };
+}
+
+function spawnWorker(): ReturnType<typeof spawn> {
+  const resolved = resolveWorkerEntryUrl();
+  const entryPath: string = fileURLToPath(resolved.entry);
+  const args: string[] = resolved.useTsx ? ["--import", "tsx", entryPath] : [entryPath];
+  return spawn(process.execPath, args, { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+}
+
+async function runParallelInProcesses(
+  tasks: AuditTask[],
+  parallelCount: number,
+  updateProgress: (path: string, device: ApexDevice) => void,
+): Promise<PageDeviceSummary[]> {
+  const effectiveParallel: number = Math.min(parallelCount, tasks.length);
+  const workers: Array<{ readonly child: ReturnType<typeof spawn>; busy: boolean; inFlightId?: string; inFlightTaskIndex?: number }> = [];
+  for (let i = 0; i < effectiveParallel; i += 1) {
+    if (i > 0) {
+      await delayMs(200 * i);
+    }
+    workers.push({ child: spawnWorker(), busy: false });
+  }
+  const results: PageDeviceSummary[] = new Array(tasks.length);
+  const pending: Array<{ readonly taskIndex: number; readonly runIndex: number }> = [];
+  for (let taskIndex = 0; taskIndex < tasks.length; taskIndex += 1) {
+    for (let runIndex = 0; runIndex < tasks[taskIndex].runs; runIndex += 1) {
+      pending.push({ taskIndex, runIndex });
+    }
+  }
+  const summariesByTask: PageDeviceSummary[][] = tasks.map(() => []);
+  const inFlight: Map<string, { readonly taskIndex: number; readonly runIndex: number }> = new Map();
+  const waiters: Map<string, { resolve: (msg: WorkerResponseMessage) => void; reject: (err: Error) => void }> = new Map();
+  const attachListeners = (child: ReturnType<typeof spawn>): void => {
+    child.on("message", (raw: unknown) => {
+      const msg: WorkerResponseMessage | undefined = raw && typeof raw === "object" ? (raw as WorkerResponseMessage) : undefined;
+      if (!msg || typeof msg.id !== "string") {
+        return;
+      }
+      const waiter = waiters.get(msg.id);
+      if (!waiter) {
+        return;
+      }
+      waiters.delete(msg.id);
+      waiter.resolve(msg);
+    });
+    child.on("error", (error: Error) => {
+      for (const [id, waiter] of waiters) {
+        waiter.reject(error);
+        waiters.delete(id);
+      }
+    });
+    child.on("exit", () => {
+      for (const [id, waiter] of waiters) {
+        waiter.reject(new Error("Worker exited"));
+        waiters.delete(id);
+      }
+    });
+    child.on("disconnect", () => {
+      for (const [id, waiter] of waiters) {
+        waiter.reject(new Error("Worker disconnected"));
+        waiters.delete(id);
+      }
+    });
+  };
+  for (const worker of workers) {
+    attachListeners(worker.child);
+  }
+  const runOnWorker = async (workerIndex: number, taskIndex: number): Promise<void> => {
+    const worker = workers[workerIndex];
+    const next = pending.shift();
+    if (!next) {
+      return;
+    }
+    const task: AuditTask = tasks[next.taskIndex];
+    const id: string = `${workerIndex}-${next.taskIndex}-${next.runIndex}-${Date.now()}`;
+    const workerTask: WorkerTask = {
+      url: task.url,
+      path: task.path,
+      label: task.label,
+      device: task.device,
+      logLevel: task.logLevel,
+      throttlingMethod: task.throttlingMethod,
+      cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+      onlyCategories: task.onlyCategories,
+    };
+    worker.busy = true;
+    worker.inFlightId = id;
+    worker.inFlightTaskIndex = next.taskIndex;
+    inFlight.set(id, { taskIndex: next.taskIndex, runIndex: next.runIndex });
+    const response: WorkerResponseMessage = await new Promise<WorkerResponseMessage>((resolve, reject) => {
+      waiters.set(id, { resolve, reject });
+      const request: WorkerRequestMessage = { type: "run", id, task: workerTask };
+      try {
+        worker.child.send(request);
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error("Worker send failed"));
+      }
+    }).catch((error: unknown) => {
+      const flight = inFlight.get(id);
+      if (flight) {
+        pending.unshift({ taskIndex: flight.taskIndex, runIndex: flight.runIndex });
+      }
+      return { type: "error", id, errorMessage: error instanceof Error ? error.message : "Worker failure" } as WorkerResponseMessage;
+    });
+    inFlight.delete(id);
+    worker.busy = false;
+    worker.inFlightId = undefined;
+    worker.inFlightTaskIndex = undefined;
+    if (response.type === "error") {
+      pending.unshift({ taskIndex: next.taskIndex, runIndex: next.runIndex });
+      try {
+        worker.child.kill();
+      } catch {
+        return;
+      }
+      const replacement = spawnWorker();
+      attachListeners(replacement);
+      workers[workerIndex] = { child: replacement, busy: false };
+      return;
+    }
+    summariesByTask[next.taskIndex].push(response.result);
+    updateProgress(task.path, task.device);
+    if (summariesByTask[next.taskIndex].length === task.runs) {
+      results[next.taskIndex] = aggregateSummaries(summariesByTask[next.taskIndex]);
+    }
+  };
+  try {
+    while (pending.length > 0) {
+      const idle: number[] = workers.map((w, idx) => (w.busy ? -1 : idx)).filter((idx) => idx >= 0);
+      if (idle.length === 0) {
+        await delayMs(50);
+        continue;
+      }
+      await Promise.all(idle.map(async (workerIndex) => {
+        await runOnWorker(workerIndex, workerIndex);
+      }));
+    }
+  } finally {
+    for (const worker of workers) {
+      try {
+        worker.child.kill();
+      } catch {
+        continue;
+      }
+    }
+  }
+  return results;
 }
 
 interface LighthouseCategoryLike {
@@ -52,6 +272,7 @@ interface RunAuditParams {
   readonly logLevel: "silent" | "error" | "info" | "verbose";
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
+  readonly onlyCategories?: readonly ApexCategory[];
 }
 
 interface AuditTask {
@@ -63,12 +284,43 @@ interface AuditTask {
   readonly logLevel: "silent" | "error" | "info" | "verbose";
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
+  readonly onlyCategories?: readonly ApexCategory[];
 }
+
+type WorkerTask = {
+  readonly url: string;
+  readonly path: string;
+  readonly label: string;
+  readonly device: ApexDevice;
+  readonly logLevel: "silent" | "error" | "info" | "verbose";
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly cpuSlowdownMultiplier: number;
+  readonly onlyCategories?: readonly ApexCategory[];
+};
+
+type WorkerRequestMessage = {
+  readonly type: "run";
+  readonly id: string;
+  readonly task: WorkerTask;
+};
+
+type WorkerResponseMessage =
+  | {
+      readonly type: "result";
+      readonly id: string;
+      readonly result: PageDeviceSummary;
+    }
+  | {
+      readonly type: "error";
+      readonly id: string;
+      readonly errorMessage: string;
+    };
 
 async function createChromeSession(chromePort?: number): Promise<ChromeSession> {
   if (typeof chromePort === "number") {
     return { port: chromePort };
   }
+  const userDataDir: string = await mkdtemp(join(tmpdir(), "apex-auditor-chrome-"));
   const chrome = await launchChrome({
     chromeFlags: [
       "--headless=new",
@@ -79,6 +331,7 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
       "--disable-default-apps",
       "--no-first-run",
       "--no-default-browser-check",
+      `--user-data-dir=${userDataDir}`,
       // Additional flags for more consistent and accurate results
       "--disable-background-networking",
       "--disable-background-timer-throttling",
@@ -98,6 +351,7 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
     close: async () => {
       try {
         await chrome.kill();
+        await rm(userDataDir, { recursive: true, force: true });
       } catch {
         return;
       }
@@ -145,15 +399,22 @@ async function performWarmUp(config: ApexConfig): Promise<void> {
     const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
     uniqueUrls.add(url);
   }
-  // Make parallel warm-up requests to all unique URLs
-  const warmUpPromises: Promise<void>[] = Array.from(uniqueUrls).map(async (url) => {
-    try {
-      await fetchUrl(url);
-    } catch {
-      // Ignore warm-up errors, the actual audit will catch real issues
+  const urls: readonly string[] = Array.from(uniqueUrls);
+  const warmUpConcurrency: number = Math.max(1, Math.min(4, config.parallel ?? 4));
+  const warmUpNextIndex = { value: 0 };
+  const warmWorker = async (): Promise<void> => {
+    while (warmUpNextIndex.value < urls.length) {
+      const index: number = warmUpNextIndex.value;
+      warmUpNextIndex.value += 1;
+      const url: string = urls[index];
+      try {
+        await fetchUrl(url);
+      } catch {
+        // Ignore warm-up errors, the actual audit will catch real issues
+      }
     }
-  });
-  await Promise.all(warmUpPromises);
+  };
+  await Promise.all(new Array(warmUpConcurrency).fill(0).map(async () => warmWorker()));
   // eslint-disable-next-line no-console
   console.log(`Warm-up complete (${uniqueUrls.size} pages).`);
 }
@@ -186,10 +447,12 @@ export async function runAuditsForConfig({
   config,
   configPath,
   showParallel,
+  onlyCategories,
 }: {
   readonly config: ApexConfig;
   readonly configPath: string;
   readonly showParallel?: boolean;
+  readonly onlyCategories?: readonly ApexCategory[];
 }): Promise<RunSummary> {
   const runs: number = config.runs ?? 1;
   const firstPage = config.pages[0];
@@ -202,6 +465,10 @@ export async function runAuditsForConfig({
   const throttlingMethod: ApexThrottlingMethod = config.throttlingMethod ?? "simulate";
   const cpuSlowdownMultiplier: number = config.cpuSlowdownMultiplier ?? 4;
   const logLevel = config.logLevel ?? "error";
+
+  const incrementalEnabled: boolean = config.incremental === true && typeof config.buildId === "string" && config.buildId.length > 0;
+  const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache() : undefined;
+  const cacheEntries: Record<string, PageDeviceSummary> = cache?.entries ?? {};
 
   // Build list of all audit tasks
   const tasks: AuditTask[] = [];
@@ -217,19 +484,59 @@ export async function runAuditsForConfig({
         logLevel,
         throttlingMethod,
         cpuSlowdownMultiplier,
+        onlyCategories,
       });
     }
   }
 
+  const results: PageDeviceSummary[] = new Array(tasks.length);
+  const tasksToRun: AuditTask[] = [];
+  const taskIndexByRunIndex: number[] = [];
+  let cachedSteps = 0;
+  let cachedCombos = 0;
+  if (incrementalEnabled) {
+    for (let i = 0; i < tasks.length; i += 1) {
+      const task: AuditTask = tasks[i];
+      const key: string = buildCacheKey({
+        buildId: config.buildId as string,
+        url: task.url,
+        path: task.path,
+        label: task.label,
+        device: task.device,
+        runs: task.runs,
+        throttlingMethod: task.throttlingMethod,
+        cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        onlyCategories: task.onlyCategories,
+      });
+      const cached: PageDeviceSummary | undefined = cacheEntries[key];
+      if (cached) {
+        results[i] = cached;
+        cachedSteps += task.runs;
+        cachedCombos += 1;
+      } else {
+        taskIndexByRunIndex.push(i);
+        tasksToRun.push(task);
+      }
+    }
+  } else {
+    for (let i = 0; i < tasks.length; i += 1) {
+      taskIndexByRunIndex.push(i);
+      tasksToRun.push(tasks[i]);
+    }
+  }
+
   const startedAtMs: number = Date.now();
-  const parallelCount: number = resolveParallelCount({ requested: config.parallel, chromePort: config.chromePort, taskCount: tasks.length });
+  const parallelCount: number = resolveParallelCount({ requested: config.parallel, chromePort: config.chromePort, taskCount: tasksToRun.length });
   if (showParallel === true) {
     // eslint-disable-next-line no-console
     console.log(`Resolved parallel workers: ${parallelCount}`);
   }
   const totalSteps: number = tasks.length * runs;
-  let completedSteps = 0;
-  const progressLock = { count: 0 };
+  const executedCombos: number = tasksToRun.length;
+  const executedSteps: number = executedCombos * runs;
+  const cachedComboCount: number = cachedCombos;
+  let completedSteps = cachedSteps;
+  const progressLock = { count: cachedSteps };
 
   const updateProgress = (path: string, device: ApexDevice): void => {
     progressLock.count += 1;
@@ -238,14 +545,40 @@ export async function runAuditsForConfig({
     logProgress({ completed: completedSteps, total: totalSteps, path, device, etaMs });
   };
 
-  let results: PageDeviceSummary[];
+  let resultsFromRunner: PageDeviceSummary[];
 
-  if (parallelCount <= 1 || config.chromePort !== undefined) {
+  if (tasksToRun.length === 0) {
+    resultsFromRunner = [];
+  } else if (parallelCount <= 1 || config.chromePort !== undefined) {
     // Sequential execution (original behavior) or using external Chrome
-    results = await runSequential(tasks, config.chromePort, updateProgress);
+    resultsFromRunner = await runSequential(tasksToRun, config.chromePort, updateProgress);
   } else {
-    // Parallel execution with multiple Chrome instances
-    results = await runParallel(tasks, parallelCount, updateProgress);
+    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, updateProgress);
+  }
+
+  for (let runIndex = 0; runIndex < resultsFromRunner.length; runIndex += 1) {
+    const originalTaskIndex: number = taskIndexByRunIndex[runIndex];
+    results[originalTaskIndex] = resultsFromRunner[runIndex];
+  }
+
+  if (incrementalEnabled) {
+    const nextEntries: Record<string, PageDeviceSummary> = { ...cacheEntries };
+    for (let i = 0; i < tasks.length; i += 1) {
+      const task: AuditTask = tasks[i];
+      const key: string = buildCacheKey({
+        buildId: config.buildId as string,
+        url: task.url,
+        path: task.path,
+        label: task.label,
+        device: task.device,
+        runs: task.runs,
+        throttlingMethod: task.throttlingMethod,
+        cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        onlyCategories: task.onlyCategories,
+      });
+      nextEntries[key] = results[i];
+    }
+    await saveIncrementalCache({ version: CACHE_VERSION, entries: nextEntries });
   }
 
   const completedAtMs: number = Date.now();
@@ -254,10 +587,16 @@ export async function runAuditsForConfig({
   return {
     meta: {
       configPath,
+      buildId: typeof config.buildId === "string" ? config.buildId : undefined,
+      incremental: incrementalEnabled,
       resolvedParallel: parallelCount,
       totalSteps,
       comboCount: tasks.length,
+      executedCombos,
+      cachedCombos: cachedComboCount,
       runsPerCombo: runs,
+      executedSteps,
+      cachedSteps,
       warmUp: config.warmUp === true,
       throttlingMethod,
       cpuSlowdownMultiplier,
@@ -290,6 +629,7 @@ async function runSequential(
           logLevel: task.logLevel,
           throttlingMethod: task.throttlingMethod,
           cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+          onlyCategories: task.onlyCategories,
         });
         summaries.push(summary);
         updateProgress(task.path, task.device);
@@ -310,17 +650,20 @@ async function runParallel(
   updateProgress: (path: string, device: ApexDevice) => void,
 ): Promise<PageDeviceSummary[]> {
   // Create a pool of Chrome sessions
-  const sessions: ChromeSession[] = [];
+  const sessions: { session: ChromeSession }[] = [];
   const effectiveParallel: number = Math.min(parallelCount, tasks.length);
   
   for (let i = 0; i < effectiveParallel; i += 1) {
-    sessions.push(await createChromeSession());
+    if (i > 0) {
+      await delayMs(200 * i);
+    }
+    sessions.push({ session: await createChromeSession() });
   }
 
   const results: PageDeviceSummary[] = new Array(tasks.length);
   let taskIndex = 0;
 
-  const runWorker = async (session: ChromeSession, workerIndex: number): Promise<void> => {
+  const runWorker = async (sessionRef: { session: ChromeSession }, workerIndex: number): Promise<void> => {
     while (taskIndex < tasks.length) {
       const currentIndex = taskIndex;
       taskIndex += 1;
@@ -328,15 +671,11 @@ async function runParallel(
       
       const summaries: PageDeviceSummary[] = [];
       for (let run = 0; run < task.runs; run += 1) {
-        const summary: PageDeviceSummary = await runSingleAudit({
-          url: task.url,
-          path: task.path,
-          label: task.label,
-          device: task.device,
-          port: session.port,
-          logLevel: task.logLevel,
-          throttlingMethod: task.throttlingMethod,
-          cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        const summary: PageDeviceSummary = await runSingleAuditWithRetry({
+          task,
+          sessionRef,
+          updateProgress,
+          maxRetries: 2,
         });
         summaries.push(summary);
         updateProgress(task.path, task.device);
@@ -346,19 +685,76 @@ async function runParallel(
   };
 
   try {
-    await Promise.all(sessions.map((session, index) => runWorker(session, index)));
+    await Promise.all(sessions.map((sessionRef, index) => runWorker(sessionRef, index)));
   } finally {
     // Close all Chrome sessions
     await Promise.all(
-      sessions.map(async (session) => {
-        if (session.close) {
-          await session.close();
+      sessions.map(async (sessionRef) => {
+        if (sessionRef.session.close) {
+          await sessionRef.session.close();
         }
       }),
     );
   }
 
   return results;
+}
+
+function isTransientLighthouseError(error: unknown): boolean {
+  const message: string = error instanceof Error && typeof error.message === "string" ? error.message : "";
+  return (
+    message.includes("performance mark has not been set") ||
+    message.includes("TargetCloseError") ||
+    message.includes("Target closed") ||
+    message.includes("setAutoAttach") ||
+    message.includes("LanternError") ||
+    message.includes("top level events") ||
+    message.includes("CDP") ||
+    message.includes("disconnected")
+  );
+}
+
+async function runSingleAuditWithRetry({
+  task,
+  sessionRef,
+  updateProgress,
+  maxRetries,
+}: {
+  readonly task: AuditTask;
+  readonly sessionRef: { session: ChromeSession };
+  readonly updateProgress: (path: string, device: ApexDevice) => void;
+  readonly maxRetries: number;
+}): Promise<PageDeviceSummary> {
+  let attempt = 0;
+  let lastError: unknown;
+  while (attempt <= maxRetries) {
+    try {
+      return await runSingleAudit({
+        url: task.url,
+        path: task.path,
+        label: task.label,
+        device: task.device,
+        port: sessionRef.session.port,
+        logLevel: task.logLevel,
+        throttlingMethod: task.throttlingMethod,
+        cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        onlyCategories: task.onlyCategories,
+      });
+    } catch (error: unknown) {
+      lastError = error;
+      const shouldRetry: boolean = isTransientLighthouseError(error) && attempt < maxRetries;
+      if (!shouldRetry) {
+        throw error instanceof Error ? error : new Error("Lighthouse failed");
+      }
+      if (sessionRef.session.close) {
+        await sessionRef.session.close();
+      }
+      await delayMs(300 * (attempt + 1));
+      sessionRef.session = await createChromeSession();
+      attempt += 1;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Lighthouse failed after retries");
 }
 
 function buildUrl({ baseUrl, path, query }: { baseUrl: string; path: string; query?: string }): string {
@@ -557,10 +953,12 @@ function resolveParallelCount({
   if (requested !== undefined) {
     return requested;
   }
-  const cpuBased: number = Math.max(1, Math.min(6, Math.floor(cpus().length / 2)));
-  const memoryBased: number = Math.max(1, Math.min(6, Math.floor(freemem() / 1_500_000_000)));
+  const logicalCpus: number = cpus().length;
+  const cpuBased: number = Math.max(1, Math.min(10, Math.floor(logicalCpus * 0.75)));
+  const memoryBased: number = Math.max(1, Math.min(10, Math.floor(freemem() / 1_500_000_000)));
   const suggested: number = Math.max(1, Math.min(cpuBased, memoryBased));
-  return Math.max(1, Math.min(10, Math.min(taskCount, suggested || 1)));
+  const cappedSuggested: number = Math.min(4, suggested || 1);
+  return Math.max(1, Math.min(10, Math.min(taskCount, cappedSuggested)));
 }
 
 function computeEtaMs({
@@ -588,4 +986,10 @@ function formatEta(etaMs: number): string {
   const minutesPart: string = minutes > 0 ? `${minutes}m ` : "";
   const secondsPart: string = `${seconds}s`;
   return `${minutesPart}${secondsPart}`.trim();
+}
+
+function delayMs(duration: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, duration);
+  });
 }

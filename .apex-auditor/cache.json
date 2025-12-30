@@ -1,26 +1,7 @@
 {
-  "meta": {
-    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\next-blogkit-pro\\apex.config.json",
-    "buildId": "dev-1",
-    "incremental": true,
-    "resolvedParallel": 4,
-    "totalSteps": 76,
-    "comboCount": 76,
-    "executedCombos": 0,
-    "cachedCombos": 76,
-    "runsPerCombo": 1,
-    "executedSteps": 0,
-    "cachedSteps": 76,
-    "warmUp": false,
-    "throttlingMethod": "simulate",
-    "cpuSlowdownMultiplier": 4,
-    "startedAt": "2025-12-30T11:21:52.233Z",
-    "completedAt": "2025-12-30T11:21:52.235Z",
-    "elapsedMs": 2,
-    "averageStepMs": 0.02631578947368421
-  },
-  "results": [
-    {
+  "version": 1,
+  "entries": {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/terms\",\"path\":\"/terms\",\"label\":\"terms\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/terms",
       "path": "/terms",
       "label": "terms",
@@ -56,7 +37,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/terms\",\"path\":\"/terms\",\"label\":\"terms\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/terms",
       "path": "/terms",
       "label": "terms",
@@ -92,7 +73,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/settings\",\"path\":\"/settings\",\"label\":\"settings\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/settings",
       "label": "settings",
@@ -128,7 +109,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/settings\",\"path\":\"/settings\",\"label\":\"settings\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/settings",
       "label": "settings",
@@ -164,7 +145,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/profile\",\"path\":\"/profile\",\"label\":\"profile\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/profile",
       "label": "profile",
@@ -200,7 +181,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/profile\",\"path\":\"/profile\",\"label\":\"profile\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/profile",
       "label": "profile",
@@ -236,7 +217,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/privacy\",\"path\":\"/privacy\",\"label\":\"privacy\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/privacy",
       "path": "/privacy",
       "label": "privacy",
@@ -272,7 +253,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/privacy\",\"path\":\"/privacy\",\"label\":\"privacy\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/privacy",
       "path": "/privacy",
       "label": "privacy",
@@ -308,7 +289,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/\",\"path\":\"/\",\"label\":\"home\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/",
       "path": "/",
       "label": "home",
@@ -344,7 +325,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/\",\"path\":\"/\",\"label\":\"home\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/",
       "path": "/",
       "label": "home",
@@ -380,7 +361,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/search\",\"path\":\"/search\",\"label\":\"search\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/search",
       "path": "/search",
       "label": "search",
@@ -416,7 +397,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/search\",\"path\":\"/search\",\"label\":\"search\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/search",
       "path": "/search",
       "label": "search",
@@ -452,7 +433,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/downloads\",\"path\":\"/downloads\",\"label\":\"downloads\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/downloads",
       "path": "/downloads",
       "label": "downloads",
@@ -488,7 +469,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/downloads\",\"path\":\"/downloads\",\"label\":\"downloads\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/downloads",
       "path": "/downloads",
       "label": "downloads",
@@ -524,7 +505,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/downloads/[slug]\",\"path\":\"/downloads/[slug]\",\"label\":\"[slug]\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/downloads/[slug]",
       "path": "/downloads/[slug]",
       "label": "[slug]",
@@ -560,7 +541,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/downloads/[slug]\",\"path\":\"/downloads/[slug]\",\"label\":\"[slug]\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/downloads/[slug]",
       "path": "/downloads/[slug]",
       "label": "[slug]",
@@ -596,7 +577,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/docs\",\"path\":\"/docs\",\"label\":\"docs\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/docs/overview",
       "path": "/docs",
       "label": "docs",
@@ -632,7 +613,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/docs\",\"path\":\"/docs\",\"label\":\"docs\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/docs/overview",
       "path": "/docs",
       "label": "docs",
@@ -668,7 +649,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/docs/[...slug]\",\"path\":\"/docs/[...slug]\",\"label\":\"[...slug]\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/docs/[...slug]",
       "path": "/docs/[...slug]",
       "label": "[...slug]",
@@ -704,7 +685,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/docs/[...slug]\",\"path\":\"/docs/[...slug]\",\"label\":\"[...slug]\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/docs/[...slug]",
       "path": "/docs/[...slug]",
       "label": "[...slug]",
@@ -740,7 +721,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/contact\",\"path\":\"/contact\",\"label\":\"contact\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/contact",
       "path": "/contact",
       "label": "contact",
@@ -776,7 +757,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/contact\",\"path\":\"/contact\",\"label\":\"contact\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/contact",
       "path": "/contact",
       "label": "contact",
@@ -812,7 +793,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/blog\",\"path\":\"/blog\",\"label\":\"blog\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/blog",
       "path": "/blog",
       "label": "blog",
@@ -848,7 +829,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/blog\",\"path\":\"/blog\",\"label\":\"blog\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/blog",
       "path": "/blog",
       "label": "blog",
@@ -884,7 +865,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/blog/[slug]\",\"path\":\"/blog/[slug]\",\"label\":\"[slug]\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/blog/[slug]",
       "path": "/blog/[slug]",
       "label": "[slug]",
@@ -920,7 +901,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/blog/[slug]\",\"path\":\"/blog/[slug]\",\"label\":\"[slug]\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/blog/[slug]",
       "path": "/blog/[slug]",
       "label": "[slug]",
@@ -956,7 +937,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/register\",\"path\":\"/auth/register\",\"label\":\"register\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/register",
       "path": "/auth/register",
       "label": "register",
@@ -992,7 +973,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/register\",\"path\":\"/auth/register\",\"label\":\"register\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/register",
       "path": "/auth/register",
       "label": "register",
@@ -1028,7 +1009,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/new-password\",\"path\":\"/auth/new-password\",\"label\":\"new-password\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/new-password",
       "path": "/auth/new-password",
       "label": "new-password",
@@ -1064,7 +1045,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/new-password\",\"path\":\"/auth/new-password\",\"label\":\"new-password\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/new-password",
       "path": "/auth/new-password",
       "label": "new-password",
@@ -1100,7 +1081,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/login\",\"path\":\"/auth/login\",\"label\":\"login\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/auth/login",
       "label": "login",
@@ -1136,7 +1117,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/login\",\"path\":\"/auth/login\",\"label\":\"login\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/auth/login",
       "label": "login",
@@ -1172,7 +1153,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/forgot-password\",\"path\":\"/auth/forgot-password\",\"label\":\"forgot-password\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/forgot-password",
       "path": "/auth/forgot-password",
       "label": "forgot-password",
@@ -1208,7 +1189,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/forgot-password\",\"path\":\"/auth/forgot-password\",\"label\":\"forgot-password\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/forgot-password",
       "path": "/auth/forgot-password",
       "label": "forgot-password",
@@ -1244,7 +1225,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/2fa\",\"path\":\"/auth/2fa\",\"label\":\"2fa\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/auth/2fa",
       "label": "2fa",
@@ -1280,7 +1261,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/auth/2fa\",\"path\":\"/auth/2fa\",\"label\":\"2fa\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/auth/2fa",
       "label": "2fa",
@@ -1316,7 +1297,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin\",\"path\":\"/admin\",\"label\":\"admin\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin",
       "path": "/admin",
       "label": "admin",
@@ -1352,7 +1333,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin\",\"path\":\"/admin\",\"label\":\"admin\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin",
       "path": "/admin",
       "label": "admin",
@@ -1388,7 +1369,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/users\",\"path\":\"/admin/users\",\"label\":\"users\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/users",
       "path": "/admin/users",
       "label": "users",
@@ -1424,7 +1405,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/users\",\"path\":\"/admin/users\",\"label\":\"users\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/users",
       "path": "/admin/users",
       "label": "users",
@@ -1460,7 +1441,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts\",\"path\":\"/admin/posts\",\"label\":\"posts\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts?include_drafts=true",
       "path": "/admin/posts",
       "label": "posts",
@@ -1496,7 +1477,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts\",\"path\":\"/admin/posts\",\"label\":\"posts\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts?include_drafts=true",
       "path": "/admin/posts",
       "label": "posts",
@@ -1532,7 +1513,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts/[id]/edit\",\"path\":\"/admin/posts/[id]/edit\",\"label\":\"edit\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts/[id]/edit",
       "path": "/admin/posts/[id]/edit",
       "label": "edit",
@@ -1568,7 +1549,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts/[id]/edit\",\"path\":\"/admin/posts/[id]/edit\",\"label\":\"edit\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts/[id]/edit",
       "path": "/admin/posts/[id]/edit",
       "label": "edit",
@@ -1604,7 +1585,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts/new\",\"path\":\"/admin/posts/new\",\"label\":\"new\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts/new",
       "path": "/admin/posts/new",
       "label": "new",
@@ -1640,7 +1621,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/posts/new\",\"path\":\"/admin/posts/new\",\"label\":\"new\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/posts/new",
       "path": "/admin/posts/new",
       "label": "new",
@@ -1676,7 +1657,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/monetization\",\"path\":\"/admin/monetization\",\"label\":\"monetization\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/monetization",
       "path": "/admin/monetization",
       "label": "monetization",
@@ -1712,7 +1693,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/monetization\",\"path\":\"/admin/monetization\",\"label\":\"monetization\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/monetization",
       "path": "/admin/monetization",
       "label": "monetization",
@@ -1748,7 +1729,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/downloads\",\"path\":\"/admin/downloads\",\"label\":\"downloads\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/downloads",
       "path": "/admin/downloads",
       "label": "downloads",
@@ -1784,7 +1765,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/downloads\",\"path\":\"/admin/downloads\",\"label\":\"downloads\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/downloads",
       "path": "/admin/downloads",
       "label": "downloads",
@@ -1820,7 +1801,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/comments\",\"path\":\"/admin/comments\",\"label\":\"comments\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/comments",
       "path": "/admin/comments",
       "label": "comments",
@@ -1856,7 +1837,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/comments\",\"path\":\"/admin/comments\",\"label\":\"comments\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/comments",
       "path": "/admin/comments",
       "label": "comments",
@@ -1892,7 +1873,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics\",\"path\":\"/admin/analytics\",\"label\":\"analytics\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics",
       "path": "/admin/analytics",
       "label": "analytics",
@@ -1928,7 +1909,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics\",\"path\":\"/admin/analytics\",\"label\":\"analytics\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics",
       "path": "/admin/analytics",
       "label": "analytics",
@@ -1964,7 +1945,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics/webhooks\",\"path\":\"/admin/analytics/webhooks\",\"label\":\"webhooks\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics/webhooks",
       "path": "/admin/analytics/webhooks",
       "label": "webhooks",
@@ -2000,7 +1981,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics/webhooks\",\"path\":\"/admin/analytics/webhooks\",\"label\":\"webhooks\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics/webhooks",
       "path": "/admin/analytics/webhooks",
       "label": "webhooks",
@@ -2036,7 +2017,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics/kpis\",\"path\":\"/admin/analytics/kpis\",\"label\":\"kpis\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics/kpis",
       "path": "/admin/analytics/kpis",
       "label": "kpis",
@@ -2072,7 +2053,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/analytics/kpis\",\"path\":\"/admin/analytics/kpis\",\"label\":\"kpis\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/analytics/kpis",
       "path": "/admin/analytics/kpis",
       "label": "kpis",
@@ -2108,7 +2089,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/affiliate-links\",\"path\":\"/admin/affiliate-links\",\"label\":\"affiliate-links\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/affiliate-links",
       "path": "/admin/affiliate-links",
       "label": "affiliate-links",
@@ -2144,7 +2125,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/affiliate-links\",\"path\":\"/admin/affiliate-links\",\"label\":\"affiliate-links\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/affiliate-links",
       "path": "/admin/affiliate-links",
       "label": "affiliate-links",
@@ -2180,7 +2161,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/advertisements\",\"path\":\"/admin/advertisements\",\"label\":\"advertisements\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/advertisements",
       "path": "/admin/advertisements",
       "label": "advertisements",
@@ -2216,7 +2197,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/admin/advertisements\",\"path\":\"/admin/advertisements\",\"label\":\"advertisements\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/admin/advertisements",
       "path": "/admin/advertisements",
       "label": "advertisements",
@@ -2252,7 +2233,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account\",\"path\":\"/account\",\"label\":\"account\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account",
       "path": "/account",
       "label": "account",
@@ -2288,7 +2269,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account\",\"path\":\"/account\",\"label\":\"account\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account",
       "path": "/account",
       "label": "account",
@@ -2324,7 +2305,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/subscriptions\",\"path\":\"/account/subscriptions\",\"label\":\"subscriptions\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/subscriptions",
       "path": "/account/subscriptions",
       "label": "subscriptions",
@@ -2360,7 +2341,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/subscriptions\",\"path\":\"/account/subscriptions\",\"label\":\"subscriptions\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/subscriptions",
       "path": "/account/subscriptions",
       "label": "subscriptions",
@@ -2396,7 +2377,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/settings\",\"path\":\"/account/settings\",\"label\":\"settings\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/account/settings",
       "label": "settings",
@@ -2432,7 +2413,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/settings\",\"path\":\"/account/settings\",\"label\":\"settings\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/account/settings",
       "label": "settings",
@@ -2468,7 +2449,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/profile\",\"path\":\"/account/profile\",\"label\":\"profile\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/account/profile",
       "label": "profile",
@@ -2504,7 +2485,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/profile\",\"path\":\"/account/profile\",\"label\":\"profile\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/auth/login",
       "path": "/account/profile",
       "label": "profile",
@@ -2540,7 +2521,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/comments\",\"path\":\"/account/comments\",\"label\":\"comments\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/comments",
       "path": "/account/comments",
       "label": "comments",
@@ -2576,7 +2557,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/comments\",\"path\":\"/account/comments\",\"label\":\"comments\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/comments",
       "path": "/account/comments",
       "label": "comments",
@@ -2612,7 +2593,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/bookmarks\",\"path\":\"/account/bookmarks\",\"label\":\"bookmarks\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/bookmarks",
       "path": "/account/bookmarks",
       "label": "bookmarks",
@@ -2648,7 +2629,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/bookmarks\",\"path\":\"/account/bookmarks\",\"label\":\"bookmarks\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/bookmarks",
       "path": "/account/bookmarks",
       "label": "bookmarks",
@@ -2684,7 +2665,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/billing\",\"path\":\"/account/billing\",\"label\":\"billing\",\"device\":\"mobile\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/billing",
       "path": "/account/billing",
       "label": "billing",
@@ -2720,7 +2701,7 @@
         }
       ]
     },
-    {
+    "{\"buildId\":\"dev-1\",\"url\":\"http://localhost:3000/account/billing\",\"path\":\"/account/billing\",\"label\":\"billing\",\"device\":\"desktop\",\"runs\":1,\"throttlingMethod\":\"simulate\",\"cpuSlowdownMultiplier\":4,\"onlyCategories\":[]}": {
       "url": "http://localhost:3000/account/billing",
       "path": "/account/billing",
       "label": "billing",
@@ -2756,5 +2737,5 @@
         }
       ]
     }
-  ]
+  }
 }

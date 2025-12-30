@@ -36,6 +36,7 @@ export interface ApexBudgets {
 export interface ApexConfig {
   readonly baseUrl: string;
   readonly query?: string;
+  readonly buildId?: string;
   readonly chromePort?: number;
   readonly runs?: number;
   readonly logLevel?: "silent" | "error" | "info" | "verbose";
@@ -54,7 +55,7 @@ export interface ApexConfig {
   /**
    * Number of pages to audit in parallel. Default is 1 (sequential).
    * Higher values speed up batch testing but may reduce accuracy due to resource contention.
-   * Recommended: 2-4 for speed, 1 for most accurate results.
+   * Auto-default: up to 4 based on CPU/memory. Recommended: 2-4 for speed, 1 for most accurate results.
    */
   readonly parallel?: number;
   /**
@@ -62,6 +63,7 @@ export interface ApexConfig {
    * Helps avoid cold start penalties on the first audit.
    */
   readonly warmUp?: boolean;
+  readonly incremental?: boolean;
   readonly pages: readonly ApexPageConfig[];
   readonly budgets?: ApexBudgets;
 }
@@ -80,6 +82,8 @@ export interface CategoryScores {
   readonly bestPractices?: number;
   readonly seo?: number;
 }
+
+export type ApexCategory = "performance" | "accessibility" | "best-practices" | "seo";
 
 export interface OpportunitySummary {
   readonly id: string;
@@ -102,10 +106,16 @@ export interface PageDeviceSummary {
 
 export interface RunMeta {
   readonly configPath: string;
+  readonly buildId?: string;
+  readonly incremental: boolean;
   readonly resolvedParallel: number;
   readonly totalSteps: number;
   readonly comboCount: number;
+  readonly executedCombos: number;
+  readonly cachedCombos: number;
   readonly runsPerCombo: number;
+  readonly executedSteps: number;
+  readonly cachedSteps: number;
   readonly warmUp: boolean;
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;

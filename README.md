@@ -59,6 +59,8 @@ apex-auditor quickstart --base-url http://localhost:3000
 
 ```bash
 apex-auditor wizard
+# or
+apex-auditor guide   # same as wizard, with inline tips for new users
 ```
 
 The wizard can detect routes for:
@@ -74,6 +76,10 @@ The wizard can detect routes for:
 apex-auditor audit --config apex.config.json
 ```
 
+Tip:
+
+- For best accuracy and stable throughput, run audits against a production server (e.g., Next.js: `next build && next start`) instead of `next dev`.
+
 **CLI flags:**
 
 | Flag | Description |
@@ -88,8 +94,15 @@ apex-auditor audit --config apex.config.json
 | `--open` | Auto-open HTML report in browser after audit |
 | `--json` | Output JSON to stdout (for piping) |
 | `--show-parallel` | Print the resolved parallel worker count before running |
+| `--fast` | Quick preset: simulate throttling, runs=1, performance-only |
+| `--quick` | Preset: runs=1 (fast feedback) without changing throttling defaults |
+| `--accurate` | Preset: devtools throttling + warm-up + runs=3 (recommended for baselines) |
+| `--incremental` | Reuse cached results for unchanged combos (requires `--build-id`) |
+| `--build-id <id>` | Build identifier used as the cache boundary for `--incremental` |
 | `--mobile-only` | Only audit mobile device configurations |
 | `--desktop-only` | Only audit desktop device configurations |
+| `--parallel <n>` | Override parallel workers (default auto) |
+| `--stable` | Flake-resistant: forces serial runs (parallel=1) |
 
 ---
 
@@ -100,6 +113,14 @@ After each audit, results are saved to `.apex-auditor/`:
 - `summary.json` – structured JSON results
 - `summary.md` – Markdown table plus a structured meta section (parallel, timings, throttling)
 - `report.html` – visual HTML report with score circles, metrics, and a meta grid (resolved parallel, elapsed, avg/step)
+- The CLI prints the file path and `file://` URL to the HTML report after every run.
+
+Defaults:
+- Parallel auto-tunes based on CPU/memory (up to 4 by default). Override with `--parallel` or see with `--show-parallel`.
+- Throttling method: `simulate`, CPU slowdown: `4`, runs per combo: `1`.
+- Help topics: `apex-auditor help topics`, `apex-auditor help budgets`, `apex-auditor help configs`, `apex-auditor help ci`.
+- Warm-up (`--warm-up` / `warmUp: true`) makes bounded-concurrency requests to each configured page to reduce cold-start/cache noise.
+- Incremental (`--incremental --build-id <id>` / `incremental: true` + `buildId: "..."`) reuses `.apex-auditor/cache.json` to skip unchanged audits between runs (if no buildId is provided, the CLI will try to auto-detect one for Next.js or git).
 
 ---
 

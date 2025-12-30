@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 - 2025-12-29
+
+### Added
+- Diff view in CLI: new **Changes** section compares the current run to the previous `.apex-auditor/summary.json` (avg score deltas, top regressions/improvements, added/removed combos).
+- Auto buildId resolution for incremental mode: detects Next.js `.next/BUILD_ID` or git HEAD (no shell), and warns if unresolved instead of silently running incremental.
+- Presets: `--quick` (runs=1 fast feedback) and `--accurate` (devtools throttling, warm-up, runs=3, parallel=2) with single-preset enforcement alongside existing `--fast`.
+
+### Documentation
+- CLI help and README describe `--quick`, `--accurate`, and the auto buildId behavior for incremental caching.
+
 ## 0.3.0 - 2025-12-29
 
 ### Added

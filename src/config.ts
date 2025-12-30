@@ -23,6 +23,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const maybeConfig = input as {
     readonly baseUrl?: unknown;
     readonly query?: unknown;
+    readonly buildId?: unknown;
     readonly chromePort?: unknown;
     readonly runs?: unknown;
     readonly pages?: unknown;
@@ -31,6 +32,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly cpuSlowdownMultiplier?: unknown;
     readonly parallel?: unknown;
     readonly warmUp?: unknown;
+    readonly incremental?: unknown;
     readonly budgets?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
@@ -43,6 +45,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const pages = pagesInput.map((page, index) => normalisePage(page, index, absolutePath));
   const baseUrl: string = maybeConfig.baseUrl.replace(/\/$/, "");
   const query: string | undefined = typeof maybeConfig.query === "string" ? maybeConfig.query : undefined;
+  const buildId: string | undefined = typeof maybeConfig.buildId === "string" && maybeConfig.buildId.length > 0 ? maybeConfig.buildId : undefined;
   const chromePort: number | undefined = typeof maybeConfig.chromePort === "number" ? maybeConfig.chromePort : undefined;
   const runs: number | undefined = typeof maybeConfig.runs === "number" && maybeConfig.runs > 0 ? maybeConfig.runs : undefined;
   const rawLogLevel: unknown = maybeConfig.logLevel;
@@ -67,10 +70,13 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
       : undefined;
   const warmUp: boolean | undefined =
     typeof maybeConfig.warmUp === "boolean" ? maybeConfig.warmUp : undefined;
+  const incremental: boolean | undefined =
+    typeof maybeConfig.incremental === "boolean" ? maybeConfig.incremental : undefined;
   const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
   return {
     baseUrl,
     query,
+    buildId,
     chromePort,
     runs,
     logLevel,
@@ -78,6 +84,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     cpuSlowdownMultiplier,
     parallel,
     warmUp,
+    incremental,
     pages,
     budgets,
   };

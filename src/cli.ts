@@ -1,9 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { exec } from "node:child_process";
 import { loadConfig } from "./config.js";
 import { runAuditsForConfig } from "./lighthouse-runner.js";
 import type {
+  ApexCategory,
   ApexBudgets,
   ApexConfig,
   ApexDevice,
@@ -18,21 +19,27 @@ import type {
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
-type CliColorMode = "auto" | "on" | "off";
+type CliColorMode = "auto" | "always" | "never";
 
 interface CliArgs {
   readonly configPath: string;
   readonly ci: boolean;
   readonly colorMode: CliColorMode;
-  readonly logLevelOverride?: CliLogLevel;
-  readonly deviceFilter?: ApexDevice;
-  readonly throttlingMethodOverride?: ApexThrottlingMethod;
-  readonly cpuSlowdownOverride?: number;
-  readonly parallelOverride?: number;
+  readonly logLevelOverride: CliLogLevel | undefined;
+  readonly deviceFilter: ApexDevice | undefined;
+  readonly throttlingMethodOverride: ApexThrottlingMethod | undefined;
+  readonly cpuSlowdownOverride: number | undefined;
+  readonly parallelOverride: number | undefined;
+  readonly stable: boolean;
   readonly openReport: boolean;
   readonly warmUp: boolean;
+  readonly incremental: boolean;
+  readonly buildId: string | undefined;
+  readonly quick: boolean;
+  readonly accurate: boolean;
   readonly jsonOutput: boolean;
   readonly showParallel: boolean;
+  readonly fast: boolean;
 }
 
 const ANSI_RESET = "\u001B[0m" as const;
@@ -62,10 +69,16 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let throttlingMethodOverride: ApexThrottlingMethod | undefined;
   let cpuSlowdownOverride: number | undefined;
   let parallelOverride: number | undefined;
-  let openReport: boolean = false;
-  let warmUp: boolean = false;
-  let jsonOutput: boolean = false;
-  let showParallel: boolean = false;
+  let stable = false;
+  let openReport = false;
+  let warmUp = false;
+  let incremental = false;
+  let buildId: string | undefined;
+  let quick = false;
+  let accurate = false;
+  let jsonOutput = false;
+  let showParallel = false;
+  let fast = false;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -74,9 +87,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
     } else if (arg === "--ci") {
       ci = true;
     } else if (arg === "--no-color") {
-      colorMode = "off";
+      colorMode = "never";
     } else if (arg === "--color") {
-      colorMode = "on";
+      colorMode = "always";
     } else if (arg === "--log-level" && i + 1 < argv.length) {
       const value: string = argv[i + 1];
       if (value === "silent" || value === "error" || value === "info" || value === "verbose") {
@@ -117,18 +130,207 @@ function parseArgs(argv: readonly string[]): CliArgs {
       }
       parallelOverride = value;
       i += 1;
-    } else if (arg === "--open") {
+    } else if (arg.startsWith("--parallel=")) {
+      parallelOverride = Number(arg.split("=")[1]);
+      if (Number.isNaN(parallelOverride)) {
+        parallelOverride = undefined;
+      }
+    } else if (arg === "--stable") {
+      stable = true;
+    } else if (arg === "--open" || arg === "--open-report") {
       openReport = true;
     } else if (arg === "--warm-up") {
       warmUp = true;
+    } else if (arg === "--incremental") {
+      incremental = true;
+    } else if (arg === "--build-id" && i + 1 < argv.length) {
+      buildId = argv[i + 1];
+      i += 1;
+    } else if (arg === "--quick") {
+      quick = true;
+    } else if (arg === "--accurate") {
+      accurate = true;
     } else if (arg === "--json") {
       jsonOutput = true;
     } else if (arg === "--show-parallel") {
       showParallel = true;
+    } else if (arg === "--fast") {
+      fast = true;
     }
   }
+  const presetCount: number = [fast, quick, accurate].filter((flag) => flag).length;
+  if (presetCount > 1) {
+    throw new Error("Choose only one preset: --fast, --quick, or --accurate");
+  }
   const finalConfigPath: string = configPath ?? "apex.config.json";
-  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter, throttlingMethodOverride, cpuSlowdownOverride, parallelOverride, openReport, warmUp, jsonOutput, showParallel };
+  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter, throttlingMethodOverride, cpuSlowdownOverride, parallelOverride, stable, openReport, warmUp, incremental, buildId, quick, accurate, jsonOutput, showParallel, fast };
+}
+
+async function resolveAutoBuildId(configPath: string): Promise<string | undefined> {
+  const startDir: string = dirname(configPath);
+  const tryReadText = async (absolutePath: string): Promise<string | undefined> => {
+    try {
+      const raw: string = await readFile(absolutePath, "utf8");
+      const trimmed: string = raw.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const findUp = async (relativePath: string): Promise<string | undefined> => {
+    let currentDir: string = startDir;
+    while (true) {
+      const candidate: string = resolve(currentDir, relativePath);
+      const value: string | undefined = await tryReadText(candidate);
+      if (value !== undefined) {
+        return value;
+      }
+      const parent: string = dirname(currentDir);
+      if (parent === currentDir) {
+        return undefined;
+      }
+      currentDir = parent;
+    }
+  };
+  const nextBuildId: string | undefined = await findUp(".next/BUILD_ID");
+  if (nextBuildId !== undefined) {
+    return `next:${nextBuildId}`;
+  }
+  const gitHead: string | undefined = await findUp(".git/HEAD");
+  if (gitHead === undefined) {
+    return undefined;
+  }
+  if (gitHead.startsWith("ref:")) {
+    const refPath: string = gitHead.replace("ref:", "").trim();
+    const refValue: string | undefined = await findUp(`.git/${refPath}`);
+    return refValue !== undefined ? `git:${refValue}` : undefined;
+  }
+  return `git:${gitHead}`;
+}
+
+async function loadPreviousSummary(): Promise<RunSummary | undefined> {
+  const previousPath: string = resolve(".apex-auditor", "summary.json");
+  try {
+    const raw: string = await readFile(previousPath, "utf8");
+    const parsed: unknown = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    return parsed as RunSummary;
+  } catch {
+    return undefined;
+  }
+}
+
+type AvgScores = {
+  readonly performance: number;
+  readonly accessibility: number;
+  readonly bestPractices: number;
+  readonly seo: number;
+};
+
+function computeAvgScores(results: readonly PageDeviceSummary[]): AvgScores {
+  const sums = results.reduce(
+    (acc, r) => {
+      return {
+        performance: acc.performance + (r.scores.performance ?? 0),
+        accessibility: acc.accessibility + (r.scores.accessibility ?? 0),
+        bestPractices: acc.bestPractices + (r.scores.bestPractices ?? 0),
+        seo: acc.seo + (r.scores.seo ?? 0),
+        count: acc.count + 1,
+      };
+    },
+    { performance: 0, accessibility: 0, bestPractices: 0, seo: 0, count: 0 },
+  );
+  const count: number = Math.max(1, sums.count);
+  return {
+    performance: Math.round(sums.performance / count),
+    accessibility: Math.round(sums.accessibility / count),
+    bestPractices: Math.round(sums.bestPractices / count),
+    seo: Math.round(sums.seo / count),
+  };
+}
+
+type ChangeLine = {
+  readonly key: string;
+  readonly label: string;
+  readonly path: string;
+  readonly device: ApexDevice;
+  readonly deltaP: number;
+};
+
+function buildChangesBox(previous: RunSummary, current: RunSummary, useColor: boolean): string {
+  const prevAvg: AvgScores = computeAvgScores(previous.results);
+  const currAvg: AvgScores = computeAvgScores(current.results);
+  const avgDelta = {
+    performance: currAvg.performance - prevAvg.performance,
+    accessibility: currAvg.accessibility - prevAvg.accessibility,
+    bestPractices: currAvg.bestPractices - prevAvg.bestPractices,
+    seo: currAvg.seo - prevAvg.seo,
+  };
+  const prevMap: Map<string, PageDeviceSummary> = new Map(
+    previous.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r] as const),
+  );
+  const currMap: Map<string, PageDeviceSummary> = new Map(
+    current.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r] as const),
+  );
+  const allKeys: Set<string> = new Set([...prevMap.keys(), ...currMap.keys()]);
+  const deltas: ChangeLine[] = [];
+  let added = 0;
+  let removed = 0;
+  for (const key of allKeys) {
+    const prev: PageDeviceSummary | undefined = prevMap.get(key);
+    const curr: PageDeviceSummary | undefined = currMap.get(key);
+    if (!prev && curr) {
+      added += 1;
+      continue;
+    }
+    if (prev && !curr) {
+      removed += 1;
+      continue;
+    }
+    if (!prev || !curr) {
+      continue;
+    }
+    const deltaP: number = (curr.scores.performance ?? 0) - (prev.scores.performance ?? 0);
+    deltas.push({
+      key,
+      label: curr.label,
+      path: curr.path,
+      device: curr.device,
+      deltaP,
+    });
+  }
+  deltas.sort((a, b) => a.deltaP - b.deltaP);
+  const regressions: ChangeLine[] = deltas.slice(0, 5);
+  const improvements: ChangeLine[] = [...deltas].reverse().slice(0, 5);
+  const formatDelta = (value: number): string => {
+    const sign: string = value > 0 ? "+" : "";
+    if (!useColor) {
+      return `${sign}${value}`;
+    }
+    if (value > 0) {
+      return `${ANSI_GREEN}${sign}${value}${ANSI_RESET}`;
+    }
+    if (value < 0) {
+      return `${ANSI_RED}${sign}${value}${ANSI_RESET}`;
+    }
+    return `${ANSI_CYAN}${sign}${value}${ANSI_RESET}`;
+  };
+  const lines: string[] = [];
+  lines.push(`Avg deltas: P ${formatDelta(avgDelta.performance)} | A ${formatDelta(avgDelta.accessibility)} | BP ${formatDelta(avgDelta.bestPractices)} | SEO ${formatDelta(avgDelta.seo)}`);
+  lines.push(`Combos: +${added} added, -${removed} removed`);
+  lines.push("");
+  lines.push("Top regressions (Performance):");
+  for (const r of regressions) {
+    lines.push(`- ${r.label} ${r.path} [${r.device}] ΔP:${formatDelta(r.deltaP)}`);
+  }
+  lines.push("");
+  lines.push("Top improvements (Performance):");
+  for (const r of improvements) {
+    lines.push(`- ${r.label} ${r.path} [${r.device}] ΔP:${formatDelta(r.deltaP)}`);
+  }
+  return boxifyWithSeparators(lines);
 }
 
 /**
@@ -140,18 +342,41 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const args: CliArgs = parseArgs(argv);
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
+  const previousSummary: RunSummary | undefined = await loadPreviousSummary();
+
+  const presetThrottling: ApexThrottlingMethod | undefined = args.accurate ? "devtools" : undefined;
+  const presetRuns: number | undefined = args.accurate ? 3 : args.quick ? 1 : undefined;
+  const presetWarmUp: boolean | undefined = args.accurate ? true : undefined;
+  const presetParallel: number | undefined = args.accurate ? 2 : undefined;
+
   const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
-  const effectiveThrottling: ApexThrottlingMethod | undefined = args.throttlingMethodOverride ?? config.throttlingMethod;
+  const effectiveThrottling: ApexThrottlingMethod | undefined = args.fast ? "simulate" : args.throttlingMethodOverride ?? presetThrottling ?? config.throttlingMethod;
   const effectiveCpuSlowdown: number | undefined = args.cpuSlowdownOverride ?? config.cpuSlowdownMultiplier;
-  const effectiveParallel: number | undefined = args.parallelOverride ?? config.parallel;
-  const effectiveWarmUp: boolean = args.warmUp || config.warmUp === true;
+  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel;
+  const effectiveWarmUp: boolean = args.warmUp || presetWarmUp === true || config.warmUp === true;
+  const effectiveIncremental: boolean = args.incremental || config.incremental === true;
+  const candidateBuildId: string | undefined = args.buildId ?? config.buildId;
+  const autoBuildId: string | undefined = effectiveIncremental && candidateBuildId === undefined
+    ? await resolveAutoBuildId(configPath)
+    : undefined;
+  const effectiveBuildId: string | undefined = candidateBuildId ?? autoBuildId;
+  const finalIncremental: boolean = effectiveIncremental && effectiveBuildId !== undefined;
+  if (effectiveIncremental && !finalIncremental) {
+    // eslint-disable-next-line no-console
+    console.log("Incremental mode requested, but no buildId could be resolved. Running a full audit. Tip: pass --build-id or set buildId in apex.config.json");
+  }
+  const effectiveRuns: number | undefined = args.fast ? 1 : presetRuns ?? config.runs;
+  const onlyCategories: readonly ApexCategory[] | undefined = args.fast ? ["performance"] : undefined;
   const effectiveConfig: ApexConfig = {
     ...config,
+    buildId: effectiveBuildId,
     logLevel: effectiveLogLevel,
     throttlingMethod: effectiveThrottling,
     cpuSlowdownMultiplier: effectiveCpuSlowdown,
     parallel: effectiveParallel,
     warmUp: effectiveWarmUp,
+    incremental: finalIncremental,
+    runs: effectiveRuns,
   };
   const filteredConfig: ApexConfig = filterConfigDevices(effectiveConfig, args.deviceFilter);
   if (filteredConfig.pages.length === 0) {
@@ -160,7 +385,14 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const summary: RunSummary = await runAuditsForConfig({ config: filteredConfig, configPath, showParallel: args.showParallel });
+  let summary: RunSummary;
+  try {
+    summary = await runAuditsForConfig({ config: filteredConfig, configPath, showParallel: args.showParallel, onlyCategories });
+  } catch (error: unknown) {
+    handleFriendlyError(error);
+    process.exitCode = 1;
+    return;
+  }
   const outputDir: string = resolve(".apex-auditor");
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
@@ -179,15 +411,33 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     console.log(JSON.stringify(summary, null, 2));
     return;
   }
+  printReportLink(reportPath);
   // Also echo a compact, colourised table to stdout for quick viewing.
   const useColor: boolean = shouldUseColor(args.ci, args.colorMode);
+  printSectionHeader("Summary", useColor);
+  printDivider();
   const consoleTable: string = buildConsoleTable(summary.results, useColor);
+  const boxedTable: string = boxifyWithSeparators(consoleTable.split("\n"));
   // eslint-disable-next-line no-console
-  console.log(consoleTable);
+  console.log(boxedTable);
+  printDivider();
+  if (previousSummary !== undefined) {
+    printSectionHeader("Changes", useColor);
+    printDivider();
+    // eslint-disable-next-line no-console
+    console.log(buildChangesBox(previousSummary, summary, useColor));
+    printDivider();
+  }
+  printSectionHeader("Meta", useColor);
   printRunMeta(summary.meta, useColor);
+  printSectionHeader("Stats", useColor);
   printSummaryStats(summary.results, useColor);
+  printSectionHeader("Issues", useColor);
+  printDivider();
   printRedIssues(summary.results);
   printCiSummary(args, summary.results, effectiveConfig.budgets);
+  printSectionHeader("Lowest performance", useColor);
+  printDivider();
   printLowestPerformancePages(summary.results, useColor);
   const elapsedMs: number = Date.now() - startTimeMs;
   const elapsedText: string = formatElapsedTime(elapsedMs);
@@ -195,9 +445,12 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const runsPerTarget: number = effectiveConfig.runs ?? 1;
   const comboCount: number = summary.results.length;
   const totalRuns: number = comboCount * runsPerTarget;
+  const cacheNote: string = summary.meta.incremental
+    ? ` Cache: ${summary.meta.executedCombos} executed / ${summary.meta.cachedCombos} cached (steps: ${summary.meta.executedSteps} executed, ${summary.meta.cachedSteps} cached).`
+    : "";
   // eslint-disable-next-line no-console
   console.log(
-    `\nCompleted in ${elapsedDisplay} (${comboCount} page/device combinations x ${runsPerTarget} runs = ${totalRuns} Lighthouse runs).`,
+    `\nCompleted in ${elapsedDisplay} (${comboCount} page/device combinations x ${runsPerTarget} runs = ${totalRuns} Lighthouse runs).${cacheNote}`,
   );
 }
 
@@ -231,13 +484,19 @@ function buildMarkdown(summary: RunSummary): string {
     "| Field | Value |",
     "|-------|-------|",
     `| Config | ${meta.configPath} |`,
+    `| Build ID | ${meta.buildId ?? "-"} |`,
+    `| Incremental | ${meta.incremental ? "yes" : "no"} |`,
     `| Resolved parallel | ${meta.resolvedParallel} |`,
     `| Warm-up | ${meta.warmUp ? "yes" : "no"} |`,
     `| Throttling | ${meta.throttlingMethod} |`,
     `| CPU slowdown | ${meta.cpuSlowdownMultiplier} |`,
     `| Combos | ${meta.comboCount} |`,
+    `| Executed combos | ${meta.executedCombos} |`,
+    `| Cached combos | ${meta.cachedCombos} |`,
     `| Runs per combo | ${meta.runsPerCombo} |`,
     `| Total steps | ${meta.totalSteps} |`,
+    `| Executed steps | ${meta.executedSteps} |`,
+    `| Cached steps | ${meta.cachedSteps} |`,
     `| Started | ${meta.startedAt} |`,
     `| Completed | ${meta.completedAt} |`,
     `| Elapsed | ${formatElapsedTime(meta.elapsedMs)} |`,
@@ -256,6 +515,9 @@ function buildHtmlReport(summary: RunSummary): string {
   const meta = summary.meta;
   const timestamp: string = new Date().toISOString();
   const rows: string = results.map((result) => buildHtmlRow(result)).join("\n");
+  const cacheSummary: string = meta.incremental
+    ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached`
+    : "disabled";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -263,57 +525,139 @@ function buildHtmlReport(summary: RunSummary): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApexAuditor Report</title>
   <style>
-    :root { --green: #0cce6b; --yellow: #ffa400; --red: #ff4e42; --bg: #1a1a2e; --card: #16213e; --text: #eee; }
+    :root {
+      --green: #0cce6b;
+      --yellow: #ffa400;
+      --red: #ff4e42;
+      --bg: #0f172a;
+      --panel: #0b1224;
+      --card: #111a33;
+      --border: #27324d;
+      --text: #e8edf7;
+      --muted: #93a4c3;
+      --accent: #7c3aed;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; }
-    h1 { margin-bottom: 0.5rem; }
-    .meta { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
-    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .meta-card { background: #16213e; border-radius: 10px; padding: 1rem; border: 1px solid #23304f; }
-    .meta-label { font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
-    .meta-value { font-size: 1rem; font-weight: 600; color: #e5e7eb; }
+    body {
+      font-family: "Inter", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #122042, #0a1020 45%), #0a0f1f;
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    h1 { margin-bottom: 0.5rem; letter-spacing: 0.02em; }
+    .meta { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .meta-card {
+      background: linear-gradient(135deg, var(--panel), #0f1a33);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+    .meta-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta-value { font-size: 1.05rem; font-weight: 650; color: var(--text); }
     .cards { display: grid; gap: 1.5rem; }
-    .card { background: var(--card); border-radius: 12px; padding: 1.5rem; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 1rem; }
-    .card-title { font-size: 1.1rem; font-weight: 600; }
-    .device-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #333; }
-    .device-badge.mobile { background: #0891b2; }
-    .device-badge.desktop { background: #7c3aed; }
-    .scores { display: flex; gap: 1rem; margin-bottom: 1rem; }
-    .score-item { text-align: center; flex: 1; }
-    .score-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; margin: 0 auto 0.5rem; border: 3px solid; }
-    .score-circle.green { border-color: var(--green); color: var(--green); }
-    .score-circle.yellow { border-color: var(--yellow); color: var(--yellow); }
-    .score-circle.red { border-color: var(--red); color: var(--red); }
-    .score-label { font-size: 0.75rem; color: #888; }
-    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; }
-    .metric { background: #1a1a2e; padding: 0.75rem; border-radius: 8px; text-align: center; }
-    .metric-value { font-size: 1.1rem; font-weight: 600; }
+    .card {
+      background: linear-gradient(180deg, var(--card), #0e1a31);
+      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    .card-title { font-size: 1.1rem; font-weight: 650; }
+    .card-title span { color: var(--muted); font-weight: 500; }
+    .device-badge {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      background: #1f2937;
+      border: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .device-badge.mobile { background: linear-gradient(135deg, #0ea5e9, #0891b2); color: #e6f6ff; border-color: #0ea5e9; }
+    .device-badge.desktop { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #f5efff; border-color: #8b5cf6; }
+    .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+    .score-item { text-align: center; }
+    .score-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 auto 0.35rem;
+      border: 2px solid var(--border);
+      background: #0c152a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .score-circle.green { border-color: var(--green); color: var(--green); box-shadow: 0 0 0 1px rgba(12, 206, 107, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-circle.yellow { border-color: var(--yellow); color: var(--yellow); box-shadow: 0 0 0 1px rgba(255, 164, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-circle.red { border-color: var(--red); color: var(--red); box-shadow: 0 0 0 1px rgba(255, 78, 66, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-label { font-size: 0.78rem; color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
+    .metric {
+      background: #0c152a;
+      padding: 0.85rem;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .metric-value { font-size: 1.05rem; font-weight: 650; }
     .metric-value.green { color: var(--green); }
     .metric-value.yellow { color: var(--yellow); }
     .metric-value.red { color: var(--red); }
-    .metric-label { font-size: 0.7rem; color: #888; margin-top: 0.25rem; }
-    .issues { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; }
-    .issues-title { font-size: 0.8rem; color: #888; margin-bottom: 0.5rem; }
-    .issue { font-size: 0.85rem; color: #ccc; padding: 0.25rem 0; }
+    .metric-label { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; letter-spacing: 0.04em; }
+    .issues {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0c152a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .issues-title { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .issue {
+      font-size: 0.88rem;
+      color: var(--text);
+      padding: 0.35rem 0.25rem;
+      border-bottom: 1px dashed var(--border);
+    }
+    .issue:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
   <h1>ApexAuditor Report</h1>
   <p class="meta">Generated: ${timestamp}</p>
   <div class="meta-grid">
-    ${buildMetaCard("Config", escapeHtml(meta.configPath))}
+    ${buildMetaCard("Build ID", meta.buildId ?? "-")}
+    ${buildMetaCard("Incremental", meta.incremental ? "Yes" : "No")}
+    ${buildMetaCard("Cache", cacheSummary)}
     ${buildMetaCard("Resolved parallel", meta.resolvedParallel.toString())}
-    ${buildMetaCard("Warm-up", meta.warmUp ? "Yes" : "No")}
-    ${buildMetaCard("Throttling", meta.throttlingMethod)}
-    ${buildMetaCard("CPU slowdown", meta.cpuSlowdownMultiplier.toString())}
-    ${buildMetaCard("Combos", meta.comboCount.toString())}
-    ${buildMetaCard("Runs per combo", meta.runsPerCombo.toString())}
-    ${buildMetaCard("Total steps", meta.totalSteps.toString())}
     ${buildMetaCard("Elapsed", formatElapsedTime(meta.elapsedMs))}
     ${buildMetaCard("Avg / step", formatElapsedTime(meta.averageStepMs))}
-    ${buildMetaCard("Started", meta.startedAt)}
-    ${buildMetaCard("Completed", meta.completedAt)}
+    ${buildMetaCard("Combos", meta.comboCount.toString())}
+    ${buildMetaCard("Runs per combo", meta.runsPerCombo.toString())}
+    ${buildMetaCard("Throttling", meta.throttlingMethod)}
+    ${buildMetaCard("CPU slowdown", meta.cpuSlowdownMultiplier.toString())}
+    ${buildMetaCard("Warm-up", meta.warmUp ? "Yes" : "No")}
   </div>
   <div class="cards">
 ${rows}
@@ -370,12 +714,18 @@ function buildMetaCard(label: string, value: string): string {
 }
 
 function printRunMeta(meta: RunSummary["meta"], useColor: boolean): void {
+  const incrementalSummary: string = meta.incremental
+    ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached (${meta.executedSteps} executed steps, ${meta.cachedSteps} cached steps)`
+    : "No";
   const rows: { readonly label: string; readonly value: string }[] = [
+    { label: "Build ID", value: meta.buildId ?? "-" },
+    { label: "Incremental", value: meta.incremental ? "Yes" : "No" },
     { label: "Resolved parallel", value: meta.resolvedParallel.toString() },
     { label: "Warm-up", value: meta.warmUp ? "Yes" : "No" },
     { label: "Throttling", value: meta.throttlingMethod },
     { label: "CPU slowdown", value: meta.cpuSlowdownMultiplier.toString() },
     { label: "Combos", value: meta.comboCount.toString() },
+    { label: "Cache", value: incrementalSummary },
     { label: "Runs per combo", value: meta.runsPerCombo.toString() },
     { label: "Total steps", value: meta.totalSteps.toString() },
     { label: "Elapsed", value: formatElapsedTime(meta.elapsedMs) },
@@ -676,10 +1026,11 @@ function printRedIssues(results: readonly PageDeviceSummary[]): void {
     );
   });
   if (redResults.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log(boxify(["No red issues."]));
     return;
   }
-  // eslint-disable-next-line no-console
-  console.log("\nRed issues (scores below 50):");
+  const lines: string[] = ["Red issues (scores below 50):"];
   for (const result of redResults) {
     const scores = result.scores;
     const badParts: string[] = [];
@@ -696,16 +1047,17 @@ function printRedIssues(results: readonly PageDeviceSummary[]): void {
       badParts.push(`SEO:${scores.seo}`);
     }
     const issues: string = formatTopIssues(result.opportunities);
-    // eslint-disable-next-line no-console
-    console.log(`- ${result.label} ${result.path} [${result.device}] – ${badParts.join(", ")} – ${issues}`);
+    lines.push(`- ${result.label} ${result.path} [${result.device}] – ${badParts.join(", ")} – ${issues}`);
   }
+  // eslint-disable-next-line no-console
+  console.log(boxifyWithSeparators(lines));
 }
 
 function shouldUseColor(ci: boolean, colorMode: CliColorMode): boolean {
-  if (colorMode === "on") {
+  if (colorMode === "always") {
     return true;
   }
-  if (colorMode === "off") {
+  if (colorMode === "never") {
     return false;
   }
   if (ci) {
@@ -832,16 +1184,16 @@ function printLowestPerformancePages(results: readonly PageDeviceSummary[], useC
   if (worst.length === 0) {
     return;
   }
-  // eslint-disable-next-line no-console
-  console.log("\nLowest Performance pages:");
+  const lines: string[] = ["Lowest Performance pages:"];
   for (const entry of worst) {
     const perfText: string = colourScore(entry.performance, useColor);
     const label: string = entry.result.label;
     const path: string = entry.result.path;
     const device: ApexDevice = entry.result.device;
-    // eslint-disable-next-line no-console
-    console.log(`- ${label} ${path} [${device}] P:${perfText}`);
+    lines.push(`- ${label} ${path} [${device}] P:${perfText}`);
   }
+  // eslint-disable-next-line no-console
+  console.log(boxifyWithSeparators(lines));
 }
 
 function collectMetricViolations(
@@ -897,4 +1249,68 @@ function openInBrowser(filePath: string): void {
       console.error(`Could not open report: ${error.message}`);
     }
   });
+}
+
+function printReportLink(reportPath: string): void {
+  const fileUrl: string = `file://${reportPath.replace(/\\/g, "/")}`;
+  // eslint-disable-next-line no-console
+  console.log(`\nReport saved to: ${reportPath}`);
+  // eslint-disable-next-line no-console
+  console.log(`Open report: ${fileUrl}`);
+}
+
+function printSectionHeader(label: string, useColor: boolean): void {
+  const decorated: string = useColor ? `${ANSI_BLUE}${label}${ANSI_RESET}` : label;
+  // eslint-disable-next-line no-console
+  console.log(`\n┌─ ${decorated} ${"─".repeat(Math.max(0, 30 - label.length))}`);
+}
+
+function printDivider(): void {
+  // eslint-disable-next-line no-console
+  console.log("├" + "─".repeat(40));
+}
+
+function boxify(lines: readonly string[]): string {
+  if (lines.length === 0) {
+    return "";
+  }
+  const maxWidth: number = Math.max(...lines.map((line) => line.length));
+  const top: string = `┌${"─".repeat(maxWidth + 2)}┐`;
+  const bottom: string = `└${"─".repeat(maxWidth + 2)}┘`;
+  const body: string[] = lines.map((line) => `│ ${line.padEnd(maxWidth, " ")} │`);
+  return [top, ...body, bottom].join("\n");
+}
+
+function boxifyWithSeparators(lines: readonly string[]): string {
+  if (lines.length === 0) {
+    return "";
+  }
+  const maxWidth: number = Math.max(...lines.map((line) => line.length));
+  const top: string = `┌${"─".repeat(maxWidth + 2)}┐`;
+  const bottom: string = `└${"─".repeat(maxWidth + 2)}┘`;
+  const sep: string = `├${"─".repeat(maxWidth + 2)}┤`;
+  const body: string[] = lines.flatMap((line, index) => {
+    const row: string = `│ ${line.padEnd(maxWidth, " ")} │`;
+    if (index === lines.length - 1) {
+      return [row];
+    }
+    return [row, sep];
+  });
+  return [top, ...body, bottom].join("\n");
+}
+
+function handleFriendlyError(error: unknown): void {
+  const message: string = error instanceof Error ? error.message : String(error);
+  if (message.includes("Could not reach")) {
+    // eslint-disable-next-line no-console
+    console.error("Cannot reach the target URL. Is your dev server running and accessible from this machine?");
+    return;
+  }
+  if (message.includes("LanternError")) {
+    // eslint-disable-next-line no-console
+    console.error("Lighthouse trace analysis failed (Lantern). Try: reduce parallelism, set --throttling devtools, or rerun with fewer pages.");
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.error(message);
 }
