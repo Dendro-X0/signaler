@@ -23,8 +23,61 @@ const CACHE_VERSION = 1 as const;
 const CACHE_DIR = ".apex-auditor" as const;
 const CACHE_FILE = "cache.json" as const;
 
+const DEFAULT_WORKER_TASK_TIMEOUT_MS: number = 5 * 60 * 1000;
+const WORKER_RESPONSE_TIMEOUT_GRACE_MS: number = 15 * 1000;
+const MAX_PARENT_TASK_ATTEMPTS: number = 5;
+const MAX_PARENT_BACKOFF_MS: number = 3000;
+
+let lastProgressLine: string | undefined;
+
+function logLinePreservingProgress(message: string): void {
+  if (typeof process === "undefined" || !process.stdout || typeof process.stdout.write !== "function" || process.stdout.isTTY !== true) {
+    // eslint-disable-next-line no-console
+    console.warn(message);
+    return;
+  }
+  if (lastProgressLine !== undefined) {
+    const clear: string = " ".repeat(lastProgressLine.length);
+    process.stdout.write(`\r${clear}\r`);
+  }
+  process.stdout.write(`${message}\n`);
+  if (lastProgressLine !== undefined) {
+    process.stdout.write(`\r${lastProgressLine}`);
+  }
+}
+
+function buildFailureSummary(task: AuditTask, errorMessage: string): PageDeviceSummary {
+  return {
+    url: task.url,
+    path: task.path,
+    label: task.label,
+    device: task.device,
+    scores: {},
+    metrics: {},
+    opportunities: [],
+    runtimeErrorMessage: errorMessage,
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  const timeoutPromise: Promise<T> = new Promise<T>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`ApexAuditor timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
+
 function stableStringify(value: unknown): string {
   return JSON.stringify(value);
+}
+
+function computeParentRetryDelayMs(params: { readonly attempt: number }): number {
+  const base: number = 200;
+  const expFactor: number = Math.min(4, params.attempt);
+  const candidate: number = base * Math.pow(2, expFactor);
+  const jitter: number = Math.floor(Math.random() * 200);
+  return Math.min(MAX_PARENT_BACKOFF_MS, candidate + jitter);
 }
 
 function buildCacheKey(params: {
@@ -93,6 +146,8 @@ function spawnWorker(): ReturnType<typeof spawn> {
 async function runParallelInProcesses(
   tasks: AuditTask[],
   parallelCount: number,
+  auditTimeoutMs: number,
+  signal: AbortSignal | undefined,
   updateProgress: (path: string, device: ApexDevice) => void,
 ): Promise<PageDeviceSummary[]> {
   const effectiveParallel: number = Math.min(parallelCount, tasks.length);
@@ -103,15 +158,16 @@ async function runParallelInProcesses(
     }
     workers.push({ child: spawnWorker(), busy: false });
   }
+  type PendingItem = { readonly taskIndex: number; readonly runIndex: number; readonly attempts: number };
   const results: PageDeviceSummary[] = new Array(tasks.length);
-  const pending: Array<{ readonly taskIndex: number; readonly runIndex: number }> = [];
+  const pending: PendingItem[] = [];
   for (let taskIndex = 0; taskIndex < tasks.length; taskIndex += 1) {
     for (let runIndex = 0; runIndex < tasks[taskIndex].runs; runIndex += 1) {
-      pending.push({ taskIndex, runIndex });
+      pending.push({ taskIndex, runIndex, attempts: 0 });
     }
   }
   const summariesByTask: PageDeviceSummary[][] = tasks.map(() => []);
-  const inFlight: Map<string, { readonly taskIndex: number; readonly runIndex: number }> = new Map();
+  const inFlight: Map<string, PendingItem> = new Map();
   const waiters: Map<string, { resolve: (msg: WorkerResponseMessage) => void; reject: (err: Error) => void }> = new Map();
   const attachListeners = (child: ReturnType<typeof spawn>): void => {
     child.on("message", (raw: unknown) => {
@@ -148,8 +204,12 @@ async function runParallelInProcesses(
   for (const worker of workers) {
     attachListeners(worker.child);
   }
+  let consecutiveRetries = 0;
   const runOnWorker = async (workerIndex: number, taskIndex: number): Promise<void> => {
     const worker = workers[workerIndex];
+    if (signal?.aborted) {
+      return;
+    }
     const next = pending.shift();
     if (!next) {
       return;
@@ -164,43 +224,83 @@ async function runParallelInProcesses(
       logLevel: task.logLevel,
       throttlingMethod: task.throttlingMethod,
       cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+      timeoutMs: auditTimeoutMs,
       onlyCategories: task.onlyCategories,
     };
     worker.busy = true;
     worker.inFlightId = id;
     worker.inFlightTaskIndex = next.taskIndex;
-    inFlight.set(id, { taskIndex: next.taskIndex, runIndex: next.runIndex });
+    inFlight.set(id, next);
+    const responseTimeoutMs: number = auditTimeoutMs + WORKER_RESPONSE_TIMEOUT_GRACE_MS;
     const response: WorkerResponseMessage = await new Promise<WorkerResponseMessage>((resolve, reject) => {
-      waiters.set(id, { resolve, reject });
+      const timeoutHandle: NodeJS.Timeout = setTimeout(() => {
+        waiters.delete(id);
+        reject(new Error(`Worker response timeout after ${responseTimeoutMs}ms`));
+      }, responseTimeoutMs);
+      const abortListener = (): void => {
+        clearTimeout(timeoutHandle);
+        waiters.delete(id);
+        reject(new Error("Aborted"));
+      };
+      signal?.addEventListener("abort", abortListener, { once: true });
+      waiters.set(id, {
+        resolve: (msg: WorkerResponseMessage) => {
+          clearTimeout(timeoutHandle);
+          signal?.removeEventListener("abort", abortListener);
+          resolve(msg);
+        },
+        reject: (err: Error) => {
+          clearTimeout(timeoutHandle);
+          signal?.removeEventListener("abort", abortListener);
+          reject(err);
+        },
+      });
       const request: WorkerRequestMessage = { type: "run", id, task: workerTask };
       try {
         worker.child.send(request);
       } catch (error) {
+        clearTimeout(timeoutHandle);
+        waiters.delete(id);
         reject(error instanceof Error ? error : new Error("Worker send failed"));
       }
     }).catch((error: unknown) => {
-      const flight = inFlight.get(id);
-      if (flight) {
-        pending.unshift({ taskIndex: flight.taskIndex, runIndex: flight.runIndex });
-      }
       return { type: "error", id, errorMessage: error instanceof Error ? error.message : "Worker failure" } as WorkerResponseMessage;
     });
+    const flight: PendingItem | undefined = inFlight.get(id);
     inFlight.delete(id);
     worker.busy = false;
     worker.inFlightId = undefined;
     worker.inFlightTaskIndex = undefined;
     if (response.type === "error") {
-      pending.unshift({ taskIndex: next.taskIndex, runIndex: next.runIndex });
+      const isTimeout: boolean = response.errorMessage.includes("timeout") || response.errorMessage.includes("Timeout") || response.errorMessage.includes("ApexAuditor timeout");
+      const prefix: string = isTimeout ? "Timeout" : "Worker error";
+      logLinePreservingProgress(`${prefix}: ${task.path} [${task.device}] (run ${next.runIndex + 1}/${task.runs}). Retrying... (${response.errorMessage})`);
+      const retryItem = flight
+        ? { taskIndex: flight.taskIndex, runIndex: flight.runIndex, attempts: next.attempts + 1 }
+        : { taskIndex: next.taskIndex, runIndex: next.runIndex, attempts: next.attempts + 1 };
+      if (retryItem.attempts >= MAX_PARENT_TASK_ATTEMPTS) {
+        logLinePreservingProgress(`Giving up: ${task.path} [${task.device}] (run ${next.runIndex + 1}/${task.runs}) after ${retryItem.attempts} attempts.`);
+        summariesByTask[next.taskIndex].push(buildFailureSummary(task, response.errorMessage));
+        updateProgress(task.path, task.device);
+        if (summariesByTask[next.taskIndex].length === task.runs) {
+          results[next.taskIndex] = aggregateSummaries(summariesByTask[next.taskIndex]);
+        }
+      } else {
+        pending.unshift(retryItem);
+      }
+      consecutiveRetries += 1;
       try {
         worker.child.kill();
       } catch {
         return;
       }
       const replacement = spawnWorker();
+      await delayMs(computeParentRetryDelayMs({ attempt: retryItem.attempts }));
       attachListeners(replacement);
       workers[workerIndex] = { child: replacement, busy: false };
       return;
     }
+    consecutiveRetries = 0;
     summariesByTask[next.taskIndex].push(response.result);
     updateProgress(task.path, task.device);
     if (summariesByTask[next.taskIndex].length === task.runs) {
@@ -209,6 +309,14 @@ async function runParallelInProcesses(
   };
   try {
     while (pending.length > 0) {
+      if (signal?.aborted) {
+        throw new Error("Aborted");
+      }
+      if (consecutiveRetries >= 2) {
+        logLinePreservingProgress(`Cooling down after ${consecutiveRetries} retry attempts; pausing briefly before resuming...`);
+        await delayMs(computeParentRetryDelayMs({ attempt: consecutiveRetries }));
+        consecutiveRetries = 0;
+      }
       const idle: number[] = workers.map((w, idx) => (w.busy ? -1 : idx)).filter((idx) => idx >= 0);
       if (idle.length === 0) {
         await delayMs(50);
@@ -295,6 +403,7 @@ type WorkerTask = {
   readonly logLevel: "silent" | "error" | "info" | "verbose";
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
+  readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
 };
 
@@ -448,13 +557,18 @@ export async function runAuditsForConfig({
   configPath,
   showParallel,
   onlyCategories,
+  signal,
 }: {
   readonly config: ApexConfig;
   readonly configPath: string;
   readonly showParallel?: boolean;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly signal?: AbortSignal;
 }): Promise<RunSummary> {
-  const runs: number = config.runs ?? 1;
+  const runs: number = 1;
+  if (config.runs !== undefined && config.runs !== 1) {
+    throw new Error("Multi-run mode is no longer supported. Set runs=1 and rerun the command multiple times for comparisons.");
+  }
   const firstPage = config.pages[0];
   const healthCheckUrl: string = buildUrl({ baseUrl: config.baseUrl, path: firstPage.path, query: config.query });
   await ensureUrlReachable(healthCheckUrl);
@@ -465,6 +579,7 @@ export async function runAuditsForConfig({
   const throttlingMethod: ApexThrottlingMethod = config.throttlingMethod ?? "simulate";
   const cpuSlowdownMultiplier: number = config.cpuSlowdownMultiplier ?? 4;
   const logLevel = config.logLevel ?? "error";
+  const auditTimeoutMs: number = config.auditTimeoutMs ?? DEFAULT_WORKER_TASK_TIMEOUT_MS;
 
   const incrementalEnabled: boolean = config.incremental === true && typeof config.buildId === "string" && config.buildId.length > 0;
   const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache() : undefined;
@@ -551,9 +666,9 @@ export async function runAuditsForConfig({
     resultsFromRunner = [];
   } else if (parallelCount <= 1 || config.chromePort !== undefined) {
     // Sequential execution (original behavior) or using external Chrome
-    resultsFromRunner = await runSequential(tasksToRun, config.chromePort, updateProgress);
+    resultsFromRunner = await runSequential(tasksToRun, config.chromePort, auditTimeoutMs, signal, updateProgress);
   } else {
-    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, updateProgress);
+    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress);
   }
 
   for (let runIndex = 0; runIndex < resultsFromRunner.length; runIndex += 1) {
@@ -612,24 +727,57 @@ export async function runAuditsForConfig({
 async function runSequential(
   tasks: AuditTask[],
   chromePort: number | undefined,
+  auditTimeoutMs: number,
+  signal: AbortSignal | undefined,
   updateProgress: (path: string, device: ApexDevice) => void,
 ): Promise<PageDeviceSummary[]> {
   const results: PageDeviceSummary[] = [];
-  const session: ChromeSession = await createChromeSession(chromePort);
+  const sessionRef: { session: ChromeSession } = { session: await createChromeSession(chromePort) };
   try {
     for (const task of tasks) {
       const summaries: PageDeviceSummary[] = [];
       for (let index = 0; index < task.runs; index += 1) {
-        const summary: PageDeviceSummary = await runSingleAudit({
-          url: task.url,
-          path: task.path,
-          label: task.label,
-          device: task.device,
-          port: session.port,
-          logLevel: task.logLevel,
-          throttlingMethod: task.throttlingMethod,
-          cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
-          onlyCategories: task.onlyCategories,
+        if (signal?.aborted) {
+          throw new Error("Aborted");
+        }
+        const summary: PageDeviceSummary = await withTimeout(
+          runSingleAudit({
+            url: task.url,
+            path: task.path,
+            label: task.label,
+            device: task.device,
+            port: sessionRef.session.port,
+            logLevel: task.logLevel,
+            throttlingMethod: task.throttlingMethod,
+            cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+            onlyCategories: task.onlyCategories,
+          }),
+          auditTimeoutMs,
+        ).catch(async (error: unknown) => {
+          const message: string = error instanceof Error ? error.message : "Unknown error";
+          logLinePreservingProgress(`Timeout: ${task.path} [${task.device}] (run ${index + 1}/${task.runs}). Retrying... (${message})`);
+          if (sessionRef.session.close) {
+            await sessionRef.session.close();
+          }
+          sessionRef.session = await createChromeSession(chromePort);
+          return withTimeout(
+            runSingleAudit({
+              url: task.url,
+              path: task.path,
+              label: task.label,
+              device: task.device,
+              port: sessionRef.session.port,
+              logLevel: task.logLevel,
+              throttlingMethod: task.throttlingMethod,
+              cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+              onlyCategories: task.onlyCategories,
+            }),
+            auditTimeoutMs,
+          ).catch((secondError: unknown) => {
+            const secondMessage: string = secondError instanceof Error ? secondError.message : "Unknown error";
+            logLinePreservingProgress(`Giving up: ${task.path} [${task.device}] (run ${index + 1}/${task.runs}) after timeout retry.`);
+            return buildFailureSummary(task, secondMessage);
+          });
         });
         summaries.push(summary);
         updateProgress(task.path, task.device);
@@ -637,8 +785,8 @@ async function runSequential(
       results.push(aggregateSummaries(summaries));
     }
   } finally {
-    if (session.close) {
-      await session.close();
+    if (sessionRef.session.close) {
+      await sessionRef.session.close();
     }
   }
   return results;
@@ -781,10 +929,12 @@ function logProgress({
   const etaText: string = etaMs !== undefined ? ` | ETA ${formatEta(etaMs)}` : "";
   const message: string = `Running audits ${completed}/${total} (${percentage}%) – ${path} [${device}]${etaText}`;
   if (typeof process !== "undefined" && process.stdout && typeof process.stdout.write === "function" && process.stdout.isTTY) {
-    const padded: string = message.padEnd(80, " ");
+    const padded: string = message.padEnd(100, " ");
+    lastProgressLine = padded;
     process.stdout.write(`\r${padded}`);
     if (completed === total) {
       process.stdout.write("\n");
+      lastProgressLine = undefined;
     }
     return;
   }
@@ -793,28 +943,27 @@ function logProgress({
 }
 
 async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary> {
-  const options = {
+  const options: Record<string, unknown> = {
     port: params.port,
     output: "json" as const,
     logLevel: params.logLevel,
     onlyCategories: ["performance", "accessibility", "best-practices", "seo"] as const,
     formFactor: params.device,
-    // Throttling configuration for more accurate results
     throttlingMethod: params.throttlingMethod,
-    throttling: {
-      // CPU throttling - adjustable via config
+    screenEmulation: params.device === "mobile"
+      ? { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false }
+      : { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },
+  };
+  if (params.throttlingMethod === "simulate") {
+    options.throttling = {
       cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
-      // Network throttling (Slow 4G / Fast 3G preset - Lighthouse default)
       rttMs: 150,
       throughputKbps: 1638.4,
       requestLatencyMs: 150 * 3.75,
       downloadThroughputKbps: 1638.4,
       uploadThroughputKbps: 750,
-    },
-    screenEmulation: params.device === "mobile"
-      ? { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false }
-      : { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },
-  };
+    };
+  }
   const runnerResult = await lighthouse(params.url, options);
   const lhrUnknown: unknown = runnerResult.lhr as unknown;
   if (!lhrUnknown || typeof lhrUnknown !== "object") {

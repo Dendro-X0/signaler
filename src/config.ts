@@ -26,6 +26,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly buildId?: unknown;
     readonly chromePort?: unknown;
     readonly runs?: unknown;
+    readonly auditTimeoutMs?: unknown;
     readonly pages?: unknown;
     readonly logLevel?: unknown;
     readonly throttlingMethod?: unknown;
@@ -48,6 +49,13 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const buildId: string | undefined = typeof maybeConfig.buildId === "string" && maybeConfig.buildId.length > 0 ? maybeConfig.buildId : undefined;
   const chromePort: number | undefined = typeof maybeConfig.chromePort === "number" ? maybeConfig.chromePort : undefined;
   const runs: number | undefined = typeof maybeConfig.runs === "number" && maybeConfig.runs > 0 ? maybeConfig.runs : undefined;
+  if (runs !== undefined && runs !== 1) {
+    throw new Error(`Invalid config at ${absolutePath}: runs must be 1 (multi-run mode is no longer supported)`);
+  }
+  const auditTimeoutMs: number | undefined =
+    typeof maybeConfig.auditTimeoutMs === "number" && maybeConfig.auditTimeoutMs > 0
+      ? maybeConfig.auditTimeoutMs
+      : undefined;
   const rawLogLevel: unknown = maybeConfig.logLevel;
   const logLevel: "silent" | "error" | "info" | "verbose" | undefined =
     rawLogLevel === "silent" || rawLogLevel === "error" || rawLogLevel === "info" || rawLogLevel === "verbose"
@@ -79,6 +87,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     buildId,
     chromePort,
     runs,
+    auditTimeoutMs,
     logLevel,
     throttlingMethod,
     cpuSlowdownMultiplier,

@@ -90,15 +90,21 @@ Tip:
 | `--throttling <method>` | Throttling method: `simulate` (fast) or `devtools` (accurate) |
 | `--cpu-slowdown <n>` | CPU slowdown multiplier (1-20, default: 4) |
 | `--parallel <n>` | Number of pages to audit in parallel (1-10) |
+| `--audit-timeout-ms <ms>` | Per-audit timeout in milliseconds (prevents hung runs from stalling) |
+| `--max-steps <n>` | Safety limit: refuse/prompt if planned Lighthouse runs exceed this (default 120) |
+| `--max-combos <n>` | Safety limit: refuse/prompt if planned page/device combos exceed this (default 60) |
+| `--yes`, `-y` | Auto-confirm large runs (bypass safety prompt) |
 | `--warm-up` | Perform warm-up requests before auditing |
 | `--open` | Auto-open HTML report in browser after audit |
 | `--json` | Output JSON to stdout (for piping) |
 | `--show-parallel` | Print the resolved parallel worker count before running |
 | `--fast` | Quick preset: simulate throttling, runs=1, performance-only |
 | `--quick` | Preset: runs=1 (fast feedback) without changing throttling defaults |
-| `--accurate` | Preset: devtools throttling + warm-up + runs=3 (recommended for baselines) |
-| `--incremental` | Reuse cached results for unchanged combos (requires `--build-id`) |
+| `--accurate` | Preset: devtools throttling + warm-up, stability-first (parallel=1 unless overridden) |
+| `--incremental` | Reuse cached results for unchanged combos (requires `--build-id`). Opt-in; off by default. |
 | `--build-id <id>` | Build identifier used as the cache boundary for `--incremental` |
+| `--overview` | Preset: quick overview (runs=1) and samples a small set of combos unless `--yes`. |
+| `--overview-combos <n>` | Overview sampling size (default 10). |
 | `--mobile-only` | Only audit mobile device configurations |
 | `--desktop-only` | Only audit desktop device configurations |
 | `--parallel <n>` | Override parallel workers (default auto) |
@@ -120,7 +126,7 @@ Defaults:
 - Throttling method: `simulate`, CPU slowdown: `4`, runs per combo: `1`.
 - Help topics: `apex-auditor help topics`, `apex-auditor help budgets`, `apex-auditor help configs`, `apex-auditor help ci`.
 - Warm-up (`--warm-up` / `warmUp: true`) makes bounded-concurrency requests to each configured page to reduce cold-start/cache noise.
-- Incremental (`--incremental --build-id <id>` / `incremental: true` + `buildId: "..."`) reuses `.apex-auditor/cache.json` to skip unchanged audits between runs (if no buildId is provided, the CLI will try to auto-detect one for Next.js or git).
+- Incremental (`--incremental --build-id <id>`) reuses `.apex-auditor/cache.json` to skip unchanged audits between runs. This is best for CI/baseline comparisons, and is intentionally opt-in (off by default) to keep local iteration predictable.
 
 ---
 

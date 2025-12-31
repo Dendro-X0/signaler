@@ -3,8 +3,10 @@
 import { runAuditCli } from "./cli.js";
 import { runWizardCli } from "./wizard-cli.js";
 import { runQuickstartCli } from "./quickstart-cli.js";
+import { runShellCli } from "./shell-cli.js";
+import { runMeasureCli } from "./measure-cli.js";
 
-type ApexCommandId = "audit" | "wizard" | "quickstart" | "guide" | "help";
+type ApexCommandId = "audit" | "measure" | "wizard" | "quickstart" | "guide" | "shell" | "help" | "init";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -13,10 +15,24 @@ interface ParsedBinArgs {
 
 function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
   const rawCommand: string | undefined = argv[2];
-  if (rawCommand === undefined || rawCommand === "help" || rawCommand === "--help" || rawCommand === "-h") {
+  if (rawCommand === undefined) {
+    return { command: "shell", argv };
+  }
+  if (rawCommand === "help" || rawCommand === "--help" || rawCommand === "-h") {
     return { command: "help", argv };
   }
-  if (rawCommand === "audit" || rawCommand === "wizard" || rawCommand === "quickstart" || rawCommand === "guide") {
+  if (rawCommand === "shell") {
+    const commandArgv: readonly string[] = ["node", "apex-auditor", ...argv.slice(3)];
+    return { command: "shell", argv: commandArgv };
+  }
+  if (
+    rawCommand === "audit" ||
+    rawCommand === "measure" ||
+    rawCommand === "wizard" ||
+    rawCommand === "quickstart" ||
+    rawCommand === "guide" ||
+    rawCommand === "init"
+  ) {
     const commandArgv: readonly string[] = ["node", "apex-auditor", ...argv.slice(3)];
     return { command: rawCommand as ApexCommandId, argv: commandArgv };
   }
@@ -66,12 +82,13 @@ function printHelp(topic?: string): void {
         "  baseUrl (required)     Base URL of your running site",
         "  query                  Query string appended to every path (e.g., ?lhci=1)",
         "  buildId                Build identifier used for incremental cache keys",
-        "  runs                   Runs per page/device (default 1)",
+        "  runs                   Runs per page/device (must be 1; rerun command to compare)",
+        "  auditTimeoutMs         Per-audit timeout in milliseconds (prevents hung runs from stalling)",
         "  throttlingMethod       simulate | devtools (default simulate)",
         "  cpuSlowdownMultiplier  CPU slowdown (default 4)",
         "  parallel               Workers (default auto up to 4, respects CPU/memory)",
         "  warmUp                 true/false to warm cache before auditing (bounded concurrency)",
-        "  incremental            true/false to reuse cached results for unchanged combos (requires buildId)",
+        "  incremental            (deprecated default) Set in config but only active when --incremental is passed",
         "  pages                  Array of { path, label, devices: [mobile|desktop] }",
         "  budgets                Optional { categories, metrics } thresholds",
         "",
@@ -98,16 +115,20 @@ function printHelp(topic?: string): void {
       "ApexAuditor CLI",
       "",
       "Usage:",
+      "  apex-auditor                 # interactive shell (default)",
       "  apex-auditor quickstart --base-url <url> [--project-root <path>]",
       "  apex-auditor wizard [--config <path>]",
       "  apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
-      "  apex-auditor guide  (alias of wizard) interactive flow with tips",
+      "  apex-auditor guide  (alias of wizard) interactive flow with tips for non-technical users",
+      "  apex-auditor shell           # same as default entrypoint",
       "",
       "Commands:",
+      "  shell      Start interactive shell (audit/open/diff/preset/help/exit)",
       "  quickstart  Detect routes and run a one-off audit with sensible defaults",
       "  wizard     Run interactive config wizard",
       "  guide      Same as wizard, with inline tips for non-technical users",
       "  audit      Run Lighthouse audits using apex.config.json",
+      "  measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "  help       Show this help message",
       "",
       "Options (audit):",
@@ -119,11 +140,18 @@ function printHelp(topic?: string): void {
       "  --mobile-only      Run audits only for 'mobile' devices defined in the config",
       "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
       "  --parallel <n>     Override parallel workers (1-10). Default auto-tunes from CPU/memory.",
+      "  --audit-timeout-ms <ms>  Per-audit timeout in milliseconds (prevents hung runs from stalling)",
+      "  --plan             Print resolved settings + run size estimate and exit without auditing",
+      "  --max-steps <n>    Safety limit: refuse/prompt if planned Lighthouse runs exceed this (default 120)",
+      "  --max-combos <n>   Safety limit: refuse/prompt if planned page/device combos exceed this (default 60)",
+      "  --yes, -y          Auto-confirm large runs (bypass safety prompt)",
       "  --show-parallel    Print the resolved parallel workers before running.",
-      "  --incremental      Reuse cached results for unchanged combos (requires --build-id)",
+      "  --incremental      Reuse cached results for unchanged combos (requires --build-id). Opt-in; off by default.",
       "  --build-id <id>    Build identifier used as the cache key boundary for --incremental",
+      "  --overview         Preset: quick overview (runs=1) and samples a small set of combos unless --yes.",
+      "  --overview-combos <n>  Overview sampling size (default 10).",
       "  --quick            Preset: fast feedback (runs=1) without changing throttling defaults",
-      "  --accurate         Preset: devtools throttling + warm-up + runs=3 (recommended for baselines)",
+      "  --accurate         Preset: devtools throttling + warm-up + stability-first (parallel=1 unless overridden)",
       "  --open             Open the HTML report after the run.",
       "",
       "Outputs:",
@@ -156,16 +184,67 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     printHelp(topic);
     return;
   }
+  if (parsed.command === "shell") {
+    await runShellCli(parsed.argv);
+    return;
+  }
   if (parsed.command === "quickstart") {
     await runQuickstartCli(parsed.argv);
     return;
   }
   if (parsed.command === "audit") {
-    await runAuditCli(parsed.argv);
+    try {
+      await runAuditCli(parsed.argv);
+    } catch (error: unknown) {
+      const message: string = error instanceof Error ? error.message : String(error);
+      if (message.includes("ENOENT")) {
+        // eslint-disable-next-line no-console
+        console.error("Config file not found. Run `apex-auditor init` to create a config or set one with `config <path>`.");
+        return;
+      }
+      throw error;
+    }
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      // eslint-disable-next-line no-console
+      console.log("\nAudit completed. Press Ctrl+C to exit, or enter another command (type help for options).");
+      await runShellCli(["node", "apex-auditor"]);
+    }
+    return;
+  }
+  if (parsed.command === "measure") {
+    try {
+      await runMeasureCli(parsed.argv);
+    } catch (error: unknown) {
+      const message: string = error instanceof Error ? error.message : String(error);
+      if (message.includes("ENOENT")) {
+        // eslint-disable-next-line no-console
+        console.error("Config file not found. Run `apex-auditor init` to create a config or set one with `config <path>`.");
+        return;
+      }
+      throw error;
+    }
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      // eslint-disable-next-line no-console
+      console.log("\nMeasure run completed. Press Ctrl+C to exit, or enter another command (type help for options).");
+      await runShellCli(["node", "apex-auditor"]);
+    }
+    return;
+  }
+  if (parsed.command === "init") {
+    await runWizardCli(parsed.argv);
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      // eslint-disable-next-line no-console
+      console.log("\nConfig initialized. Press Ctrl+C to exit, or enter another command (type help for options).");
+      await runShellCli(["node", "apex-auditor"]);
+    }
     return;
   }
   if (parsed.command === "wizard" || parsed.command === "guide") {
     await runWizardCli(parsed.argv);
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      await runShellCli(["node", "apex-auditor"]);
+    }
+    return;
   }
 }
 

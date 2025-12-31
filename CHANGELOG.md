@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.2 - 2025-12-31
+
+### Added
+- Export output redesigned: structured section layout with clean dividers, numbered suggested commands in a copy/paste block, and non-nested tables for regressions and deep audit targets.
+- Inline score deltas and regressions-only filtering in summary/export views to spotlight changes between runs.
+- Persistent shell-ready flow after `audit`/`measure` completes, with friendly prompts for missing configs and a new `init` command to launch the wizard.
+
+### Changed
+- Removed all background shading from CLI tables; kept colorized text only for a cleaner, legible terminal experience.
+- Simplified wizard flow: automatic route detection and skipping manual page prompts when detections succeed.
+
+### Fixed
+- Lighthouse runner throttling adjusted to avoid double throttling in devtools mode; added jittered backoff and transient error retries for stability.
+
 ## 0.3.1 - 2025-12-29
 
 ### Added

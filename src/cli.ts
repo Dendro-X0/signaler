@@ -3,6 +3,9 @@ import { dirname, resolve } from "node:path";
 import { exec } from "node:child_process";
 import { loadConfig } from "./config.js";
 import { runAuditsForConfig } from "./lighthouse-runner.js";
+import { renderPanel } from "./ui/render-panel.js";
+import { renderTable } from "./ui/render-table.js";
+import { UiTheme } from "./ui/ui-theme.js";
 import type {
   ApexCategory,
   ApexBudgets,
@@ -30,16 +33,378 @@ interface CliArgs {
   readonly throttlingMethodOverride: ApexThrottlingMethod | undefined;
   readonly cpuSlowdownOverride: number | undefined;
   readonly parallelOverride: number | undefined;
+  readonly auditTimeoutMsOverride: number | undefined;
+  readonly plan: boolean;
+  readonly yes: boolean;
+  readonly maxSteps: number | undefined;
+  readonly maxCombos: number | undefined;
   readonly stable: boolean;
   readonly openReport: boolean;
   readonly warmUp: boolean;
   readonly incremental: boolean;
   readonly buildId: string | undefined;
+  readonly runsOverride: number | undefined;
   readonly quick: boolean;
   readonly accurate: boolean;
   readonly jsonOutput: boolean;
   readonly showParallel: boolean;
   readonly fast: boolean;
+  readonly overview: boolean;
+  readonly overviewCombos: number | undefined;
+  readonly regressionsOnly: boolean;
+}
+
+function colorScore(score: number | undefined, theme: UiTheme): string {
+  if (score === undefined) {
+    return "-";
+  }
+  if (score >= 90) {
+    return theme.green(score.toString());
+  }
+  if (score >= 50) {
+    return theme.yellow(score.toString());
+  }
+  return theme.red(score.toString());
+}
+
+function colorDevice(device: ApexDevice, theme: UiTheme): string {
+  return device === "mobile" ? theme.cyan("mobile") : theme.magenta("desktop");
+}
+
+type SummaryPanelParams = {
+  readonly results: readonly PageDeviceSummary[];
+  readonly useColor: boolean;
+  readonly regressionsOnly: boolean;
+  readonly previousSummary?: RunSummary;
+};
+
+type RegressionLine = {
+  readonly label: string;
+  readonly path: string;
+  readonly device: ApexDevice;
+  readonly previousP: number;
+  readonly currentP: number;
+  readonly deltaP: number;
+};
+
+type ShareableExport = {
+  readonly generatedAt: string;
+  readonly regressions: readonly RegressionLine[];
+  readonly topIssues: readonly { readonly title: string; readonly count: number; readonly totalMs: number }[];
+  readonly deepAuditTargets: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly score: number }[];
+  readonly suggestedCommands: readonly string[];
+};
+
+function buildSectionIndex(useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const lines: string[] = [
+    `${theme.bold("Sections")}:`,
+    `  1) Effective settings`,
+    `  2) Meta`,
+    `  3) Stats`,
+    `  4) Changes`,
+    `  5) Summary`,
+    `  6) Issues`,
+    `  7) Top fixes`,
+    `  8) Lowest performance`,
+    `  9) Export (regressions/issues)`,
+  ];
+  return lines.join("\n");
+}
+
+function severityBackground(score: number | undefined): string {
+  if (score === undefined) {
+    return "";
+  }
+  if (score >= 90) {
+    return "";
+  }
+  if (score >= 50) {
+    return "";
+  }
+  return "";
+}
+
+function applyRowBackground(row: readonly string[], score: number | undefined, useColor: boolean): readonly string[] {
+  const bg: string = severityBackground(score);
+  if (!useColor || bg === "") {
+    return row;
+  }
+  return row;
+}
+
+function formatDelta(curr: number | undefined, prev: number | undefined, theme: UiTheme): string {
+  if (curr === undefined || prev === undefined) {
+    return "-";
+  }
+  const delta: number = curr - prev;
+  if (delta === 0) {
+    return theme.dim("0");
+  }
+  const text: string = delta > 0 ? `+${delta}` : `${delta}`;
+  return delta > 0 ? theme.green(text) : theme.red(text);
+}
+
+function buildSummaryPanel(params: SummaryPanelParams): string {
+  const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const hasPrev: boolean = params.previousSummary !== undefined;
+  const headers: readonly string[] = params.useColor
+    ? [
+        theme.bold("Label"),
+        theme.bold("Path"),
+        theme.bold("Device"),
+        theme.green("P"),
+        hasPrev ? theme.cyan("ΔP") : "",
+        theme.cyan("A"),
+        theme.magenta("BP"),
+        theme.yellow("SEO"),
+      ].filter((h) => h !== "")
+    : ["Label", "Path", "Device", "P", ...(hasPrev ? ["ΔP"] : []), "A", "BP", "SEO"];
+  const prevMap: Map<string, PageDeviceSummary> | undefined =
+    params.previousSummary !== undefined
+      ? new Map(params.previousSummary.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r]))
+      : undefined;
+  const filtered: readonly PageDeviceSummary[] = params.regressionsOnly && prevMap !== undefined
+    ? params.results.filter((r) => {
+        const key: string = `${r.label}:::${r.path}:::${r.device}`;
+        const prev: PageDeviceSummary | undefined = prevMap.get(key);
+        const prevScore: number | undefined = prev?.scores.performance;
+        const currScore: number | undefined = r.scores.performance;
+        return prevScore !== undefined && currScore !== undefined && currScore < prevScore;
+      })
+    : params.results;
+  const rows: readonly (readonly string[])[] = filtered.map((r) => {
+    const scores = r.scores;
+    const prevScore: number | undefined = prevMap?.get(`${r.label}:::${r.path}:::${r.device}`)?.scores.performance;
+    const baseRow: readonly string[] = [
+      r.label,
+      r.path,
+      colorDevice(r.device, theme),
+      colorScore(scores.performance, theme),
+      ...(hasPrev ? [formatDelta(scores.performance, prevScore, theme)] : []),
+      colorScore(scores.accessibility, theme),
+      colorScore(scores.bestPractices, theme),
+      colorScore(scores.seo, theme),
+    ];
+    return applyRowBackground(baseRow, scores.performance, params.useColor);
+  });
+  return renderTable({ headers, rows });
+}
+
+function collectRegressions(previous: RunSummary | undefined, current: RunSummary): readonly RegressionLine[] {
+  if (previous === undefined) {
+    return [];
+  }
+  const prevMap: Map<string, PageDeviceSummary> = new Map(
+    previous.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r] as const),
+  );
+  const lines: RegressionLine[] = [];
+  for (const r of current.results) {
+    const key: string = `${r.label}:::${r.path}:::${r.device}`;
+    const prev: PageDeviceSummary | undefined = prevMap.get(key);
+    if (prev?.scores.performance !== undefined && r.scores.performance !== undefined) {
+      const delta: number = r.scores.performance - prev.scores.performance;
+      if (delta < 0) {
+        lines.push({
+          label: r.label,
+          path: r.path,
+          device: r.device,
+          previousP: prev.scores.performance,
+          currentP: r.scores.performance,
+          deltaP: delta,
+        });
+      }
+    }
+  }
+  return lines.sort((a, b) => a.deltaP - b.deltaP).slice(0, 10);
+}
+
+function collectDeepAuditTargets(results: readonly PageDeviceSummary[]): readonly {
+  readonly label: string;
+  readonly path: string;
+  readonly device: ApexDevice;
+  readonly score: number;
+}[] {
+  return [...results]
+    .sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101))
+    .slice(0, 5)
+    .map((r) => ({
+      label: r.label,
+      path: r.path,
+      device: r.device,
+      score: r.scores.performance ?? 0,
+    }));
+}
+
+function collectTopIssues(results: readonly PageDeviceSummary[]): readonly {
+  readonly title: string;
+  readonly count: number;
+  readonly totalMs: number;
+}[] {
+  const counts: Map<string, { readonly title: string; count: number; totalMs: number }> = new Map();
+  for (const r of results) {
+    for (const opp of r.opportunities) {
+      const existing = counts.get(opp.title);
+      if (existing) {
+        existing.count += 1;
+        existing.totalMs += opp.estimatedSavingsMs ?? 0;
+      } else {
+        counts.set(opp.title, { title: opp.title, count: 1, totalMs: opp.estimatedSavingsMs ?? 0 });
+      }
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.totalMs - a.totalMs).slice(0, 5);
+}
+
+function buildSuggestedCommands(configPath: string, targets: readonly { readonly path: string; readonly device: ApexDevice }[]): readonly string[] {
+  return targets.map((t) => `pnpm tsx src/bin.ts --config ${configPath} --${t.device}-only --open-report # focus on ${t.path}`);
+}
+
+function buildShareableExport(params: {
+  readonly configPath: string;
+  readonly previousSummary: RunSummary | undefined;
+  readonly current: RunSummary;
+}): ShareableExport {
+  const regressions: readonly RegressionLine[] = collectRegressions(params.previousSummary, params.current);
+  const deepAuditTargets = collectDeepAuditTargets(params.current.results);
+  const suggestedCommands: readonly string[] = buildSuggestedCommands(
+    params.configPath,
+    deepAuditTargets.map((t) => ({ path: t.path, device: t.device })),
+  );
+  return {
+    generatedAt: new Date().toISOString(),
+    regressions,
+    topIssues: collectTopIssues(params.current.results),
+    deepAuditTargets,
+    suggestedCommands,
+  };
+}
+
+function buildExportPanel(params: { readonly exportPath: string; readonly useColor: boolean; readonly share: ShareableExport }): string {
+  const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const lines: string[] = [];
+
+  const width: number = 80;
+  const divider = (): void => {
+    lines.push(theme.dim("─".repeat(width)));
+  };
+  const formBorder = (label: string): { readonly top: string; readonly bottom: string } => {
+    const labelText: string = ` ${label} `;
+    const remaining: number = Math.max(width - labelText.length - 2, 0);
+    const bar: string = "─".repeat(remaining);
+    return {
+      top: theme.dim(`┌${labelText}${bar}`),
+      bottom: theme.dim(`└${"─".repeat(width - 1)}`),
+    };
+  };
+
+  lines.push(theme.bold("Export"));
+  lines.push(theme.dim(`Path: ${params.exportPath}`));
+  lines.push(theme.dim(`Generated: ${params.share.generatedAt}`));
+  divider();
+
+  // Regressions
+  lines.push(`${theme.bold("Regressions")} ${theme.dim("(top 10 by ΔP)")}`);
+  if (params.share.regressions.length === 0) {
+    lines.push(theme.green("No regressions detected."));
+  } else {
+    const regressionRows: readonly (readonly string[])[] = params.share.regressions.map((r) => [
+      r.label,
+      r.path,
+      colorDevice(r.device, theme),
+      colorScore(r.currentP, theme),
+      r.deltaP >= 0 ? theme.green(`+${r.deltaP}`) : theme.red(String(r.deltaP)),
+      String(r.previousP),
+    ]);
+    lines.push(
+      renderTable({
+        headers: ["Label", "Path", "Device", "P", "ΔP", "Prev P"],
+        rows: regressionRows,
+      }),
+    );
+  }
+  divider();
+
+  // Deep audit targets
+  lines.push(`${theme.bold("Deep audit targets")} ${theme.dim("(worst 5 by P)")}`);
+  const deepRows: readonly (readonly string[])[] = params.share.deepAuditTargets.map((t) => [
+    t.label,
+    t.path,
+    colorDevice(t.device, theme),
+    colorScore(t.score, theme),
+  ]);
+  lines.push(
+    renderTable({
+      headers: ["Label", "Path", "Device", "P"],
+      rows: deepRows,
+    }),
+  );
+  divider();
+
+  // Suggested commands
+  lines.push(`${theme.bold("Suggested commands")} ${theme.dim("(copy/paste ready)")}`);
+  if (params.share.suggestedCommands.length === 0) {
+    lines.push(theme.dim("No suggestions available."));
+  } else {
+    const box = formBorder("Copy/paste");
+    lines.push(box.top);
+    params.share.suggestedCommands.forEach((cmd, index) => {
+      const prefix: string = `${String(index + 1).padStart(2, "0")}.`;
+      lines.push(`${theme.dim("│")} ${theme.dim(prefix)} ${cmd}`);
+    });
+    lines.push(box.bottom);
+  }
+
+  return lines.join("\n");
+}
+
+function buildIssuesPanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const reds = results.filter((r) => (r.scores.performance ?? 100) < 50);
+  if (reds.length === 0) {
+    return renderPanel({ title: theme.bold("Issues"), lines: [theme.green("No red issues.")] });
+  }
+  const lines: string[] = reds.map((r) => {
+    const top = r.opportunities[0];
+    const issue: string = top ? `${top.title}${top.estimatedSavingsMs ? ` (${Math.round(top.estimatedSavingsMs)}ms)` : ""}` : "No top issue reported";
+    const perfText: string = colorScore(r.scores.performance, theme);
+    const deviceText: string = colorDevice(r.device, theme);
+    return `${r.label} ${r.path} [${deviceText}] – P:${perfText} – ${issue}`;
+  });
+  return renderPanel({ title: theme.bold("Issues"), lines });
+}
+
+function buildTopFixesPanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const opportunityCounts: Map<string, { readonly title: string; count: number; totalMs: number }> = new Map();
+  for (const r of results) {
+    for (const opp of r.opportunities) {
+      const existing = opportunityCounts.get(opp.title);
+      if (existing) {
+        existing.count += 1;
+        existing.totalMs += opp.estimatedSavingsMs ?? 0;
+      } else {
+        opportunityCounts.set(opp.title, { title: opp.title, count: 1, totalMs: opp.estimatedSavingsMs ?? 0 });
+      }
+    }
+  }
+  const sorted = [...opportunityCounts.values()].sort((a, b) => b.totalMs - a.totalMs).slice(0, 5);
+  if (sorted.length === 0) {
+    return renderPanel({ title: theme.bold("Top fixes"), lines: [theme.dim("No opportunities collected.")] });
+  }
+  const lines: string[] = sorted.map((o) => `- ${theme.cyan(o.title)} (seen on ${o.count} pages) (${Math.round(o.totalMs)}ms)`);
+  return renderPanel({ title: theme.bold("Top fixes"), lines });
+}
+
+function buildLowestPerformancePanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const sorted = [...results].sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101)).slice(0, 5);
+  const lines: string[] = sorted.map((r) => {
+    const perfText: string = colorScore(r.scores.performance, theme);
+    const deviceText: string = colorDevice(r.device, theme);
+    return `${r.label} ${r.path} [${deviceText}] P:${perfText}`;
+  });
+  return renderPanel({ title: theme.bold("Lowest performance"), lines });
 }
 
 const ANSI_RESET = "\u001B[0m" as const;
@@ -60,6 +425,33 @@ const CLS_WARN: number = 0.25;
 const INP_GOOD_MS: number = 200;
 const INP_WARN_MS: number = 500;
 
+const DEFAULT_MAX_STEPS: number = 120;
+const DEFAULT_MAX_COMBOS: number = 60;
+const DEFAULT_OVERVIEW_MAX_COMBOS: number = 10;
+
+async function confirmLargeRun(message: string): Promise<boolean> {
+  if (!process.stdin.isTTY) {
+    return false;
+  }
+  const wasRaw: boolean | undefined = (process.stdin as unknown as { readonly isRaw?: boolean }).isRaw;
+  process.stdin.setRawMode?.(true);
+  process.stdin.setEncoding("utf8");
+  process.stdout.write(message);
+  return await new Promise<boolean>((resolve) => {
+    const onData = (chunk: Buffer | string): void => {
+      process.stdin.setRawMode?.(Boolean(wasRaw));
+      process.stdin.pause();
+      const raw: string = typeof chunk === "string" ? chunk : chunk.toString("utf8");
+      const first: string | undefined = raw.trim().charAt(0);
+      const yes: boolean = first === "y" || first === "Y";
+      process.stdout.write("\n");
+      resolve(yes);
+    };
+    process.stdin.once("data", onData);
+    process.stdin.resume();
+  });
+}
+
 function parseArgs(argv: readonly string[]): CliArgs {
   let configPath: string | undefined;
   let ci: boolean = false;
@@ -69,16 +461,25 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let throttlingMethodOverride: ApexThrottlingMethod | undefined;
   let cpuSlowdownOverride: number | undefined;
   let parallelOverride: number | undefined;
+  let auditTimeoutMsOverride: number | undefined;
+  let plan = false;
+  let yes = false;
+  let maxSteps: number | undefined;
+  let maxCombos: number | undefined;
   let stable = false;
   let openReport = false;
   let warmUp = false;
   let incremental = false;
   let buildId: string | undefined;
+  let runsOverride: number | undefined;
   let quick = false;
   let accurate = false;
   let jsonOutput = false;
   let showParallel = false;
   let fast = false;
+  let overview = false;
+  let overviewCombos: number | undefined;
+  let regressionsOnly = false;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -95,7 +496,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
       if (value === "silent" || value === "error" || value === "info" || value === "verbose") {
         logLevelOverride = value;
       } else {
-        throw new Error(`Invalid --log-level value: ${value}`);
+        throw new Error(`Unknown argument: ${arg}`);
       }
       i += 1;
     } else if (arg === "--mobile-only") {
@@ -130,6 +531,33 @@ function parseArgs(argv: readonly string[]): CliArgs {
       }
       parallelOverride = value;
       i += 1;
+    } else if (arg === "--audit-timeout-ms" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value <= 0) {
+        throw new Error(`Invalid --audit-timeout-ms value: ${argv[i + 1]}. Expected a positive integer (milliseconds).`);
+      }
+      auditTimeoutMsOverride = value;
+      i += 1;
+    } else if (arg === "--plan") {
+      plan = true;
+    } else if (arg === "--regressions-only") {
+      regressionsOnly = true;
+    } else if (arg === "--max-steps" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value <= 0) {
+        throw new Error(`Invalid --max-steps value: ${argv[i + 1]}. Expected a positive integer.`);
+      }
+      maxSteps = value;
+      i += 1;
+    } else if (arg === "--max-combos" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value <= 0) {
+        throw new Error(`Invalid --max-combos value: ${argv[i + 1]}. Expected a positive integer.`);
+      }
+      maxCombos = value;
+      i += 1;
+    } else if (arg === "--yes" || arg === "-y") {
+      yes = true;
     } else if (arg.startsWith("--parallel=")) {
       parallelOverride = Number(arg.split("=")[1]);
       if (Number.isNaN(parallelOverride)) {
@@ -146,6 +574,23 @@ function parseArgs(argv: readonly string[]): CliArgs {
     } else if (arg === "--build-id" && i + 1 < argv.length) {
       buildId = argv[i + 1];
       i += 1;
+    } else if (arg === "--runs" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value !== 1) {
+        throw new Error(
+          `Multi-run mode is no longer supported. Received --runs ${argv[i + 1]}. ` +
+            "Run the same command multiple times instead (more stable).",
+        );
+      }
+      runsOverride = value;
+      i += 1;
+    } else if (arg === "--overview-combos" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value <= 0 || value > 200) {
+        throw new Error(`Invalid --overview-combos value: ${argv[i + 1]}. Expected integer between 1 and 200.`);
+      }
+      overviewCombos = value;
+      i += 1;
     } else if (arg === "--quick") {
       quick = true;
     } else if (arg === "--accurate") {
@@ -156,14 +601,68 @@ function parseArgs(argv: readonly string[]): CliArgs {
       showParallel = true;
     } else if (arg === "--fast") {
       fast = true;
+    } else if (arg === "--overview") {
+      overview = true;
     }
   }
-  const presetCount: number = [fast, quick, accurate].filter((flag) => flag).length;
+  const presetCount: number = [fast, quick, accurate, overview].filter((flag) => flag).length;
   if (presetCount > 1) {
-    throw new Error("Choose only one preset: --fast, --quick, or --accurate");
+    throw new Error("Choose only one preset: --overview, --fast, --quick, or --accurate");
   }
   const finalConfigPath: string = configPath ?? "apex.config.json";
-  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter, throttlingMethodOverride, cpuSlowdownOverride, parallelOverride, stable, openReport, warmUp, incremental, buildId, quick, accurate, jsonOutput, showParallel, fast };
+  return { configPath: finalConfigPath, ci, colorMode, logLevelOverride, deviceFilter, throttlingMethodOverride, cpuSlowdownOverride, parallelOverride, auditTimeoutMsOverride, plan, yes, maxSteps, maxCombos, stable, openReport, warmUp, incremental, buildId, runsOverride, quick, accurate, jsonOutput, showParallel, fast, overview, overviewCombos, regressionsOnly };
+}
+
+function printPlan(params: {
+  readonly configPath: string;
+  readonly resolvedConfig: ApexConfig;
+  readonly plannedCombos: number;
+  readonly plannedSteps: number;
+  readonly sampled: boolean;
+  readonly sampledCombos: number;
+  readonly maxCombos: number;
+  readonly maxSteps: number;
+  readonly useColor: boolean;
+}): void {
+  const lines: string[] = [];
+  lines.push(`Config: ${params.configPath}`);
+  lines.push(`Parallel: ${params.resolvedConfig.parallel ?? "auto"}`);
+  lines.push(`Throttling: ${params.resolvedConfig.throttlingMethod ?? "simulate"}`);
+  lines.push(`CPU slowdown: ${params.resolvedConfig.cpuSlowdownMultiplier ?? 4}`);
+  lines.push(`Warm-up: ${params.resolvedConfig.warmUp === true ? "yes" : "no"}`);
+  lines.push(`Incremental: ${params.resolvedConfig.incremental === true ? "yes" : "no"}`);
+  lines.push(`Build ID: ${params.resolvedConfig.buildId ?? "-"}`);
+  lines.push(`Runs per combo: 1`);
+  lines.push(`Planned combos: ${params.plannedCombos}`);
+  lines.push(`Planned Lighthouse runs (steps): ${params.plannedSteps}`);
+  if (params.sampled) {
+    lines.push(`Overview sampling: yes (${params.sampledCombos} combos)`);
+  }
+  lines.push(`Guardrails: combos<=${params.maxCombos}, steps<=${params.maxSteps}`);
+  printSectionHeader("Plan", params.useColor);
+  printDivider();
+  // eslint-disable-next-line no-console
+  console.log(boxifyWithSeparators(lines));
+  printDivider();
+}
+
+function sampleConfigForOverview(config: ApexConfig, maxCombos: number): { readonly config: ApexConfig; readonly sampled: boolean; readonly sampledCombos: number } {
+  const nextPages: ApexPageConfig[] = [];
+  let combos = 0;
+  for (const page of config.pages) {
+    if (combos >= maxCombos) {
+      break;
+    }
+    const remaining: number = maxCombos - combos;
+    const devices: ApexDevice[] = page.devices.slice(0, remaining);
+    if (devices.length === 0) {
+      continue;
+    }
+    nextPages.push({ ...page, devices });
+    combos += devices.length;
+  }
+  const sampled: boolean = combos < config.pages.reduce((acc, p) => acc + p.devices.length, 0);
+  return { config: { ...config, pages: nextPages }, sampled, sampledCombos: combos };
 }
 
 async function resolveAutoBuildId(configPath: string): Promise<string | undefined> {
@@ -249,6 +748,85 @@ function computeAvgScores(results: readonly PageDeviceSummary[]): AvgScores {
     bestPractices: Math.round(sums.bestPractices / count),
     seo: Math.round(sums.seo / count),
   };
+}
+
+function buildEffectiveSettingsPanel(params: { readonly configPath: string; readonly config: ApexConfig; readonly useColor: boolean }): string {
+  const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const buildIdText: string = params.config.buildId ?? "-";
+  const throttlingText: string = params.config.throttlingMethod ?? "simulate";
+  const cpuText: string = String(params.config.cpuSlowdownMultiplier ?? 4);
+  const parallelText: string = String(params.config.parallel ?? 4);
+  const warmUpText: string = params.config.warmUp ? "yes" : "no";
+  const incrementalText: string = params.config.incremental ? "on" : "off";
+  const lines: string[] = [];
+  lines.push(`${theme.dim("Config")}: ${params.configPath}`);
+  lines.push(`${theme.dim("Build ID")}: ${buildIdText}`);
+  lines.push(`${theme.dim("Incremental")}: ${incrementalText}`);
+  lines.push(`${theme.dim("Warm-up")}: ${warmUpText}`);
+  lines.push(`${theme.dim("Throttling")}: ${throttlingText}`);
+  lines.push(`${theme.dim("CPU slowdown")}: ${cpuText}`);
+  lines.push(`${theme.dim("Parallel")}: ${parallelText}`);
+  return renderPanel({ title: theme.bold("Effective settings"), lines });
+}
+
+function buildMetaPanel(meta: RunSummary["meta"], useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const cacheSummary: string = meta.incremental
+    ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached (steps: ${meta.executedSteps}/${meta.cachedSteps})`
+    : "No";
+  const lines: string[] = [
+    `${theme.dim("Build ID")}: ${meta.buildId ?? "-"}`,
+    `${theme.dim("Incremental")}: ${meta.incremental ? "Yes" : "No"}`,
+    `${theme.dim("Resolved parallel")}: ${meta.resolvedParallel}`,
+    `${theme.dim("Warm-up")}: ${meta.warmUp ? "Yes" : "No"}`,
+    `${theme.dim("Throttling")}: ${meta.throttlingMethod}`,
+    `${theme.dim("CPU slowdown")}: ${meta.cpuSlowdownMultiplier}`,
+    `${theme.dim("Combos")}: ${meta.comboCount}`,
+    `${theme.dim("Cache")}: ${cacheSummary}`,
+    `${theme.dim("Runs per combo")}: ${meta.runsPerCombo}`,
+    `${theme.dim("Total steps")}: ${meta.totalSteps}`,
+    `${theme.dim("Elapsed")}: ${formatElapsedTime(meta.elapsedMs)}`,
+    `${theme.dim("Avg / step")}: ${formatElapsedTime(meta.averageStepMs)}`,
+  ];
+  return renderPanel({ title: theme.bold("Meta"), lines });
+}
+
+function buildStatsPanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+  const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  let pSum = 0;
+  let aSum = 0;
+  let bpSum = 0;
+  let seoSum = 0;
+  let count = 0;
+  let green = 0;
+  let yellow = 0;
+  let red = 0;
+  for (const r of results) {
+    const p = r.scores.performance;
+    if (p !== undefined) {
+      count += 1;
+      pSum += p;
+      if (p >= 90) {
+        green += 1;
+      } else if (p >= 50) {
+        yellow += 1;
+      } else {
+        red += 1;
+      }
+    }
+    if (r.scores.accessibility !== undefined) aSum += r.scores.accessibility;
+    if (r.scores.bestPractices !== undefined) bpSum += r.scores.bestPractices;
+    if (r.scores.seo !== undefined) seoSum += r.scores.seo;
+  }
+  const avgP = count > 0 ? Math.round(pSum / count) : 0;
+  const avgA = results.length > 0 ? Math.round(aSum / results.length) : 0;
+  const avgBP = results.length > 0 ? Math.round(bpSum / results.length) : 0;
+  const avgSEO = results.length > 0 ? Math.round(seoSum / results.length) : 0;
+  const lines: string[] = [
+    `${theme.dim("Summary")}: Avg P:${avgP} A:${avgA} BP:${avgBP} SEO:${avgSEO}`,
+    `${theme.dim("Scores")}: ${theme.green(`${green} green (90+)`)} | ${theme.yellow(`${yellow} yellow (50-89)`)} | ${theme.red(`${red} red (<50)`)} of ${count} total`,
+  ];
+  return renderPanel({ title: theme.bold("Stats"), lines });
 }
 
 type ChangeLine = {
@@ -345,16 +923,24 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const previousSummary: RunSummary | undefined = await loadPreviousSummary();
 
   const presetThrottling: ApexThrottlingMethod | undefined = args.accurate ? "devtools" : undefined;
-  const presetRuns: number | undefined = args.accurate ? 3 : args.quick ? 1 : undefined;
-  const presetWarmUp: boolean | undefined = args.accurate ? true : undefined;
-  const presetParallel: number | undefined = args.accurate ? 2 : undefined;
+  const presetWarmUp: boolean | undefined = args.accurate ? true : args.overview ? false : undefined;
+  const presetParallel: number | undefined = args.accurate ? 1 : undefined;
+
+  const DEFAULT_PARALLEL: number = 4;
+  const DEFAULT_WARM_UP: boolean = true;
 
   const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
   const effectiveThrottling: ApexThrottlingMethod | undefined = args.fast ? "simulate" : args.throttlingMethodOverride ?? presetThrottling ?? config.throttlingMethod;
   const effectiveCpuSlowdown: number | undefined = args.cpuSlowdownOverride ?? config.cpuSlowdownMultiplier;
-  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel;
-  const effectiveWarmUp: boolean = args.warmUp || presetWarmUp === true || config.warmUp === true;
-  const effectiveIncremental: boolean = args.incremental || config.incremental === true;
+  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel ?? DEFAULT_PARALLEL;
+  const effectiveAuditTimeoutMs: number | undefined = args.auditTimeoutMsOverride ?? config.auditTimeoutMs;
+  const warmUpDefaulted: boolean = presetWarmUp ?? config.warmUp ?? DEFAULT_WARM_UP;
+  const effectiveWarmUp: boolean = args.warmUp ? true : warmUpDefaulted;
+  const effectiveIncremental: boolean = args.incremental;
+  if (!effectiveIncremental && config.incremental === true) {
+    // eslint-disable-next-line no-console
+    console.log("Note: incremental caching is now opt-in. Pass --incremental to enable it for this run.");
+  }
   const candidateBuildId: string | undefined = args.buildId ?? config.buildId;
   const autoBuildId: string | undefined = effectiveIncremental && candidateBuildId === undefined
     ? await resolveAutoBuildId(configPath)
@@ -365,7 +951,7 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     // eslint-disable-next-line no-console
     console.log("Incremental mode requested, but no buildId could be resolved. Running a full audit. Tip: pass --build-id or set buildId in apex.config.json");
   }
-  const effectiveRuns: number | undefined = args.fast ? 1 : presetRuns ?? config.runs;
+  const effectiveRuns: number = 1;
   const onlyCategories: readonly ApexCategory[] | undefined = args.fast ? ["performance"] : undefined;
   const effectiveConfig: ApexConfig = {
     ...config,
@@ -374,6 +960,7 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     throttlingMethod: effectiveThrottling,
     cpuSlowdownMultiplier: effectiveCpuSlowdown,
     parallel: effectiveParallel,
+    auditTimeoutMs: effectiveAuditTimeoutMs,
     warmUp: effectiveWarmUp,
     incremental: finalIncremental,
     runs: effectiveRuns,
@@ -385,13 +972,84 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  const overviewMaxCombos: number = args.overviewCombos ?? DEFAULT_OVERVIEW_MAX_COMBOS;
+  const overviewSample = args.overview && !args.yes ? sampleConfigForOverview(filteredConfig, overviewMaxCombos) : { config: filteredConfig, sampled: false, sampledCombos: 0 };
+  const plannedCombos: number = overviewSample.config.pages.reduce((acc, p) => acc + p.devices.length, 0);
+  const plannedRuns: number = overviewSample.config.runs ?? 1;
+  const plannedSteps: number = plannedCombos * plannedRuns;
+  const maxSteps: number = args.maxSteps ?? DEFAULT_MAX_STEPS;
+  const maxCombos: number = args.maxCombos ?? DEFAULT_MAX_COMBOS;
+  const isTty: boolean = typeof process !== "undefined" && process.stdout?.isTTY === true;
+  const exceeds: boolean = plannedSteps > maxSteps || plannedCombos > maxCombos;
+  const useColor: boolean = shouldUseColor(args.ci, args.colorMode);
+  if (args.plan) {
+    printPlan({
+      configPath,
+      resolvedConfig: overviewSample.config,
+      plannedCombos,
+      plannedSteps,
+      sampled: overviewSample.sampled,
+      sampledCombos: overviewSample.sampledCombos,
+      maxCombos,
+      maxSteps,
+      useColor,
+    });
+    return;
+  }
+  if (isTty && !args.ci && !args.jsonOutput) {
+    const tipLines: string[] = [
+      "Tip: use --plan to preview run size before starting.",
+      "Note: runs-per-combo is always 1; rerun the same command to compare results.",
+      "If parallel mode flakes (worker disconnects), retry with --stable (forces parallel=1).",
+    ];
+    // eslint-disable-next-line no-console
+    console.log(boxifyWithSeparators(tipLines));
+    printDivider();
+  }
+  if (overviewSample.sampled) {
+    // eslint-disable-next-line no-console
+    console.log(`Overview mode: sampling ${plannedCombos} combos (pass --yes for full suite or --overview-combos <n> to adjust).`);
+  }
+  if (exceeds && !args.yes) {
+    const limitText: string = `limits combos<=${maxCombos}, steps<=${maxSteps}`;
+    const planText: string = `Planned run: ${plannedCombos} combos x ${plannedRuns} runs = ${plannedSteps} Lighthouse runs.`;
+    if (args.ci || !isTty) {
+      // eslint-disable-next-line no-console
+      console.error(`${planText} Refusing to start because it exceeds default ${limitText}. Use --yes to proceed or adjust with --max-steps/--max-combos.`);
+      process.exitCode = 1;
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.log(`${planText} This exceeds default ${limitText}.`);
+    const ok: boolean = await confirmLargeRun("Continue? (y/N) ");
+    if (!ok) {
+      // eslint-disable-next-line no-console
+      console.log("Cancelled.");
+      return;
+    }
+  }
   let summary: RunSummary;
+  const abortController: AbortController = new AbortController();
+  const onSigInt = (): void => {
+    abortController.abort();
+  };
+  process.once("SIGINT", onSigInt);
   try {
-    summary = await runAuditsForConfig({ config: filteredConfig, configPath, showParallel: args.showParallel, onlyCategories });
+    summary = await runAuditsForConfig({ config: overviewSample.config, configPath, showParallel: args.showParallel, onlyCategories, signal: abortController.signal });
   } catch (error: unknown) {
+    process.removeListener("SIGINT", onSigInt);
+    const message: string = error instanceof Error ? error.message : "Unknown error";
+    if (abortController.signal.aborted || message.includes("Aborted")) {
+      // eslint-disable-next-line no-console
+      console.log("Audit cancelled.");
+      process.exitCode = 130;
+      return;
+    }
     handleFriendlyError(error);
     process.exitCode = 1;
     return;
+  } finally {
+    process.removeListener("SIGINT", onSigInt);
   }
   const outputDir: string = resolve(".apex-auditor");
   await mkdir(outputDir, { recursive: true });
@@ -401,6 +1059,9 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
   const html: string = buildHtmlReport(summary);
   const reportPath: string = resolve(outputDir, "report.html");
   await writeFile(reportPath, html, "utf8");
+  const shareable: ShareableExport = buildShareableExport({ configPath, previousSummary, current: summary });
+  const exportPath: string = resolve(outputDir, "export.json");
+  await writeFile(exportPath, JSON.stringify(shareable, null, 2), "utf8");
   // Open HTML report in browser if requested
   if (args.openReport) {
     openInBrowser(reportPath);
@@ -412,15 +1073,18 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     return;
   }
   printReportLink(reportPath);
+  if (isTty && !args.ci) {
+    // eslint-disable-next-line no-console
+    console.log(buildEffectiveSettingsPanel({ configPath, config: effectiveConfig, useColor }));
+    // eslint-disable-next-line no-console
+    console.log(buildSectionIndex(useColor));
+  }
   // Also echo a compact, colourised table to stdout for quick viewing.
-  const useColor: boolean = shouldUseColor(args.ci, args.colorMode);
-  printSectionHeader("Summary", useColor);
-  printDivider();
-  const consoleTable: string = buildConsoleTable(summary.results, useColor);
-  const boxedTable: string = boxifyWithSeparators(consoleTable.split("\n"));
+  // Structured panels
   // eslint-disable-next-line no-console
-  console.log(boxedTable);
-  printDivider();
+  console.log(buildMetaPanel(summary.meta, useColor));
+  // eslint-disable-next-line no-console
+  console.log(buildStatsPanel(summary.results, useColor));
   if (previousSummary !== undefined) {
     printSectionHeader("Changes", useColor);
     printDivider();
@@ -428,17 +1092,29 @@ export async function runAuditCli(argv: readonly string[]): Promise<void> {
     console.log(buildChangesBox(previousSummary, summary, useColor));
     printDivider();
   }
-  printSectionHeader("Meta", useColor);
-  printRunMeta(summary.meta, useColor);
-  printSectionHeader("Stats", useColor);
-  printSummaryStats(summary.results, useColor);
+  printSectionHeader("Summary", useColor);
+  // eslint-disable-next-line no-console
+  console.log(
+    buildSummaryPanel({
+      results: summary.results,
+      useColor,
+      regressionsOnly: args.regressionsOnly,
+      previousSummary,
+    }),
+  );
   printSectionHeader("Issues", useColor);
-  printDivider();
-  printRedIssues(summary.results);
+  // eslint-disable-next-line no-console
+  console.log(buildIssuesPanel(summary.results, useColor));
+  printSectionHeader("Top fixes", useColor);
+  // eslint-disable-next-line no-console
+  console.log(buildTopFixesPanel(summary.results, useColor));
   printCiSummary(args, summary.results, effectiveConfig.budgets);
   printSectionHeader("Lowest performance", useColor);
-  printDivider();
-  printLowestPerformancePages(summary.results, useColor);
+  // eslint-disable-next-line no-console
+  console.log(buildLowestPerformancePanel(summary.results, useColor));
+  printSectionHeader("Export", useColor);
+  // eslint-disable-next-line no-console
+  console.log(buildExportPanel({ exportPath, useColor, share: shareable }));
   const elapsedMs: number = Date.now() - startTimeMs;
   const elapsedText: string = formatElapsedTime(elapsedMs);
   const elapsedDisplay: string = useColor ? `${ANSI_CYAN}${elapsedText}${ANSI_RESET}` : elapsedText;
@@ -877,6 +1553,61 @@ function formatOpportunityLabel(opportunity: OpportunitySummary): string {
   const parts: string[] = [savingsMs, savingsBytes].filter((part) => part.length > 0);
   const suffix: string = parts.length > 0 ? ` (${parts.join(", ")})` : "";
   return `${opportunity.id}${suffix}`;
+}
+
+type FixAggregate = {
+  readonly id: string;
+  readonly title: string;
+  readonly count: number;
+  readonly totalMs: number;
+  readonly totalBytes: number;
+};
+
+function printTopFixes(results: readonly PageDeviceSummary[]): void {
+  const map: Map<string, { title: string; count: number; totalMs: number; totalBytes: number }> = new Map();
+  for (const result of results) {
+    for (const opp of result.opportunities) {
+      if (!hasMeaningfulSavings(opp)) {
+        continue;
+      }
+      const key: string = opp.id;
+      const previous = map.get(key);
+      map.set(key, {
+        title: previous?.title ?? opp.title,
+        count: (previous?.count ?? 0) + 1,
+        totalMs: (previous?.totalMs ?? 0) + (opp.estimatedSavingsMs ?? 0),
+        totalBytes: (previous?.totalBytes ?? 0) + (opp.estimatedSavingsBytes ?? 0),
+      });
+    }
+  }
+  const aggregates: FixAggregate[] = Array.from(map.entries()).map(([id, v]) => {
+    return { id, title: v.title, count: v.count, totalMs: v.totalMs, totalBytes: v.totalBytes };
+  });
+  if (aggregates.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log(boxifyWithSeparators(["No actionable opportunities found in this sample."]));
+    return;
+  }
+  aggregates.sort((a, b) => {
+    if (a.count !== b.count) {
+      return b.count - a.count;
+    }
+    if (a.totalMs !== b.totalMs) {
+      return b.totalMs - a.totalMs;
+    }
+    return b.totalBytes - a.totalBytes;
+  });
+  const top: FixAggregate[] = aggregates.slice(0, 8);
+  const lines: string[] = ["Most common opportunities:"];
+  for (const entry of top) {
+    const ms: string = entry.totalMs > 0 ? `${Math.round(entry.totalMs)}ms` : "";
+    const kb: string = entry.totalBytes > 0 ? `${Math.round(entry.totalBytes / 1024)}KB` : "";
+    const parts: string[] = [ms, kb].filter((p) => p.length > 0);
+    const suffix: string = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+    lines.push(`- ${entry.id} – ${entry.title} (seen on ${entry.count} pages)${suffix}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log(boxifyWithSeparators(lines));
 }
 
 function formatMetricSeconds(

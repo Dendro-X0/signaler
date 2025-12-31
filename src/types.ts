@@ -39,6 +39,7 @@ export interface ApexConfig {
   readonly buildId?: string;
   readonly chromePort?: number;
   readonly runs?: number;
+  readonly auditTimeoutMs?: number;
   readonly logLevel?: "silent" | "error" | "info" | "verbose";
   /**
    * Throttling method for performance simulation.

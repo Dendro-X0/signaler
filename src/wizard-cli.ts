@@ -13,7 +13,6 @@ interface WizardArgs {
 interface BaseAnswers {
   readonly baseUrl: string;
   readonly query?: string;
-  readonly runs?: number;
 }
 
 interface PageAnswers {
@@ -58,7 +57,6 @@ const PROFILE_TO_DETECTOR: Record<ProjectProfileId, RouteDetectorId | undefined>
 };
 
 const DEFAULT_BASE_URL = "http://localhost:3000" as const;
-const DEFAULT_RUNS = 1;
 const DEFAULT_PROJECT_ROOT = "." as const;
 const DEFAULT_PRESELECT_COUNT = 5;
 const DEFAULT_DEVICES: readonly ApexDevice[] = ["mobile", "desktop"] as const;
@@ -95,13 +93,6 @@ const baseQuestions: readonly PromptObject[] = [
     name: "query",
     message: "Query string appended to every route (optional)",
     initial: "",
-  },
-  {
-    type: "number",
-    name: "runs",
-    message: "Number of Lighthouse runs per page/device",
-    initial: DEFAULT_RUNS,
-    min: 1,
   },
 ];
 const pageQuestions: readonly PromptObject[] = [
@@ -140,12 +131,6 @@ const addMorePagesQuestion: PromptObject = {
   message: "Add another page to audit?",
   initial: false,
 };
-const detectRoutesQuestion: PromptObject = {
-  type: "confirm",
-  name: "value",
-  message: "Attempt to auto-detect routes from your project?",
-  initial: true,
-};
 const projectRootQuestion: PromptObject = {
   type: "text",
   name: "projectRoot",
@@ -174,6 +159,14 @@ function handleCancel(): true {
 async function ask<T extends object>(question: PromptObject | readonly PromptObject[]): Promise<T> {
   const answers = await prompts(question as PromptObject | PromptObject[], PROMPT_OPTIONS);
   return answers as T;
+}
+
+async function collectBaseAnswers(): Promise<BaseAnswers> {
+  const answers = await ask<BaseAnswers>(baseQuestions);
+  return {
+    baseUrl: answers.baseUrl,
+    query: answers.query,
+  };
 }
 
 function parseArgs(argv: readonly string[]): WizardArgs {
@@ -209,12 +202,11 @@ async function ensureWritable(path: string): Promise<void> {
   process.exit(0);
 }
 
-async function collectBaseAnswers(): Promise<BaseAnswers> {
-  const answers = await ask<BaseAnswers>(baseQuestions);
+function buildBaseConfig(answers: BaseAnswers): Pick<ApexConfig, "baseUrl" | "query" | "runs"> {
   return {
     baseUrl: answers.baseUrl.trim(),
     query: answers.query && answers.query.length > 0 ? answers.query : undefined,
-    runs: answers.runs,
+    runs: 1,
   };
 }
 
@@ -232,6 +224,10 @@ async function collectSinglePage(): Promise<ApexPageConfig> {
 
 async function collectPages(initialPages: readonly ApexPageConfig[]): Promise<ApexPageConfig[]> {
   const pages: ApexPageConfig[] = [...initialPages];
+  // If we already detected pages, return them immediately for speed.
+  if (pages.length > 0) {
+    return pages;
+  }
   while (true) {
     const shouldAdd = await confirmAddPage(pages.length > 0);
     if (!shouldAdd) {
@@ -246,10 +242,6 @@ async function collectPages(initialPages: readonly ApexPageConfig[]): Promise<Ap
 }
 
 async function maybeDetectPages(profile: ProjectProfileId): Promise<ApexPageConfig[]> {
-  const shouldDetect = await ask<DetectRoutesAnswer>(detectRoutesQuestion);
-  if (!shouldDetect.value) {
-    return [];
-  }
   const preferredDetector = await selectDetector(profile);
   const projectRootAnswer = await ask<ProjectRootAnswer>(projectRootQuestion);
   const repoRoot = resolve(projectRootAnswer.projectRoot);
@@ -352,7 +344,7 @@ async function buildConfig(): Promise<ApexConfig> {
   return {
     baseUrl: baseAnswers.baseUrl,
     query: baseAnswers.query,
-    runs: baseAnswers.runs,
+    runs: 1,
     pages,
   };
 }

@@ -33,6 +33,7 @@ type AuditTask = {
   readonly logLevel: LighthouseLogLevel;
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
+  readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
 };
 
@@ -84,7 +85,8 @@ function isTransientLighthouseError(error: unknown): boolean {
     message.includes("LanternError") ||
     message.includes("top level events") ||
     message.includes("CDP") ||
-    message.includes("disconnected")
+    message.includes("disconnected") ||
+    message.includes("ApexAuditor timeout")
   );
 }
 
@@ -133,6 +135,24 @@ async function delayMs(durationMs: number): Promise<void> {
   });
 }
 
+function computeRetryDelayMs(params: { readonly attempt: number }): number {
+  const baseDelayMs: number = 250;
+  const maxDelayMs: number = 5000;
+  const exp: number = Math.min(5, params.attempt);
+  const candidate: number = baseDelayMs * Math.pow(2, exp);
+  const jitter: number = Math.floor(Math.random() * 200);
+  return Math.min(maxDelayMs, candidate + jitter);
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  const timeoutPromise: Promise<T> = new Promise<T>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`ApexAuditor timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
+
 type ChromeSessionRef = {
   session: ChromeSession;
 };
@@ -142,17 +162,20 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
   let lastError: unknown;
   while (attempt <= maxRetries) {
     try {
-      return await runSingleAudit({
-        url: task.url,
-        path: task.path,
-        label: task.label,
-        device: task.device,
-        port: sessionRef.session.port,
-        logLevel: task.logLevel,
-        throttlingMethod: task.throttlingMethod,
-        cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
-        onlyCategories: task.onlyCategories,
-      });
+      return await withTimeout(
+        runSingleAudit({
+          url: task.url,
+          path: task.path,
+          label: task.label,
+          device: task.device,
+          port: sessionRef.session.port,
+          logLevel: task.logLevel,
+          throttlingMethod: task.throttlingMethod,
+          cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+          onlyCategories: task.onlyCategories,
+        }),
+        task.timeoutMs,
+      );
     } catch (error: unknown) {
       lastError = error;
       const shouldRetry: boolean = isTransientLighthouseError(error) && attempt < maxRetries;
@@ -160,7 +183,7 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
         throw error instanceof Error ? error : new Error("Lighthouse failed");
       }
       await sessionRef.session.close();
-      await delayMs(300 * (attempt + 1));
+      await delayMs(computeRetryDelayMs({ attempt }));
       sessionRef.session = await createChromeSession();
       attempt += 1;
     }
@@ -180,6 +203,16 @@ async function runSingleAudit(params: {
   readonly onlyCategories?: readonly ApexCategory[];
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
+  const throttling = params.throttlingMethod === "simulate"
+    ? {
+      cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
+      rttMs: 150,
+      throughputKbps: 1638.4,
+      requestLatencyMs: 150 * 3.75,
+      downloadThroughputKbps: 1638.4,
+      uploadThroughputKbps: 750,
+    }
+    : { cpuSlowdownMultiplier: params.cpuSlowdownMultiplier };
   const options = {
     port: params.port,
     output: "json" as const,
@@ -187,14 +220,7 @@ async function runSingleAudit(params: {
     onlyCategories,
     formFactor: params.device,
     throttlingMethod: params.throttlingMethod,
-    throttling: {
-      cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
-      rttMs: 150,
-      throughputKbps: 1638.4,
-      requestLatencyMs: 150 * 3.75,
-      downloadThroughputKbps: 1638.4,
-      uploadThroughputKbps: 750,
-    },
+    throttling,
     screenEmulation: params.device === "mobile"
       ? { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false }
       : { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },

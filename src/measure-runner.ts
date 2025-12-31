@@ -1,0 +1,476 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { request as httpRequest } from "node:http";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { launch as launchChrome } from "chrome-launcher";
+import type { ApexConfig, ApexDevice } from "./types.js";
+import { CdpClient } from "./cdp-client.js";
+import type { MeasureSummary } from "./measure-types.js";
+
+type ChromeSession = {
+  readonly port: number;
+  readonly close: () => Promise<void>;
+};
+
+type TargetInfo = {
+  readonly targetId: string;
+};
+
+type AttachToTargetResult = {
+  readonly sessionId: string;
+};
+
+type JsonVersionResponse = {
+  readonly webSocketDebuggerUrl: string;
+};
+
+type NavigationResponse = {
+  readonly frameId: string;
+  readonly loaderId?: string;
+  readonly errorText?: string;
+};
+
+type PageDeviceTask = {
+  readonly url: string;
+  readonly path: string;
+  readonly label: string;
+  readonly device: ApexDevice;
+};
+
+type NavigationTiming = {
+  readonly responseStart?: number;
+  readonly domContentLoadedEventEnd?: number;
+  readonly loadEventEnd?: number;
+};
+
+type MeasuredVitals = {
+  readonly lcpMs?: number;
+  readonly cls?: number;
+  readonly inpMs?: number;
+};
+
+type MeasureEvaluateResult = {
+  readonly navigation?: NavigationTiming;
+  readonly vitals?: MeasuredVitals;
+};
+
+type MeasureArtifacts = {
+  readonly screenshotPath?: string;
+  readonly consoleErrors: readonly string[];
+};
+
+type MeasureResult = {
+  readonly url: string;
+  readonly path: string;
+  readonly label: string;
+  readonly device: ApexDevice;
+  readonly timings: {
+    readonly ttfbMs?: number;
+    readonly domContentLoadedMs?: number;
+    readonly loadMs?: number;
+  };
+  readonly vitals: {
+    readonly lcpMs?: number;
+    readonly cls?: number;
+    readonly inpMs?: number;
+  };
+  readonly artifacts: MeasureArtifacts;
+  readonly runtimeErrorMessage?: string;
+};
+
+const DEFAULT_NAVIGATION_TIMEOUT_MS: number = 60_000;
+const DEFAULT_MAX_PARALLEL: number = 4;
+const DEFAULT_ARTIFACTS_DIR = ".apex-auditor/measure" as const;
+const CHROME_FLAGS: readonly string[] = [
+  "--headless=new",
+  "--disable-gpu",
+  "--no-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-extensions",
+  "--disable-default-apps",
+  "--no-first-run",
+  "--no-default-browser-check",
+] as const;
+const MOBILE_METRICS = { mobile: true, width: 412, height: 823, deviceScaleFactor: 2 } as const;
+const DESKTOP_METRICS = { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1 } as const;
+const MOBILE_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36" as const;
+
+type TargetSession = { readonly targetId: string; readonly sessionId: string };
+
+function buildUrl({ baseUrl, path, query }: { readonly baseUrl: string; readonly path: string; readonly query?: string }): string {
+  const cleanBase: string = baseUrl.replace(/\/$/, "");
+  const cleanPath: string = path.startsWith("/") ? path : `/${path}`;
+  const queryPart: string = query && query.length > 0 ? query : "";
+  return `${cleanBase}${cleanPath}${queryPart}`;
+}
+
+function slugify(value: string): string {
+  const safe: string = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe.length > 0 ? safe : "page";
+}
+
+function buildArtifactBaseName(task: PageDeviceTask): string {
+  const hash: string = createHash("sha1").update(`${task.url}::${task.device}`).digest("hex").slice(0, 10);
+  const pathPart: string = slugify(task.path);
+  return `${pathPart}-${task.device}-${hash}`;
+}
+
+function resolveParallelCount(params: { readonly requested?: number; readonly taskCount: number }): number {
+  const requested: number | undefined = params.requested;
+  if (requested !== undefined) {
+    return Math.max(1, Math.min(DEFAULT_MAX_PARALLEL, Math.min(params.taskCount, requested)));
+  }
+  return Math.max(1, Math.min(DEFAULT_MAX_PARALLEL, params.taskCount));
+}
+
+async function createChromeSession(): Promise<ChromeSession> {
+  const userDataDir: string = await mkdtemp(join(tmpdir(), "apex-auditor-measure-chrome-"));
+  const chrome = await launchChrome({ chromeFlags: [...CHROME_FLAGS, `--user-data-dir=${userDataDir}`] });
+  return {
+    port: chrome.port,
+    close: async () => {
+      try {
+        await chrome.kill();
+        await rm(userDataDir, { recursive: true, force: true });
+      } catch {
+        return;
+      }
+    },
+  };
+}
+
+async function fetchJsonVersion(port: number): Promise<JsonVersionResponse> {
+  const url: string = `http://127.0.0.1:${port}/json/version`;
+  return new Promise<JsonVersionResponse>((resolve, reject) => {
+    const request = httpRequest(url, (response) => {
+      const statusCode: number = response.statusCode ?? 0;
+      if (statusCode < 200 || statusCode >= 300) {
+        response.resume();
+        reject(new Error(`CDP /json/version returned HTTP ${statusCode}`));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      response.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      response.on("end", () => {
+        const raw: string = Buffer.concat(chunks).toString("utf8");
+        const parsed: unknown = JSON.parse(raw) as unknown;
+        if (!parsed || typeof parsed !== "object") {
+          reject(new Error("Invalid /json/version response"));
+          return;
+        }
+        const record = parsed as { readonly webSocketDebuggerUrl?: unknown };
+        if (typeof record.webSocketDebuggerUrl !== "string" || record.webSocketDebuggerUrl.length === 0) {
+          reject(new Error("Missing webSocketDebuggerUrl in /json/version"));
+          return;
+        }
+        resolve({ webSocketDebuggerUrl: record.webSocketDebuggerUrl });
+      });
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function buildTasks(config: ApexConfig): readonly PageDeviceTask[] {
+  const tasks: PageDeviceTask[] = [];
+  for (const page of config.pages) {
+    for (const device of page.devices) {
+      const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
+      tasks.push({ url, path: page.path, label: page.label, device });
+    }
+  }
+  return tasks;
+}
+
+function buildMeasureScript(): string {
+  return `(() => {
+  const state = {
+    cls: 0,
+    lcp: undefined,
+    inp: undefined,
+  };
+  const clsObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const e = entry;
+      if (e.hadRecentInput) {
+        continue;
+      }
+      state.cls += e.value;
+    }
+  });
+  try { clsObserver.observe({ type: 'layout-shift', buffered: true }); } catch {}
+  const lcpObserver = new PerformanceObserver((list) => {
+    const entries = list.getEntries();
+    const last = entries[entries.length - 1];
+    if (last) {
+      state.lcp = last.startTime;
+    }
+  });
+  try { lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true }); } catch {}
+  const inpObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (typeof entry.interactionId !== 'number') {
+        continue;
+      }
+      const duration = entry.duration;
+      if (typeof duration === 'number') {
+        state.inp = state.inp === undefined ? duration : Math.max(state.inp, duration);
+      }
+    }
+  });
+  try { inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 40 }); } catch {}
+  (globalThis).__apexMeasure = state;
+})()`;
+}
+
+function applyDeviceEmulation(client: CdpClient, device: ApexDevice, sessionId: string): Promise<unknown> {
+  if (device === "mobile") {
+    return Promise.all([
+      client.send("Emulation.setDeviceMetricsOverride", MOBILE_METRICS, sessionId),
+      client.send("Emulation.setUserAgentOverride", { userAgent: MOBILE_UA }, sessionId),
+    ]);
+  }
+  return client.send("Emulation.setDeviceMetricsOverride", DESKTOP_METRICS, sessionId);
+}
+
+function recordLogEvents(client: CdpClient, sessionId: string, bucket: string[]): () => void {
+  const offException = client.onEvent("Runtime.exceptionThrown", sessionId, (payload: unknown) => {
+    const text: string = typeof payload === "object" && payload !== null ? JSON.stringify(payload) : String(payload);
+    bucket.push(`exception: ${text}`);
+  });
+  const offConsole = client.onEvent("Runtime.consoleAPICalled", sessionId, (payload: unknown) => {
+    const text: string = typeof payload === "object" && payload !== null ? JSON.stringify(payload) : String(payload);
+    if (text.toLowerCase().includes("error")) {
+      bucket.push(`console: ${text}`);
+    }
+  });
+  const offLog = client.onEvent("Log.entryAdded", sessionId, (payload: unknown) => {
+    const record = payload as { readonly entry?: unknown };
+    const entry = record.entry as { readonly level?: unknown; readonly text?: unknown } | undefined;
+    const level: string = typeof entry?.level === "string" ? entry.level : "";
+    const text: string = typeof entry?.text === "string" ? entry.text : "";
+    if (level === "error" && text.length > 0) {
+      bucket.push(text);
+    }
+  });
+  return () => {
+    offException();
+    offConsole();
+    offLog();
+  };
+}
+
+async function captureScreenshot(client: CdpClient, task: PageDeviceTask, sessionId: string, artifactsDir: string): Promise<string | undefined> {
+  try {
+    const screenshot = await client.send<{ readonly data?: unknown }>("Page.captureScreenshot", { format: "png" }, sessionId);
+    const data: string | undefined = typeof screenshot.data === "string" ? screenshot.data : undefined;
+    if (!data) {
+      return undefined;
+    }
+    const baseName: string = buildArtifactBaseName(task);
+    const screenshotPath: string = resolve(artifactsDir, `${baseName}.png`);
+    await writeFile(screenshotPath, Buffer.from(data, "base64"));
+    return screenshotPath;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseMeasureResult(valueUnknown: unknown): { readonly timings: { readonly ttfbMs?: number; readonly domContentLoadedMs?: number; readonly loadMs?: number }; readonly vitals: { readonly lcpMs?: number; readonly cls?: number; readonly inpMs?: number } } {
+  const value: MeasureEvaluateResult = valueUnknown && typeof valueUnknown === "object" ? (valueUnknown as MeasureEvaluateResult) : {};
+  const ttfbMs: number | undefined = typeof value.navigation?.responseStart === "number" ? value.navigation.responseStart : undefined;
+  const domContentLoadedMs: number | undefined = typeof value.navigation?.domContentLoadedEventEnd === "number" ? value.navigation.domContentLoadedEventEnd : undefined;
+  const loadMs: number | undefined = typeof value.navigation?.loadEventEnd === "number" ? value.navigation.loadEventEnd : undefined;
+  const lcpMs: number | undefined = typeof value.vitals?.lcpMs === "number" ? value.vitals.lcpMs : undefined;
+  const cls: number | undefined = typeof value.vitals?.cls === "number" ? value.vitals.cls : undefined;
+  const inpMs: number | undefined = typeof value.vitals?.inpMs === "number" ? value.vitals.inpMs : undefined;
+  return { timings: { ttfbMs, domContentLoadedMs, loadMs }, vitals: { lcpMs, cls, inpMs } };
+}
+
+async function createTargetSession(client: CdpClient): Promise<TargetSession> {
+  const created: TargetInfo = await client.send<TargetInfo>("Target.createTarget", { url: "about:blank" });
+  const attached: AttachToTargetResult = await client.send<AttachToTargetResult>("Target.attachToTarget", { targetId: created.targetId, flatten: true });
+  return { targetId: created.targetId, sessionId: attached.sessionId };
+}
+
+async function enableDomains(client: CdpClient, sessionId: string): Promise<void> {
+  await client.send("Page.enable", {}, sessionId);
+  await client.send("Log.enable", {}, sessionId);
+  await client.send("Runtime.enable", {}, sessionId);
+  await client.send("Performance.enable", {}, sessionId);
+}
+
+async function injectMeasurementScript(client: CdpClient, sessionId: string): Promise<void> {
+  const measurementScript: string = buildMeasureScript();
+  await client.send("Runtime.evaluate", { expression: measurementScript, awaitPromise: false }, sessionId);
+}
+
+async function navigateAndAwaitLoad(client: CdpClient, sessionId: string, url: string, timeoutMs: number): Promise<void> {
+  const response: NavigationResponse = await client.send<NavigationResponse>("Page.navigate", { url }, sessionId);
+  if (response.errorText) {
+    throw new Error(response.errorText);
+  }
+  await client.waitForEventForSession("Page.loadEventFired", sessionId, timeoutMs);
+}
+
+async function evaluateMetrics(client: CdpClient, sessionId: string): Promise<{ readonly timings: { readonly ttfbMs?: number; readonly domContentLoadedMs?: number; readonly loadMs?: number }; readonly vitals: { readonly lcpMs?: number; readonly cls?: number; readonly inpMs?: number } }> {
+  const evaluateResult = await client.send<{ readonly result?: unknown }>(
+    "Runtime.evaluate",
+    {
+      expression: `(() => {
+  const nav = performance.getEntriesByType('navigation')[0];
+  const state = (globalThis).__apexMeasure;
+  return {
+    navigation: nav ? {
+      responseStart: nav.responseStart,
+      domContentLoadedEventEnd: nav.domContentLoadedEventEnd,
+      loadEventEnd: nav.loadEventEnd,
+    } : undefined,
+    vitals: state ? {
+      lcpMs: state.lcp,
+      cls: state.cls,
+      inpMs: state.inp,
+    } : undefined,
+  };
+})()`,
+    },
+    sessionId,
+  );
+  const valueUnknown: unknown = (evaluateResult.result as { readonly value?: unknown } | undefined)?.value;
+  return parseMeasureResult(valueUnknown);
+}
+
+async function detachAndClose(client: CdpClient, context: TargetSession, stopLogging: () => void): Promise<void> {
+  stopLogging();
+  await client.send("Target.closeTarget", { targetId: context.targetId });
+  await client.send("Target.detachFromTarget", { sessionId: context.sessionId });
+}
+
+async function collectMetrics(params: { readonly client: CdpClient; readonly task: PageDeviceTask; readonly sessionId: string; readonly timeoutMs: number; readonly artifactsDir: string; readonly consoleErrors: string[] }): Promise<{ readonly parsed: { readonly timings: { readonly ttfbMs?: number; readonly domContentLoadedMs?: number; readonly loadMs?: number }; readonly vitals: { readonly lcpMs?: number; readonly cls?: number; readonly inpMs?: number } }; readonly screenshotPath?: string; readonly stopLogging: () => void }> {
+  const { client, task, sessionId, timeoutMs, artifactsDir, consoleErrors } = params;
+  const stopLogging = recordLogEvents(client, sessionId, consoleErrors);
+  await applyDeviceEmulation(client, task.device, sessionId);
+  await injectMeasurementScript(client, sessionId);
+  await navigateAndAwaitLoad(client, sessionId, task.url, timeoutMs);
+  const screenshotPath: string | undefined = await captureScreenshot(client, task, sessionId, artifactsDir);
+  await client.send("Runtime.evaluate", { expression: "void 0", awaitPromise: false }, sessionId);
+  const parsed = await evaluateMetrics(client, sessionId);
+  return { parsed, screenshotPath, stopLogging };
+}
+
+async function runSingleMeasure(params: {
+  readonly client: CdpClient;
+  readonly task: PageDeviceTask;
+  readonly timeoutMs: number;
+  readonly artifactsDir: string;
+}): Promise<MeasureResult> {
+  const { client, task, timeoutMs, artifactsDir } = params;
+  let finalUrl: string = task.url;
+  const consoleErrors: string[] = [];
+  let screenshotPath: string | undefined;
+  try {
+    const context: TargetSession = await createTargetSession(client);
+    await enableDomains(client, context.sessionId);
+    const { parsed, screenshotPath: shotPath, stopLogging } = await collectMetrics({ client, task, sessionId: context.sessionId, timeoutMs, artifactsDir, consoleErrors });
+    screenshotPath = shotPath;
+    finalUrl = task.url;
+    await detachAndClose(client, context, stopLogging);
+    return {
+      url: finalUrl,
+      path: task.path,
+      label: task.label,
+      device: task.device,
+      timings: parsed.timings,
+      vitals: parsed.vitals,
+      artifacts: { screenshotPath, consoleErrors },
+    };
+  } catch (error: unknown) {
+    const message: string = error instanceof Error ? error.message : "Unknown error";
+    return {
+      url: finalUrl,
+      path: task.path,
+      label: task.label,
+      device: task.device,
+      timings: {},
+      vitals: {},
+      artifacts: { screenshotPath, consoleErrors },
+      runtimeErrorMessage: message,
+    };
+  }
+}
+
+async function runWithConcurrency(params: {
+  readonly tasks: readonly PageDeviceTask[];
+  readonly parallel: number;
+  readonly runner: (task: PageDeviceTask) => Promise<MeasureResult>;
+}): Promise<readonly MeasureResult[]> {
+  const results: MeasureResult[] = new Array(params.tasks.length);
+  const nextIndex = { value: 0 };
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const index: number = nextIndex.value;
+      if (index >= params.tasks.length) {
+        return;
+      }
+      nextIndex.value += 1;
+      const task: PageDeviceTask = params.tasks[index];
+      results[index] = await params.runner(task);
+    }
+  };
+  const workers: Promise<void>[] = new Array(params.parallel).fill(0).map(async () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * Run fast, non-Lighthouse measurements across all page/device combos in the config.
+ */
+export async function runMeasureForConfig(params: {
+  readonly config: ApexConfig;
+  readonly configPath: string;
+  readonly parallelOverride?: number;
+  readonly timeoutMs?: number;
+  readonly artifactsDir?: string;
+}): Promise<MeasureSummary> {
+  const startedAtMs: number = Date.now();
+  const tasks: readonly PageDeviceTask[] = buildTasks(params.config);
+  const parallel: number = resolveParallelCount({ requested: params.parallelOverride ?? params.config.parallel, taskCount: tasks.length });
+  const timeoutMs: number = params.timeoutMs ?? DEFAULT_NAVIGATION_TIMEOUT_MS;
+  const artifactsDir: string = params.artifactsDir ?? DEFAULT_ARTIFACTS_DIR;
+  await mkdir(artifactsDir, { recursive: true });
+  const chrome: ChromeSession = await createChromeSession();
+  try {
+    const version: JsonVersionResponse = await fetchJsonVersion(chrome.port);
+    const client: CdpClient = new CdpClient(version.webSocketDebuggerUrl);
+    await client.connect();
+    try {
+      const results: readonly MeasureResult[] = await runWithConcurrency({
+        tasks,
+        parallel,
+        runner: async (task) => runSingleMeasure({ client, task, timeoutMs, artifactsDir }),
+      });
+      const completedAtMs: number = Date.now();
+      const elapsedMs: number = completedAtMs - startedAtMs;
+      const averageComboMs: number = tasks.length > 0 ? Math.round(elapsedMs / tasks.length) : 0;
+      return {
+        meta: {
+          configPath: params.configPath,
+          resolvedParallel: parallel,
+          comboCount: tasks.length,
+          startedAt: new Date(startedAtMs).toISOString(),
+          completedAt: new Date(completedAtMs).toISOString(),
+          elapsedMs,
+          averageComboMs,
+        },
+        results,
+      };
+    } finally {
+      client.close();
+    }
+  } finally {
+    await chrome.close();
+  }
+}
