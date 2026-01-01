@@ -124,6 +124,67 @@ const MOBILE_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, li
 
 type TargetSession = { readonly targetId: string; readonly sessionId: string };
 
+function computeMedian(values: readonly number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted: number[] = [...values].sort((a, b) => a - b);
+  const mid: number = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) {
+    return sorted[mid] ?? 0;
+  }
+  const a: number = sorted[mid - 1] ?? 0;
+  const b: number = sorted[mid] ?? 0;
+  return (a + b) / 2;
+}
+
+function createEtaTracker(params: { readonly total: number; readonly parallel: number }): {
+  readonly recordProgress: (completed: number) => number | undefined;
+} {
+  const windowSize: number = Math.max(6, Math.min(30, params.parallel * 8));
+  const minimumSamples: number = Math.max(3, Math.min(10, params.parallel * 3));
+  const minimumElapsedMs: number = 2_000;
+  const minimumDeltaMs: number = 200;
+  const ratesPerSecond: number[] = [];
+  const startedAtMs: number = Date.now();
+  let lastAtMs: number | undefined;
+  let lastCompleted: number | undefined;
+
+  const recordProgress = (completed: number): number | undefined => {
+    const nowMs: number = Date.now();
+    if (lastAtMs !== undefined && lastCompleted !== undefined) {
+      const deltaCompleted: number = completed - lastCompleted;
+      const deltaMs: number = nowMs - lastAtMs;
+      if (deltaCompleted > 0 && deltaMs >= minimumDeltaMs) {
+        const perSecond: number = (deltaCompleted * 1000) / deltaMs;
+        if (Number.isFinite(perSecond) && perSecond > 0) {
+          ratesPerSecond.push(perSecond);
+          if (ratesPerSecond.length > windowSize) {
+            ratesPerSecond.shift();
+          }
+        }
+      }
+    }
+    lastAtMs = nowMs;
+    lastCompleted = completed;
+    if (nowMs - startedAtMs < minimumElapsedMs) {
+      return undefined;
+    }
+    if (ratesPerSecond.length < minimumSamples) {
+      return undefined;
+    }
+    const medianRate: number = computeMedian(ratesPerSecond);
+    if (!Number.isFinite(medianRate) || medianRate <= 0) {
+      return undefined;
+    }
+    const remaining: number = Math.max(0, params.total - completed);
+    const etaSeconds: number = remaining / medianRate;
+    return Math.max(0, Math.round(etaSeconds * 1000));
+  };
+
+  return { recordProgress };
+}
+
 function buildUrl({ baseUrl, path, query }: { readonly baseUrl: string; readonly path: string; readonly query?: string }): string {
   const cleanBase: string = baseUrl.replace(/\/$/, "");
   const cleanPath: string = path.startsWith("/") ? path : `/${path}`;
@@ -483,6 +544,7 @@ async function collectMetrics(params: {
   readonly timeoutMs: number;
   readonly artifactsDir: string;
   readonly consoleErrors: string[];
+  readonly captureScreenshots: boolean;
 }): Promise<{
   readonly parsed: {
     readonly timings: { readonly ttfbMs?: number; readonly domContentLoadedMs?: number; readonly loadMs?: number };
@@ -506,7 +568,9 @@ async function collectMetrics(params: {
   await applyDeviceEmulation(client, task.device, sessionId);
   await injectMeasurementScript(client, sessionId);
   await navigateAndAwaitLoad(client, sessionId, task.url, timeoutMs);
-  const screenshotPath: string | undefined = await captureScreenshot(client, task, sessionId, artifactsDir);
+  const screenshotPath: string | undefined = params.captureScreenshots
+    ? await captureScreenshot(client, task, sessionId, artifactsDir)
+    : undefined;
   await client.send("Runtime.evaluate", { expression: "void 0", awaitPromise: false }, sessionId);
   const parsed = await evaluateMetrics(client, sessionId);
   return { parsed, screenshotPath, stopLogging };
@@ -517,6 +581,7 @@ async function runSingleMeasure(params: {
   readonly task: PageDeviceTask;
   readonly timeoutMs: number;
   readonly artifactsDir: string;
+  readonly captureScreenshots: boolean;
 }): Promise<MeasureResult> {
   const { client, task, timeoutMs, artifactsDir } = params;
   let finalUrl: string = task.url;
@@ -525,7 +590,15 @@ async function runSingleMeasure(params: {
   try {
     const context: TargetSession = await createTargetSession(client);
     await enableDomains(client, context.sessionId);
-    const { parsed, screenshotPath: shotPath, stopLogging } = await collectMetrics({ client, task, sessionId: context.sessionId, timeoutMs, artifactsDir, consoleErrors });
+    const { parsed, screenshotPath: shotPath, stopLogging } = await collectMetrics({
+      client,
+      task,
+      sessionId: context.sessionId,
+      timeoutMs,
+      artifactsDir,
+      consoleErrors,
+      captureScreenshots: params.captureScreenshots,
+    });
     screenshotPath = shotPath;
     finalUrl = task.url;
     await detachAndClose(client, context, stopLogging);
@@ -598,13 +671,18 @@ export async function runMeasureForConfig(params: {
   readonly parallelOverride?: number;
   readonly timeoutMs?: number;
   readonly artifactsDir?: string;
+  readonly captureScreenshots?: boolean;
+  readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
 }): Promise<MeasureSummary> {
   const startedAtMs: number = Date.now();
   const tasks: readonly PageDeviceTask[] = buildTasks(params.config);
   const parallel: number = resolveParallelCount({ requested: params.parallelOverride ?? params.config.parallel, taskCount: tasks.length });
   const timeoutMs: number = params.timeoutMs ?? DEFAULT_NAVIGATION_TIMEOUT_MS;
   const artifactsDir: string = params.artifactsDir ?? DEFAULT_ARTIFACTS_DIR;
+  const captureScreenshots: boolean = params.captureScreenshots === true;
   await mkdir(artifactsDir, { recursive: true });
+  const etaTracker = createEtaTracker({ total: tasks.length, parallel });
+  const progressLock = { count: 0 };
   const chrome: ChromeSession = await createChromeSession();
   try {
     const version: JsonVersionResponse = await fetchJsonVersion(chrome.port);
@@ -614,7 +692,16 @@ export async function runMeasureForConfig(params: {
       const results: readonly MeasureResult[] = await runWithConcurrency({
         tasks,
         parallel,
-        runner: async (task) => runSingleMeasure({ client, task, timeoutMs, artifactsDir }),
+        runner: async (task) => {
+          const result: MeasureResult = await runSingleMeasure({ client, task, timeoutMs, artifactsDir, captureScreenshots });
+          progressLock.count += 1;
+          const completed: number = progressLock.count;
+          const etaMs: number | undefined = etaTracker.recordProgress(completed);
+          if (typeof params.onProgress === "function") {
+            params.onProgress({ completed, total: tasks.length, path: task.path, device: task.device, etaMs });
+          }
+          return result;
+        },
       });
       const completedAtMs: number = Date.now();
       const elapsedMs: number = completedAtMs - startedAtMs;

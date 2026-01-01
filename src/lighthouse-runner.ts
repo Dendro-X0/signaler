@@ -660,10 +660,12 @@ export async function runAuditsForConfig({
   let completedSteps = cachedSteps;
   const progressLock = { count: cachedSteps };
 
+  const etaTracker = createEtaTracker({ totalSteps, initialCompleted: cachedSteps, parallel: parallelCount });
+
   const updateProgress = (path: string, device: ApexDevice): void => {
     progressLock.count += 1;
     completedSteps = progressLock.count;
-    const etaMs: number | undefined = computeEtaMs({ startedAtMs, completed: completedSteps, total: totalSteps });
+    const etaMs: number | undefined = etaTracker.recordProgress(completedSteps);
     logProgress({ completed: completedSteps, total: totalSteps, path, device, etaMs });
     if (typeof onProgress === "function") {
       onProgress({ completed: completedSteps, total: totalSteps, path, device, etaMs });
@@ -1120,22 +1122,69 @@ function resolveParallelCount({
   return Math.max(1, Math.min(10, Math.min(taskCount, cappedSuggested)));
 }
 
-function computeEtaMs({
-  startedAtMs,
-  completed,
-  total,
-}: {
-  readonly startedAtMs: number;
-  readonly completed: number;
-  readonly total: number;
-}): number | undefined {
-  if (completed === 0 || total === 0 || completed > total) {
-    return undefined;
+function computeMedian(values: readonly number[]): number {
+  if (values.length === 0) {
+    return 0;
   }
-  const elapsedMs: number = Date.now() - startedAtMs;
-  const averagePerStep: number = elapsedMs / completed;
-  const remainingSteps: number = total - completed;
-  return Math.max(0, Math.round(averagePerStep * remainingSteps));
+  const sorted: number[] = [...values].sort((a, b) => a - b);
+  const mid: number = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) {
+    return sorted[mid] ?? 0;
+  }
+  const a: number = sorted[mid - 1] ?? 0;
+  const b: number = sorted[mid] ?? 0;
+  return (a + b) / 2;
+}
+
+function createEtaTracker(params: { readonly totalSteps: number; readonly initialCompleted: number; readonly parallel: number }): {
+  readonly recordProgress: (completedSteps: number) => number | undefined;
+} {
+  const windowSize: number = Math.max(8, Math.min(40, params.parallel * 10));
+  const minimumSamples: number = Math.max(4, Math.min(12, params.parallel * 3));
+  const minimumElapsedMs: number = 5_000;
+  const minimumDeltaMs: number = 250;
+  const ratesPerSecond: number[] = [];
+  const startedAtMs: number = Date.now();
+  let lastAtMs: number | undefined;
+  let lastCompleted: number | undefined;
+
+  const recordProgress = (completedSteps: number): number | undefined => {
+    if (completedSteps <= params.initialCompleted) {
+      return undefined;
+    }
+    const nowMs: number = Date.now();
+    if (lastAtMs !== undefined && lastCompleted !== undefined) {
+      const completedDelta: number = completedSteps - lastCompleted;
+      const elapsedDeltaMs: number = nowMs - lastAtMs;
+      if (completedDelta > 0 && elapsedDeltaMs >= minimumDeltaMs) {
+        const perSecond: number = (completedDelta * 1000) / elapsedDeltaMs;
+        if (Number.isFinite(perSecond) && perSecond > 0) {
+          ratesPerSecond.push(perSecond);
+          if (ratesPerSecond.length > windowSize) {
+            ratesPerSecond.shift();
+          }
+        }
+      }
+    }
+    lastAtMs = nowMs;
+    lastCompleted = completedSteps;
+    const elapsedSinceStartMs: number = nowMs - startedAtMs;
+    if (elapsedSinceStartMs < minimumElapsedMs) {
+      return undefined;
+    }
+    if (ratesPerSecond.length < minimumSamples) {
+      return undefined;
+    }
+    const medianRate: number = computeMedian(ratesPerSecond);
+    if (!Number.isFinite(medianRate) || medianRate <= 0) {
+      return undefined;
+    }
+    const remainingSteps: number = Math.max(0, params.totalSteps - completedSteps);
+    const etaSeconds: number = remainingSteps / medianRate;
+    return Math.max(0, Math.round(etaSeconds * 1000));
+  };
+
+  return { recordProgress };
 }
 
 function formatEta(etaMs: number): string {

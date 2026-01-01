@@ -7,6 +7,10 @@ let spinnerInterval: NodeJS.Timeout | undefined;
 let spinnerIndex: number = 0;
 let spinnerMessage: string = "";
 
+export function isSpinnerActive(): boolean {
+  return spinnerInterval !== undefined;
+}
+
 export function startSpinner(message: string): void {
   if (!process.stdout.isTTY) {
     return;

@@ -20,6 +20,8 @@ Inside the interactive shell:
 
 - **measure**
 - **audit**
+- **bundle** (scan build output sizes; writes `.apex-auditor/bundle-audit.json`)
+- **health** (HTTP status/latency checks; writes `.apex-auditor/health.json`)
 - **open** (open the latest HTML report)
 - **init** (launch config wizard)
 - **config <path>** (switch config file)
@@ -64,6 +66,14 @@ Notes:
 
 - `measure-summary.json`
 - `measure/` (screenshots and artifacts)
+
+### `bundle` outputs
+
+- `bundle-audit.json`
+
+### `health` outputs
+
+- `health.json`
 
 ## Configuration
 

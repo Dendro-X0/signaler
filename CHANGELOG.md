@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.4 - 2026-01-01
+
+### Added
+- Measure output upgraded: terminal summary now includes a compact "slowest combos" table for fast analysis without opening JSON.
+- New audit commands:
+  - `bundle`: scans build outputs and writes `.apex-auditor/bundle-audit.json`.
+  - `health`: fast HTTP checks for configured routes and writes `.apex-auditor/health.json`.
+
+### Changed
+- Measure screenshots are now opt-in via `--screenshots` (default off) to keep runs fast.
+- Audit accessibility pass is now opt-in via `--accessibility-pass` (default off).
+- Shell `help` output reorganized into "Audit commands" and "Other commands" sections.
+
+### Fixed
+- Shell input handling: prevented leftover confirmation keystrokes from leaking into the ready prompt after audit runs.
+- ETA stability: improved audit and measure ETA estimates under parallel runs.
+- Spinner cleanup: ensured the spinner line is cleared before printing final results for bundle/health.
+
 ## 0.3.2 - 2025-12-31
 
 ### Added

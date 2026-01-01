@@ -5,8 +5,10 @@ import { runWizardCli } from "./wizard-cli.js";
 import { runQuickstartCli } from "./quickstart-cli.js";
 import { runShellCli } from "./shell-cli.js";
 import { runMeasureCli } from "./measure-cli.js";
+import { runBundleCli } from "./bundle-cli.js";
+import { runHealthCli } from "./health-cli.js";
 
-type ApexCommandId = "audit" | "measure" | "wizard" | "quickstart" | "guide" | "shell" | "help" | "init";
+type ApexCommandId = "audit" | "measure" | "bundle" | "health" | "wizard" | "quickstart" | "guide" | "shell" | "help" | "init";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -28,6 +30,8 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
   if (
     rawCommand === "audit" ||
     rawCommand === "measure" ||
+    rawCommand === "bundle" ||
+    rawCommand === "health" ||
     rawCommand === "wizard" ||
     rawCommand === "quickstart" ||
     rawCommand === "guide" ||
@@ -129,6 +133,8 @@ function printHelp(topic?: string): void {
       "  guide      Same as wizard, with inline tips for non-technical users",
       "  audit      Run Lighthouse audits using apex.config.json",
       "  measure    Fast batch metrics (CDP-based, non-Lighthouse)",
+      "  bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
+      "  health     HTTP status + latency checks for configured routes",
       "  help       Show this help message",
       "",
       "Options (audit):",
@@ -148,7 +154,7 @@ function printHelp(topic?: string): void {
       "  --yes, -y          Auto-confirm large runs (bypass safety prompt)",
       "  --changed-only     Run only pages whose paths match files in git diff --name-only (working tree diff)",
       "  --rerun-failing    Re-run only combos that failed in the previous summary (runtime errors or perf<90)",
-      "  --accessibility-pass  Run a fast axe-core accessibility sweep after audits (lightweight, CDP-based)",
+      "  --accessibility-pass  Opt-in: run a fast axe-core accessibility sweep after audits (lightweight, CDP-based)",
       "  --webhook-url <url> Send a JSON webhook with regressions/budgets/accessibility (regressions-only summary)",
       "  --show-parallel    Print the resolved parallel workers before running.",
       "  --incremental      Reuse cached results for unchanged combos (requires --build-id). Opt-in; off by default.",
@@ -158,6 +164,25 @@ function printHelp(topic?: string): void {
       "  --quick            Preset: fast feedback (runs=1) without changing throttling defaults",
       "  --accurate         Preset: devtools throttling + warm-up + stability-first (parallel=1 unless overridden)",
       "  --open             Open the HTML report after the run.",
+      "",
+      "Options (measure):",
+      "  --mobile-only      Run measure only for 'mobile' devices defined in the config",
+      "  --desktop-only     Run measure only for 'desktop' devices defined in the config",
+      "  --parallel <n>     Override parallel workers (1-10).",
+      "  --timeout-ms <ms>  Per-navigation timeout in milliseconds (default 60000)",
+      "  --screenshots      Opt-in: save a screenshot per combo (slower; writes .apex-auditor/measure/*.png)",
+      "  --json             Print JSON summary to stdout",
+      "",
+      "Options (bundle):",
+      "  --project-root <path>  Project root to scan (default cwd)",
+      "  --top <n>              Show top N largest files (default 15)",
+      "  --json                 Print JSON report to stdout",
+      "",
+      "Options (health):",
+      "  --config <path>        Config path (default apex.config.json)",
+      "  --parallel <n>         Parallel requests (default auto)",
+      "  --timeout-ms <ms>      Per-request timeout (default 20000)",
+      "  --json                 Print JSON report to stdout",
       "",
       "Outputs:",
       "  - Writes .apex-auditor/summary.json, summary.md, report.html",
@@ -182,6 +207,10 @@ function printHelp(topic?: string): void {
   );
 }
 
+function isInteractiveTty(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
 export async function runBin(argv: readonly string[]): Promise<void> {
   const parsed: ParsedBinArgs = parseBinArgs(argv);
   if (parsed.command === "help") {
@@ -189,67 +218,57 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     printHelp(topic);
     return;
   }
+
   if (parsed.command === "shell") {
     await runShellCli(parsed.argv);
     return;
   }
+
   if (parsed.command === "quickstart") {
     await runQuickstartCli(parsed.argv);
+    if (isInteractiveTty()) {
+      await runShellCli(["node", "apex-auditor"]);
+    }
     return;
   }
-  if (parsed.command === "audit") {
-    try {
+
+  const runOnce = async (): Promise<void> => {
+    if (parsed.command === "audit") {
       await runAuditCli(parsed.argv);
-    } catch (error: unknown) {
-      const message: string = error instanceof Error ? error.message : String(error);
-      if (message.includes("ENOENT")) {
-        // eslint-disable-next-line no-console
-        console.error("Config file not found. Run `apex-auditor init` to create a config or set one with `config <path>`.");
-        return;
-      }
-      throw error;
+      return;
     }
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      // eslint-disable-next-line no-console
-      console.log("\nAudit completed. Press Ctrl+C to exit, or enter another command (type help for options).");
-      await runShellCli(["node", "apex-auditor"]);
-    }
-    return;
-  }
-  if (parsed.command === "measure") {
-    try {
+    if (parsed.command === "measure") {
       await runMeasureCli(parsed.argv);
-    } catch (error: unknown) {
-      const message: string = error instanceof Error ? error.message : String(error);
-      if (message.includes("ENOENT")) {
-        // eslint-disable-next-line no-console
-        console.error("Config file not found. Run `apex-auditor init` to create a config or set one with `config <path>`.");
-        return;
-      }
-      throw error;
+      return;
     }
-    if (process.stdin.isTTY && process.stdout.isTTY) {
+    if (parsed.command === "bundle") {
+      await runBundleCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "health") {
+      await runHealthCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
+      await runWizardCli(parsed.argv);
+      return;
+    }
+  };
+
+  try {
+    await runOnce();
+  } catch (error: unknown) {
+    const message: string = error instanceof Error ? error.message : String(error);
+    if (message.includes("ENOENT")) {
       // eslint-disable-next-line no-console
-      console.log("\nMeasure run completed. Press Ctrl+C to exit, or enter another command (type help for options).");
-      await runShellCli(["node", "apex-auditor"]);
+      console.error("Config file not found. Run `apex-auditor init` to create a config or set one with `config <path>`.");
+      return;
     }
-    return;
+    throw error;
   }
-  if (parsed.command === "init") {
-    await runWizardCli(parsed.argv);
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      // eslint-disable-next-line no-console
-      console.log("\nConfig initialized. Press Ctrl+C to exit, or enter another command (type help for options).");
-      await runShellCli(["node", "apex-auditor"]);
-    }
-    return;
-  }
-  if (parsed.command === "wizard" || parsed.command === "guide") {
-    await runWizardCli(parsed.argv);
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      await runShellCli(["node", "apex-auditor"]);
-    }
-    return;
+
+  if (isInteractiveTty()) {
+    await runShellCli(["node", "apex-auditor"]);
   }
 }
 

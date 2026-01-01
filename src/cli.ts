@@ -719,7 +719,6 @@ async function confirmLargeRun(message: string): Promise<boolean> {
   return await new Promise<boolean>((resolve) => {
     const onData = (chunk: Buffer | string): void => {
       process.stdin.setRawMode?.(Boolean(wasRaw));
-      process.stdin.pause();
       const raw: string = typeof chunk === "string" ? chunk : chunk.toString("utf8");
       const first: string | undefined = raw.trim().charAt(0);
       const yes: boolean = first === "y" || first === "Y";
@@ -1478,16 +1477,20 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   });
   const exportPath: string = resolve(outputDir, "export.json");
   await writeFile(exportPath, JSON.stringify(shareable, null, 2), "utf8");
-  const accessibilityArtifacts: string = resolve(outputDir, "accessibility");
-  const accessibilitySummary: AxeSummary = await runAccessibilityAudit({
-    config: filteredConfig,
-    configPath,
-    artifactsDir: accessibilityArtifacts,
-  });
-  const accessibilitySummaryPath: string = resolve(outputDir, "accessibility-summary.json");
-  await writeFile(accessibilitySummaryPath, JSON.stringify(accessibilitySummary, null, 2), "utf8");
-  const accessibilityAggregated: AccessibilitySummary | undefined =
-    accessibilitySummary === undefined ? undefined : summariseAccessibility(accessibilitySummary);
+  let accessibilitySummary: AxeSummary | undefined;
+  let accessibilitySummaryPath: string | undefined;
+  let accessibilityAggregated: AccessibilitySummary | undefined;
+  if (args.accessibilityPass) {
+    const accessibilityArtifacts: string = resolve(outputDir, "accessibility");
+    accessibilitySummary = await runAccessibilityAudit({
+      config: filteredConfig,
+      configPath,
+      artifactsDir: accessibilityArtifacts,
+    });
+    accessibilitySummaryPath = resolve(outputDir, "accessibility-summary.json");
+    await writeFile(accessibilitySummaryPath, JSON.stringify(accessibilitySummary, null, 2), "utf8");
+    accessibilityAggregated = accessibilitySummary === undefined ? undefined : summariseAccessibility(accessibilitySummary);
+  }
   // Open HTML report in browser if requested
   if (args.openReport) {
     openInBrowser(reportPath);
@@ -1544,11 +1547,13 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     // eslint-disable-next-line no-console
     console.log(budgetsPanel);
   }
-  printSectionHeader("Accessibility (fast pass)", useColor);
-  // eslint-disable-next-line no-console
-  console.log(buildAccessibilityPanel(summariseAccessibility(accessibilitySummary), useColor));
-  // eslint-disable-next-line no-console
-  console.log(buildAccessibilityIssuesPanel(accessibilitySummary.results, useColor));
+  if (args.accessibilityPass && accessibilitySummary !== undefined) {
+    printSectionHeader("Accessibility (fast pass)", useColor);
+    // eslint-disable-next-line no-console
+    console.log(buildAccessibilityPanel(summariseAccessibility(accessibilitySummary), useColor));
+    // eslint-disable-next-line no-console
+    console.log(buildAccessibilityIssuesPanel(accessibilitySummary.results, useColor));
+  }
   if (args.webhookUrl) {
     const regressions: readonly RegressionLine[] = collectRegressions(previousSummary, summary);
     if (args.webhookAlways || shouldSendWebhook(regressions, budgetViolations)) {

@@ -18,6 +18,8 @@ Inside the shell:
 
 - `measure`
 - `audit`
+- `bundle`
+- `health`
 - `open`
 - `init`
 - `config <path>`
@@ -33,7 +35,7 @@ apex-auditor audit --config apex.config.json
 Notes:
 
 - **Runs-per-combo is always 1**.
-- Accessibility is always included (axe-core pass + summary artifacts).
+- Accessibility is opt-in via `--accessibility-pass`.
 - Progress output includes page count + ETA.
 
 Key flags:
@@ -70,7 +72,45 @@ Key flags:
 - `--mobile-only` / `--desktop-only`
 - `--parallel <n>`
 - `--timeout-ms <ms>`
+- `--screenshots`
 - `--json`
+
+### `bundle`
+
+Scan build outputs to report total JS/CSS size and the largest files.
+
+```bash
+apex-auditor bundle --project-root .
+```
+
+Key flags:
+
+- `--project-root <path>`
+- `--top <n>`
+- `--json`
+
+Output:
+
+- `.apex-auditor/bundle-audit.json`
+
+### `health`
+
+Fast HTTP checks for routes from `apex.config.json`.
+
+```bash
+apex-auditor health --config apex.config.json
+```
+
+Key flags:
+
+- `--config <path>`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--json`
+
+Output:
+
+- `.apex-auditor/health.json`
 
 ## 2. CI mode and budgets
 

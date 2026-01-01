@@ -7,7 +7,9 @@ Typical workflow:
 1. Run the interactive shell.
 2. Use `measure` for fast feedback.
 3. Use `audit` for deep Lighthouse analysis.
-4. Type `open` to review the latest HTML report.
+4. Use `bundle` to quickly sanity-check build output sizes.
+5. Use `health` to validate routes are up and reasonably fast.
+6. Type `open` to review the latest HTML report.
 
 ## 1. Install / run
 
@@ -77,18 +79,38 @@ Outputs:
 - `.apex-auditor/accessibility-summary.json`
 - `.apex-auditor/accessibility/` (axe-core artifacts per page/device)
 
+## 5. Bundle (build output sizes)
+
+```text
+> bundle
+```
+
+Output:
+
+- `.apex-auditor/bundle-audit.json`
+
+## 6. Health (HTTP checks)
+
+```text
+> health
+```
+
+Output:
+
+- `.apex-auditor/health.json`
+
 Notes:
 
 - **Runs-per-combo is always 1**. Re-run the same command to compare results.
 - The report includes Performance, Accessibility, Best Practices, and SEO.
 
-## 5. Open the report
+## 7. Open the report
 
 ```text
 > open
 ```
 
-## 6. Next steps
+## 8. Next steps
 
 - `configuration-and-routes.md` for config details.
 - `cli-and-ci.md` for non-interactive CLI usage and CI/budgets.
