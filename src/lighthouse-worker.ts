@@ -313,8 +313,8 @@ function send(message: WorkerResponseMessage): void {
 }
 
 async function main(): Promise<void> {
-  const maxRetries = 2;
-  const maxTasksPerChrome = 20;
+  const maxRetries = 3;
+  const maxTasksPerChrome = 10;
   const sessionRef: ChromeSessionRef = { session: await createChromeSession() };
   let tasksSinceChromeStart = 0;
   process.on("message", async (raw: unknown) => {

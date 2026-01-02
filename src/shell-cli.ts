@@ -13,6 +13,7 @@ import { runLinksCli } from "./links-cli.js";
 import { runMeasureCli } from "./measure-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
 import { runCleanCli } from "./clean-cli.js";
+import { runUninstallCli } from "./uninstall-cli.js";
 import { pathExists } from "./fs-utils.js";
 import { renderPanel } from "./ui/render-panel.js";
 import { renderTable } from "./ui/render-table.js";
@@ -420,6 +421,7 @@ function printHelp(): void {
   lines.push("");
   lines.push(theme.bold("Other commands"));
   lines.push(`${theme.cyan("clean")} Remove ApexAuditor artifacts (reports/cache and optionally config)`);
+  lines.push(`${theme.cyan("uninstall")} Remove .apex-auditor and the current config file`);
   lines.push(`${theme.cyan("open")} Open the last HTML report (or .apex-auditor/report.html)`);
   lines.push(`${theme.cyan("diff")} Compare last run vs previous run (from this shell session)`);
   lines.push(`${theme.cyan("preset <id>")} Set preset: default|overview|quick|accurate|fast`);
@@ -488,6 +490,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "headers",
     "console",
     "clean",
+    "uninstall",
     "open",
     "diff",
     "preset",
@@ -498,6 +501,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "exit",
     "quit",
   ] as const;
+  const uninstallFlags: readonly string[] = ["--project-root", "--config-path", "--config", "--dry-run", "--yes", "-y", "--json"] as const;
   const presets: readonly PresetId[] = ["default", "overview", "quick", "accurate", "fast"] as const;
   const onOff: readonly string[] = ["on", "off"] as const;
   const buildIdModes: readonly BuildIdStrategy[] = ["auto", "manual"] as const;
@@ -561,6 +565,9 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     }
     if (command === "clean") {
       return [filterStartsWith(cleanFlags, fragment), rawLine] as const;
+    }
+    if (command === "uninstall") {
+      return [filterStartsWith(uninstallFlags, fragment), rawLine] as const;
     }
     return [[], rawLine] as const;
   };
@@ -781,6 +788,11 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     await runCleanCli(argv);
     return { session, shouldExit: false };
   }
+  if (command.id === "uninstall") {
+    const argv: string[] = ["node", "apex-auditor", "--project-root", projectRoot, "--config-path", session.configPath, ...command.args];
+    await runUninstallCli(argv);
+    return { session, shouldExit: false };
+  }
   if (command.id === "init") {
     // eslint-disable-next-line no-console
     console.log("Starting config wizard...");
@@ -854,128 +866,147 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
   void argv;
   const projectRoot: string = process.cwd();
   let session: ShellSessionState = await loadSession(projectRoot);
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, completer: createCompleter() });
-  let rlClosed: boolean = false;
-  rl.on("close", () => {
-    rlClosed = true;
-  });
-  const onSigint = (): void => {
-    rl.close();
-  };
-  rl.on("SIGINT", onSigint);
-  let suppressInput: boolean = false;
-  const version: string = await readCliVersion();
-  printHomeScreen({ version, session });
-  rl.setPrompt(buildPrompt(session));
-  rl.prompt();
-
-  let onLine: ((line: string) => Promise<void>) | undefined;
-
-  const runWizardInShell = async (): Promise<void> => {
-    const previousPrompt: string = buildPrompt(session);
-    rl.pause();
-    rl.setPrompt("");
-    rl.off("SIGINT", onSigint);
-    try {
-      rl.prompt(true);
-    } catch {
-      // ignore
-    }
-    if (typeof onLine === "function") {
-      rl.off("line", onLine);
-    }
-    try {
-      await runWizardCli(["node", "apex-auditor"]);
-    } finally {
-      rl.on("SIGINT", onSigint);
-      if (rlClosed) {
-        return;
-      }
-      if (typeof onLine === "function") {
-        rl.on("line", onLine);
-      }
-      rl.setPrompt(previousPrompt);
-      rl.resume();
-    }
-  };
-
-  onLine = async (line: string): Promise<void> => {
-    if (suppressInput) {
-      return;
-    }
-    let command: ParsedShellCommand = parseShellCommand(line);
-    if (command.id === "clean" && !command.args.includes("--yes") && !command.args.includes("-y") && process.stdin.isTTY) {
-      const targets: readonly string[] = resolveCleanTargets({ projectRoot, session, args: command.args });
-      const ok: boolean = await confirmCleanInShell({ rl, targets });
-      if (!ok) {
-        // eslint-disable-next-line no-console
-        console.log("Cancelled.");
-        rl.setPrompt(buildPrompt(session));
-        rl.prompt();
-        return;
-      }
-      command = { ...command, args: [...command.args, "--yes"] };
-    }
-    if (command.id === "audit" && process.stdin.isTTY) {
-      const exists: boolean = await pathExists(session.configPath);
-      if (!exists) {
-        suppressInput = true;
-        rl.pause();
-        const answer: string = await new Promise<string>((resolvePromise) => {
-          rl.question(
-            `Config not found at ${session.configPath}. Run the init wizard now? (Y/n) `,
-            (value: string) => resolvePromise(value),
-          );
-        });
-        const text: string = answer.trim().toLowerCase();
-        const accepted: boolean = text.length === 0 || text === "y" || text === "yes";
-        if (accepted) {
-          // eslint-disable-next-line no-console
-          console.log("Starting config wizard...");
-          try {
-            await runWizardInShell();
-            // eslint-disable-next-line no-console
-            console.log(`Ready. Next: ${theme.cyan("audit")}.`);
-          } finally {
-            // no-op
-          }
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(`Config required. Create one with ${theme.cyan("init")} or point to an existing file with ${theme.cyan("config <path>")}.`);
-        }
-        rl.resume();
-        suppressInput = false;
-        rl.setPrompt(buildPrompt(session));
-        rl.prompt();
-        return;
-      }
-    }
-    if (command.id === "init") {
-      // eslint-disable-next-line no-console
-      console.log("Starting config wizard...");
-      await runWizardInShell();
-      // eslint-disable-next-line no-console
-      console.log(`Ready. Next: ${theme.cyan("measure")} or ${theme.cyan("audit")}.`);
-      rl.setPrompt(buildPrompt(session));
-      rl.prompt();
-      return;
-    }
-    rl.pause();
-    try {
-      const result: { readonly session: ShellSessionState; readonly shouldExit: boolean } = await handleShellCommand(projectRoot, session, command);
-      session = result.session;
-      if (result.shouldExit) {
-        rl.close();
-        return;
-      }
-    } finally {
-      rl.resume();
+  let printedHome: boolean = false;
+  let shouldExitShell: boolean = false;
+  while (!shouldExitShell) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, completer: createCompleter() });
+    let rlClosed: boolean = false;
+    let shouldExit: boolean = false;
+    let suppressInput: boolean = false;
+    rl.on("close", () => {
+      rlClosed = true;
+    });
+    const onSigint = (): void => {
+      shouldExit = true;
+      rl.close();
+    };
+    rl.on("SIGINT", onSigint);
+    if (!printedHome) {
+      const version: string = await readCliVersion();
+      printHomeScreen({ version, session });
+      printedHome = true;
     }
     rl.setPrompt(buildPrompt(session));
     rl.prompt();
-  };
-  rl.on("line", onLine);
-  await new Promise<void>((resolvePromise) => {
-    rl.on("close", () => resolvePromise());
-  });
+    let onLine: ((line: string) => Promise<void>) | undefined;
+    const runWizardInShell = async (): Promise<void> => {
+      const previousPrompt: string = buildPrompt(session);
+      rl.pause();
+      rl.setPrompt("");
+      rl.off("SIGINT", onSigint);
+      try {
+        rl.prompt(true);
+      } catch {
+        // ignore
+      }
+      if (typeof onLine === "function") {
+        rl.off("line", onLine);
+      }
+      try {
+        await runWizardCli(["node", "apex-auditor"]);
+      } finally {
+        rl.on("SIGINT", onSigint);
+        if (rlClosed) {
+          return;
+        }
+        if (typeof onLine === "function") {
+          rl.on("line", onLine);
+        }
+        rl.setPrompt(previousPrompt);
+        rl.resume();
+      }
+    };
+    onLine = async (line: string): Promise<void> => {
+      if (suppressInput) {
+        return;
+      }
+      let command: ParsedShellCommand = parseShellCommand(line);
+      if (command.id === "clean" && !command.args.includes("--yes") && !command.args.includes("-y") && process.stdin.isTTY) {
+        const targets: readonly string[] = resolveCleanTargets({ projectRoot, session, args: command.args });
+        const ok: boolean = await confirmCleanInShell({ rl, targets });
+        if (!ok) {
+          // eslint-disable-next-line no-console
+          console.log("Cancelled.");
+          rl.setPrompt(buildPrompt(session));
+          rl.prompt();
+          return;
+        }
+        command = { ...command, args: [...command.args, "--yes"] };
+      }
+      if (command.id === "audit" && process.stdin.isTTY) {
+        const exists: boolean = await pathExists(session.configPath);
+        if (!exists) {
+          suppressInput = true;
+          rl.pause();
+          const answer: string = await new Promise<string>((resolvePromise) => {
+            rl.question(
+              `Config not found at ${session.configPath}. Run the init wizard now? (Y/n) `,
+              (value: string) => resolvePromise(value),
+            );
+          });
+          const text: string = answer.trim().toLowerCase();
+          const accepted: boolean = text.length === 0 || text === "y" || text === "yes";
+          if (accepted) {
+            // eslint-disable-next-line no-console
+            console.log("Starting config wizard...");
+            try {
+              await runWizardInShell();
+              // eslint-disable-next-line no-console
+              console.log(`Ready. Next: ${theme.cyan("audit")}.`);
+            } finally {
+              // no-op
+            }
+          } else {
+            // eslint-disable-next-line no-console
+            console.log(`Config required. Create one with ${theme.cyan("init")} or point to an existing file with ${theme.cyan("config <path>")}.`);
+          }
+          if (!rlClosed) {
+            rl.resume();
+            suppressInput = false;
+            rl.setPrompt(buildPrompt(session));
+            rl.prompt();
+          }
+          return;
+        }
+      }
+      if (command.id === "init") {
+        // eslint-disable-next-line no-console
+        console.log("Starting config wizard...");
+        await runWizardInShell();
+        if (!rlClosed) {
+          // eslint-disable-next-line no-console
+          console.log(`Ready. Next: ${theme.cyan("measure")} or ${theme.cyan("audit")}.`);
+          rl.setPrompt(buildPrompt(session));
+          rl.prompt();
+        }
+        return;
+      }
+      rl.pause();
+      try {
+        const result: { readonly session: ShellSessionState; readonly shouldExit: boolean } = await handleShellCommand(projectRoot, session, command);
+        session = result.session;
+        if (result.shouldExit) {
+          shouldExit = true;
+          rl.close();
+          return;
+        }
+      } finally {
+        if (!rlClosed) {
+          rl.resume();
+        }
+      }
+      if (!rlClosed) {
+        rl.setPrompt(buildPrompt(session));
+        rl.prompt();
+      }
+    };
+    rl.on("line", onLine);
+    await new Promise<void>((resolvePromise) => {
+      rl.on("close", () => resolvePromise());
+    });
+    if (shouldExit) {
+      shouldExitShell = true;
+      continue;
+    }
+  }
 }

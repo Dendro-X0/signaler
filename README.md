@@ -20,6 +20,9 @@ Notes:
 
 - `init` can auto-detect your stack from `package.json` (Next.js, Nuxt, Remix/React Router, SvelteKit, SPA).
 - In monorepos, `init` can prompt you to pick an app/package under `apps/` or `packages/`.
+- `init` can auto-discover routes from the filesystem and top-up from `robots.txt`/`sitemap.xml`. You can optionally filter detected routes with include/exclude patterns and still add manual routes.
+- For static sites, `init` can discover routes from HTML files under `dist/`, `build/`, `out/`, `public/`, and `src/`.
+- When using a localhost base URL (e.g. `http://localhost:3000`), make sure the dev server port matches the project you’re configuring (important when multiple projects are running).
 
 Inside the interactive shell:
 
@@ -126,6 +129,13 @@ The docs in `docs/` reflect the current shell-based workflow:
 - `docs/getting-started.md`
 - `docs/configuration-and-routes.md`
 - `docs/cli-and-ci.md`
+
+## Known issues
+
+- **Shell exits after init wizard**: in some environments, the process may exit after completing `init` in shell mode. Workaround: run `apex-auditor init` outside the shell, then re-run `apex-auditor shell`.
+- **Large-run Lighthouse stability**: very large audits (many page/device combinations) may show higher score variance than manual Lighthouse runs and can intermittently hit worker/Chrome disconnects. Workaround: reduce parallelism (e.g. `--stable`) and retry.
+
+The target for a truly stable release is after v0.3.7.
 
 ## License
 

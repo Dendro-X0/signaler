@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.6 - Unreleased
+
+### Added
+- Init wizard: static HTML route discovery from `dist/`, `build/`, `out/`, `public/`, and `src/`.
+- Init wizard: optional include/exclude pattern filtering for auto-detected routes.
+
+### Changed
+- Init wizard: route selection no longer blocks manual additions when auto-discovery finds routes.
+- Init wizard: monorepo root selection improved for Nuxt/Remix/SvelteKit route discovery.
+
+### Known issues
+- Shell: in some environments the shell may exit after completing the init wizard.
+- Lighthouse: very large runs may show higher score variance than manual Lighthouse runs and may intermittently hit worker/Chrome disconnects.
+
+The target for a truly stable release is after v0.3.7.
+
 ## 0.3.5 - 2026-01-01
 
 ### Added

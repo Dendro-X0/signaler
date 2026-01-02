@@ -1330,6 +1330,13 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const plannedCombos: number = overviewSample.config.pages.reduce((acc, p) => acc + p.devices.length, 0);
   const plannedRuns: number = overviewSample.config.runs ?? 1;
   const plannedSteps: number = plannedCombos * plannedRuns;
+  const LARGE_RUN_COMBOS_THRESHOLD: number = 76;
+  const LARGE_RUN_PARALLEL_CAP: number = 2;
+  const usingDefaultParallel: boolean = args.parallelOverride === undefined && presetParallel === undefined && config.parallel === undefined;
+  const autoStableLargeRun: boolean = plannedCombos >= LARGE_RUN_COMBOS_THRESHOLD && !args.stable && usingDefaultParallel;
+  const resolvedConfigForRun: ApexConfig = autoStableLargeRun
+    ? { ...overviewSample.config, parallel: Math.min(overviewSample.config.parallel ?? DEFAULT_PARALLEL, LARGE_RUN_PARALLEL_CAP) }
+    : overviewSample.config;
   const maxSteps: number = args.maxSteps ?? DEFAULT_MAX_STEPS;
   const maxCombos: number = args.maxCombos ?? DEFAULT_MAX_COMBOS;
   const isTty: boolean = typeof process !== "undefined" && process.stdout?.isTTY === true;
@@ -1338,7 +1345,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (args.plan) {
     printPlan({
       configPath,
-      resolvedConfig: overviewSample.config,
+      resolvedConfig: resolvedConfigForRun,
       plannedCombos,
       plannedSteps,
       sampled: overviewSample.sampled,
@@ -1358,6 +1365,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     // eslint-disable-next-line no-console
     console.log(boxifyWithSeparators(tipLines));
     printDivider();
+  }
+  if (autoStableLargeRun && isTty && !args.ci && !args.jsonOutput) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Large run detected (${plannedCombos} combos). Using stability mode: parallel capped to ${resolvedConfigForRun.parallel}. Override with --parallel <n> or --stable (parallel=1).`,
+    );
   }
   if (overviewSample.sampled) {
     // eslint-disable-next-line no-console
@@ -1423,12 +1436,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   try {
     summary = await runAuditsForConfig({
-      config: overviewSample.config,
+      config: resolvedConfigForRun,
       configPath,
       showParallel: args.showParallel,
       onlyCategories,
       signal: abortController.signal,
-      onAfterWarmUp: startAuditSpinner,
+      onAfterWarmUp: stopSpinner,
       onProgress: ({ completed, total, path, device, etaMs }) => {
         if (!process.stdout.isTTY) {
           return;

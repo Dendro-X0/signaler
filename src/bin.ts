@@ -11,6 +11,7 @@ import { runLinksCli } from "./links-cli.js";
 import { runHeadersCli } from "./headers-cli.js";
 import { runConsoleCli } from "./console-cli.js";
 import { runCleanCli } from "./clean-cli.js";
+import { runUninstallCli } from "./uninstall-cli.js";
 
 type ApexCommandId =
   | "audit"
@@ -21,6 +22,7 @@ type ApexCommandId =
   | "headers"
   | "console"
   | "clean"
+  | "uninstall"
   | "wizard"
   | "quickstart"
   | "guide"
@@ -54,6 +56,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "headers" ||
     rawCommand === "console" ||
     rawCommand === "clean" ||
+    rawCommand === "uninstall" ||
     rawCommand === "wizard" ||
     rawCommand === "quickstart" ||
     rawCommand === "guide" ||
@@ -161,6 +164,7 @@ function printHelp(topic?: string): void {
       "  headers    Security headers audit",
       "  console    Console errors + runtime exceptions audit (headless Chrome)",
       "  clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
+      "  uninstall  One-click uninstall (removes .apex-auditor/ and apex.config.json)",
       "  help       Show this help message",
       "",
       "Options (audit):",
@@ -238,6 +242,13 @@ function printHelp(topic?: string): void {
       "  --no-reports           Keep .apex-auditor/",
       "  --remove-config        Remove config file",
       "  --all                  Remove reports and config",
+      "  --dry-run              Print planned removals without deleting",
+      "  --yes, -y              Skip confirmation prompt",
+      "  --json                 Print JSON report to stdout",
+      "",
+      "Options (uninstall):",
+      "  --project-root <path>  Project root (default cwd)",
+      "  --config-path <path>   Config file path relative to project root (default apex.config.json)",
       "  --dry-run              Print planned removals without deleting",
       "  --yes, -y              Skip confirmation prompt",
       "  --json                 Print JSON report to stdout",
@@ -321,6 +332,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "clean") {
       await runCleanCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "uninstall") {
+      await runUninstallCli(parsed.argv);
       return;
     }
     if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {

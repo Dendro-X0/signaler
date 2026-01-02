@@ -26,6 +26,11 @@ interface BaseAnswers {
   readonly query?: string;
 }
 
+type LocalDevServerInfo = {
+  readonly host: "localhost" | "127.0.0.1";
+  readonly port: number;
+};
+
 interface PageAnswers {
   readonly path: string;
   readonly label: string;
@@ -42,6 +47,15 @@ interface ProjectRootAnswer {
 
 interface RouteSelectionAnswer {
   readonly indexes: number[];
+}
+
+interface RouteFilterConfirmAnswer {
+  readonly value: boolean;
+}
+
+interface RouteFilterAnswer {
+  readonly include: string;
+  readonly exclude: string;
 }
 
 interface ProjectProfileAnswer {
@@ -164,8 +178,31 @@ const detectorChoiceQuestion: PromptObject = {
     { title: "Remix", value: "remix-routes" },
     { title: "SvelteKit", value: "sveltekit-routes" },
     { title: "SPA Crawl", value: "spa-html" },
+    { title: "Static HTML (dist/build/out/public/src)", value: "static-html" },
   ],
 };
+
+const routeFilterConfirmQuestion: PromptObject = {
+  type: "confirm",
+  name: "value",
+  message: "Filter detected routes with include/exclude patterns?",
+  initial: false,
+};
+
+const routeFilterQuestions: readonly PromptObject[] = [
+  {
+    type: "text",
+    name: "include",
+    message: "Include patterns (comma-separated, optional)",
+    initial: "",
+  },
+  {
+    type: "text",
+    name: "exclude",
+    message: "Exclude patterns (comma-separated, optional)",
+    initial: "",
+  },
+];
 
 function handleCancel(): true {
   console.log("Wizard cancelled. No config written.");
@@ -183,6 +220,43 @@ async function collectBaseAnswers(): Promise<BaseAnswers> {
     baseUrl: answers.baseUrl,
     query: answers.query,
   };
+}
+
+function tryParseLocalDevServer(baseUrl: string): LocalDevServerInfo | undefined {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    return undefined;
+  }
+  const host: string = parsed.hostname;
+  if (host !== "localhost" && host !== "127.0.0.1") {
+    return undefined;
+  }
+  const port: number = parsed.port.length > 0 ? Number(parsed.port) : NaN;
+  if (!Number.isFinite(port) || port <= 0) {
+    return undefined;
+  }
+  return { host, port };
+}
+
+async function collectBaseAnswersWithSafety(): Promise<BaseAnswers> {
+  while (true) {
+    const answers: BaseAnswers = await collectBaseAnswers();
+    const info: LocalDevServerInfo | undefined = tryParseLocalDevServer(answers.baseUrl);
+    if (!info) {
+      return answers;
+    }
+    const confirmed = await ask<{ readonly value: boolean }>({
+      type: "confirm",
+      name: "value",
+      message: `Base URL is ${answers.baseUrl}. Make sure the dev server is running for this project on port ${info.port} to avoid config conflicts when multiple projects are open. Continue?`,
+      initial: true,
+    });
+    if (confirmed.value) {
+      return answers;
+    }
+  }
 }
 
 function profileDisplayName(profile: ProjectProfileId): string {
@@ -431,10 +505,6 @@ async function collectSinglePage(): Promise<ApexPageConfig> {
 
 async function collectPages(initialPages: readonly ApexPageConfig[]): Promise<ApexPageConfig[]> {
   const pages: ApexPageConfig[] = [...initialPages];
-  // If we already detected pages, return them immediately for speed.
-  if (pages.length > 0) {
-    return pages;
-  }
   while (true) {
     const shouldAdd = await confirmAddPage(pages.length > 0);
     if (!shouldAdd) {
@@ -471,7 +541,43 @@ async function maybeDetectPages(params: { readonly profile: ProjectProfileId; re
     console.log("No routes detected. Add pages manually.");
     return [];
   }
-  return selectDetectedRoutes(combined);
+  console.log(`Detected ${combined.length} route(s) using auto-discovery.`);
+  const shouldFilter: RouteFilterConfirmAnswer = await ask<RouteFilterConfirmAnswer>(routeFilterConfirmQuestion);
+  const filtered: readonly DetectedRoute[] = shouldFilter.value ? await filterDetectedRoutes(combined) : combined;
+  if (filtered.length === 0) {
+    console.log("No routes remain after filtering. Add pages manually.");
+    return [];
+  }
+  if (filtered.length !== combined.length) {
+    console.log(`Filtered routes: ${filtered.length}/${combined.length}.`);
+  }
+  return selectDetectedRoutes(filtered);
+}
+
+async function filterDetectedRoutes(routes: readonly DetectedRoute[]): Promise<readonly DetectedRoute[]> {
+  const answers: RouteFilterAnswer = await ask<RouteFilterAnswer>(routeFilterQuestions);
+  const includePatterns: readonly string[] = splitPatterns(answers.include);
+  const excludePatterns: readonly string[] = splitPatterns(answers.exclude);
+  const includeRegexes: readonly RegExp[] = includePatterns.map((pattern) => compileGlob(pattern));
+  const excludeRegexes: readonly RegExp[] = excludePatterns.map((pattern) => compileGlob(pattern));
+  return routes.filter((route) => {
+    const included: boolean = includeRegexes.length === 0 ? true : includeRegexes.some((regex) => regex.test(route.path));
+    const excluded: boolean = excludeRegexes.some((regex) => regex.test(route.path));
+    return included && !excluded;
+  });
+}
+
+function splitPatterns(raw: string): readonly string[] {
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+function compileGlob(pattern: string): RegExp {
+  const escaped: string = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  const wildcarded: string = escaped.replace(/\*/g, ".*").replace(/\?/g, ".");
+  return new RegExp(`^${wildcarded}$`);
 }
 
 async function chooseDetectionRoot({
@@ -481,29 +587,49 @@ async function chooseDetectionRoot({
   readonly profile: ProjectProfileId;
   readonly repoRoot: string;
 }): Promise<string> {
-  if (profile !== "next") {
-    return repoRoot;
+  const candidates: readonly MonorepoCandidate[] = await findMonorepoCandidates(repoRoot);
+  const matching: readonly MonorepoCandidate[] = candidates.filter((candidate) => candidate.profile === profile);
+  if (matching.length === 0) {
+    if (profile !== "next") {
+      return repoRoot;
+    }
+    const projects: readonly DiscoveredProject[] = await discoverNextProjects({ repoRoot });
+    if (projects.length === 0) {
+      return repoRoot;
+    }
+    if (projects.length === 1) {
+      const onlyProject = projects[0] as DiscoveredProject;
+      console.log(`Detected Next.js app at ${onlyProject.root}.`);
+      return onlyProject.root;
+    }
+    const choices = projects.map((project) => ({
+      title: `${project.name} (${project.root})`,
+      value: project.root,
+    }));
+    const answer = await ask<ProjectSelectionAnswer>({
+      type: "select",
+      name: "projectRoot",
+      message: "Multiple Next.js apps found. Which one do you want to audit?",
+      choices,
+    });
+    return answer.projectRoot ?? repoRoot;
   }
-  const projects: readonly DiscoveredProject[] = await discoverNextProjects({ repoRoot });
-  if (projects.length === 0) {
-    return repoRoot;
+  if (matching.length === 1) {
+    const only: MonorepoCandidate = matching[0] as MonorepoCandidate;
+    console.log(`Detected ${profileDisplayName(profile)} app at ${only.root}.`);
+    return only.root;
   }
-  if (projects.length === 1) {
-    const onlyProject = projects[0] as DiscoveredProject;
-    console.log(`Detected Next.js app at ${onlyProject.root}.`);
-    return onlyProject.root;
-  }
-  const choices = projects.map((project) => ({
-    title: `${project.name} (${project.root})`,
-    value: project.root,
+  const choices = matching.map((candidate) => ({
+    title: `${candidate.name} (${candidate.root}) - ${profileDisplayName(candidate.profile)}`,
+    value: candidate.root,
   }));
   const answer = await ask<ProjectSelectionAnswer>({
     type: "select",
     name: "projectRoot",
-    message: "Multiple Next.js apps found. Which one do you want to audit?",
+    message: `Multiple ${profileDisplayName(profile)} apps found. Which one do you want to audit?`,
     choices,
   });
-  return answer.projectRoot ?? repoRoot;
+  return answer.projectRoot ?? matching[0]?.root ?? repoRoot;
 }
 
 async function selectDetector(profile: ProjectProfileId): Promise<RouteDetectorId | undefined> {
@@ -553,7 +679,7 @@ function convertRouteToPage(route: DetectedRoute): ApexPageConfig {
 }
 
 async function buildConfig(): Promise<ApexConfig> {
-  const baseAnswers = await collectBaseAnswers();
+  const baseAnswers = await collectBaseAnswersWithSafety();
   const projectRootAnswer = await ask<ProjectRootAnswer>(projectRootQuestion);
   const initialRepoRoot: string = resolve(projectRootAnswer.projectRoot);
   const resolved = await resolveWizardProjectRoot(initialRepoRoot);

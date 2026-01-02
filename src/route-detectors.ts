@@ -3,7 +3,14 @@ import { join, relative, sep } from "node:path";
 import type { Dirent } from "node:fs";
 import { pathExists, readTextFile } from "./fs-utils.js";
 
-export type RouteDetectorId = "next-app" | "next-pages" | "nuxt-pages" | "remix-routes" | "sveltekit-routes" | "spa-html";
+export type RouteDetectorId =
+  | "next-app"
+  | "next-pages"
+  | "nuxt-pages"
+  | "remix-routes"
+  | "sveltekit-routes"
+  | "spa-html"
+  | "static-html";
 
 export interface DetectRoutesOptions {
   readonly projectRoot: string;
@@ -54,6 +61,7 @@ const SOURCE_NUXT_PAGES: RouteDetectorId = "nuxt-pages";
 const SOURCE_REMIX: RouteDetectorId = "remix-routes";
 const SOURCE_SVELTEKIT: RouteDetectorId = "sveltekit-routes";
 const SOURCE_SPA: RouteDetectorId = "spa-html";
+const SOURCE_STATIC_HTML: RouteDetectorId = "static-html";
 const ROUTE_DETECTORS: readonly RouteDetector[] = [
   createNextAppDetector(),
   createNextPagesDetector(),
@@ -61,6 +69,7 @@ const ROUTE_DETECTORS: readonly RouteDetector[] = [
   createRemixRoutesDetector(),
   createSvelteKitRoutesDetector(),
   createSpaHtmlDetector(),
+  createStaticHtmlDetector(),
 ];
 
 export async function detectRoutes(options: DetectRoutesOptions): Promise<DetectedRoute[]> {
@@ -183,6 +192,38 @@ function createSpaHtmlDetector(): RouteDetector {
     id: SOURCE_SPA,
     canDetect: async (options) => Boolean(await findSpaHtml(options.projectRoot)),
     detect: async (options) => detectSpaRoutes(options.projectRoot, options.limit),
+  };
+}
+
+function createStaticHtmlDetector(): RouteDetector {
+  return {
+    id: SOURCE_STATIC_HTML,
+    canDetect: async (options) => {
+      const roots: readonly string[] = await findStaticHtmlRoots(options.projectRoot);
+      return roots.length > 0;
+    },
+    detect: async (options) => {
+      const roots: readonly string[] = await findStaticHtmlRoots(options.projectRoot);
+      const allRoutes: DetectedRoute[] = [];
+      const seenPaths: Set<string> = new Set();
+      for (const root of roots) {
+        const routes: readonly DetectedRoute[] = await detectStaticHtmlRoutes(root, options.limit - allRoutes.length);
+        for (const route of routes) {
+          if (allRoutes.length >= options.limit) {
+            break;
+          }
+          if (seenPaths.has(route.path)) {
+            continue;
+          }
+          seenPaths.add(route.path);
+          allRoutes.push(route);
+        }
+        if (allRoutes.length >= options.limit) {
+          break;
+        }
+      }
+      return allRoutes;
+    },
   };
 }
 
@@ -354,6 +395,30 @@ async function detectSpaRoutes(projectRoot: string, limit: number): Promise<Dete
   return routes.map((routePath) => ({ path: routePath, label: buildLabel(routePath), source: SOURCE_SPA }));
 }
 
+async function findStaticHtmlRoots(projectRoot: string): Promise<readonly string[]> {
+  const candidates: readonly string[] = [
+    join(projectRoot, "dist"),
+    join(projectRoot, "build"),
+    join(projectRoot, "out"),
+    join(projectRoot, "public"),
+    join(projectRoot, "src"),
+  ];
+  const existing: string[] = [];
+  for (const candidate of candidates) {
+    if (await pathExists(candidate)) {
+      existing.push(candidate);
+    }
+  }
+  return existing;
+}
+
+async function detectStaticHtmlRoutes(root: string, limit: number): Promise<DetectedRoute[]> {
+  const files: readonly string[] = await collectRouteFiles(root, limit, isStaticHtmlFile);
+  return files
+    .map((filePath) => buildRoute(filePath, root, formatStaticHtmlRoutePath, SOURCE_STATIC_HTML))
+    .filter((route) => !shouldSkipStaticHtmlRoute(route.path));
+}
+
 async function collectRouteFiles(
   root: string,
   limit: number,
@@ -474,6 +539,17 @@ function hasAllowedNuxtExtension(path: string): boolean {
   return NUXT_PAGE_EXTENSIONS.some((extension) => path.endsWith(extension));
 }
 
+function isStaticHtmlFile(entry: Dirent, relativePath: string): boolean {
+  if (!entry.isFile()) {
+    return false;
+  }
+  const posixPath: string = normalisePath(relativePath);
+  if (!posixPath.toLowerCase().endsWith(".html")) {
+    return false;
+  }
+  return !posixPath.split("/").some((segment) => segment.startsWith("."));
+}
+
 function buildRoute(
   filePath: string,
   root: string,
@@ -590,6 +666,20 @@ function formatSvelteKitRoutePath(relativePath: string): string {
     return "/";
   }
   return normaliseRoute(parts.join("/"));
+}
+
+function formatStaticHtmlRoutePath(relativePath: string): string {
+  const cleanPath: string = relativePath.replace(/\\/g, "/");
+  const withoutExt: string = cleanPath.replace(/\.html$/i, "");
+  const withoutIndex: string = withoutExt.endsWith("/index") ? withoutExt.slice(0, -6) : withoutExt;
+  const normalized: string = withoutIndex.replace(/^\/+/, "");
+  return normalized.length === 0 ? "/" : normaliseRoute(normalized);
+}
+
+function shouldSkipStaticHtmlRoute(routePath: string): boolean {
+  const normalized: string = routePath.toLowerCase();
+  const banned: readonly string[] = ["/404", "/500", "/_error"];
+  return banned.includes(normalized);
 }
 
 function normaliseRoute(path: string): string {
