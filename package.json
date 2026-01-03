@@ -1,6 +1,6 @@
 {
   "name": "apex-auditor",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "private": false,
   "description": "CLI to run structured Lighthouse audits (Performance, Accessibility, Best Practices, SEO) across routes.",
   "type": "module",

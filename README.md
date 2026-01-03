@@ -81,6 +81,9 @@ All outputs are written under `.apex-auditor/` in your project.
 - `summary.md`
 - `triage.md`
 - `issues.json`
+- `ai-fix.json` (unless `audit --no-ai-fix`)
+- `ai-fix.min.json` (unless `audit --no-ai-fix`)
+- `export.json` (unless `audit --no-export`)
 - `report.html`
 - `screenshots/` (when `audit --diagnostics` or `audit --lhr` is used)
 - `lighthouse-artifacts/diagnostics/` (when `audit --diagnostics` or `audit --lhr` is used)
@@ -95,6 +98,13 @@ Notes:
 - During an audit you will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
 - After `audit` completes, type `open` to open the latest HTML report.
 - Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
+
+Speed and output controls:
+
+- `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
+- `audit --no-ai-fix` skips writing `ai-fix.json` and `ai-fix.min.json` entirely.
+- `audit --no-export` skips writing `export.json`.
+- `audit --focus-worst <n>` re-runs only the worst N combos from the previous `.apex-auditor/summary.json`.
 
 ### `measure` outputs
 
@@ -165,6 +175,11 @@ Example:
 - Use `audit --flags` to print all audit flags/options.
 - Use `audit --diagnostics` or `audit --lhr` when you want per-combo JSON artifacts and screenshots.
 - Start with `triage.md` and `issues.json` when the suite is large.
+
+Recommended workflow for large suites:
+
+- Run a broad sweep with `throttlingMethod: simulate` (fast feedback).
+- Then re-run only the worst routes with `audit --focus-worst <n>` and `throttlingMethod: devtools` for a more DevTools-like focused rerun.
 
 ## Documentation
 

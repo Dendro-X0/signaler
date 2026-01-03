@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.9 - 2026-01-03
+
+### Added
+- Outputs: `ai-fix.json` consolidated AI-first packet that aggregates per-combo fixes (scores, opportunities, key diagnostics hints, artifact links) and cross-route repeated offenders (e.g. top unused JS files, redirect chains).
+- Outputs: `ai-fix.min.json` compact packet for token-efficient AI workflows.
+- Audit: restored optional multi-run support via `runs` in `apex.config.json`, emitting per-combo `runStats` (median/p75/stddev) to make Lighthouse variance visible.
+- Audit: speed and artifact controls: `--ai-min-combos <n>`, `--no-ai-fix`, `--no-export`, and `--focus-worst <n>`.
+
+### Changed
+- Audit aggregation: when `runs > 1`, reported scores/metrics use median aggregation and include `runStats` for spread.
+- Overview: includes a direct link to `ai-fix.json` in the Key files section.
+- Overview: hides AI/export links when `--no-ai-fix` / `--no-export` is used.
+
 ## 0.3.8 - 2026-01-02
 
 ### Added

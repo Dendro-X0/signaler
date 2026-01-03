@@ -103,6 +103,9 @@ Outputs:
 - `.apex-auditor/summary.md`
 - `.apex-auditor/triage.md`
 - `.apex-auditor/issues.json`
+- `.apex-auditor/ai-fix.json` (unless `audit --no-ai-fix`)
+- `.apex-auditor/ai-fix.min.json` (unless `audit --no-ai-fix`)
+- `.apex-auditor/export.json` (unless `audit --no-export`)
 - `.apex-auditor/report.html`
 - `.apex-auditor/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
 - `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr` is enabled)
@@ -115,6 +118,12 @@ Notes:
 
 - Start with `triage.md` and `issues.json` when the suite is large.
 - Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
+
+Speed and output controls:
+
+- `audit --focus-worst <n>` re-runs only the worst N combos from the previous run.
+- `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
+- `audit --no-ai-fix` and `audit --no-export` can skip writing large artifacts.
 
 ## 5. Bundle (build output sizes)
 

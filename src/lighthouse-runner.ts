@@ -7,7 +7,19 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexCategory, ApexConfig, ApexDevice, ApexThrottlingMethod, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
+import type {
+  ApexCategory,
+  ApexConfig,
+  ApexDevice,
+  ApexThrottlingMethod,
+  CategoryScores,
+  ComboRunStats,
+  MetricValues,
+  NumericStats,
+  OpportunitySummary,
+  PageDeviceSummary,
+  RunSummary,
+} from "./types.js";
 import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
 
 interface ChromeSession {
@@ -629,10 +641,7 @@ export async function runAuditsForConfig({
   readonly onAfterWarmUp?: () => void;
   readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
 }): Promise<RunSummary> {
-  const runs: number = 1;
-  if (config.runs !== undefined && config.runs !== 1) {
-    throw new Error("Multi-run mode is no longer supported. Set runs=1 and rerun the command multiple times for comparisons.");
-  }
+  const runs: number = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : 1;
   const firstPage = config.pages[0];
   const healthCheckUrl: string = buildUrl({ baseUrl: config.baseUrl, path: firstPage.path, query: config.query });
   if (signal?.aborted) {
@@ -1152,19 +1161,33 @@ function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
     return summaries[0];
   }
   const base = summaries[0];
-  const count: number = summaries.length;
   const aggregateScores: CategoryScores = {
-    performance: averageOf(summaries.map((s) => s.scores.performance)),
-    accessibility: averageOf(summaries.map((s) => s.scores.accessibility)),
-    bestPractices: averageOf(summaries.map((s) => s.scores.bestPractices)),
-    seo: averageOf(summaries.map((s) => s.scores.seo)),
+    performance: medianRounded(summaries.map((s) => s.scores.performance)),
+    accessibility: medianRounded(summaries.map((s) => s.scores.accessibility)),
+    bestPractices: medianRounded(summaries.map((s) => s.scores.bestPractices)),
+    seo: medianRounded(summaries.map((s) => s.scores.seo)),
   };
   const aggregateMetrics: MetricValues = {
-    lcpMs: averageOf(summaries.map((s) => s.metrics.lcpMs)),
-    fcpMs: averageOf(summaries.map((s) => s.metrics.fcpMs)),
-    tbtMs: averageOf(summaries.map((s) => s.metrics.tbtMs)),
-    cls: averageOf(summaries.map((s) => s.metrics.cls)),
-    inpMs: averageOf(summaries.map((s) => s.metrics.inpMs)),
+    lcpMs: medianOf(summaries.map((s) => s.metrics.lcpMs)),
+    fcpMs: medianOf(summaries.map((s) => s.metrics.fcpMs)),
+    tbtMs: medianOf(summaries.map((s) => s.metrics.tbtMs)),
+    cls: medianOf(summaries.map((s) => s.metrics.cls)),
+    inpMs: medianOf(summaries.map((s) => s.metrics.inpMs)),
+  };
+  const runStats: ComboRunStats = {
+    scores: {
+      performance: buildNumericStats(summaries.map((s) => s.scores.performance)),
+      accessibility: buildNumericStats(summaries.map((s) => s.scores.accessibility)),
+      bestPractices: buildNumericStats(summaries.map((s) => s.scores.bestPractices)),
+      seo: buildNumericStats(summaries.map((s) => s.scores.seo)),
+    },
+    metrics: {
+      lcpMs: buildNumericStats(summaries.map((s) => s.metrics.lcpMs)),
+      fcpMs: buildNumericStats(summaries.map((s) => s.metrics.fcpMs)),
+      tbtMs: buildNumericStats(summaries.map((s) => s.metrics.tbtMs)),
+      cls: buildNumericStats(summaries.map((s) => s.metrics.cls)),
+      inpMs: buildNumericStats(summaries.map((s) => s.metrics.inpMs)),
+    },
   };
   const opportunities: readonly OpportunitySummary[] = summaries[0].opportunities;
   return {
@@ -1175,6 +1198,7 @@ function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
     scores: aggregateScores,
     metrics: aggregateMetrics,
     opportunities,
+    runStats,
     runtimeErrorCode: base.runtimeErrorCode,
     runtimeErrorMessage: base.runtimeErrorMessage,
   };
@@ -1187,6 +1211,52 @@ function averageOf(values: (number | undefined)[]): number | undefined {
   }
   const total: number = defined.reduce((sum, value) => sum + value, 0);
   return total / defined.length;
+}
+
+function medianOf(values: readonly (number | undefined)[]): number | undefined {
+  const defined: number[] = values.filter((v): v is number => typeof v === "number");
+  if (defined.length === 0) {
+    return undefined;
+  }
+  return computeMedian(defined);
+}
+
+function medianRounded(values: readonly (number | undefined)[]): number | undefined {
+  const median: number | undefined = medianOf(values);
+  return typeof median === "number" ? Math.round(median) : undefined;
+}
+
+function computeP75(values: readonly number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted: number[] = [...values].sort((a, b) => a - b);
+  const index: number = Math.max(0, Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.75) - 1));
+  return sorted[index] ?? 0;
+}
+
+function computeStddev(values: readonly number[], mean: number): number {
+  if (values.length < 2) {
+    return 0;
+  }
+  const variance: number = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function buildNumericStats(values: readonly (number | undefined)[]): NumericStats | undefined {
+  const defined: number[] = values.filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  if (defined.length === 0) {
+    return undefined;
+  }
+  const sorted: number[] = [...defined].sort((a, b) => a - b);
+  const n: number = sorted.length;
+  const min: number = sorted[0] ?? 0;
+  const max: number = sorted[sorted.length - 1] ?? 0;
+  const mean: number = (sorted.reduce((sum, v) => sum + v, 0) / n) || 0;
+  const median: number = computeMedian(sorted);
+  const p75: number = computeP75(sorted);
+  const stddev: number = computeStddev(sorted, mean);
+  return { n, min, max, mean, median, p75, stddev };
 }
 
 function resolveParallelCount({

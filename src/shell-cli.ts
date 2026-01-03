@@ -22,7 +22,7 @@ import { renderTable } from "./ui/render-table.js";
 import { startSpinner, stopSpinner, updateSpinnerMessage } from "./spinner.js";
 import { UiTheme } from "./ui/ui-theme.js";
 
-type PresetId = "default" | "overview" | "quick" | "accurate" | "fast";
+type PresetId = "default" | "overview" | "quick" | "accurate" | "devtools-accurate" | "fast";
 
 type BuildIdStrategy = "auto" | "manual";
 
@@ -494,10 +494,7 @@ async function runDiff(projectRoot: string): Promise<void> {
 }
 
 function buildAuditArgvFromSession(session: ShellSessionState): readonly string[] {
-  const args: string[] = ["node", "apex-auditor"];
-  if (session.configPath.length > 0) {
-    args.push("--config", session.configPath);
-  }
+  const args: string[] = ["node", "apex-auditor", "audit", "--config", session.configPath];
   if (session.preset === "overview") {
     args.push("--overview");
   }
@@ -509,6 +506,9 @@ function buildAuditArgvFromSession(session: ShellSessionState): readonly string[
   }
   if (session.preset === "accurate") {
     args.push("--accurate");
+  }
+  if (session.preset === "devtools-accurate") {
+    args.push("--devtools-accurate");
   }
   if (session.incremental) {
     args.push("--incremental");
@@ -529,7 +529,14 @@ function buildAuditArgv(session: ShellSessionState, passthroughArgs: readonly st
 
 function resolvePresetFromArgs(args: readonly string[]): PresetId | undefined {
   const preset: string | undefined = args[0];
-  if (preset === "default" || preset === "overview" || preset === "quick" || preset === "accurate" || preset === "fast") {
+  if (
+    preset === "default" ||
+    preset === "overview" ||
+    preset === "quick" ||
+    preset === "accurate" ||
+    preset === "devtools-accurate" ||
+    preset === "fast"
+  ) {
     return preset;
   }
   return undefined;
@@ -594,7 +601,7 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "open-diagnostics", description: "Open diagnostics JSON directory (.apex-auditor/lighthouse-artifacts/diagnostics/)" },
   { command: "open-lhr", description: "Open full Lighthouse JSON directory (.apex-auditor/lighthouse-artifacts/lhr/)" },
   { command: "diff", description: "Compare last run vs previous run (from this shell session)" },
-  { command: "preset <id>", description: "Set preset: default|overview|quick|accurate|fast" },
+  { command: "preset <id>", description: "Set preset: default|overview|quick|accurate|devtools-accurate|fast" },
   { command: "incremental on|off", description: "Toggle incremental caching" },
   { command: "build-id auto", description: "Use auto buildId detection" },
   { command: "build-id manual <id>", description: "Use a fixed buildId" },
@@ -833,7 +840,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "quit",
   ] as const;
   const uninstallFlags: readonly string[] = ["--project-root", "--config-path", "--config", "--dry-run", "--yes", "-y", "--json"] as const;
-  const presets: readonly PresetId[] = ["default", "overview", "quick", "accurate", "fast"] as const;
+  const presets: readonly PresetId[] = ["default", "overview", "quick", "accurate", "devtools-accurate", "fast"] as const;
   const onOff: readonly string[] = ["on", "off"] as const;
   const buildIdModes: readonly BuildIdStrategy[] = ["auto", "manual"] as const;
   const measureFlags: readonly string[] = ["--desktop-only", "--mobile-only", "--parallel", "--timeout-ms", "--screenshots", "--json"] as const;
@@ -1189,7 +1196,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     const preset: PresetId | undefined = resolvePresetFromArgs(command.args);
     if (!preset) {
       // eslint-disable-next-line no-console
-      console.log("Usage: preset default|quick|accurate|fast");
+      console.log("Usage: preset default|overview|quick|accurate|devtools-accurate|fast");
       return { session, shouldExit: false };
     }
     const updated: ShellSessionState = { ...session, preset };

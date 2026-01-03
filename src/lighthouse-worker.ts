@@ -219,28 +219,27 @@ async function runSingleAudit(params: {
   readonly captureLevel?: "diagnostics" | "lhr";
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
-  const throttling = params.throttlingMethod === "simulate"
-    ? {
-      cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
-      rttMs: 150,
-      throughputKbps: 1638.4,
-      requestLatencyMs: 150 * 3.75,
-      downloadThroughputKbps: 1638.4,
-      uploadThroughputKbps: 750,
-    }
-    : { cpuSlowdownMultiplier: params.cpuSlowdownMultiplier };
-  const options = {
+  const options: Record<string, unknown> = {
     port: params.port,
     output: "json" as const,
     logLevel: params.logLevel,
     onlyCategories,
     formFactor: params.device,
     throttlingMethod: params.throttlingMethod,
-    throttling,
     screenEmulation: params.device === "mobile"
       ? { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false }
       : { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },
   };
+  if (params.throttlingMethod === "simulate") {
+    options.throttling = {
+      cpuSlowdownMultiplier: params.cpuSlowdownMultiplier,
+      rttMs: 150,
+      throughputKbps: 1638.4,
+      requestLatencyMs: 150 * 3.75,
+      downloadThroughputKbps: 1638.4,
+      uploadThroughputKbps: 750,
+    };
+  }
   const runnerResult = await lighthouse(params.url, options);
   const lhrUnknown: unknown = runnerResult.lhr as unknown;
   if (!lhrUnknown || typeof lhrUnknown !== "object") {

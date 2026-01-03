@@ -74,6 +74,10 @@ Key flags:
 - `--flags` (print audit flags/options and exit)
 - `--plan` / `--max-steps <n>` / `--max-combos <n>` / `--yes`
 - `--incremental --build-id <id>`
+- `--focus-worst <n>` (re-run only the worst N combos from the previous `.apex-auditor/summary.json`)
+- `--ai-min-combos <n>` (limit `ai-fix.min.json` to the worst N combos; default 25)
+- `--no-ai-fix` (skip writing `ai-fix.json` and `ai-fix.min.json`)
+- `--no-export` (skip writing `export.json`)
 - `--open`
 - `--json`
 
@@ -83,6 +87,9 @@ Outputs:
 - `.apex-auditor/summary-lite.json`
 - `.apex-auditor/issues.json`
 - `.apex-auditor/triage.md`
+- `.apex-auditor/ai-fix.json` (unless `--no-ai-fix`)
+- `.apex-auditor/ai-fix.min.json` (unless `--no-ai-fix`)
+- `.apex-auditor/export.json` (unless `--no-export`)
 - `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr`)
 - `.apex-auditor/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr`)
 - `.apex-auditor/lighthouse-artifacts/lhr/` (when `--lhr`)
@@ -94,6 +101,19 @@ Exit codes:
 - `0`: success
 - `1`: failure (runtime error or budgets)
 - `130`: cancelled (Ctrl+C). In shell mode, Esc-cancel returns you to the prompt.
+
+## 1.1 Recommended speed workflows
+
+For large suites, prefer a two-phase workflow:
+
+1. Broad sweep (fast feedback): set `throttlingMethod: simulate` in `apex.config.json` and run the full suite.
+2. Focused rerun (high-signal): re-run only the worst combos from the previous run using `--focus-worst <n>`. For this focused rerun, you can switch to `throttlingMethod: devtools` for a more DevTools-like rerun.
+
+When you care about token efficiency and disk output size:
+
+- Use `--ai-min-combos <n>` to keep `ai-fix.min.json` small.
+- Use `--no-ai-fix` when you only need `issues.json` / `triage.md` and the HTML report.
+- Use `--no-export` when you do not need `export.json` links or share payloads.
 
 ## Known issues
 

@@ -94,6 +94,32 @@ export interface OpportunitySummary {
   readonly estimatedSavingsBytes?: number;
 }
 
+export interface NumericStats {
+  readonly n: number;
+  readonly min: number;
+  readonly max: number;
+  readonly mean: number;
+  readonly median: number;
+  readonly p75: number;
+  readonly stddev: number;
+}
+
+export interface ComboRunStats {
+  readonly scores: {
+    readonly performance?: NumericStats;
+    readonly accessibility?: NumericStats;
+    readonly bestPractices?: NumericStats;
+    readonly seo?: NumericStats;
+  };
+  readonly metrics: {
+    readonly lcpMs?: NumericStats;
+    readonly fcpMs?: NumericStats;
+    readonly tbtMs?: NumericStats;
+    readonly cls?: NumericStats;
+    readonly inpMs?: NumericStats;
+  };
+}
+
 export interface PageDeviceSummary {
   readonly url: string;
   readonly path: string;
@@ -102,6 +128,7 @@ export interface PageDeviceSummary {
   readonly scores: CategoryScores;
   readonly metrics: MetricValues;
   readonly opportunities: readonly OpportunitySummary[];
+  readonly runStats?: ComboRunStats;
   readonly runtimeErrorCode?: string;
   readonly runtimeErrorMessage?: string;
 }
