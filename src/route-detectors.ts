@@ -104,9 +104,6 @@ function isConcreteRoutePath(path: string): boolean {
   if (path.includes("[") || path.includes("]")) {
     return false;
   }
-  if (path.includes(":")) {
-    return false;
-  }
   if (path.includes("*")) {
     return false;
   }
