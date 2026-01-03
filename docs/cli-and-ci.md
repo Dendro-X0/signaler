@@ -24,9 +24,15 @@ Inside the shell:
 - `headers`
 - `console`
 - `open`
+- `open-triage`
+- `open-screenshots`
+- `open-diagnostics`
+- `open-lhr`
+- `open-artifacts`
 - `pages` / `routes`
 - `add-page`
 - `rm-page`
+- `clear-screenshots`
 - `init`
 - `config <path>`
 
@@ -64,10 +70,24 @@ Key flags:
 - `--mobile-only` / `--desktop-only`
 - `--parallel <n>`
 - `--audit-timeout-ms <ms>`
+- `--diagnostics` / `--lhr`
+- `--flags` (print audit flags/options and exit)
 - `--plan` / `--max-steps <n>` / `--max-combos <n>` / `--yes`
 - `--incremental --build-id <id>`
 - `--open`
 - `--json`
+
+Outputs:
+
+- `.apex-auditor/summary.json`
+- `.apex-auditor/summary-lite.json`
+- `.apex-auditor/issues.json`
+- `.apex-auditor/triage.md`
+- `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr`)
+- `.apex-auditor/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr`)
+- `.apex-auditor/lighthouse-artifacts/lhr/` (when `--lhr`)
+
+Note: large JSON artifacts may also be written as gzip copies (`*.json.gz`).
 
 Exit codes:
 

@@ -72,7 +72,7 @@ const ROUTE_DETECTORS: readonly RouteDetector[] = [
   createStaticHtmlDetector(),
 ];
 
-export async function detectRoutes(options: DetectRoutesOptions): Promise<DetectedRoute[]> {
+export async function detectRoutes(options: DetectRoutesOptions): Promise<readonly DetectedRoute[]> {
   const limit = options.limit ?? DEFAULT_LIMIT;
   const orderedDetectors = orderDetectors(options.preferredDetectorId);
   for (const detector of orderedDetectors) {
@@ -87,16 +87,30 @@ export async function detectRoutes(options: DetectRoutesOptions): Promise<Detect
       continue;
     }
     const selected = takeTopRoutes(routes, limit);
+    const filtered: readonly DetectedRoute[] = selected.filter((route) => isConcreteRoutePath(route.path));
     logDetection(options, detector.id, "routes-found", {
       limit,
       candidateCount: routes.length,
-      selectedCount: selected.length,
+      selectedCount: filtered.length,
       root: detectorOptions.projectRoot,
     });
-    return selected;
+    return filtered;
   }
   logDetection(options, "none", "no-detectors", { limit });
   return [];
+}
+
+function isConcreteRoutePath(path: string): boolean {
+  if (path.includes("[") || path.includes("]")) {
+    return false;
+  }
+  if (path.includes(":")) {
+    return false;
+  }
+  if (path.includes("*")) {
+    return false;
+  }
+  return true;
 }
 
 function createNextAppDetector(): RouteDetector {

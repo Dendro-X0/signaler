@@ -16,6 +16,8 @@ From your web project root:
 pnpm dlx apex-auditor@latest
 ```
 
+This is the recommended way to run ApexAuditor because it always uses the latest published version.
+
 Notes:
 
 - `init` can auto-detect your stack from `package.json` (Next.js, Nuxt, Remix/React Router, SvelteKit, SPA).
@@ -34,9 +36,15 @@ Inside the interactive shell:
 - **headers** (security headers check; writes `.apex-auditor/headers.json`)
 - **console** (console errors + runtime exceptions; writes `.apex-auditor/console.json`)
 - **open** (open the latest HTML report)
+- **open-triage** (open `.apex-auditor/triage.md`)
+- **open-screenshots** (open `.apex-auditor/screenshots/`)
+- **open-diagnostics** (open `.apex-auditor/lighthouse-artifacts/diagnostics/`)
+- **open-lhr** (open `.apex-auditor/lighthouse-artifacts/lhr/`)
+- **open-artifacts** (open `.apex-auditor/lighthouse-artifacts/`)
 - **pages** / **routes** (print configured pages/routes from the current config)
 - **add-page** (interactive: append a page to `apex.config.json`)
 - **rm-page** (interactive: remove a page from `apex.config.json`)
+- **clear-screenshots** (remove `.apex-auditor/screenshots/`)
 - **init** (launch config wizard)
 - **config <path>** (switch config file)
 
@@ -52,6 +60,10 @@ Install as a dev dependency (recommended):
 pnpm add -D apex-auditor
 ```
 
+Note: `pnpm apex-auditor` runs the version installed in your current project, which may be older than the latest release.
+
+To always run the latest published version without installing:
+
 Or run without installing:
 
 ```bash
@@ -65,8 +77,15 @@ All outputs are written under `.apex-auditor/` in your project.
 ### `audit` outputs
 
 - `summary.json`
+- `summary-lite.json`
 - `summary.md`
+- `triage.md`
+- `issues.json`
 - `report.html`
+- `screenshots/` (when `audit --diagnostics` or `audit --lhr` is used)
+- `lighthouse-artifacts/diagnostics/` (when `audit --diagnostics` or `audit --lhr` is used)
+- `lighthouse-artifacts/diagnostics-lite/` (when `audit --diagnostics` or `audit --lhr` is used)
+- `lighthouse-artifacts/lhr/` (when `audit --lhr` is used)
 - `accessibility-summary.json`
 - `accessibility/` (axe-core artifacts per page/device)
 
@@ -75,10 +94,12 @@ Notes:
 - **Runs-per-combo is always 1**. Re-run the same command to compare results.
 - During an audit you will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
 - After `audit` completes, type `open` to open the latest HTML report.
+- Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
 
 ### `measure` outputs
 
 - `measure-summary.json`
+- `measure-summary-lite.json`
 - `measure/` (screenshots and artifacts)
 
 ### `bundle` outputs
@@ -105,6 +126,19 @@ Notes:
 
 ApexAuditor reads `apex.config.json` by default.
 
+Common fields:
+
+- `baseUrl`
+- `pages` (routes + devices)
+- `throttlingMethod` (`simulate` or `devtools`)
+- `cpuSlowdownMultiplier`
+- `parallel`
+- `warmUp`
+- `auditTimeoutMs`
+- `incremental` + `buildId`
+- `gitIgnoreApexAuditorDir` (auto-add `.apex-auditor/` to `.gitignore`)
+- `budgets`
+
 Example:
 
 ```json
@@ -124,6 +158,13 @@ Example:
   }
 }
 ```
+
+## CLI tips
+
+- Use `pnpm dlx apex-auditor@latest` to avoid running an older installed version.
+- Use `audit --flags` to print all audit flags/options.
+- Use `audit --diagnostics` or `audit --lhr` when you want per-combo JSON artifacts and screenshots.
+- Start with `triage.md` and `issues.json` when the suite is large.
 
 ## Documentation
 

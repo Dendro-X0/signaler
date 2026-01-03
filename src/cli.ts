@@ -1,6 +1,7 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
 import { exec } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import { loadConfig } from "./config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
 import type { AxeResult, AxeSummary, AxeViolation } from "./accessibility-types.js";
@@ -52,7 +53,10 @@ interface CliArgs {
   readonly cpuSlowdownOverride: number | undefined;
   readonly parallelOverride: number | undefined;
   readonly auditTimeoutMsOverride: number | undefined;
+  readonly diagnostics: boolean;
+  readonly lhr: boolean;
   readonly plan: boolean;
+  readonly flagsOnly: boolean;
   readonly yes: boolean;
   readonly maxSteps: number | undefined;
   readonly maxCombos: number | undefined;
@@ -143,6 +147,101 @@ type AccessibilitySummary = {
   readonly errored: number;
   readonly total: number;
 };
+
+type LiteOpportunity = {
+  readonly id: string;
+  readonly title: string;
+  readonly estimatedSavingsMs?: number;
+  readonly estimatedSavingsBytes?: number;
+};
+
+type SummaryLiteLine = {
+  readonly label: string;
+  readonly path: string;
+  readonly device: ApexDevice;
+  readonly scores: {
+    readonly performance?: number;
+    readonly accessibility?: number;
+    readonly bestPractices?: number;
+    readonly seo?: number;
+  };
+  readonly metrics: {
+    readonly lcpMs?: number;
+    readonly fcpMs?: number;
+    readonly tbtMs?: number;
+    readonly cls?: number;
+    readonly inpMs?: number;
+  };
+  readonly runtimeErrorMessage?: string;
+  readonly topOpportunities: readonly LiteOpportunity[];
+  readonly artifactBaseName: string;
+};
+
+type SummaryLite = {
+  readonly generatedAt: string;
+  readonly meta: RunSummary["meta"];
+  readonly results: readonly SummaryLiteLine[];
+};
+
+type IssuesIndex = {
+  readonly generatedAt: string;
+  readonly targetScore: number;
+  readonly totals: {
+    readonly combos: number;
+    readonly redCombos: number;
+    readonly yellowCombos: number;
+    readonly greenCombos: number;
+    readonly runtimeErrors: number;
+  };
+  readonly topIssues: readonly { readonly id: string; readonly title: string; readonly count: number; readonly totalMs: number }[];
+  readonly failing: readonly {
+    readonly label: string;
+    readonly path: string;
+    readonly device: ApexDevice;
+    readonly performance?: number;
+    readonly accessibility?: number;
+    readonly bestPractices?: number;
+    readonly seo?: number;
+    readonly runtimeErrorMessage?: string;
+    readonly artifactBaseName: string;
+    readonly topOpportunities: readonly LiteOpportunity[];
+    readonly artifacts?: {
+      readonly screenshotsDir: string;
+      readonly screenshotBaseName: string;
+      readonly diagnosticsPath?: string;
+      readonly diagnosticsLitePath?: string;
+      readonly lhrPath?: string;
+    };
+    readonly hints?: {
+      readonly redirects?: {
+        readonly overallSavingsMs?: number;
+        readonly chain?: readonly string[];
+      };
+      readonly unusedJavascript?: {
+        readonly overallSavingsMs?: number;
+        readonly overallSavingsBytes?: number;
+        readonly files: readonly {
+          readonly url: string;
+          readonly totalBytes?: number;
+          readonly wastedBytes?: number;
+          readonly wastedPercent?: number;
+        }[];
+      };
+      readonly totalByteWeight?: {
+        readonly totalBytes?: number;
+        readonly topResources: readonly { readonly url: string; readonly totalBytes?: number }[];
+      };
+      readonly bfCache?: {
+        readonly reasons: readonly string[];
+      };
+    };
+  }[];
+};
+
+const GZIP_MIN_BYTES: number = 80_000;
+const DEFAULT_TARGET_SCORE: number = 95;
+const MAX_HINT_COMBOS: number = 50;
+const MAX_HINT_ITEMS: number = 5;
 
 type WebhookPayload = {
   readonly type: "apex-auditor";
@@ -742,7 +841,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let cpuSlowdownOverride: number | undefined;
   let parallelOverride: number | undefined;
   let auditTimeoutMsOverride: number | undefined;
+  let diagnostics = false;
+  let lhr = false;
   let plan = false;
+  let flagsOnly = false;
   let yes = false;
   let maxSteps: number | undefined;
   let maxCombos: number | undefined;
@@ -825,8 +927,14 @@ function parseArgs(argv: readonly string[]): CliArgs {
       }
       auditTimeoutMsOverride = value;
       i += 1;
+    } else if (arg === "--diagnostics") {
+      diagnostics = true;
+    } else if (arg === "--lhr") {
+      lhr = true;
     } else if (arg === "--plan") {
       plan = true;
+    } else if (arg === "--flags") {
+      flagsOnly = true;
     } else if (arg === "--regressions-only") {
       regressionsOnly = true;
     } else if (arg === "--changed-only") {
@@ -907,6 +1015,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
   if (presetCount > 1) {
     throw new Error("Choose only one preset: --overview, --fast, --quick, or --accurate");
   }
+  if (lhr) {
+    diagnostics = true;
+  }
   const finalConfigPath: string = configPath ?? "apex.config.json";
   return {
     configPath: finalConfigPath,
@@ -919,7 +1030,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
     cpuSlowdownOverride,
     parallelOverride,
     auditTimeoutMsOverride,
+    diagnostics,
+    lhr,
     plan,
+    flagsOnly,
     yes,
     maxSteps,
     maxCombos,
@@ -943,6 +1057,70 @@ function parseArgs(argv: readonly string[]): CliArgs {
     webhookUrl,
     webhookAlways,
   };
+}
+
+async function ensureApexAuditorGitIgnore(projectRoot: string): Promise<void> {
+  const gitIgnorePath: string = resolve(projectRoot, ".gitignore");
+  const desiredLine: string = ".apex-auditor/";
+  try {
+    let existing: string = "";
+    try {
+      existing = await readFile(gitIgnorePath, "utf8");
+    } catch {
+      existing = "";
+    }
+    const hasEntry: boolean = existing
+      .split(/\r?\n/g)
+      .map((line) => line.trim())
+      .some((line) => line === desiredLine || line === ".apex-auditor" || line === "/.apex-auditor" || line === "/.apex-auditor/");
+    if (hasEntry) {
+      return;
+    }
+    const next: string = existing.length === 0 ? `${desiredLine}\n` : existing.endsWith("\n") ? `${existing}${desiredLine}\n` : `${existing}\n${desiredLine}\n`;
+    await writeFile(gitIgnorePath, next, "utf8");
+  } catch {
+    return;
+  }
+}
+
+function printAuditFlags(): void {
+  // eslint-disable-next-line no-console
+  console.log(
+    [
+      "Options (audit):",
+      "  --flags            Print this list and exit",
+      "  --config <path>    Config path (default apex.config.json)",
+      "  --ci               Enable CI mode with budgets and non-zero exit code on failure",
+      "  --fail-on-budget   Exit non-zero if budgets fail even outside CI",
+      "  --no-color         Disable ANSI colours in console output (default in CI mode)",
+      "  --color            Force ANSI colours in console output",
+      "  --log-level <lvl>  Override Lighthouse log level: silent|error|info|verbose",
+      "  --stable           Flake-resistant mode: forces parallel=1",
+      "  --mobile-only      Run audits only for 'mobile' devices defined in the config",
+      "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
+      "  --parallel <n>     Override parallel workers (1-10)",
+      "  --audit-timeout-ms <ms>  Per-audit timeout in milliseconds",
+      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .apex-auditor/...)",
+      "  --lhr              Also capture full Lighthouse result JSON per combo (implies --diagnostics)",
+      "  --plan             Print resolved settings + run size estimate and exit without auditing",
+      "  --max-steps <n>    Safety limit: refuse/prompt if planned Lighthouse runs exceed this",
+      "  --max-combos <n>   Safety limit: refuse/prompt if planned page/device combos exceed this",
+      "  --yes, -y          Auto-confirm large runs (bypass safety prompt)",
+      "  --changed-only     Run only pages whose paths match files in git diff --name-only",
+      "  --rerun-failing    Re-run only combos that failed in the previous summary",
+      "  --accessibility-pass  Run a fast axe-core accessibility sweep after audits",
+      "  --webhook-url <url> Send a JSON webhook",
+      "  --webhook-always   Send webhook even if there are no regressions/violations",
+      "  --show-parallel    Print the resolved parallel workers before running",
+      "  --incremental      Reuse cached results for unchanged combos (requires --build-id)",
+      "  --build-id <id>    Build identifier used as the cache key boundary for --incremental",
+      "  --overview         Preset: quick overview",
+      "  --overview-combos <n>  Overview sampling size",
+      "  --quick            Preset: fast feedback",
+      "  --accurate         Preset: devtools throttling + warm-up + stability-first",
+      "  --open             Open the HTML report after the run.",
+    ].join("\n"),
+  );
 }
 
 function printPlan(params: {
@@ -1250,8 +1428,15 @@ function buildChangesBox(previous: RunSummary, current: RunSummary, useColor: bo
  */
 export async function runAuditCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   const args: CliArgs = parseArgs(argv);
+  if (args.flagsOnly) {
+    printAuditFlags();
+    return;
+  }
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
+  if (config.gitIgnoreApexAuditorDir === true) {
+    await ensureApexAuditorGitIgnore(dirname(configPath));
+  }
   const previousSummary: RunSummary | undefined = await loadPreviousSummary();
 
   const presetThrottling: ApexThrottlingMethod | undefined = args.accurate ? "devtools" : undefined;
@@ -1408,6 +1593,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   process.once("SIGINT", onSigInt);
   let spinnerStarted = false;
   let lastProgressLine: string | undefined;
+  const captureLevel: "diagnostics" | "lhr" | undefined = args.lhr ? "lhr" : args.diagnostics ? "diagnostics" : undefined;
   const formatEtaText = (etaMs?: number): string => {
     if (etaMs === undefined) {
       return "";
@@ -1436,6 +1622,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       configPath,
       showParallel: args.showParallel,
       onlyCategories,
+      captureLevel,
       signal: abortController.signal,
       onAfterWarmUp: startAuditSpinner,
       onProgress: ({ completed, total, path, device, etaMs }) => {
@@ -1472,7 +1659,42 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   const outputDir: string = resolve(".apex-auditor");
   await mkdir(outputDir, { recursive: true });
-  await writeFile(resolve(outputDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
+  if (captureLevel !== undefined && isTty && !args.ci && !args.jsonOutput) {
+    // eslint-disable-next-line no-console
+    console.log(`Capture enabled (${captureLevel}). Writing artifacts under ${outputDir}/screenshots and ${outputDir}/lighthouse-artifacts/.`);
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "summary.json"), summary);
+  const summaryLite: SummaryLite = buildSummaryLite(summary);
+  await writeJsonWithOptionalGzip(resolve(outputDir, "summary-lite.json"), summaryLite);
+  const worstFirstForHints: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly baseName: string }[] =
+    [...summary.results]
+      .sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101))
+      .map((r) => ({ label: r.label, path: r.path, device: r.device, baseName: buildArtifactBaseName({ label: r.label, path: r.path, device: r.device }) }));
+  const failingForHints: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly baseName: string }[] = worstFirstForHints.filter(
+    (r) => {
+      const match = summary.results.find((x) => x.label === r.label && x.path === r.path && x.device === r.device);
+      if (!match) {
+        return false;
+      }
+      const scores: readonly number[] = [match.scores.performance, match.scores.accessibility, match.scores.bestPractices, match.scores.seo].filter(
+        (v): v is number => typeof v === "number",
+      );
+      return scores.some((v) => v < DEFAULT_TARGET_SCORE) || typeof match.runtimeErrorMessage === "string";
+    },
+  );
+  const hintsByBaseName: Map<string, { readonly hints?: ComboHints }> = await loadComboHints({
+    outputDir,
+    captureLevel,
+    failing: failingForHints,
+  });
+  const issues: IssuesIndex = buildIssuesIndex({
+    summary,
+    outputDir,
+    captureLevel,
+    targetScore: DEFAULT_TARGET_SCORE,
+    hintsByBaseName,
+  });
+  await writeJsonWithOptionalGzip(resolve(outputDir, "issues.json"), issues);
   const markdown: string = buildMarkdown(summary);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
   const html: string = buildHtmlReport(summary);
@@ -1487,7 +1709,17 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     budgets: effectiveConfig.budgets,
   });
   const exportPath: string = resolve(outputDir, "export.json");
-  await writeFile(exportPath, JSON.stringify(shareable, null, 2), "utf8");
+  await writeJsonWithOptionalGzip(exportPath, shareable);
+  const triagePath: string = resolve(outputDir, "triage.md");
+  const triage: string = buildTriageMarkdown({
+    summary,
+    reportPath,
+    exportPath,
+    outputDir,
+    captureLevel,
+    targetScore: DEFAULT_TARGET_SCORE,
+  });
+  await writeFile(triagePath, triage, "utf8");
   let accessibilitySummary: AxeSummary | undefined;
   let accessibilitySummaryPath: string | undefined;
   let accessibilityAggregated: AccessibilitySummary | undefined;
@@ -1513,6 +1745,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     return;
   }
   printReportLink(reportPath);
+  if (isTty && !args.ci) {
+    await printArtifactsSummary({ outputDir, reportPath, exportPath, captureLevel });
+  }
   if (isTty && !args.ci) {
     // eslint-disable-next-line no-console
     console.log(buildEffectiveSettingsPanel({ configPath, config: effectiveConfig, useColor }));
@@ -1688,32 +1923,55 @@ function buildMarkdown(summary: RunSummary): string {
   const meta = summary.meta;
   const metaTable: string = [
     "| Field | Value |",
-    "|-------|-------|",
-    `| Config | ${meta.configPath} |`,
-    `| Build ID | ${meta.buildId ?? "-"} |`,
-    `| Incremental | ${meta.incremental ? "yes" : "no"} |`,
-    `| Resolved parallel | ${meta.resolvedParallel} |`,
-    `| Warm-up | ${meta.warmUp ? "yes" : "no"} |`,
-    `| Throttling | ${meta.throttlingMethod} |`,
-    `| CPU slowdown | ${meta.cpuSlowdownMultiplier} |`,
-    `| Combos | ${meta.comboCount} |`,
-    `| Executed combos | ${meta.executedCombos} |`,
-    `| Cached combos | ${meta.cachedCombos} |`,
-    `| Runs per combo | ${meta.runsPerCombo} |`,
-    `| Total steps | ${meta.totalSteps} |`,
-    `| Executed steps | ${meta.executedSteps} |`,
-    `| Cached steps | ${meta.cachedSteps} |`,
-    `| Started | ${meta.startedAt} |`,
-    `| Completed | ${meta.completedAt} |`,
-    `| Elapsed | ${formatElapsedTime(meta.elapsedMs)} |`,
-    `| Avg per step | ${formatElapsedTime(meta.averageStepMs)} |`,
+    "| --- | --- |",
+    `| Config | \`${meta.configPath}\` |`,
+    `| Build ID | \`${meta.buildId ?? "-"}\` |`,
+    `| Incremental | \`${meta.incremental ? "yes" : "no"}\` |`,
+    `| Resolved parallel | \`${meta.resolvedParallel}\` |`,
+    `| Warm-up | \`${meta.warmUp ? "yes" : "no"}\` |`,
+    `| Throttling | \`${meta.throttlingMethod}\` |`,
+    `| CPU slowdown | \`${meta.cpuSlowdownMultiplier}\` |`,
+    `| Combos | \`${meta.comboCount}\` |`,
+    `| Executed combos | \`${meta.executedCombos}\` |`,
+    `| Cached combos | \`${meta.cachedCombos}\` |`,
+    `| Runs per combo | \`${meta.runsPerCombo}\` |`,
+    `| Total steps | \`${meta.totalSteps}\` |`,
+    `| Executed steps | \`${meta.executedSteps}\` |`,
+    `| Cached steps | \`${meta.cachedSteps}\` |`,
+    `| Started | \`${meta.startedAt}\` |`,
+    `| Completed | \`${meta.completedAt}\` |`,
+    `| Elapsed | \`${formatElapsedTime(meta.elapsedMs)}\` |`,
+    `| Avg per step | \`${formatElapsedTime(meta.averageStepMs)}\` |`,
   ].join("\n");
   const header: string = [
     "| Label | Path | Device | P | A | BP | SEO | LCP (s) | FCP (s) | TBT (ms) | CLS | INP (ms) | Error | Top issues |",
-    "|-------|------|--------|---|---|----|-----|---------|---------|----------|-----|----------|-------|-----------|",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
   ].join("\n");
-  const lines: string[] = summary.results.map((result) => buildRow(result));
-  return `${metaTable}\n\n${header}\n${lines.join("\n")}`;
+  const rows: string[] = summary.results.map((result) => buildRow(result));
+  const lines: string[] = [];
+  lines.push("# ApexAuditor summary");
+  lines.push("");
+  lines.push(`Generated: ${meta.completedAt}`);
+  lines.push("");
+  lines.push("This file is designed for quick scanning and copy/paste into issues/PRs.");
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+  lines.push("## Run settings");
+  lines.push("");
+  lines.push(metaTable);
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+  lines.push("## Results");
+  lines.push("");
+  lines.push(header);
+  lines.push(rows.join("\n"));
+  return `${lines.join("\n")}\n`;
+}
+
+function escapeMarkdownTableCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
 }
 
 function buildHtmlReport(summary: RunSummary): string {
@@ -1982,10 +2240,22 @@ function buildRow(result: PageDeviceSummary): string {
   const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs).toString() : "-";
   const cls: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
   const inpMs: string = metrics.inpMs !== undefined ? Math.round(metrics.inpMs).toString() : "-";
-  const issues: string = formatTopIssues(result.opportunities);
+  const issues: string = escapeMarkdownTableCell(formatTopIssues(result.opportunities));
   const error: string =
-    result.runtimeErrorCode ?? (result.runtimeErrorMessage !== undefined ? result.runtimeErrorMessage : "");
-  return `| ${result.label} | ${result.path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${inpMs} | ${error} | ${issues} |`;
+    escapeMarkdownTableCell(result.runtimeErrorCode ?? (result.runtimeErrorMessage !== undefined ? result.runtimeErrorMessage : ""));
+  const label: string = escapeMarkdownTableCell(result.label);
+  const path: string = escapeMarkdownTableCell(result.path);
+  return `| ${label} | ${path} | ${result.device} | ${scores.performance ?? "-"} | ${scores.accessibility ?? "-"} | ${scores.bestPractices ?? "-"} | ${scores.seo ?? "-"} | ${lcpSeconds} | ${fcpSeconds} | ${tbtMs} | ${cls} | ${inpMs} | ${error} | ${issues} |`;
+}
+
+function toMarkdownLink(label: string, href: string): string {
+  const safeHref: string = href.replace(/\\/g, "/");
+  return `[${label}](${safeHref})`;
+}
+
+function toRelativeMarkdownLink(params: { readonly outputDir: string; readonly absolutePath: string; readonly label: string }): string {
+  const rel: string = relative(params.outputDir, params.absolutePath);
+  return toMarkdownLink(params.label, rel);
 }
 
 function buildConsoleRow(result: PageDeviceSummary, useColor: boolean): string {
@@ -2518,6 +2788,584 @@ function printReportLink(reportPath: string): void {
   console.log(`\nReport saved to: ${reportPath}`);
   // eslint-disable-next-line no-console
   console.log(`Open report: ${fileUrl}`);
+}
+
+async function countFilesInDir(path: string): Promise<number> {
+  try {
+    const entries: readonly string[] = await readdir(path);
+    return entries.length;
+  } catch {
+    return 0;
+  }
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function toSafeSegment(input: string): string {
+  const cleaned: string = input
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9\-_.]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-/, "")
+    .replace(/-$/, "");
+  return cleaned.length > 0 ? cleaned : "item";
+}
+
+function buildArtifactBaseName(params: { readonly label: string; readonly path: string; readonly device: ApexDevice }): string {
+  const label: string = toSafeSegment(params.label);
+  const path: string = toSafeSegment(params.path.replace(/^\//, ""));
+  return `${label}__${path.length > 0 ? path : "root"}__${params.device}`;
+}
+
+type DiagnosticsLiteAudit = {
+  readonly id: string;
+  readonly title?: string;
+  readonly score?: number;
+  readonly scoreDisplayMode?: string;
+  readonly numericValue?: number;
+  readonly displayValue?: string;
+  readonly details?: {
+    readonly type?: string;
+    readonly overallSavingsMs?: number;
+    readonly overallSavingsBytes?: number;
+    readonly headings?: readonly string[];
+    readonly items?: readonly Record<string, unknown>[];
+    readonly truncated?: boolean;
+  };
+};
+
+type DiagnosticsLiteFile = {
+  readonly meta?: {
+    readonly label?: string;
+    readonly path?: string;
+    readonly device?: string;
+  };
+  readonly audits?: readonly DiagnosticsLiteAudit[];
+};
+
+type ComboHints = NonNullable<IssuesIndex["failing"][number]["hints"]>;
+
+function toNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function toString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function getAudit(lite: DiagnosticsLiteFile, id: string): DiagnosticsLiteAudit | undefined {
+  const audits: readonly DiagnosticsLiteAudit[] = Array.isArray(lite.audits) ? lite.audits : [];
+  return audits.find((a) => a.id === id);
+}
+
+function extractRedirectChain(audit: DiagnosticsLiteAudit | undefined): ComboHints["redirects"] | undefined {
+  if (!audit?.details) {
+    return undefined;
+  }
+  const overallSavingsMs: number | undefined = toNumber(audit.details.overallSavingsMs);
+  const items: readonly Record<string, unknown>[] = Array.isArray(audit.details.items) ? audit.details.items : [];
+  const urls: string[] = [];
+  for (const item of items.slice(0, MAX_HINT_ITEMS)) {
+    const url: string | undefined = toString(item["url"]);
+    if (url) {
+      urls.push(url);
+    }
+  }
+  return overallSavingsMs === undefined && urls.length === 0 ? undefined : { overallSavingsMs, chain: urls.length > 0 ? urls : undefined };
+}
+
+function extractUnusedJs(audit: DiagnosticsLiteAudit | undefined): ComboHints["unusedJavascript"] | undefined {
+  if (!audit?.details) {
+    return undefined;
+  }
+  const overallSavingsMs: number | undefined = toNumber(audit.details.overallSavingsMs);
+  const overallSavingsBytes: number | undefined = toNumber(audit.details.overallSavingsBytes);
+  const items: readonly Record<string, unknown>[] = Array.isArray(audit.details.items) ? audit.details.items : [];
+  const files = items
+    .map((item) => {
+      const url: string | undefined = toString(item["url"]);
+      if (!url) {
+        return undefined;
+      }
+      return {
+        url,
+        totalBytes: toNumber(item["totalBytes"]),
+        wastedBytes: toNumber(item["wastedBytes"]),
+        wastedPercent: toNumber(item["wastedPercent"]),
+      };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== undefined)
+    .sort((a, b) => (b.wastedBytes ?? 0) - (a.wastedBytes ?? 0))
+    .slice(0, MAX_HINT_ITEMS);
+  if (overallSavingsMs === undefined && overallSavingsBytes === undefined && files.length === 0) {
+    return undefined;
+  }
+  return {
+    overallSavingsMs,
+    overallSavingsBytes,
+    files,
+  };
+}
+
+function extractTotalByteWeight(audit: DiagnosticsLiteAudit | undefined): ComboHints["totalByteWeight"] | undefined {
+  if (!audit?.details) {
+    return undefined;
+  }
+  const totalBytes: number | undefined = toNumber(audit.numericValue);
+  const items: readonly Record<string, unknown>[] = Array.isArray(audit.details.items) ? audit.details.items : [];
+  const topResources = items
+    .map((item) => {
+      const url: string | undefined = toString(item["url"]);
+      if (!url) {
+        return undefined;
+      }
+      return { url, totalBytes: toNumber(item["totalBytes"]) };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== undefined)
+    .sort((a, b) => (b.totalBytes ?? 0) - (a.totalBytes ?? 0))
+    .slice(0, MAX_HINT_ITEMS);
+  return totalBytes === undefined && topResources.length === 0 ? undefined : { totalBytes, topResources };
+}
+
+function extractBfCache(audit: DiagnosticsLiteAudit | undefined): ComboHints["bfCache"] | undefined {
+  if (!audit?.details) {
+    return undefined;
+  }
+  const items: readonly Record<string, unknown>[] = Array.isArray(audit.details.items) ? audit.details.items : [];
+  const reasons: string[] = [];
+  for (const item of items.slice(0, MAX_HINT_ITEMS)) {
+    const reason: string | undefined = toString(item["reason"]);
+    if (reason) {
+      reasons.push(reason);
+    }
+  }
+  return reasons.length === 0 ? undefined : { reasons };
+}
+
+function buildHintsFromDiagnosticsLite(lite: DiagnosticsLiteFile): ComboHints | undefined {
+  const redirects: ComboHints["redirects"] | undefined = extractRedirectChain(getAudit(lite, "redirects"));
+  const unusedJavascript: ComboHints["unusedJavascript"] | undefined = extractUnusedJs(getAudit(lite, "unused-javascript"));
+  const totalByteWeight: ComboHints["totalByteWeight"] | undefined = extractTotalByteWeight(getAudit(lite, "total-byte-weight"));
+  const bfCache: ComboHints["bfCache"] | undefined = extractBfCache(getAudit(lite, "bf-cache"));
+  if (!redirects && !unusedJavascript && !totalByteWeight && !bfCache) {
+    return undefined;
+  }
+  return {
+    redirects,
+    unusedJavascript,
+    totalByteWeight,
+    bfCache,
+  };
+}
+
+async function loadComboHints(params: {
+  readonly outputDir: string;
+  readonly captureLevel: "diagnostics" | "lhr" | undefined;
+  readonly failing: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly baseName: string }[];
+}): Promise<Map<string, { readonly hints?: ComboHints }>> {
+  const map: Map<string, { readonly hints?: ComboHints }> = new Map();
+  if (params.captureLevel === undefined) {
+    return map;
+  }
+  const diagnosticsLiteDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics-lite");
+  const toRead: readonly { readonly baseName: string }[] = params.failing.slice(0, MAX_HINT_COMBOS).map((f) => ({ baseName: f.baseName }));
+  for (const item of toRead) {
+    const path: string = resolve(diagnosticsLiteDir, `${item.baseName}.json`);
+    try {
+      const raw: string = await readFile(path, "utf8");
+      const parsed: unknown = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object") {
+        continue;
+      }
+      const lite: DiagnosticsLiteFile = parsed as DiagnosticsLiteFile;
+      const hints: ComboHints | undefined = buildHintsFromDiagnosticsLite(lite);
+      if (hints) {
+        map.set(item.baseName, { hints });
+      }
+    } catch {
+      continue;
+    }
+  }
+  return map;
+}
+
+async function writeJsonWithOptionalGzip(absolutePath: string, value: unknown): Promise<void> {
+  const jsonText: string = JSON.stringify(value, null, 2);
+  await writeFile(absolutePath, `${jsonText}\n`, "utf8");
+  if (Buffer.byteLength(jsonText, "utf8") < GZIP_MIN_BYTES) {
+    return;
+  }
+  const gzPath: string = `${absolutePath}.gz`;
+  const gz: Buffer = gzipSync(Buffer.from(jsonText, "utf8"));
+  await writeFile(gzPath, gz);
+}
+
+function toLiteOpportunity(o: OpportunitySummary): LiteOpportunity {
+  return {
+    id: o.id,
+    title: o.title,
+    estimatedSavingsMs: o.estimatedSavingsMs,
+    estimatedSavingsBytes: o.estimatedSavingsBytes,
+  };
+}
+
+function buildSummaryLite(summary: RunSummary): SummaryLite {
+  const generatedAt: string = new Date().toISOString();
+  const results: SummaryLiteLine[] = summary.results.map((r) => {
+    const artifactBaseName: string = buildArtifactBaseName({ label: r.label, path: r.path, device: r.device });
+    const topOpportunities: readonly LiteOpportunity[] = r.opportunities.slice(0, 5).map(toLiteOpportunity);
+    return {
+      label: r.label,
+      path: r.path,
+      device: r.device,
+      scores: {
+        performance: r.scores.performance,
+        accessibility: r.scores.accessibility,
+        bestPractices: r.scores.bestPractices,
+        seo: r.scores.seo,
+      },
+      metrics: {
+        lcpMs: r.metrics.lcpMs,
+        fcpMs: r.metrics.fcpMs,
+        tbtMs: r.metrics.tbtMs,
+        cls: r.metrics.cls,
+        inpMs: r.metrics.inpMs,
+      },
+      runtimeErrorMessage: r.runtimeErrorMessage,
+      topOpportunities,
+      artifactBaseName,
+    };
+  });
+  return { generatedAt, meta: summary.meta, results };
+}
+
+function buildIssuesIndex(params: {
+  readonly summary: RunSummary;
+  readonly outputDir: string;
+  readonly captureLevel: "diagnostics" | "lhr" | undefined;
+  readonly targetScore: number;
+  readonly hintsByBaseName?: ReadonlyMap<string, { readonly hints?: ComboHints }>;
+}): IssuesIndex {
+  const generatedAt: string = new Date().toISOString();
+  const counts = { red: 0, yellow: 0, green: 0, runtimeErrors: 0 };
+  const issueAgg: Map<string, { title: string; count: number; totalMs: number }> = new Map();
+  const failing: {
+    readonly label: string;
+    readonly path: string;
+    readonly device: ApexDevice;
+    readonly performance?: number;
+    readonly accessibility?: number;
+    readonly bestPractices?: number;
+    readonly seo?: number;
+    readonly runtimeErrorMessage?: string;
+    readonly artifactBaseName: string;
+    readonly topOpportunities: readonly LiteOpportunity[];
+    readonly artifacts?: IssuesIndex["failing"][number]["artifacts"];
+    readonly hints?: IssuesIndex["failing"][number]["hints"];
+  }[] = [];
+  for (const r of params.summary.results) {
+    const p: number | undefined = r.scores.performance;
+    if (typeof p === "number") {
+      if (p >= 90) counts.green += 1;
+      else if (p >= 50) counts.yellow += 1;
+      else counts.red += 1;
+    }
+    if (typeof r.runtimeErrorMessage === "string") {
+      counts.runtimeErrors += 1;
+    }
+    for (const o of r.opportunities) {
+      const prev = issueAgg.get(o.id);
+      const ms: number = typeof o.estimatedSavingsMs === "number" ? o.estimatedSavingsMs : 0;
+      if (!prev) {
+        issueAgg.set(o.id, { title: o.title, count: 1, totalMs: ms });
+      } else {
+        issueAgg.set(o.id, { title: prev.title, count: prev.count + 1, totalMs: prev.totalMs + ms });
+      }
+    }
+    const scores: readonly number[] = [r.scores.performance, r.scores.accessibility, r.scores.bestPractices, r.scores.seo].filter(
+      (v): v is number => typeof v === "number",
+    );
+    const isFailing: boolean = scores.some((v) => v < params.targetScore) || typeof r.runtimeErrorMessage === "string";
+    if (isFailing) {
+      const baseName: string = buildArtifactBaseName({ label: r.label, path: r.path, device: r.device });
+      const screenshotsDir: string = resolve(params.outputDir, "screenshots");
+      const diagnosticsDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics");
+      const diagnosticsLiteDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics-lite");
+      const lhrDir: string = resolve(params.outputDir, "lighthouse-artifacts", "lhr");
+      const artifacts =
+        params.captureLevel === undefined
+          ? undefined
+          : {
+              screenshotsDir,
+              screenshotBaseName: baseName,
+              diagnosticsPath: resolve(diagnosticsDir, `${baseName}.json`),
+              diagnosticsLitePath: resolve(diagnosticsLiteDir, `${baseName}.json`),
+              lhrPath: params.captureLevel === "lhr" ? resolve(lhrDir, `${baseName}.json`) : undefined,
+            };
+      const hints: ComboHints | undefined = params.hintsByBaseName?.get(baseName)?.hints;
+      failing.push({
+        label: r.label,
+        path: r.path,
+        device: r.device,
+        performance: r.scores.performance,
+        accessibility: r.scores.accessibility,
+        bestPractices: r.scores.bestPractices,
+        seo: r.scores.seo,
+        runtimeErrorMessage: r.runtimeErrorMessage,
+        artifactBaseName: baseName,
+        topOpportunities: r.opportunities.slice(0, 5).map(toLiteOpportunity),
+        artifacts,
+        hints,
+      });
+    }
+  }
+  failing.sort((a: (typeof failing)[number], b: (typeof failing)[number]) => (a.performance ?? 101) - (b.performance ?? 101));
+  const topIssues: IssuesIndex["topIssues"] = [...issueAgg.entries()]
+    .map(([id, v]) => ({ id, title: v.title, count: v.count, totalMs: Math.round(v.totalMs) }))
+    .sort((a, b) => b.totalMs - a.totalMs)
+    .slice(0, 20);
+  return {
+    generatedAt,
+    targetScore: params.targetScore,
+    totals: {
+      combos: params.summary.results.length,
+      redCombos: counts.red,
+      yellowCombos: counts.yellow,
+      greenCombos: counts.green,
+      runtimeErrors: counts.runtimeErrors,
+    },
+    topIssues,
+    failing,
+  };
+}
+
+function formatScore(value: number | undefined): string {
+  return value === undefined ? "-" : String(value);
+}
+
+function buildTriageMarkdown(params: {
+  readonly summary: RunSummary;
+  readonly reportPath: string;
+  readonly exportPath: string;
+  readonly outputDir: string;
+  readonly captureLevel: "diagnostics" | "lhr" | undefined;
+  readonly targetScore: number;
+  readonly issues?: IssuesIndex;
+}): string {
+  const lines: string[] = [];
+  const worstFirst: readonly PageDeviceSummary[] = [...params.summary.results].sort((a, b) => {
+    const aP: number = a.scores.performance ?? 101;
+    const bP: number = b.scores.performance ?? 101;
+    if (aP !== bP) {
+      return aP - bP;
+    }
+    const aMin: number = Math.min(a.scores.accessibility ?? 101, a.scores.bestPractices ?? 101, a.scores.seo ?? 101);
+    const bMin: number = Math.min(b.scores.accessibility ?? 101, b.scores.bestPractices ?? 101, b.scores.seo ?? 101);
+    return aMin - bMin;
+  });
+  const failing: readonly PageDeviceSummary[] = worstFirst.filter((r) => {
+    const scores: readonly number[] = [r.scores.performance, r.scores.accessibility, r.scores.bestPractices, r.scores.seo].filter(
+      (v): v is number => typeof v === "number",
+    );
+    return scores.some((v) => v < params.targetScore) || typeof r.runtimeErrorMessage === "string";
+  });
+  const severe: readonly PageDeviceSummary[] = failing.filter((r) => {
+    const scores: readonly number[] = [r.scores.performance, r.scores.accessibility, r.scores.bestPractices, r.scores.seo].filter(
+      (v): v is number => typeof v === "number",
+    );
+    return scores.some((v) => v < 50) || typeof r.runtimeErrorMessage === "string";
+  });
+  const screenshotsDir: string = resolve(params.outputDir, "screenshots");
+  const diagnosticsDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics");
+  const diagnosticsLiteDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics-lite");
+  const lhrDir: string = resolve(params.outputDir, "lighthouse-artifacts", "lhr");
+  lines.push("# ApexAuditor triage");
+  lines.push("");
+  lines.push(`Generated: ${params.summary.meta.completedAt}`);
+  lines.push("");
+  lines.push("This file is optimized for human triage. Start with **Fix first (severe)**, then use **All combos below target** to navigate directly to per-combo artifacts.");
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+  lines.push("## Key files");
+  lines.push("");
+  lines.push(`- Report: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.reportPath, label: "report.html" })} (\`${params.reportPath}\`)`);
+  lines.push(`- Export: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.exportPath, label: "export.json" })} (\`${params.exportPath}\`)`);
+  lines.push(`- Summary: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "summary.json"), label: "summary.json" })}`);
+  lines.push(`- Summary (lite): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "summary-lite.json"), label: "summary-lite.json" })}`);
+  lines.push(`- Issues: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "issues.json"), label: "issues.json" })}`);
+  lines.push("");
+  if (params.captureLevel !== undefined) {
+    lines.push("## Artifacts folders");
+    lines.push("");
+    lines.push(`- Screenshots: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: screenshotsDir, label: "screenshots/" })}`);
+    lines.push(`- Diagnostics: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsDir, label: "lighthouse-artifacts/diagnostics/" })}`);
+    lines.push(`- Diagnostics (lite): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsLiteDir, label: "lighthouse-artifacts/diagnostics-lite/" })}`);
+    if (params.captureLevel === "lhr") {
+      lines.push(`- LHR: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: lhrDir, label: "lighthouse-artifacts/lhr/" })}`);
+    }
+    lines.push("");
+  }
+  lines.push("---");
+  lines.push("");
+  lines.push("## Fix first (severe)");
+  lines.push("");
+  if (severe.length === 0) {
+    lines.push("No severe issues found.");
+    lines.push("");
+  } else {
+    lines.push(`Target: ${params.targetScore}+`);
+    lines.push("");
+    for (const r of severe.slice(0, 25)) {
+      const baseName: string = buildArtifactBaseName({ label: r.label, path: r.path, device: r.device });
+      const diagnosticsPath: string = resolve(diagnosticsDir, `${baseName}.json`);
+      const diagnosticsLitePath: string = resolve(diagnosticsLiteDir, `${baseName}.json`);
+      const lhrPath: string = resolve(lhrDir, `${baseName}.json`);
+      const hints: IssuesIndex["failing"][number]["hints"] | undefined = params.issues?.failing.find(
+        (x) => x.artifactBaseName === baseName,
+      )?.hints;
+      lines.push(`### ${escapeMarkdownTableCell(r.label)} \`${escapeMarkdownTableCell(r.path)}\` (${r.device})`);
+      lines.push("");
+      lines.push(`- Scores: P ${formatScore(r.scores.performance)} | A ${formatScore(r.scores.accessibility)} | BP ${formatScore(r.scores.bestPractices)} | SEO ${formatScore(r.scores.seo)}`);
+      if (r.runtimeErrorMessage) {
+        lines.push(`- Runtime error: ${escapeMarkdownTableCell(r.runtimeErrorMessage)}`);
+      }
+      if (params.captureLevel !== undefined) {
+        lines.push(`- Diagnostics: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsPath, label: "diagnostics" })}`);
+        lines.push(`- Diagnostics (lite): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsLitePath, label: "diagnostics-lite" })}`);
+      }
+      if (params.captureLevel === "lhr") {
+        lines.push(`- LHR: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: lhrPath, label: "lhr" })}`);
+      }
+      lines.push(`- Screenshot: ${params.captureLevel === undefined ? "(not captured)" : `base: \`${baseName}\``}`);
+      if (hints?.unusedJavascript?.files && hints.unusedJavascript.files.length > 0) {
+        lines.push("- Unused JS (top):");
+        for (const file of hints.unusedJavascript.files.slice(0, 3)) {
+          const wastedKb: string = typeof file.wastedBytes === "number" ? ` wasted~${Math.round(file.wastedBytes / 1024)}KiB` : "";
+          lines.push(`  - ${file.url}${wastedKb}`);
+        }
+      }
+      if (hints?.totalByteWeight?.topResources && hints.totalByteWeight.topResources.length > 0) {
+        lines.push("- Payload (top):");
+        for (const res of hints.totalByteWeight.topResources.slice(0, 3)) {
+          const kb: string = typeof res.totalBytes === "number" ? ` ${Math.round(res.totalBytes / 1024)}KiB` : "";
+          lines.push(`  - ${res.url}${kb}`);
+        }
+      }
+      if (hints?.bfCache?.reasons && hints.bfCache.reasons.length > 0) {
+        lines.push("- BFCache blockers:");
+        for (const reason of hints.bfCache.reasons.slice(0, 2)) {
+          lines.push(`  - ${reason}`);
+        }
+      }
+      const topOpps: readonly OpportunitySummary[] = r.opportunities.slice(0, 5);
+      if (topOpps.length > 0) {
+        lines.push("- Top opportunities:");
+        for (const o of topOpps) {
+          const savingsMs: string = typeof o.estimatedSavingsMs === "number" ? ` ~${Math.round(o.estimatedSavingsMs)}ms` : "";
+          const savingsBytes: string = typeof o.estimatedSavingsBytes === "number" ? ` ~${Math.round(o.estimatedSavingsBytes / 1024)}KiB` : "";
+          lines.push(`  - ${o.title}${savingsMs}${savingsBytes}`);
+        }
+      }
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  }
+  lines.push("## All combos below target");
+  lines.push("");
+  if (failing.length === 0) {
+    lines.push(`All combos meet target ${params.targetScore}+.`);
+    lines.push("");
+  } else {
+    lines.push(`Target: ${params.targetScore}+`);
+    lines.push("");
+    lines.push("| Label | Path | Device | P | A | BP | SEO | Runtime error | Artifacts |" );
+    lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- |" );
+    for (const r of failing.slice(0, 200)) {
+      const baseName: string = buildArtifactBaseName({ label: r.label, path: r.path, device: r.device });
+      const diagnosticsPath: string = resolve(diagnosticsDir, `${baseName}.json`);
+      const diagnosticsLitePath: string = resolve(diagnosticsLiteDir, `${baseName}.json`);
+      const lhrPath: string = resolve(lhrDir, `${baseName}.json`);
+      const screenshotPath: string = params.captureLevel === undefined ? "(not captured)" : `base: \`${baseName}\``;
+      const err: string = r.runtimeErrorMessage ? r.runtimeErrorMessage.replace(/\|/g, "\\|") : "";
+      const artifactLinks: string[] = [];
+      if (params.captureLevel !== undefined) {
+        artifactLinks.push(toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsLitePath, label: "diagnostics-lite" }));
+        artifactLinks.push(toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: diagnosticsPath, label: "diagnostics" }));
+      }
+      if (params.captureLevel === "lhr") {
+        artifactLinks.push(toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: lhrPath, label: "lhr" }));
+      }
+      if (params.captureLevel !== undefined) {
+        artifactLinks.push(screenshotPath);
+      }
+      lines.push(
+        `| ${escapeMarkdownTableCell(r.label)} | \`${escapeMarkdownTableCell(r.path)}\` | ${r.device} | ${formatScore(r.scores.performance)} | ${formatScore(r.scores.accessibility)} | ${formatScore(r.scores.bestPractices)} | ${formatScore(r.scores.seo)} | ${err} | ${artifactLinks.join(" ")} |`,
+      );
+    }
+    lines.push("");
+    if (params.captureLevel !== undefined) {
+      lines.push("Artifacts links are relative to the `.apex-auditor/` folder, so they are clickable in most Markdown viewers.");
+      lines.push("");
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+async function printArtifactsSummary(params: {
+  readonly outputDir: string;
+  readonly reportPath: string;
+  readonly exportPath: string;
+  readonly captureLevel: "diagnostics" | "lhr" | undefined;
+}): Promise<void> {
+  const screenshotsDir: string = resolve(params.outputDir, "screenshots");
+  const diagnosticsDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics");
+  const diagnosticsLiteDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics-lite");
+  const lhrDir: string = resolve(params.outputDir, "lighthouse-artifacts", "lhr");
+  const triagePath: string = resolve(params.outputDir, "triage.md");
+  const screenshotCount: number = await countFilesInDir(screenshotsDir);
+  const diagnosticsCount: number = await countFilesInDir(diagnosticsDir);
+  const diagnosticsLiteCount: number = await countFilesInDir(diagnosticsLiteDir);
+  const lhrCount: number = params.captureLevel === "lhr" ? await countFilesInDir(lhrDir) : 0;
+  const lines: string[] = [];
+  const summaryPath: string = resolve(params.outputDir, "summary.json");
+  const summaryLitePath: string = resolve(params.outputDir, "summary-lite.json");
+  const issuesPath: string = resolve(params.outputDir, "issues.json");
+  const measureSummaryLitePath: string = resolve(params.outputDir, "measure-summary-lite.json");
+  const gzipSummaryLitePath: string = `${summaryLitePath}.gz`;
+  const gzipIssuesPath: string = `${issuesPath}.gz`;
+  const gzipMeasureSummaryLitePath: string = `${measureSummaryLitePath}.gz`;
+  const hasSummaryLiteGz: boolean = await fileExists(gzipSummaryLitePath);
+  const hasIssuesGz: boolean = await fileExists(gzipIssuesPath);
+  const hasMeasureSummaryLiteGz: boolean = await fileExists(gzipMeasureSummaryLitePath);
+
+  lines.push(`Report: ${params.reportPath}`);
+  lines.push(`Export: ${params.exportPath}`);
+  lines.push(`Triage: ${triagePath}`);
+  lines.push(`Summary: ${summaryPath}`);
+  lines.push(`Summary lite: ${summaryLitePath}${hasSummaryLiteGz ? ` (+ ${gzipSummaryLitePath})` : ""}`);
+  lines.push(`Issues: ${issuesPath}${hasIssuesGz ? ` (+ ${gzipIssuesPath})` : ""}`);
+  if (await fileExists(measureSummaryLitePath)) {
+    lines.push(`Measure summary lite: ${measureSummaryLitePath}${hasMeasureSummaryLiteGz ? ` (+ ${gzipMeasureSummaryLitePath})` : ""}`);
+  }
+  if (params.captureLevel !== undefined) {
+    lines.push(`Screenshots: ${screenshotsDir} (${screenshotCount})`);
+    lines.push(`Diagnostics: ${diagnosticsDir} (${diagnosticsCount})`);
+    lines.push(`Diagnostics lite: ${diagnosticsLiteDir} (${diagnosticsLiteCount})`);
+  }
+  if (params.captureLevel === "lhr") {
+    lines.push(`LHR: ${lhrDir} (${lhrCount})`);
+  }
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: new UiTheme({ noColor: true }).bold("Artifacts"), lines }));
 }
 
 function printSectionHeader(label: string, useColor: boolean): void {

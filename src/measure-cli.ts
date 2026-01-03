@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 import type { ApexConfig, ApexDevice } from "./types.js";
 import { loadConfig } from "./config.js";
 import { runMeasureForConfig } from "./measure-runner.js";
@@ -22,6 +23,53 @@ type MeasureArgs = {
 
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
 const theme: UiTheme = new UiTheme({ noColor: NO_COLOR });
+
+type MeasureSummaryLite = {
+  readonly generatedAt: string;
+  readonly meta: MeasureSummary["meta"];
+  readonly results: readonly {
+    readonly label: string;
+    readonly path: string;
+    readonly device: ApexDevice;
+    readonly timings: MeasureSummary["results"][number]["timings"];
+    readonly vitals: MeasureSummary["results"][number]["vitals"];
+    readonly longTasks: MeasureSummary["results"][number]["longTasks"];
+    readonly scriptingDurationMs?: number;
+    readonly network: MeasureSummary["results"][number]["network"];
+    readonly runtimeErrorMessage?: string;
+  }[];
+};
+
+const GZIP_MIN_BYTES: number = 80_000;
+
+async function writeJsonWithOptionalGzip(absolutePath: string, value: unknown): Promise<void> {
+  const jsonText: string = JSON.stringify(value, null, 2);
+  await writeFile(absolutePath, `${jsonText}\n`, "utf8");
+  if (Buffer.byteLength(jsonText, "utf8") < GZIP_MIN_BYTES) {
+    return;
+  }
+  const gzPath: string = `${absolutePath}.gz`;
+  const gz: Buffer = gzipSync(Buffer.from(jsonText, "utf8"));
+  await writeFile(gzPath, gz);
+}
+
+function buildMeasureSummaryLite(summary: MeasureSummary): MeasureSummaryLite {
+  const generatedAt: string = new Date().toISOString();
+  const results: MeasureSummaryLite["results"] = summary.results.map((r) => {
+    return {
+      label: r.label,
+      path: r.path,
+      device: r.device,
+      timings: r.timings,
+      vitals: r.vitals,
+      longTasks: r.longTasks,
+      scriptingDurationMs: r.scriptingDurationMs,
+      network: r.network,
+      runtimeErrorMessage: r.runtimeErrorMessage,
+    };
+  });
+  return { generatedAt, meta: summary.meta, results };
+}
 
 function buildSummaryLines(summary: MeasureSummary): readonly string[] {
   const combos: number = summary.meta.comboCount;
@@ -254,7 +302,9 @@ export async function runMeasureCli(argv: readonly string[], options?: { readonl
       }
     },
   });
-  await writeFile(resolve(outputDir, "measure-summary.json"), JSON.stringify(summary, null, 2), "utf8");
+  await writeJsonWithOptionalGzip(resolve(outputDir, "measure-summary.json"), summary);
+  const lite: MeasureSummaryLite = buildMeasureSummaryLite(summary);
+  await writeJsonWithOptionalGzip(resolve(outputDir, "measure-summary-lite.json"), lite);
   if (args.jsonOutput) {
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(summary, null, 2));

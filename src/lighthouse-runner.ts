@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
 import type { ApexCategory, ApexConfig, ApexDevice, ApexThrottlingMethod, MetricValues, CategoryScores, OpportunitySummary, PageDeviceSummary, RunSummary } from "./types.js";
+import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
 
 interface ChromeSession {
   readonly port: number;
@@ -149,6 +150,7 @@ async function runParallelInProcesses(
   auditTimeoutMs: number,
   signal: AbortSignal | undefined,
   updateProgress: (path: string, device: ApexDevice) => void,
+  captureLevel: "diagnostics" | "lhr" | undefined,
 ): Promise<PageDeviceSummary[]> {
   const effectiveParallel: number = Math.min(parallelCount, tasks.length);
   const workers: Array<{ readonly child: ReturnType<typeof spawn>; busy: boolean; inFlightId?: string; inFlightTaskIndex?: number }> = [];
@@ -242,6 +244,7 @@ async function runParallelInProcesses(
       cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
       timeoutMs: auditTimeoutMs,
       onlyCategories: task.onlyCategories,
+      captureLevel,
     };
     worker.busy = true;
     worker.inFlightId = id;
@@ -399,6 +402,11 @@ interface RunAuditParams {
   readonly onlyCategories?: readonly ApexCategory[];
 }
 
+type AuditOutcome = {
+  readonly summary: PageDeviceSummary;
+  readonly lhr: unknown;
+};
+
 interface AuditTask {
   readonly url: string;
   readonly path: string;
@@ -421,6 +429,7 @@ type WorkerTask = {
   readonly cpuSlowdownMultiplier: number;
   readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly captureLevel?: "diagnostics" | "lhr";
 };
 
 type WorkerRequestMessage = {
@@ -606,6 +615,7 @@ export async function runAuditsForConfig({
   configPath,
   showParallel,
   onlyCategories,
+  captureLevel,
   signal,
   onAfterWarmUp,
   onProgress,
@@ -614,6 +624,7 @@ export async function runAuditsForConfig({
   readonly configPath: string;
   readonly showParallel?: boolean;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly captureLevel?: "diagnostics" | "lhr";
   readonly signal?: AbortSignal;
   readonly onAfterWarmUp?: () => void;
   readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
@@ -730,9 +741,20 @@ export async function runAuditsForConfig({
     resultsFromRunner = [];
   } else if (parallelCount <= 1 || config.chromePort !== undefined) {
     // Sequential execution (original behavior) or using external Chrome
-    resultsFromRunner = await runSequential(tasksToRun, config.chromePort, auditTimeoutMs, signal, updateProgress);
+    if (captureLevel !== undefined && config.chromePort === undefined) {
+      resultsFromRunner = await runParallelInProcesses(tasksToRun, 1, auditTimeoutMs, signal, updateProgress, captureLevel);
+    } else {
+      resultsFromRunner = await runSequential({
+        tasks: tasksToRun,
+        chromePort: config.chromePort,
+        auditTimeoutMs,
+        signal,
+        updateProgress,
+        captureLevel,
+      });
+    }
   } else {
-    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress);
+    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel);
   }
 
   for (let runIndex = 0; runIndex < resultsFromRunner.length; runIndex += 1) {
@@ -788,24 +810,28 @@ export async function runAuditsForConfig({
   };
 }
 
-async function runSequential(
-  tasks: AuditTask[],
-  chromePort: number | undefined,
-  auditTimeoutMs: number,
-  signal: AbortSignal | undefined,
-  updateProgress: (path: string, device: ApexDevice) => void,
-): Promise<PageDeviceSummary[]> {
+async function runSequential(params: {
+  readonly tasks: AuditTask[];
+  readonly chromePort: number | undefined;
+  readonly auditTimeoutMs: number;
+  readonly signal: AbortSignal | undefined;
+  readonly updateProgress: (path: string, device: ApexDevice) => void;
+  readonly captureLevel: "diagnostics" | "lhr" | undefined;
+}): Promise<PageDeviceSummary[]> {
   const results: PageDeviceSummary[] = [];
-  const sessionRef: { session: ChromeSession } = { session: await createChromeSession(chromePort) };
+  const sessionRef: { session: ChromeSession } = { session: await createChromeSession(params.chromePort) };
   try {
-    for (const task of tasks) {
+    for (const task of params.tasks) {
       const summaries: PageDeviceSummary[] = [];
       for (let index = 0; index < task.runs; index += 1) {
-        if (signal?.aborted) {
+        if (params.signal?.aborted) {
           throw new Error("Aborted");
         }
-        const summary: PageDeviceSummary = await withTimeout(
-          runSingleAudit({
+        const attemptAudit = async (): Promise<{
+          readonly summary: PageDeviceSummary;
+          readonly lhr: unknown;
+        }> => {
+          return await runSingleAudit({
             url: task.url,
             path: task.path,
             label: task.label,
@@ -815,36 +841,31 @@ async function runSequential(
             throttlingMethod: task.throttlingMethod,
             cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
             onlyCategories: task.onlyCategories,
-          }),
-          auditTimeoutMs,
-        ).catch(async (error: unknown) => {
+          });
+        };
+        const outcome = await withTimeout(attemptAudit(), params.auditTimeoutMs).catch(async (error: unknown) => {
           const message: string = error instanceof Error ? error.message : "Unknown error";
           logLinePreservingProgress(`Timeout: ${task.path} [${task.device}] (run ${index + 1}/${task.runs}). Retrying... (${message})`);
           if (sessionRef.session.close) {
             await sessionRef.session.close();
           }
-          sessionRef.session = await createChromeSession(chromePort);
-          return withTimeout(
-            runSingleAudit({
-              url: task.url,
-              path: task.path,
-              label: task.label,
-              device: task.device,
-              port: sessionRef.session.port,
-              logLevel: task.logLevel,
-              throttlingMethod: task.throttlingMethod,
-              cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
-              onlyCategories: task.onlyCategories,
-            }),
-            auditTimeoutMs,
-          ).catch((secondError: unknown) => {
+          sessionRef.session = await createChromeSession(params.chromePort);
+          return withTimeout(attemptAudit(), params.auditTimeoutMs).catch((secondError: unknown) => {
             const secondMessage: string = secondError instanceof Error ? secondError.message : "Unknown error";
             logLinePreservingProgress(`Giving up: ${task.path} [${task.device}] (run ${index + 1}/${task.runs}) after timeout retry.`);
-            return buildFailureSummary(task, secondMessage);
+            return { summary: buildFailureSummary(task, secondMessage), lhr: undefined };
           });
         });
-        summaries.push(summary);
-        updateProgress(task.path, task.device);
+        if (params.captureLevel !== undefined) {
+          await captureLighthouseArtifacts({
+            outputRoot: resolve(CACHE_DIR),
+            captureLevel: params.captureLevel,
+            key: { label: task.label, path: task.path, device: task.device },
+            lhr: outcome.lhr,
+          });
+        }
+        summaries.push(outcome.summary);
+        params.updateProgress(task.path, task.device);
       }
       results.push(aggregateSummaries(summaries));
     }
@@ -860,6 +881,7 @@ async function runParallel(
   tasks: AuditTask[],
   parallelCount: number,
   updateProgress: (path: string, device: ApexDevice) => void,
+  captureLevel: "diagnostics" | "lhr" | undefined,
 ): Promise<PageDeviceSummary[]> {
   // Create a pool of Chrome sessions
   const sessions: { session: ChromeSession }[] = [];
@@ -883,13 +905,21 @@ async function runParallel(
       
       const summaries: PageDeviceSummary[] = [];
       for (let run = 0; run < task.runs; run += 1) {
-        const summary: PageDeviceSummary = await runSingleAuditWithRetry({
+        const outcome: AuditOutcome = await runSingleAuditWithRetry({
           task,
           sessionRef,
           updateProgress,
           maxRetries: 2,
         });
-        summaries.push(summary);
+        if (captureLevel !== undefined) {
+          await captureLighthouseArtifacts({
+            outputRoot: resolve(CACHE_DIR),
+            captureLevel,
+            key: { label: task.label, path: task.path, device: task.device },
+            lhr: outcome.lhr,
+          });
+        }
+        summaries.push(outcome.summary);
         updateProgress(task.path, task.device);
       }
       results[currentIndex] = aggregateSummaries(summaries);
@@ -943,7 +973,7 @@ async function runSingleAuditWithRetry({
   readonly sessionRef: { session: ChromeSession };
   readonly updateProgress: (path: string, device: ApexDevice) => void;
   readonly maxRetries: number;
-}): Promise<PageDeviceSummary> {
+}): Promise<AuditOutcome> {
   let attempt = 0;
   let lastError: unknown;
   while (attempt <= maxRetries) {
@@ -1013,7 +1043,7 @@ function logProgress({
   console.log(message);
 }
 
-async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary> {
+async function runSingleAudit(params: RunAuditParams): Promise<AuditOutcome> {
   const options: Record<string, unknown> = {
     port: params.port,
     output: "json" as const,
@@ -1044,7 +1074,7 @@ async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary
   const scores: CategoryScores = extractScores(lhr);
   const metrics: MetricValues = extractMetrics(lhr);
   const opportunities: readonly OpportunitySummary[] = extractTopOpportunities(lhr, 3);
-  return {
+  const summary: PageDeviceSummary = {
     url: lhr.finalDisplayedUrl ?? params.url,
     path: params.path,
     label: params.label,
@@ -1055,6 +1085,7 @@ async function runSingleAudit(params: RunAuditParams): Promise<PageDeviceSummary
     runtimeErrorCode: typeof lhr.runtimeError?.code === "string" ? lhr.runtimeError.code : undefined,
     runtimeErrorMessage: typeof lhr.runtimeError?.message === "string" ? lhr.runtimeError.message : undefined,
   };
+  return { summary, lhr: lhrUnknown };
 }
 
 function extractScores(lhr: LighthouseResultLike): CategoryScores {

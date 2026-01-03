@@ -1,9 +1,10 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
 import type { ApexCategory, ApexDevice, ApexThrottlingMethod, CategoryScores, MetricValues, OpportunitySummary, PageDeviceSummary } from "./types.js";
+import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
 
 type LighthouseLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -35,6 +36,7 @@ type AuditTask = {
   readonly cpuSlowdownMultiplier: number;
   readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly captureLevel?: "diagnostics" | "lhr";
 };
 
 type ChromeSession = {
@@ -185,6 +187,7 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
           throttlingMethod: task.throttlingMethod,
           cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
           onlyCategories: task.onlyCategories,
+          captureLevel: task.captureLevel,
         }),
         task.timeoutMs,
       );
@@ -213,6 +216,7 @@ async function runSingleAudit(params: {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly captureLevel?: "diagnostics" | "lhr";
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
   const throttling = params.throttlingMethod === "simulate"
@@ -242,6 +246,16 @@ async function runSingleAudit(params: {
   if (!lhrUnknown || typeof lhrUnknown !== "object") {
     throw new Error("Lighthouse did not return a valid result");
   }
+
+  if (params.captureLevel !== undefined) {
+    await captureLighthouseArtifacts({
+      outputRoot: resolve(".apex-auditor"),
+      captureLevel: params.captureLevel,
+      key: { label: params.label, path: params.path, device: params.device },
+      lhr: lhrUnknown,
+    });
+  }
+
   const lhr: LighthouseResultLike = lhrUnknown as LighthouseResultLike;
   const scores: CategoryScores = extractScores(lhr);
   const metrics: MetricValues = extractMetrics(lhr);

@@ -27,6 +27,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly chromePort?: unknown;
     readonly runs?: unknown;
     readonly auditTimeoutMs?: unknown;
+    readonly gitIgnoreApexAuditorDir?: unknown;
     readonly pages?: unknown;
     readonly logLevel?: unknown;
     readonly throttlingMethod?: unknown;
@@ -56,6 +57,8 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     typeof maybeConfig.auditTimeoutMs === "number" && maybeConfig.auditTimeoutMs > 0
       ? maybeConfig.auditTimeoutMs
       : undefined;
+  const gitIgnoreApexAuditorDir: boolean | undefined =
+    typeof maybeConfig.gitIgnoreApexAuditorDir === "boolean" ? maybeConfig.gitIgnoreApexAuditorDir : undefined;
   const rawLogLevel: unknown = maybeConfig.logLevel;
   const logLevel: "silent" | "error" | "info" | "verbose" | undefined =
     rawLogLevel === "silent" || rawLogLevel === "error" || rawLogLevel === "info" || rawLogLevel === "verbose"
@@ -88,6 +91,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     chromePort,
     runs,
     auditTimeoutMs,
+    gitIgnoreApexAuditorDir,
     logLevel,
     throttlingMethod,
     cpuSlowdownMultiplier,

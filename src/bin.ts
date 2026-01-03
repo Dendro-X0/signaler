@@ -12,6 +12,7 @@ import { runHeadersCli } from "./headers-cli.js";
 import { runConsoleCli } from "./console-cli.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
+import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 
 type ApexCommandId =
   | "audit"
@@ -23,6 +24,7 @@ type ApexCommandId =
   | "console"
   | "clean"
   | "uninstall"
+  | "clear-screenshots"
   | "wizard"
   | "quickstart"
   | "guide"
@@ -57,6 +59,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "console" ||
     rawCommand === "clean" ||
     rawCommand === "uninstall" ||
+    rawCommand === "clear-screenshots" ||
     rawCommand === "wizard" ||
     rawCommand === "quickstart" ||
     rawCommand === "guide" ||
@@ -143,31 +146,47 @@ function printHelp(topic?: string): void {
     [
       "ApexAuditor CLI",
       "",
+      "Recommended run (always latest):",
+      "  pnpm dlx apex-auditor@latest",
+      "",
+      "Note:",
+      "  pnpm apex-auditor runs the version installed in the current project, which may be older.",
+      "",
       "Usage:",
       "  apex-auditor                 # interactive shell (default)",
       "  apex-auditor quickstart --base-url <url> [--project-root <path>]",
       "  apex-auditor wizard [--config <path>]",
       "  apex-auditor audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
+      "  apex-auditor audit --flags    # print audit flags/options and exit",
       "  apex-auditor guide  (alias of wizard) interactive flow with tips for non-technical users",
       "  apex-auditor shell           # same as default entrypoint",
       "",
       "Commands:",
-      "  shell      Start interactive shell (audit/open/diff/preset/help/exit)",
-      "  quickstart  Detect routes and run a one-off audit with sensible defaults",
-      "  wizard     Run interactive config wizard",
-      "  guide      Same as wizard, with inline tips for non-technical users",
-      "  audit      Run Lighthouse audits using apex.config.json",
-      "  measure    Fast batch metrics (CDP-based, non-Lighthouse)",
-      "  bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
-      "  health     HTTP status + latency checks for configured routes",
-      "  links      Broken links audit (sitemap + HTML link extraction)",
-      "  headers    Security headers audit",
-      "  console    Console errors + runtime exceptions audit (headless Chrome)",
-      "  clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
-      "  uninstall  One-click uninstall (removes .apex-auditor/ and apex.config.json)",
-      "  help       Show this help message",
+      "  Interactive:",
+      "    shell      Start interactive shell (default)",
+      "    wizard     Run interactive config wizard",
+      "    guide      Same as wizard, with inline tips for non-technical users",
+      "    quickstart Detect routes and run a one-off audit with sensible defaults",
+      "",
+      "  Audits and checks:",
+      "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
+      "    audit      Run Lighthouse audits using apex.config.json",
+      "    bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
+      "    health     HTTP status + latency checks for configured routes",
+      "    links      Broken links audit (sitemap + HTML link extraction)",
+      "    headers    Security headers audit",
+      "    console    Console errors + runtime exceptions audit (headless Chrome)",
+      "",
+      "  Maintenance:",
+      "    clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
+      "    uninstall  One-click uninstall (removes .apex-auditor/ and apex.config.json)",
+      "    clear-screenshots  Remove .apex-auditor/screenshots/",
+      "",
+      "  Help:",
+      "    help       Show this help message",
       "",
       "Options (audit):",
+      "  --flags            Print audit flags/options and exit",
       "  --ci               Enable CI mode with budgets and non-zero exit code on failure",
       "  --fail-on-budget   Exit non-zero if budgets fail even outside CI",
       "  --no-color         Disable ANSI colours in console output (default in CI mode)",
@@ -178,6 +197,8 @@ function printHelp(topic?: string): void {
       "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
       "  --parallel <n>     Override parallel workers (1-10). Default auto-tunes from CPU/memory.",
       "  --audit-timeout-ms <ms>  Per-audit timeout in milliseconds (prevents hung runs from stalling)",
+      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .apex-auditor/...)",
+      "  --lhr              Also capture full Lighthouse result JSON per combo (implies --diagnostics)",
       "  --plan             Print resolved settings + run size estimate and exit without auditing",
       "  --max-steps <n>    Safety limit: refuse/prompt if planned Lighthouse runs exceed this (default 120)",
       "  --max-combos <n>   Safety limit: refuse/prompt if planned page/device combos exceed this (default 60)",
@@ -249,6 +270,12 @@ function printHelp(topic?: string): void {
       "Options (uninstall):",
       "  --project-root <path>  Project root (default cwd)",
       "  --config-path <path>   Config file path relative to project root (default apex.config.json)",
+      "  --dry-run              Print planned removals without deleting",
+      "  --yes, -y              Skip confirmation prompt",
+      "  --json                 Print JSON report to stdout",
+      "",
+      "Options (clear-screenshots):",
+      "  --project-root <path>  Project root (default cwd)",
       "  --dry-run              Print planned removals without deleting",
       "  --yes, -y              Skip confirmation prompt",
       "  --json                 Print JSON report to stdout",
@@ -336,6 +363,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "uninstall") {
       await runUninstallCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "clear-screenshots") {
+      await runClearScreenshotsCli(parsed.argv);
       return;
     }
     if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {

@@ -11,6 +11,13 @@ Typical workflow:
 5. Use `health` to validate routes are up and reasonably fast.
 6. Type `open` to review the latest HTML report.
 
+Helpful navigation shortcuts:
+
+- `open-triage` opens `.apex-auditor/triage.md`
+- `open-screenshots` opens `.apex-auditor/screenshots/`
+- `open-diagnostics` opens `.apex-auditor/lighthouse-artifacts/diagnostics/`
+- `open-lhr` opens `.apex-auditor/lighthouse-artifacts/lhr/`
+
 Optional audits:
 
 - `links` (broken links crawl)
@@ -25,12 +32,19 @@ From your web project root:
 pnpm dlx apex-auditor@latest
 ```
 
-Or install as a dev dependency:
+This is the recommended way to run ApexAuditor because it always uses the latest published version.
+
+Or install as a dev dependency (pinned to whatever version your project depends on):
 
 ```bash
 pnpm add -D apex-auditor
 pnpm apex-auditor
 ```
+
+Note:
+
+- `pnpm apex-auditor` runs the version installed in your current project, which may be older than the latest release.
+- ApexAuditor cannot safely self-update; use `pnpm dlx apex-auditor@latest` when you want the latest version.
 
 Prerequisites:
 
@@ -71,6 +85,11 @@ Outputs:
 > audit
 ```
 
+Optional capture flags:
+
+- `audit --diagnostics`: capture DevTools-like Lighthouse tables and save screenshots.
+- `audit --lhr`: also save the full Lighthouse result JSON per page/device (implies `--diagnostics`).
+
 During an audit:
 
 - A warm-up step may run first (if enabled).
@@ -80,10 +99,22 @@ During an audit:
 Outputs:
 
 - `.apex-auditor/summary.json`
+- `.apex-auditor/summary-lite.json`
 - `.apex-auditor/summary.md`
+- `.apex-auditor/triage.md`
+- `.apex-auditor/issues.json`
 - `.apex-auditor/report.html`
+- `.apex-auditor/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
+- `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr` is enabled)
+- `.apex-auditor/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr` is enabled)
+- `.apex-auditor/lighthouse-artifacts/lhr/` (when `--lhr` is enabled)
 - `.apex-auditor/accessibility-summary.json`
 - `.apex-auditor/accessibility/` (axe-core artifacts per page/device)
+
+Notes:
+
+- Start with `triage.md` and `issues.json` when the suite is large.
+- Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
 
 ## 5. Bundle (build output sizes)
 

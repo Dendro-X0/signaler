@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.8 - 2026-01-02
+
+### Added
+- Audit: `--diagnostics` captures DevTools-like Lighthouse tables + screenshots.
+- Audit: `--lhr` additionally captures full Lighthouse result JSON per combo.
+- Audit: `--flags` prints resolved audit flags/options and exits.
+- Outputs: new AI-friendly artifacts: `summary-lite.json`, `issues.json`, and per-combo `diagnostics-lite/`.
+- Outputs: optional gzip copies for large JSON artifacts (`*.json.gz`).
+- Outputs: `triage.md` report optimized for fixing red issues first, linking to per-combo artifacts.
+- Shell: `clear-screenshots` to remove `.apex-auditor/screenshots/`.
+- Shell: `open-triage`, `open-screenshots`, `open-diagnostics`, `open-lhr`, `open-artifacts`.
+- Config: `gitIgnoreApexAuditorDir` option to automatically add `.apex-auditor/` to `.gitignore`.
+
+### Changed
+- Route auto-detection: filters out unresolved dynamic routes (e.g. `[slug]`) to avoid inaccurate audits.
+- Audit end-of-run output: prints clear artifact paths and counts.
+
+### Fixed
+- Shell: prevented prompt/input glitches after long-running commands (improved guided help + ready state handling).
+
 ## 0.3.7 - 2026-01-02
 
 ### Added

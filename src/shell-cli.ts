@@ -15,6 +15,7 @@ import { runWizardCli } from "./wizard-cli.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
 import { loadConfig } from "./config.js";
+import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { pathExists } from "./fs-utils.js";
 import { renderPanel } from "./ui/render-panel.js";
 import { renderTable } from "./ui/render-table.js";
@@ -560,35 +561,199 @@ function resolveBuildIdStrategy(args: readonly string[]): { readonly strategy: B
   return undefined;
 }
 
-function printHelp(): void {
+type HelpTopic = "audit" | "other" | "hidden" | "all";
+
+type HelpLine = {
+  readonly command: string;
+  readonly description: string;
+};
+
+const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
+  { command: "measure", description: "Run fast metrics (CDP-based) for the current config" },
+  { command: "audit", description: "Run Lighthouse audits using the current session settings" },
+  { command: "audit --flags", description: "Print audit flags/options" },
+  { command: "bundle", description: "Bundle size audit for build outputs (.next/dist)" },
+  { command: "health", description: "HTTP status/latency checks for configured routes" },
+  { command: "links", description: "Broken links audit (sitemap + HTML link extraction)" },
+  { command: "headers", description: "Security headers audit" },
+  { command: "console", description: "Console errors + runtime exceptions audit (headless Chrome)" },
+] as const;
+
+const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
+  { command: "pages", description: "Print configured pages/routes from the current config" },
+  { command: "routes", description: "Alias for pages" },
+  { command: "add-page", description: "Add a page to apex.config.json (interactive)" },
+  { command: "rm-page [#|/path]", description: "Remove a page from apex.config.json (interactive)" },
+  { command: "clean", description: "Remove ApexAuditor artifacts (reports/cache and optionally config)" },
+  { command: "uninstall", description: "Remove .apex-auditor and the current config file" },
+  { command: "clear-screenshots", description: "Remove .apex-auditor/screenshots/" },
+  { command: "open", description: "Open the last HTML report (or .apex-auditor/report.html)" },
+  { command: "open-triage", description: "Open triage markdown (.apex-auditor/triage.md)" },
+  { command: "open-screenshots", description: "Open the screenshots output directory (.apex-auditor/screenshots/)" },
+  { command: "open-artifacts", description: "Open the Lighthouse artifacts directory (.apex-auditor/lighthouse-artifacts/)" },
+  { command: "open-diagnostics", description: "Open diagnostics JSON directory (.apex-auditor/lighthouse-artifacts/diagnostics/)" },
+  { command: "open-lhr", description: "Open full Lighthouse JSON directory (.apex-auditor/lighthouse-artifacts/lhr/)" },
+  { command: "diff", description: "Compare last run vs previous run (from this shell session)" },
+  { command: "preset <id>", description: "Set preset: default|overview|quick|accurate|fast" },
+  { command: "incremental on|off", description: "Toggle incremental caching" },
+  { command: "build-id auto", description: "Use auto buildId detection" },
+  { command: "build-id manual <id>", description: "Use a fixed buildId" },
+  { command: "config <path>", description: "Set config path used by audit" },
+  { command: "help [audit|other|hidden|all]", description: "Show help (use categories to expand)" },
+  { command: "exit", description: "Exit the shell" },
+] as const;
+
+const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
+  { command: "status", description: "Print current session prompt/status" },
+  { command: "quit", description: "Alias for exit" },
+] as const;
+
+const HELP_TOPICS: readonly HelpTopic[] = ["audit", "other", "hidden", "all"] as const;
+
+function parseHelpTopic(raw: string | undefined): HelpTopic | undefined {
+  if (raw === "audit" || raw === "other" || raw === "hidden" || raw === "all") {
+    return raw;
+  }
+  return undefined;
+}
+
+function pushHelpLines(lines: string[], title: string, entries: readonly HelpLine[]): void {
+  lines.push(theme.bold(title));
+  for (const entry of entries) {
+    lines.push(`${theme.cyan(entry.command)} ${entry.description}`);
+  }
+}
+
+function toLower(input: string): string {
+  return input.toLowerCase();
+}
+
+function filterHelpLinesByQuery(query: string): readonly HelpLine[] {
+  const q: string = toLower(query.trim());
+  if (q.length === 0) {
+    return [];
+  }
+  const all: readonly HelpLine[] = [...HELP_AUDIT_COMMANDS, ...HELP_OTHER_COMMANDS, ...HELP_HIDDEN_COMMANDS] as const;
+  return all.filter((line) => {
+    const hay: string = `${line.command} ${line.description}`;
+    return toLower(hay).includes(q);
+  });
+}
+
+async function runGuidedHelp(rl: readline.Interface): Promise<void> {
+  if (!process.stdin.isTTY) {
+    printHelp();
+    return;
+  }
+  const menu = (): string[] => [
+    theme.bold("Help wizard"),
+    "",
+    "Choose an option:",
+    `  1) ${theme.cyan("Audit commands")}`,
+    `  2) ${theme.cyan("Other commands")}`,
+    `  3) ${theme.cyan("Hidden commands")}`,
+    `  4) ${theme.cyan("Search")} (type keywords)`,
+    `  5) ${theme.cyan("Show all")}`,
+    `  0) ${theme.cyan("Exit help")}`,
+    "",
+  ];
+  const renderSearch = async (): Promise<void> => {
+    const query: string = (await askLine(rl, "Search text: ")).trim();
+    if (query.length === 0) {
+      return;
+    }
+    const hits: readonly HelpLine[] = filterHelpLinesByQuery(query);
+    const lines: string[] = [];
+    if (hits.length === 0) {
+      lines.push(theme.dim(`No matches for: ${query}`));
+      // eslint-disable-next-line no-console
+      console.log(renderPanel({ title: theme.bold("Help search"), lines }));
+      return;
+    }
+    pushHelpLines(lines, `Matches (${hits.length})`, hits);
+    // eslint-disable-next-line no-console
+    console.log(renderPanel({ title: theme.bold("Help search"), lines }));
+  };
+  // Loop until user exits
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    // eslint-disable-next-line no-console
+    console.log(renderPanel({ title: theme.bold("Help"), lines: menu() }));
+    const rawChoice: string = (await askLine(rl, "Select: ")).trim();
+    const choice: string = rawChoice.length > 0 ? rawChoice[0] : rawChoice;
+    if (choice === "0" || choice.toLowerCase() === "exit" || choice.toLowerCase() === "q") {
+      break;
+    }
+    if (choice === "1") {
+      printHelp("audit");
+      continue;
+    }
+    if (choice === "2") {
+      printHelp("other");
+      continue;
+    }
+    if (choice === "3") {
+      printHelp("hidden");
+      continue;
+    }
+    if (choice === "4") {
+      await renderSearch();
+      continue;
+    }
+    if (choice === "5") {
+      printHelp("all");
+      continue;
+    }
+    // If the user typed text, treat it as search fallback
+    if (choice.length > 0) {
+      const hits: readonly HelpLine[] = filterHelpLinesByQuery(choice);
+      const lines: string[] = [];
+      if (hits.length === 0) {
+        lines.push(theme.dim(`No matches for: ${choice}`));
+        // eslint-disable-next-line no-console
+        console.log(renderPanel({ title: theme.bold("Help search"), lines }));
+      } else {
+        pushHelpLines(lines, `Matches (${hits.length})`, hits);
+        // eslint-disable-next-line no-console
+        console.log(renderPanel({ title: theme.bold("Help search"), lines }));
+      }
+    }
+  }
+}
+
+function printHelp(rawTopic?: string): void {
+  const topic: HelpTopic | undefined = parseHelpTopic(rawTopic);
   const lines: string[] = [];
-  lines.push(theme.bold("Audit commands"));
-  lines.push(`${theme.cyan("measure")} Run fast metrics (CDP-based) for the current config`);
-  lines.push(`${theme.cyan("audit")} Run Lighthouse audits using the current session settings`);
-  lines.push(`${theme.cyan("bundle")} Bundle size audit for build outputs (.next/dist)`);
-  lines.push(`${theme.cyan("health")} HTTP status/latency checks for configured routes`);
-  lines.push(`${theme.cyan("links")} Broken links audit (sitemap + HTML link extraction)`);
-  lines.push(`${theme.cyan("headers")} Security headers audit`);
-  lines.push(`${theme.cyan("console")} Console errors + runtime exceptions audit (headless Chrome)`);
+  if (topic === undefined) {
+    lines.push(theme.bold("Help"));
+    lines.push(theme.dim("Use `help <topic>` to expand a category."));
+    lines.push("");
+    lines.push(theme.bold("Topics"));
+    lines.push(`${theme.cyan("help audit")} Show audit commands`);
+    lines.push(`${theme.cyan("help other")} Show other commands`);
+    lines.push(`${theme.cyan("help hidden")} Show hidden/alias commands`);
+    lines.push(`${theme.cyan("help all")} Show everything`);
+    lines.push("");
+    lines.push(theme.dim("Note: runs-per-combo is always 1. For baselines/comparison, rerun the same command."));
+    // eslint-disable-next-line no-console
+    console.log(renderPanel({ title: theme.bold("Help"), lines }));
+    return;
+  }
+  if (topic === "audit") {
+    pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
+  } else if (topic === "other") {
+    pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
+  } else if (topic === "hidden") {
+    pushHelpLines(lines, "Hidden commands", HELP_HIDDEN_COMMANDS);
+  } else {
+    pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
+    lines.push("");
+    pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
+    lines.push("");
+    pushHelpLines(lines, "Hidden commands", HELP_HIDDEN_COMMANDS);
+  }
   lines.push("");
-  lines.push(theme.bold("Other commands"));
-  lines.push(`${theme.cyan("pages")} Print configured pages/routes from the current config`);
-  lines.push(`${theme.cyan("routes")} Alias for pages`);
-  lines.push(`${theme.cyan("add-page")} Add a page to apex.config.json (interactive)`);
-  lines.push(`${theme.cyan("rm-page [#|/path]")} Remove a page from apex.config.json (interactive)`);
-  lines.push(`${theme.cyan("clean")} Remove ApexAuditor artifacts (reports/cache and optionally config)`);
-  lines.push(`${theme.cyan("uninstall")} Remove .apex-auditor and the current config file`);
-  lines.push(`${theme.cyan("open")} Open the last HTML report (or .apex-auditor/report.html)`);
-  lines.push(`${theme.cyan("diff")} Compare last run vs previous run (from this shell session)`);
-  lines.push(`${theme.cyan("preset <id>")} Set preset: default|overview|quick|accurate|fast`);
-  lines.push(`${theme.cyan("incremental on|off")} Toggle incremental caching`);
-  lines.push(`${theme.cyan("build-id auto")} Use auto buildId detection`);
-  lines.push(`${theme.cyan("build-id manual <id>")} Use a fixed buildId`);
-  lines.push(`${theme.cyan("config <path>")} Set config path used by audit`);
-  lines.push(`${theme.cyan("help")} Show this help`);
-  lines.push(`${theme.cyan("exit")} Exit the shell`);
-  lines.push("");
-  lines.push(theme.dim("Note: runs-per-combo is always 1. For baselines/comparison, rerun the same command."));
+  lines.push(theme.dim(`Topics: ${HELP_TOPICS.join(" | ")}`));
   // eslint-disable-next-line no-console
   console.log(renderPanel({ title: theme.bold("Help"), lines }));
 }
@@ -651,7 +816,13 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "rm-page",
     "clean",
     "uninstall",
+    "clear-screenshots",
     "open",
+    "open-triage",
+    "open-screenshots",
+    "open-artifacts",
+    "open-diagnostics",
+    "open-lhr",
     "diff",
     "preset",
     "incremental",
@@ -684,6 +855,8 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "-y",
     "--json",
   ] as const;
+  const clearScreenshotsFlags: readonly string[] = ["--project-root", "--dry-run", "--yes", "-y", "--json"] as const;
+  const helpTopics: readonly string[] = HELP_TOPICS as readonly string[];
 
   const filterStartsWith = (candidates: readonly string[], fragment: string): readonly string[] => {
     const hits: readonly string[] = candidates.filter((c) => c.startsWith(fragment));
@@ -696,6 +869,9 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
   };
 
   const completeSecondWord = (command: string, fragment: string, rawLine: string): readonly [readonly string[], string] => {
+    if (command === "help") {
+      return [filterStartsWith(helpTopics, fragment), rawLine] as const;
+    }
     if (command === "preset") {
       return [filterStartsWith(presets, fragment), rawLine] as const;
     }
@@ -728,6 +904,9 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     }
     if (command === "uninstall") {
       return [filterStartsWith(uninstallFlags, fragment), rawLine] as const;
+    }
+    if (command === "clear-screenshots") {
+      return [filterStartsWith(clearScreenshotsFlags, fragment), rawLine] as const;
     }
     return [[], rawLine] as const;
   };
@@ -909,7 +1088,9 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session, shouldExit: false };
   }
   if (command.id === "help") {
-    printHelp();
+    if (command.args.length > 0) {
+      printHelp(command.args[0]);
+    }
     return { session, shouldExit: false };
   }
   if (command.id === "exit" || command.id === "quit") {
@@ -957,6 +1138,11 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     await runUninstallCli(argv);
     return { session, shouldExit: false };
   }
+  if (command.id === "clear-screenshots") {
+    const argv: string[] = ["node", "apex-auditor", "--project-root", projectRoot, ...command.args];
+    await runClearScreenshotsCli(argv);
+    return { session, shouldExit: false };
+  }
   if (command.id === "init") {
     // eslint-disable-next-line no-console
     console.log("Starting config wizard...");
@@ -967,6 +1153,31 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
   }
   if (command.id === "open") {
     const path: string = session.lastReportPath ?? resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-triage") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "triage.md");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-screenshots") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "screenshots");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-artifacts") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "lighthouse-artifacts");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-diagnostics") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "lighthouse-artifacts", "diagnostics");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-lhr") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "lighthouse-artifacts", "lhr");
     openInBrowser(path);
     return { session, shouldExit: false };
   }
@@ -1152,6 +1363,21 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
           }
           return;
         }
+      }
+      if (command.id === "help" && command.args.length === 0 && process.stdin.isTTY) {
+        suppressInput = true;
+        rl.pause();
+        try {
+          await runGuidedHelp(rl);
+        } finally {
+          if (!rlClosed) {
+            rl.resume();
+            suppressInput = false;
+            rl.setPrompt(buildPrompt(session));
+            rl.prompt();
+          }
+        }
+        return;
       }
       if (command.id === "init") {
         // eslint-disable-next-line no-console
