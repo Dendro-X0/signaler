@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+RAW_NAME="$(node -p "require('./package.json').name")"
+PKG_VER="$(node -p "require('./package.json').version")"
+SAFE_NAME="$(echo "${RAW_NAME}" | sed 's/^@//' | sed 's#/##g' | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^\-\+//;s/\-\+$//')"
+ZIP_BASENAME="${SAFE_NAME}-${PKG_VER}-portable"
+ZIP_DIR="release/${ZIP_BASENAME}"
+mkdir -p "${ZIP_DIR}"
+cp -R dist "${ZIP_DIR}/dist"
+mkdir -p "${ZIP_DIR}/release-assets"
+cp release-assets/run.sh "${ZIP_DIR}/release-assets/run.sh"
+cp release-assets/run.cmd "${ZIP_DIR}/release-assets/run.cmd"
+cp package.json "${ZIP_DIR}/package.json"
+cp README.md "${ZIP_DIR}/README.md"
+cp LICENSE "${ZIP_DIR}/LICENSE"
+chmod +x "${ZIP_DIR}/release-assets/run.sh"
+(cd release && zip -r "${ZIP_BASENAME}.zip" "${ZIP_BASENAME}")
