@@ -53,6 +53,28 @@ Cancel long-running commands:
 
 ### GitHub Release asset (recommended)
 
+Download the portable zip (no registries, no package managers):
+
+1. Download `signaler-<version>-portable.zip` from the latest GitHub Release.
+2. Unzip it.
+3. Run:
+
+Windows:
+
+```bash
+release-assets\\run.cmd audit
+```
+
+macOS/Linux:
+
+```bash
+./release-assets/run.sh audit
+```
+
+This runs `node dist/bin.js` from the unpacked folder. Ensure you have Node.js installed.
+
+If you prefer installing into an existing project, you can also use the `.tgz` asset:
+
 1. Download the `signaler-<version>.tgz` asset from the latest GitHub Release.
 2. Install it:
 

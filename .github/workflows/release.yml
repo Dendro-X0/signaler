@@ -36,15 +36,34 @@ jobs:
           mkdir -p release
           pnpm pack --pack-destination release
 
+      - name: Portable zip
+        run: |
+          node -p "require('./package.json').name" > /tmp/pkgname.txt
+          node -p "require('./package.json').version" > /tmp/pkgver.txt
+          PKG_NAME="$(cat /tmp/pkgname.txt)"
+          PKG_VER="$(cat /tmp/pkgver.txt)"
+          ZIP_DIR="release/${PKG_NAME}-${PKG_VER}-portable"
+          mkdir -p "$ZIP_DIR"
+          cp -R dist "$ZIP_DIR/dist"
+          mkdir -p "$ZIP_DIR/release-assets"
+          cp release-assets/run.sh "$ZIP_DIR/release-assets/run.sh"
+          cp release-assets/run.cmd "$ZIP_DIR/release-assets/run.cmd"
+          cp package.json "$ZIP_DIR/package.json"
+          cp README.md "$ZIP_DIR/README.md"
+          cp LICENSE "$ZIP_DIR/LICENSE"
+          chmod +x "$ZIP_DIR/release-assets/run.sh"
+          (cd release && zip -r "${PKG_NAME}-${PKG_VER}-portable.zip" "${PKG_NAME}-${PKG_VER}-portable")
+
       - name: Checksums
         run: |
           cd release
-          sha256sum *.tgz > SHA256SUMS.txt
+          sha256sum *.tgz *.zip > SHA256SUMS.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             release/*.tgz
+            release/*.zip
             release/SHA256SUMS.txt
           generate_release_notes: true
