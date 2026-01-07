@@ -38,11 +38,12 @@ jobs:
 
       - name: Portable zip
         run: |
-          node -p "require('./package.json').name" > /tmp/pkgname.txt
-          node -p "require('./package.json').version" > /tmp/pkgver.txt
-          PKG_NAME="$(cat /tmp/pkgname.txt)"
-          PKG_VER="$(cat /tmp/pkgver.txt)"
-          ZIP_DIR="release/${PKG_NAME}-${PKG_VER}-portable"
+          set -euo pipefail
+          RAW_NAME="$(node -p \"require('./package.json').name\")"
+          PKG_VER="$(node -p \"require('./package.json').version\")"
+          SAFE_NAME="$(echo "$RAW_NAME" | sed 's/^@//' | sed 's#/##g' | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^-\+//;s/-\+$//')"
+          ZIP_BASENAME="${SAFE_NAME}-${PKG_VER}-portable"
+          ZIP_DIR="release/${ZIP_BASENAME}"
           mkdir -p "$ZIP_DIR"
           cp -R dist "$ZIP_DIR/dist"
           mkdir -p "$ZIP_DIR/release-assets"
@@ -52,12 +53,19 @@ jobs:
           cp README.md "$ZIP_DIR/README.md"
           cp LICENSE "$ZIP_DIR/LICENSE"
           chmod +x "$ZIP_DIR/release-assets/run.sh"
-          (cd release && zip -r "${PKG_NAME}-${PKG_VER}-portable.zip" "${PKG_NAME}-${PKG_VER}-portable")
+          (cd release && zip -r "${ZIP_BASENAME}.zip" "${ZIP_BASENAME}")
 
       - name: Checksums
         run: |
+          set -euo pipefail
           cd release
-          sha256sum *.tgz *.zip > SHA256SUMS.txt
+          shopt -s nullglob
+          files=( *.tgz *.zip )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No release artifacts found." >&2
+            exit 1
+          fi
+          sha256sum "${files[@]}" > SHA256SUMS.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
