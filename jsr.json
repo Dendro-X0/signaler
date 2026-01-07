@@ -1,0 +1,16 @@
+{
+  "name": "auditorix",
+  "version": "0.4.0",
+  "exports": "./dist/cli.js",
+  "publish": {
+    "include": [
+      "dist/**",
+      "README.md",
+      "package.json"
+    ],
+    "exclude": [
+      "node_modules/**",
+      ".github/**"
+    ]
+  }
+}

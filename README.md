@@ -1,16 +1,16 @@
-# ApexAuditor
+# Auditorix
 
-ApexAuditor helps web teams move from noisy Lighthouse runs to structured, actionable insight. It combines:
+Auditorix (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight. Auditorix combines:
 
 - **Measure** runs for fast LCP/CLS/INP + screenshot + console captures so you can spot regressions without waiting for full Lighthouse suites.
 - **Audit** runs powered by Lighthouse with AI-ready artifacts (`issues.json`, `ai-ledger.json`, `pwa.json`, `diagnostics-lite/*`, `triage.md`) plus repeat-offender evidence to pinpoint what to fix next.
 - **Review** output that highlights worst combos, aggregations, and scoped routes so you can prioritize public pages while still tracking auth-only flows.
 
-The docs wallet (this README + `docs/`) now focuses on fast iteration, high-signal evidence, and making artifacts consumable for engineers, CI, and AI helpers.
+The docs wallet (this README + `docs/`) now focuses on fast iteration, high-signal evidence, and making artifacts consumable for engineers, CI, and AI helpers. Auditorix is released via GitHub Releases and JSR (no npm).
 
 ## Most common commands
 
-The fastest way to run ApexAuditor against any project (without installing it) is:
+The fastest way to run Auditorix against any project (without installing it) is:
 
 ```bash
 pnpm dlx apex-auditor@latest
@@ -49,32 +49,38 @@ Cancel long-running commands:
 
 - **Esc** (returns you to the shell prompt)
 
-## Install
+## Install & release
 
-Install as a dev dependency (recommended):
+### GitHub Release asset (recommended)
+
+1. Download `auditorix-<version>.tgz` from the latest GitHub Release.
+2. Install it directly:
 
 ```bash
-pnpm add -D apex-auditor
+pnpm add -D ./auditorix-<version>.tgz
 ```
 
-Run:
+Run the CLI with the project-local binary:
 
 ```bash
 pnpm apex-auditor
 ```
 
-Or install from GitHub Releases:
+Note: `pnpm apex-auditor` runs the version installed in your current project, which may be older than the latest release; repeat the download/`pnpm add` step whenever you need a newer build.
 
-1. Download the `apex-auditor-<version>.tgz` asset from the latest GitHub Release.
-2. Install it:
+### JSR install (JSR-only release)
 
 ```bash
-pnpm add -D ./apex-auditor-<version>.tgz
+npx jsr add auditorix
 ```
 
-Note: `pnpm apex-auditor` runs the version installed in your current project, which may be older than the latest release.
+or (pnpm 10.9+/yarn 4.9+/deno):
 
-Note: if you use GitHub Releases for distribution, prefer installing from a downloaded release asset over relying on npm publishing.
+```bash
+pnpm add jsr:auditorix
+```
+
+JSR installs the same published artifact and keeps you pinned to the release version without relying on npm. The command `npx jsr add auditorix` also writes the necessary `.npmrc` entries for legacy package managers and pins the scope to `auditorix`.
 
 ## Outputs
 

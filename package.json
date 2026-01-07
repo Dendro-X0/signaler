@@ -1,5 +1,5 @@
 {
-  "name": "apex-auditor",
+  "name": "auditorix",
   "version": "0.4.0",
   "private": false,
   "description": "CLI to run structured Lighthouse audits (Performance, Accessibility, Best Practices, SEO) across routes.",

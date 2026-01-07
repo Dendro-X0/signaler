@@ -1,9 +1,13 @@
-name: Publish to npm
+name: Publish to JSR
 
 on:
   push:
     tags:
       - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -13,22 +17,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 20
-          registry-url: "https://registry.npmjs.org"
+          version: 9
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: npm test
+        run: pnpm test
 
       - name: Build package
-        run: npm run build
+        run: pnpm build
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+      - name: Publish to JSR
+        run: npx jsr publish
