@@ -8,6 +8,15 @@
       "README.md",
       "package.json",
       "LICENSE"
+    ],
+    "exclude": [
+      "node_modules/**",
+      ".github/**",
+      "!dist",
+      "!dist/**",
+      "!README.md",
+      "!package.json",
+      "!LICENSE"
     ]
   }
 }
