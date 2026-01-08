@@ -35,6 +35,10 @@ jobs:
         run: |
           mkdir -p release
           pnpm pack --pack-destination release
+          PKG_VER="$(node -p "require('./package.json').version")"
+          if [ -f "release/auditorix-signaler-${PKG_VER}.tgz" ]; then
+            mv "release/auditorix-signaler-${PKG_VER}.tgz" "release/signaler-${PKG_VER}.tgz"
+          fi
 
       - name: Portable zip
         shell: bash
