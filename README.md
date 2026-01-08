@@ -1,12 +1,12 @@
-# Auditorix
+# Signaler
 
-Auditorix (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight. Auditorix combines:
+Signaler (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight. Signaler combines:
 
 - **Measure** runs for fast LCP/CLS/INP + screenshot + console captures so you can spot regressions without waiting for full Lighthouse suites.
 - **Audit** runs powered by Lighthouse with AI-ready artifacts (`issues.json`, `ai-ledger.json`, `pwa.json`, `diagnostics-lite/*`, `triage.md`) plus repeat-offender evidence to pinpoint what to fix next.
 - **Review** output that highlights worst combos, aggregations, and scoped routes so you can prioritize public pages while still tracking auth-only flows.
 
-The docs wallet (this README + `docs/`) now focuses on fast iteration, high-signal evidence, and making artifacts consumable for engineers, CI, and AI helpers. Auditorix is released via GitHub Releases and JSR (no npm).
+The docs wallet (this README + `docs/`) now focuses on fast iteration, high-signal evidence, and making artifacts consumable for engineers, CI, and AI helpers. Signaler is released via GitHub Releases and JSR (no npm).
 
 ## Installation
 
