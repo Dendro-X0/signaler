@@ -17,7 +17,7 @@ This is the only supported install/update flow. It does not use npm.
 Windows (PowerShell) one-liner (install or upgrade):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1').Content)) -AddToPath"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Join-Path $env:TEMP 'signaler-install.ps1'; Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1' -OutFile $p; & powershell -NoProfile -ExecutionPolicy Bypass -File $p -AddToPath"
 ```
 
 macOS/Linux one-liner (install or upgrade):
@@ -31,7 +31,7 @@ To pin a specific version (example `v0.4.2`), replace `main` with the tag:
 Windows:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([ScriptBlock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/v0.4.2/release-assets/install.ps1').Content)) -AddToPath"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Join-Path $env:TEMP 'signaler-install.ps1'; Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/v0.4.2/release-assets/install.ps1' -OutFile $p; & powershell -NoProfile -ExecutionPolicy Bypass -File $p -AddToPath"
 ```
 
 macOS/Linux:
