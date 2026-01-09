@@ -2,7 +2,7 @@
 
 Signaler (formerly ApexAuditor) is a **measure-first** performance + metrics assistant.
 
-This remastered release is designed to be run via the **Rust launcher** (`signaler`) which orchestrates the Node.js engine.
+This remastered release is designed to be installed and run as a CLI (`signaler`).
 
 Typical workflow:
 
@@ -30,20 +30,18 @@ Optional audits:
 
 Registry-free installation (recommended):
 
-1. Download `signaler-<version>-portable.zip` from GitHub Releases.
-2. Unzip it.
-3. Run the installer script from the unpacked folder:
+Install the latest tagged GitHub Release in a single command:
 
 Windows (PowerShell):
 
 ```powershell
-./release-assets/install.ps1 -AddToPath
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
 macOS/Linux:
 
 ```bash
-./release-assets/install.sh --add-to-path
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
 Upgrade later (no registry):
@@ -60,7 +58,7 @@ Prerequisites:
 Recommended first run:
 
 ```bash
-signaler doctor
+signaler wizard
 ```
 
 ## 2. Create a config
@@ -158,13 +156,13 @@ Output:
 Folder mode can serve a static build output and run audits against auto-detected routes.
 
 ```bash
-signaler run folder -- --root ./dist
+signaler folder --root ./dist
 ```
 
 For very large sites you can also run bundle-only mode (skips Lighthouse):
 
 ```bash
-signaler run folder -- --root ./dist --bundle-only
+signaler folder --root ./dist --bundle-only
 ```
 
 ## 6. Health (HTTP checks)

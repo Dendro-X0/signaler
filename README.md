@@ -16,23 +16,36 @@ The docs in this repo (`README.md` + `docs/`) focus on:
 
 ## Quick start
 
-1. Get a release build (recommended): download the portable zip from GitHub Releases.
-2. Run environment checks:
+1. Install from the Git repo (registry-free):
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+macOS/Linux:
 
 ```bash
-signaler doctor
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+2. Create a config:
+
+```bash
+signaler wizard
 ```
 
 3. Run an audit (URL/config mode):
 
 ```bash
-signaler run audit -- --config apex.config.json
+signaler audit --config apex.config.json
 ```
 
 4. Run folder mode (static build output):
 
 ```bash
-signaler run folder -- --root ./dist
+signaler folder --root ./dist
 ```
 
 Artifacts are written under `.signaler/` by default.
@@ -41,7 +54,7 @@ Artifacts are written under `.signaler/` by default.
 
 ### Launcher vs engine
 
-- The **launcher** is the stable entrypoint for distribution.
+- The **launcher** is the stable entrypoint for the desktop app.
 - The **engine** is treated like a bundle that can be resolved locally (and later cached/downloaded).
 
 This separation makes it possible to ship Signaler as:
@@ -53,7 +66,33 @@ This separation makes it possible to ship Signaler as:
 
 ### Registry-free (recommended)
 
-No registries are required. The most reliable way to run Signaler is via the GitHub Release portable zip.
+No registries are required. The most reliable way to install Signaler is to run the installer script from this Git repository.
+
+This installer downloads and installs the latest tagged GitHub Release portable zip.
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+After install:
+
+```bash
+signaler --help
+```
+
+Upgrade later (no registry):
+
+```bash
+signaler upgrade
+```
 
 1. Download `signaler-<version>-portable.zip` from GitHub Releases.
 2. Unzip it.
@@ -125,7 +164,9 @@ Cancel long-running commands:
 
 ## Launcher CLI (Rust)
 
-The launcher is designed to be machine-friendly and UI-friendly.
+The launcher is designed to be machine-friendly and UI-friendly, and is currently used by the desktop app.
+
+Note: the registry-free installer and the portable zip runner install/run the Node.js CLI (`node dist/bin.js`). The Rust launcher is not the primary distribution entrypoint yet.
 
 - `signaler doctor`
 - `signaler engine resolve --json`
@@ -161,7 +202,7 @@ This runs `node dist/bin.js` from the unpacked folder. Ensure you have Node.js i
 
 ### Launcher (Rust)
 
-The portable distribution also includes a small Rust launcher (used by the upcoming desktop app). It provides:
+The desktop app uses a small Rust launcher sidecar. It provides:
 
 - `signaler doctor` (environment checks)
 - `signaler run audit -- <engine args...>`

@@ -17,8 +17,17 @@ pnpm add -D ./signaler-<version>.tgz
 
 Or install system-wide (no registries) using the portable zip installer:
 
-- Windows: `release-assets/install.ps1 -AddToPath`
-- macOS/Linux: `release-assets/install.sh --add-to-path`
+- Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+- macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
 
 Upgrade later:
 
@@ -71,7 +80,7 @@ Notes:
 Run Lighthouse audits from a config file:
 
 ```bash
-signaler run audit -- --config apex.config.json
+signaler audit --config apex.config.json
 ```
 
 Notes:
@@ -268,7 +277,7 @@ Budgets are configured in `apex.config.json` under `budgets`.
 Run in CI:
 
 ```bash
-signaler run audit -- --ci --no-color
+signaler audit --ci --no-color
 ```
 
 Behavior:
