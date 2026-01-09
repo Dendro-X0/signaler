@@ -425,14 +425,14 @@ export async function runConsoleCli(argv: readonly string[], options?: { readonl
         results,
       };
 
-      const outputDir: string = resolve(".apex-auditor");
+      const outputDir: string = resolve(".signaler");
       const outputPath: string = resolve(outputDir, "console.json");
       await mkdir(outputDir, { recursive: true });
       await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
 
       const errorCombos: number = results.filter((r) => r.status === "error").length;
       const eventCount: number = results.reduce((sum, r) => sum + r.events.length, 0);
-      const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".apex-auditor/console.json" }] as const;
+      const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".signaler/console.json" }] as const;
       const findings: RunnerFinding[] = [
         {
           title: "Summary",
@@ -481,16 +481,14 @@ export async function runConsoleCli(argv: readonly string[], options?: { readonl
       }
       const lines: readonly string[] = [
         `Config: ${configPath}`,
-        `Base URL: ${config.baseUrl}`,
         `Combos: ${results.length}`,
         `Parallel: ${parallel}`,
         `Timeout: ${args.timeoutMs}ms`,
         `Error combos: ${errorCombos}`,
         `Events: ${eventCount}`,
-        `Output: .apex-auditor/console.json`,
+        `Output: .signaler/console.json`,
       ];
 
-      // eslint-disable-next-line no-console
       console.log(renderPanel({ title: theme.bold("Console"), lines }));
 
       const table: string = buildErrorTable(results);

@@ -131,7 +131,7 @@ function buildDependencyUninstallCommand(packageManager: PackageManagerId | "unk
 
 function buildPlan(args: UninstallArgs): readonly UninstallAction[] {
   const actions: UninstallAction[] = [];
-  actions.push({ kind: "rm", path: resolve(args.projectRoot, ".apex-auditor"), existsByAssumption: true });
+  actions.push({ kind: "rm", path: resolve(args.projectRoot, ".signaler"), existsByAssumption: true });
   actions.push({ kind: "rm", path: args.configPath, existsByAssumption: true });
   return actions;
 }

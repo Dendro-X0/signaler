@@ -1,0 +1,16 @@
+{
+  "permissions": [
+    "core:default",
+    "opener:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/signaler",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
+  ]
+}

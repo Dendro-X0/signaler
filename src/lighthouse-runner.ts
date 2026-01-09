@@ -34,7 +34,6 @@ type IncrementalCache = {
 };
 
 const CACHE_VERSION = 1 as const;
-const CACHE_DIR = ".apex-auditor" as const;
 const CACHE_FILE = "cache.json" as const;
 
 const DEFAULT_WORKER_TASK_TIMEOUT_MS: number = 5 * 60 * 1000;
@@ -120,8 +119,8 @@ function buildCacheKey(params: {
   });
 }
 
-async function loadIncrementalCache(): Promise<IncrementalCache | undefined> {
-  const cachePath: string = resolve(CACHE_DIR, CACHE_FILE);
+async function loadIncrementalCache(params: { readonly outputDir: string }): Promise<IncrementalCache | undefined> {
+  const cachePath: string = resolve(params.outputDir, CACHE_FILE);
   try {
     const raw: string = await readFile(cachePath, "utf8");
     const parsed: unknown = JSON.parse(raw) as unknown;
@@ -138,10 +137,10 @@ async function loadIncrementalCache(): Promise<IncrementalCache | undefined> {
   }
 }
 
-async function saveIncrementalCache(cache: IncrementalCache): Promise<void> {
-  await mkdir(resolve(CACHE_DIR), { recursive: true });
-  const cachePath: string = resolve(CACHE_DIR, CACHE_FILE);
-  await writeFile(cachePath, JSON.stringify(cache, null, 2), "utf8");
+async function saveIncrementalCache(params: { readonly outputDir: string; readonly cache: IncrementalCache }): Promise<void> {
+  await mkdir(resolve(params.outputDir), { recursive: true });
+  const cachePath: string = resolve(params.outputDir, CACHE_FILE);
+  await writeFile(cachePath, JSON.stringify(params.cache, null, 2), "utf8");
 }
 
 function resolveWorkerEntryUrl(): { readonly entry: URL; readonly useTsx: boolean } {
@@ -165,6 +164,7 @@ async function runParallelInProcesses(
   signal: AbortSignal | undefined,
   updateProgress: (path: string, device: ApexDevice) => void,
   captureLevel: "diagnostics" | "lhr" | undefined,
+  outputDir: string,
 ): Promise<PageDeviceSummary[]> {
   const effectiveParallel: number = Math.min(parallelCount, tasks.length);
   const workers: Array<{ readonly child: ReturnType<typeof spawn>; busy: boolean; inFlightId?: string; inFlightTaskIndex?: number }> = [];
@@ -260,6 +260,7 @@ async function runParallelInProcesses(
       timeoutMs: auditTimeoutMs,
       onlyCategories: task.onlyCategories,
       captureLevel,
+      outputDir,
     };
     worker.busy = true;
     worker.inFlightId = id;
@@ -448,6 +449,7 @@ type WorkerTask = {
   readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
+  readonly outputDir: string;
 };
 
 type WorkerRequestMessage = {
@@ -631,6 +633,7 @@ async function fetchUrl(url: string, signal?: AbortSignal): Promise<void> {
 export async function runAuditsForConfig({
   config,
   configPath,
+  outputDir,
   showParallel,
   onlyCategories,
   captureLevel,
@@ -640,6 +643,7 @@ export async function runAuditsForConfig({
 }: {
   readonly config: ApexConfig;
   readonly configPath: string;
+  readonly outputDir: string;
   readonly showParallel?: boolean;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
@@ -667,7 +671,7 @@ export async function runAuditsForConfig({
   const auditTimeoutMs: number = config.auditTimeoutMs ?? DEFAULT_WORKER_TASK_TIMEOUT_MS;
 
   const incrementalEnabled: boolean = config.incremental === true && typeof config.buildId === "string" && config.buildId.length > 0;
-  const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache() : undefined;
+  const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache({ outputDir }) : undefined;
   const cacheEntries: Record<string, PageDeviceSummary> = cache?.entries ?? {};
 
   // Build list of all audit tasks
@@ -758,7 +762,7 @@ export async function runAuditsForConfig({
   } else if (parallelCount <= 1 || config.chromePort !== undefined) {
     // Sequential execution (original behavior) or using external Chrome
     if (captureLevel !== undefined && config.chromePort === undefined) {
-      resultsFromRunner = await runParallelInProcesses(tasksToRun, 1, auditTimeoutMs, signal, updateProgress, captureLevel);
+      resultsFromRunner = await runParallelInProcesses(tasksToRun, 1, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir);
     } else {
       resultsFromRunner = await runSequential({
         tasks: tasksToRun,
@@ -767,10 +771,11 @@ export async function runAuditsForConfig({
         signal,
         updateProgress,
         captureLevel,
+        outputDir,
       });
     }
   } else {
-    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel);
+    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir);
   }
 
   for (let runIndex = 0; runIndex < resultsFromRunner.length; runIndex += 1) {
@@ -795,7 +800,7 @@ export async function runAuditsForConfig({
       });
       nextEntries[key] = results[i];
     }
-    await saveIncrementalCache({ version: CACHE_VERSION, entries: nextEntries });
+    await saveIncrementalCache({ outputDir, cache: { version: CACHE_VERSION, entries: nextEntries } });
   }
 
   const completedAtMs: number = Date.now();
@@ -833,6 +838,7 @@ async function runSequential(params: {
   readonly signal: AbortSignal | undefined;
   readonly updateProgress: (path: string, device: ApexDevice) => void;
   readonly captureLevel: "diagnostics" | "lhr" | undefined;
+  readonly outputDir: string;
 }): Promise<PageDeviceSummary[]> {
   const results: PageDeviceSummary[] = [];
   const sessionRef: { session: ChromeSession } = { session: await createChromeSession(params.chromePort) };
@@ -875,7 +881,7 @@ async function runSequential(params: {
         });
         if (params.captureLevel !== undefined) {
           await captureLighthouseArtifacts({
-            outputRoot: resolve(CACHE_DIR),
+            outputRoot: resolve(params.outputDir),
             captureLevel: params.captureLevel,
             key: { label: task.label, path: task.path, device: task.device },
             lhr: outcome.lhr,
@@ -899,6 +905,7 @@ async function runParallel(
   parallelCount: number,
   updateProgress: (path: string, device: ApexDevice) => void,
   captureLevel: "diagnostics" | "lhr" | undefined,
+  outputDir: string,
 ): Promise<PageDeviceSummary[]> {
   // Create a pool of Chrome sessions
   const sessions: { session: ChromeSession }[] = [];
@@ -930,7 +937,7 @@ async function runParallel(
         });
         if (captureLevel !== undefined) {
           await captureLighthouseArtifacts({
-            outputRoot: resolve(CACHE_DIR),
+            outputRoot: resolve(outputDir),
             captureLevel,
             key: { label: task.label, path: task.path, device: task.device },
             lhr: outcome.lhr,

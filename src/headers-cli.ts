@@ -190,7 +190,7 @@ function buildMissingDetailsPanel(results: readonly HeaderCheckResult[]): string
 }
 
 function buildAiFindings(results: readonly HeaderCheckResult[]): readonly AiFinding[] {
-  const evidence = [{ kind: "file", path: ".apex-auditor/headers.json" }] as const;
+  const evidence = [{ kind: "file", path: ".signaler/headers.json" }] as const;
   const errors = results.filter((r) => typeof r.runtimeErrorMessage === "string" && r.runtimeErrorMessage.length > 0);
   const withMissing = results.filter((r) => r.missing.length > 0);
   const topMissing = [...withMissing]
@@ -357,7 +357,7 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
     results,
   };
 
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   const outputPath: string = resolve(outputDir, "headers.json");
   await mkdir(outputDir, { recursive: true });
   await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
@@ -408,7 +408,7 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
     `Parallel: ${parallel}`,
     `Timeout: ${args.timeoutMs}ms`,
     `Fail: ${failCount}`,
-    `Output: .apex-auditor/headers.json`,
+    `Output: .signaler/headers.json`,
   ];
 
   // eslint-disable-next-line no-console

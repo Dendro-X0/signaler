@@ -2,6 +2,8 @@
 
 Signaler (formerly ApexAuditor) is a **measure-first** performance + metrics assistant.
 
+This remastered release is designed to be run via the **Rust launcher** (`signaler`) which orchestrates the Node.js engine.
+
 Typical workflow:
 
 1. Run the interactive shell.
@@ -13,10 +15,10 @@ Typical workflow:
 
 Helpful navigation shortcuts:
 
-- `open-triage` opens `.apex-auditor/triage.md`
-- `open-screenshots` opens `.apex-auditor/screenshots/`
-- `open-diagnostics` opens `.apex-auditor/lighthouse-artifacts/diagnostics/`
-- `open-lhr` opens `.apex-auditor/lighthouse-artifacts/lhr/`
+- `open-triage` opens `.signaler/triage.md`
+- `open-screenshots` opens `.signaler/screenshots/`
+- `open-diagnostics` opens `.signaler/lighthouse-artifacts/diagnostics/`
+- `open-lhr` opens `.signaler/lighthouse-artifacts/lhr/`
 
 Optional audits:
 
@@ -53,6 +55,13 @@ signaler upgrade
 Prerequisites:
 
 - Your app must be reachable at a stable URL (for example `http://localhost:3000`).
+- For folder mode, you need a built static output folder (for example `dist/`, `out/`, `build/`).
+
+Recommended first run:
+
+```bash
+signaler doctor
+```
 
 ## 2. Create a config
 
@@ -80,8 +89,8 @@ This is a CDP-based pass (non-Lighthouse) designed for quick iteration.
 
 Outputs:
 
-- `.apex-auditor/measure-summary.json`
-- `.apex-auditor/measure/` (screenshots and artifacts)
+- `.signaler/measure-summary.json`
+- `.signaler/measure/` (screenshots and artifacts)
 
 ## 4. Audit (Lighthouse)
 
@@ -102,23 +111,24 @@ During an audit:
 
 Outputs:
 
-- `.apex-auditor/summary.json`
-- `.apex-auditor/summary-lite.json`
-- `.apex-auditor/summary.md`
-- `.apex-auditor/triage.md`
-- `.apex-auditor/issues.json`
-- `.apex-auditor/red-issues.md`
-- `.apex-auditor/pwa.json`
-- `.apex-auditor/ai-fix.json` (unless `audit --no-ai-fix`)
-- `.apex-auditor/ai-fix.min.json` (unless `audit --no-ai-fix`)
-- `.apex-auditor/export.json` (unless `audit --no-export`)
-- `.apex-auditor/report.html`
-- `.apex-auditor/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
-- `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr` is enabled)
-- `.apex-auditor/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr` is enabled)
-- `.apex-auditor/lighthouse-artifacts/lhr/` (when `--lhr` is enabled)
-- `.apex-auditor/accessibility-summary.json`
-- `.apex-auditor/accessibility/` (axe-core artifacts per page/device)
+- `.signaler/run.json` (stable run index)
+- `.signaler/summary.json`
+- `.signaler/summary-lite.json`
+- `.signaler/summary.md`
+- `.signaler/triage.md`
+- `.signaler/issues.json`
+- `.signaler/red-issues.md`
+- `.signaler/pwa.json`
+- `.signaler/ai-fix.json` (unless `audit --no-ai-fix`)
+- `.signaler/ai-fix.min.json` (unless `audit --no-ai-fix`)
+- `.signaler/export.json` (unless `audit --no-export`)
+- `.signaler/report.html`
+- `.signaler/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
+- `.signaler/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr` is enabled)
+- `.signaler/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr` is enabled)
+- `.signaler/lighthouse-artifacts/lhr/` (when `--lhr` is enabled)
+- `.signaler/accessibility-summary.json`
+- `.signaler/accessibility/` (axe-core artifacts per page/device)
 
 Notes:
 
@@ -141,7 +151,21 @@ Speed and output controls:
 
 Output:
 
-- `.apex-auditor/bundle-audit.json`
+- `.signaler/bundle-audit.json`
+
+## 5.1 Folder mode (static builds)
+
+Folder mode can serve a static build output and run audits against auto-detected routes.
+
+```bash
+signaler run folder -- --root ./dist
+```
+
+For very large sites you can also run bundle-only mode (skips Lighthouse):
+
+```bash
+signaler run folder -- --root ./dist --bundle-only
+```
 
 ## 6. Health (HTTP checks)
 
@@ -151,7 +175,7 @@ Output:
 
 Output:
 
-- `.apex-auditor/health.json`
+- `.signaler/health.json`
 
 ## 7. Links (broken links crawl)
 
@@ -161,7 +185,7 @@ Output:
 
 Output:
 
-- `.apex-auditor/links.json`
+- `.signaler/links.json`
 
 ## 8. Headers (security headers)
 
@@ -171,7 +195,7 @@ Output:
 
 Output:
 
-- `.apex-auditor/headers.json`
+- `.signaler/headers.json`
 
 ## 9. Console (runtime errors)
 
@@ -181,7 +205,7 @@ Output:
 
 Output:
 
-- `.apex-auditor/console.json`
+- `.signaler/console.json`
 
 Notes:
 

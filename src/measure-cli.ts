@@ -273,7 +273,7 @@ export async function runMeasureCli(argv: readonly string[], options?: { readonl
     process.exitCode = 1;
     return;
   }
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   const artifactsDir: string = resolve(outputDir, "measure");
   await mkdir(outputDir, { recursive: true });
   await mkdir(artifactsDir, { recursive: true });
@@ -348,7 +348,7 @@ export async function runMeasureCli(argv: readonly string[], options?: { readonl
     `Combos: ${summary.meta.comboCount}`,
     `Parallel: ${summary.meta.resolvedParallel}`,
     `Elapsed: ${Math.round(summary.meta.elapsedMs / 1000)}s (avg ${summary.meta.averageComboMs}ms/combo)`,
-    `Output: .apex-auditor/measure-summary.json`,
+    `Output: .signaler/measure-summary.json`,
     `Screenshots: ${screenshotsText}`,
     `Errors: ${errorCount}`,
   ];
@@ -395,7 +395,7 @@ function buildAiFindings(summary: MeasureSummary): readonly {
   readonly details: readonly string[];
   readonly evidence: readonly { readonly kind: "file"; readonly path: string }[];
 }[] {
-  const evidence = [{ kind: "file", path: ".apex-auditor/measure-summary.json" }] as const;
+  const evidence = [{ kind: "file", path: ".signaler/measure-summary.json" }] as const;
   const errors = summary.results.filter((r) => typeof r.runtimeErrorMessage === "string" && r.runtimeErrorMessage.length > 0);
   const slowLoad = topBy(summary.results, (r) => r.timings.loadMs, 5);
   const worstLcp = topBy(summary.results, (r) => r.vitals.lcpMs, 5);

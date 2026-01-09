@@ -71,7 +71,7 @@ Notes:
 Run Lighthouse audits from a config file:
 
 ```bash
-signaler audit --config apex.config.json
+signaler run audit -- --config apex.config.json
 ```
 
 Notes:
@@ -94,7 +94,7 @@ Key flags:
 - `--flags` (print audit flags/options and exit)
 - `--plan` / `--max-steps <n>` / `--max-combos <n>` / `--yes`
 - `--incremental --build-id <id>`
-- `--focus-worst <n>` (re-run only the worst N combos from the previous `.apex-auditor/summary.json`)
+- `--focus-worst <n>` (re-run only the worst N combos from the previous `.signaler/summary.json`)
 - `--ai-min-combos <n>` (limit `ai-fix.min.json` to the worst N combos; default 25)
 - `--no-ai-fix` (skip writing `ai-fix.json` and `ai-fix.min.json`)
 - `--no-export` (skip writing `export.json`)
@@ -103,19 +103,20 @@ Key flags:
 
 Outputs:
 
-- `.apex-auditor/summary.json`
-- `.apex-auditor/summary-lite.json`
-- `.apex-auditor/issues.json`
-- `.apex-auditor/pwa.json`
-- `.apex-auditor/triage.md`
-- `.apex-auditor/red-issues.md`
-- `.apex-auditor/ai-ledger.json`
-- `.apex-auditor/ai-fix.json` (unless `--no-ai-fix`)
-- `.apex-auditor/ai-fix.min.json` (unless `--no-ai-fix`)
-- `.apex-auditor/export.json` (unless `--no-export`)
-- `.apex-auditor/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr`)
-- `.apex-auditor/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr`)
-- `.apex-auditor/lighthouse-artifacts/lhr/` (when `--lhr`)
+- `.signaler/run.json`
+- `.signaler/summary.json`
+- `.signaler/summary-lite.json`
+- `.signaler/issues.json`
+- `.signaler/pwa.json`
+- `.signaler/triage.md`
+- `.signaler/red-issues.md`
+- `.signaler/ai-ledger.json`
+- `.signaler/ai-fix.json` (unless `--no-ai-fix`)
+- `.signaler/ai-fix.min.json` (unless `--no-ai-fix`)
+- `.signaler/export.json` (unless `--no-export`)
+- `.signaler/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr`)
+- `.signaler/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr`)
+- `.signaler/lighthouse-artifacts/lhr/` (when `--lhr`)
 
 Note: large JSON artifacts may also be written as gzip copies (`*.json.gz`).
 
@@ -137,7 +138,7 @@ When you care about token efficiency and disk output size:
 - Use `--ai-min-combos <n>` to keep `ai-fix.min.json` small.
 - Use `--no-ai-fix` when you only need `issues.json` / `triage.md` and the HTML report.
 - Use `--no-export` when you do not need `export.json` links or share payloads.
-- Use `ai-ledger.json` as the one-run AI entry point; it includes per-combo `regressions`/`improvements` when a previous `.apex-auditor/summary.json` exists, and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
+- Use `ai-ledger.json` as the one-run AI entry point; it includes per-combo `regressions`/`improvements` when a previous `.signaler/summary.json` exists, and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
 - Use `issues.json.offenders` to find repeated offenders (e.g. unused JS files) with route + artifact evidence pointers.
 - Use `pwa.json` to track PWA checks (HTTPS, service worker, offline signals) across routes.
 
@@ -152,6 +153,8 @@ Run fast CDP-based metrics:
 ```bash
 signaler measure --config apex.config.json
 ```
+
+Note: `measure` is an engine command; when using the launcher, run the engine directly (this will be simplified in a future release).
 
 Key flags:
 
@@ -177,7 +180,7 @@ Key flags:
 
 Output:
 
-- `.apex-auditor/bundle-audit.json`
+- `.signaler/bundle-audit.json`
 
 ### `health`
 
@@ -196,7 +199,7 @@ Key flags:
 
 Output:
 
-- `.apex-auditor/health.json`
+- `.signaler/health.json`
 
 ### `links`
 
@@ -217,7 +220,7 @@ Key flags:
 
 Output:
 
-- `.apex-auditor/links.json`
+- `.signaler/links.json`
 
 ### `headers`
 
@@ -236,7 +239,7 @@ Key flags:
 
 Output:
 
-- `.apex-auditor/headers.json`
+- `.signaler/headers.json`
 
 ### `console`
 
@@ -256,7 +259,7 @@ Key flags:
 
 Output:
 
-- `.apex-auditor/console.json`
+- `.signaler/console.json`
 
 ## 2. CI mode and budgets
 
@@ -265,7 +268,7 @@ Budgets are configured in `apex.config.json` under `budgets`.
 Run in CI:
 
 ```bash
-signaler audit --ci --no-color
+signaler run audit -- --ci --no-color
 ```
 
 Behavior:

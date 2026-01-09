@@ -16,6 +16,7 @@ import { runUninstallCli } from "./uninstall-cli.js";
 import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
+import { runFolderCli } from "./folder-cli.js";
 
 type ApexCommandId =
   | "audit"
@@ -24,6 +25,7 @@ type ApexCommandId =
   | "upgrade"
   | "measure"
   | "bundle"
+  | "folder"
   | "health"
   | "links"
   | "headers"
@@ -62,6 +64,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "upgrade" ||
     rawCommand === "measure" ||
     rawCommand === "bundle" ||
+    rawCommand === "folder" ||
     rawCommand === "health" ||
     rawCommand === "links" ||
     rawCommand === "headers" ||
@@ -161,6 +164,7 @@ function printHelp(topic?: string): void {
       "  signaler wizard [--config <path>]",
       "  signaler quick [--config <path>] [--project-root <path>]",
       "  signaler report [--dir <path>]",
+      "  signaler folder --root <dir> [--route-cap <n>]",
       "  signaler audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
       "  signaler audit --flags    # print audit flags/options and exit",
       "  signaler guide  (alias of wizard) interactive flow with tips for non-technical users",
@@ -177,8 +181,9 @@ function printHelp(topic?: string): void {
       "  Audits and checks:",
       "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
-      "    report     Generate global reports from existing .apex-auditor/ artifacts (no Lighthouse run)",
+      "    report     Generate global reports from existing .signaler/ artifacts (no Lighthouse run)",
       "    audit      Run Lighthouse audits using apex.config.json",
+      "    folder     Audit a local folder by serving it with a static server",
       "    upgrade    Self-update the CLI from GitHub Releases",
       "    bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
       "    health     HTTP status + latency checks for configured routes",
@@ -188,8 +193,8 @@ function printHelp(topic?: string): void {
       "",
       "  Maintenance:",
       "    clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
-      "    uninstall  One-click uninstall (removes .apex-auditor/ and apex.config.json)",
-      "    clear-screenshots  Remove .apex-auditor/screenshots/",
+      "    uninstall  One-click uninstall (removes .signaler/ and apex.config.json)",
+      "    clear-screenshots  Remove .signaler/screenshots/",
       "",
       "  Help:",
       "    help       Show this help message",
@@ -206,7 +211,7 @@ function printHelp(topic?: string): void {
       "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
       "  --parallel <n>     Override parallel workers (1-10). Default auto-tunes from CPU/memory.",
       "  --audit-timeout-ms <ms>  Per-audit timeout in milliseconds (prevents hung runs from stalling)",
-      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .apex-auditor/...)",
+      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .signaler/...)",
       "  --lhr              Also capture full Lighthouse result JSON per combo (implies --diagnostics)",
       "  --plan             Print resolved settings + run size estimate and exit without auditing",
       "  --max-steps <n>    Safety limit: refuse/prompt if planned Lighthouse runs exceed this (default 120)",
@@ -231,7 +236,7 @@ function printHelp(topic?: string): void {
       "  --desktop-only     Run measure only for 'desktop' devices defined in the config",
       "  --parallel <n>     Override parallel workers (1-10).",
       "  --timeout-ms <ms>  Per-navigation timeout in milliseconds (default 60000)",
-      "  --screenshots      Opt-in: save a screenshot per combo (slower; writes .apex-auditor/measure/*.png)",
+      "  --screenshots      Opt-in: save a screenshot per combo (slower; writes .signaler/measure/*.png)",
       "  --json             Print JSON summary to stdout",
       "",
       "Options (bundle):",
@@ -277,7 +282,7 @@ function printHelp(topic?: string): void {
       "  --json                 Print consolidated AI JSON to stdout",
       "",
       "Options (report):",
-      "  --dir <path>           Artifacts directory (default .apex-auditor)",
+      "  --dir <path>           Artifacts directory (default .signaler)",
       "",
       "Options (console):",
       "  --config <path>        Config path (default apex.config.json)",
@@ -289,8 +294,8 @@ function printHelp(topic?: string): void {
       "Options (clean):",
       "  --project-root <path>  Project root (default cwd)",
       "  --config-path <path>   Config file path relative to project root (default apex.config.json)",
-      "  --reports              Remove .apex-auditor/ (default)",
-      "  --no-reports           Keep .apex-auditor/",
+      "  --reports              Remove .signaler/ (default)",
+      "  --no-reports           Keep .signaler/",
       "  --remove-config        Remove config file",
       "  --all                  Remove reports and config",
       "  --dry-run              Print planned removals without deleting",
@@ -311,7 +316,7 @@ function printHelp(topic?: string): void {
       "  --json                 Print JSON report to stdout",
       "",
       "Outputs:",
-      "  - Writes .apex-auditor/summary.json, summary.md, report.html",
+      "  - Writes .signaler/summary.json, summary.md, report.html",
       "  - Prints a file:// link to the HTML report after completion",
       "",
       "Quick start:",
@@ -381,6 +386,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "bundle") {
       await runBundleCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "folder") {
+      await runFolderCli(parsed.argv);
       return;
     }
     if (parsed.command === "health") {

@@ -73,7 +73,7 @@ async function confirmPrompt(question: string): Promise<boolean> {
 }
 
 function buildPlan(args: ClearScreenshotsArgs): readonly ClearAction[] {
-  const screenshotsDir: string = resolve(args.projectRoot, ".apex-auditor", "screenshots");
+  const screenshotsDir: string = resolve(args.projectRoot, ".signaler", "screenshots");
   return [{ kind: "rm", path: screenshotsDir, existsByAssumption: true }];
 }
 

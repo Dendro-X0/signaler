@@ -1,66 +1,92 @@
 # Signaler
 
-Signaler (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight. Signaler combines:
+Signaler (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight.
 
-- **Measure** runs for fast LCP/CLS/INP + screenshot + console captures so you can spot regressions without waiting for full Lighthouse suites.
-- **Audit** runs powered by Lighthouse with AI-ready artifacts (`issues.json`, `ai-ledger.json`, `pwa.json`, `diagnostics-lite/*`, `triage.md`) plus repeat-offender evidence to pinpoint what to fix next.
-- **Review** output that highlights worst combos, aggregations, and scoped routes so you can prioritize public pages while still tracking auth-only flows.
+This repository contains the **remastered** Signaler distribution:
 
-The docs wallet (this README + `docs/`) now focuses on fast iteration, high-signal evidence, and making artifacts consumable for engineers, CI, and AI helpers. Signaler is released via GitHub Releases and JSR (no npm).
+- **Engine (Node.js/TypeScript)**: the audit/measure logic and artifact writers.
+- **Launcher (Rust)**: a small orchestrator that resolves/runs the engine in a distribution-friendly way.
+- **App (Tauri v2 + SvelteKit)**: optional desktop UI that runs the launcher as a sidecar.
+
+The docs in this repo (`README.md` + `docs/`) focus on:
+
+- Developer-first CLI flows.
+- Registry-free distribution.
+- Stable artifacts and a small engine contract for UIs.
+
+## Quick start
+
+1. Get a release build (recommended): download the portable zip from GitHub Releases.
+2. Run environment checks:
+
+```bash
+signaler doctor
+```
+
+3. Run an audit (URL/config mode):
+
+```bash
+signaler run audit -- --config apex.config.json
+```
+
+4. Run folder mode (static build output):
+
+```bash
+signaler run folder -- --root ./dist
+```
+
+Artifacts are written under `.signaler/` by default.
+
+## Architecture
+
+### Launcher vs engine
+
+- The **launcher** is the stable entrypoint for distribution.
+- The **engine** is treated like a bundle that can be resolved locally (and later cached/downloaded).
+
+This separation makes it possible to ship Signaler as:
+
+- A portable zip that “just runs”.
+- A desktop app that can stream progress over NDJSON.
 
 ## Installation
 
 ### Registry-free (recommended)
 
-This is the only supported install/update flow. It does not use npm.
+No registries are required. The most reliable way to run Signaler is via the GitHub Release portable zip.
 
-Windows (PowerShell) one-liner (install or upgrade):
+1. Download `signaler-<version>-portable.zip` from GitHub Releases.
+2. Unzip it.
+3. Run from the unpacked folder:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Join-Path $env:TEMP 'signaler-install.ps1'; Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1' -OutFile $p; & powershell -NoProfile -ExecutionPolicy Bypass -File $p -AddToPath"
-```
-
-macOS/Linux one-liner (install or upgrade):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash -s -- --add-to-path
-```
-
-To pin a specific version (example `v0.4.2`), replace `main` with the tag:
-
-Windows:
+Windows (PowerShell):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Join-Path $env:TEMP 'signaler-install.ps1'; Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/Dendro-X0/signaler/v0.4.2/release-assets/install.ps1' -OutFile $p; & powershell -NoProfile -ExecutionPolicy Bypass -File $p -AddToPath"
+cmd /c ".\\release-assets\\run.cmd --help"
 ```
 
 macOS/Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/v0.4.2/release-assets/install.sh | bash -s -- --add-to-path
+./release-assets/run.sh --help
 ```
 
-After installation (restart your terminal), run from any directory:
+If you want to run it without changing your system PATH, keep using `run.cmd` / `run.sh` from the unpacked folder.
 
-```bash
-signaler --help
-signaler audit --help
-```
-
-Upgrade later (no registry):
-
-- Re-run the one-liner installer (recommended).
-- Or run:
-
-```bash
-signaler upgrade
-```
-
-Tip: the installers set `SIGNALER_REPO=Dendro-X0/signaler` for you.
+Tip: the portable zip contains installer scripts under `release-assets/`, but global installation is not guaranteed to work in all environments.
 
 ### Portable zip
 
 You can download the portable ZIP from GitHub Releases and run it without installing.
+
+### Advanced: global install (experimental)
+
+The portable zip includes installer scripts:
+
+- Windows: `release-assets\\install.ps1`
+- macOS/Linux: `release-assets/install.sh`
+
+These attempt to install a global launcher and optionally update your PATH. If they fail in your environment, use the portable zip runner (`run.cmd` / `run.sh`) instead.
 
 ## Most common commands
 
@@ -75,27 +101,39 @@ Inside the interactive shell:
 
 - **measure**
 - **audit**
-- **bundle** (scan build output sizes; writes `.apex-auditor/bundle-audit.json`)
-- **health** (HTTP status/latency checks; writes `.apex-auditor/health.json`)
-- **links** (broken links crawl; writes `.apex-auditor/links.json`)
-- **headers** (security headers check; writes `.apex-auditor/headers.json`)
-- **console** (console errors + runtime exceptions; writes `.apex-auditor/console.json`)
+- **bundle** (scan build output sizes; writes `.signaler/bundle-audit.json`)
+- **health** (HTTP status/latency checks; writes `.signaler/health.json`)
+- **links** (broken links crawl; writes `.signaler/links.json`)
+- **headers** (security headers check; writes `.signaler/headers.json`)
+- **console** (console errors + runtime exceptions; writes `.signaler/console.json`)
 - **open** (open the latest HTML report)
-- **open-triage** (open `.apex-auditor/triage.md`)
-- **open-screenshots** (open `.apex-auditor/screenshots/`)
-- **open-diagnostics** (open `.apex-auditor/lighthouse-artifacts/diagnostics/`)
-- **open-lhr** (open `.apex-auditor/lighthouse-artifacts/lhr/`)
-- **open-artifacts** (open `.apex-auditor/lighthouse-artifacts/`)
+- **open-triage** (open `.signaler/triage.md`)
+- **open-screenshots** (open `.signaler/screenshots/`)
+- **open-diagnostics** (open `.signaler/lighthouse-artifacts/diagnostics/`)
+- **open-lhr** (open `.signaler/lighthouse-artifacts/lhr/`)
+- **open-artifacts** (open `.signaler/lighthouse-artifacts/`)
 - **pages** / **routes** (print configured pages/routes from the current config)
 - **add-page** (interactive: append a page to `apex.config.json`)
 - **rm-page** (interactive: remove a page from `apex.config.json`)
-- **clear-screenshots** (remove `.apex-auditor/screenshots/`)
+- **clear-screenshots** (remove `.signaler/screenshots/`)
 - **init** (launch config wizard)
 - **config <path>** (switch config file)
 
 Cancel long-running commands:
 
 - **Esc** (returns you to the shell prompt)
+
+## Launcher CLI (Rust)
+
+The launcher is designed to be machine-friendly and UI-friendly.
+
+- `signaler doctor`
+- `signaler engine resolve --json`
+- `signaler engine path --json`
+- `signaler run audit --json -- <engine args...>`
+- `signaler run folder --json -- <engine args...>`
+
+For UIs, the engine can emit NDJSON events with `--engine-json`.
 
 ## Install & release
 
@@ -120,6 +158,16 @@ macOS/Linux:
 ```
 
 This runs `node dist/bin.js` from the unpacked folder. Ensure you have Node.js installed.
+
+### Launcher (Rust)
+
+The portable distribution also includes a small Rust launcher (used by the upcoming desktop app). It provides:
+
+- `signaler doctor` (environment checks)
+- `signaler run audit -- <engine args...>`
+- `signaler run folder -- <engine args...>`
+- `signaler engine resolve` (prints the engine entrypoint)
+- `signaler engine run -- <engine args...>`
 
 If you prefer installing into an existing project, you can also use the `.tgz` asset:
 
@@ -156,7 +204,7 @@ If you want a fully registry-free workflow, prefer GitHub Releases + `install.ps
 
 ## Outputs
 
-All outputs are written under `.apex-auditor/` in your project.
+All outputs are written under `.signaler/` in your project.
 
 Start here for a human-first prioritized list:
 
@@ -188,7 +236,7 @@ Notes:
 - During an audit you will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
 - After `audit` completes, type `open` to open the latest HTML report.
 - Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
-- `ai-ledger.json` is the AI-first, one-run-sufficient index. It includes `regressions`/`improvements` (when a previous `.apex-auditor/summary.json` exists) and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
+- `ai-ledger.json` is the AI-first, one-run-sufficient index. It includes `regressions`/`improvements` (when a previous `.signaler/summary.json` exists) and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
 - `issues.json` includes an `offenders` section that aggregates repeated offenders (for example unused JS files) and links each offender back to the exact combo(s) and artifact pointers that contain the evidence.
 
 Speed and output controls:
@@ -196,7 +244,7 @@ Speed and output controls:
 - `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
 - `audit --no-ai-fix` skips writing `ai-fix.json` and `ai-fix.min.json` entirely.
 - `audit --no-export` skips writing `export.json`.
-- `audit --focus-worst <n>` re-runs only the worst N combos from the previous `.apex-auditor/summary.json`.
+- `audit --focus-worst <n>` re-runs only the worst N combos from the previous `.signaler/summary.json`.
 
 ### `measure` outputs
 
@@ -226,7 +274,7 @@ Speed and output controls:
 
 ## Configuration
 
-ApexAuditor reads `apex.config.json` by default.
+Signaler reads `apex.config.json` by default.
 
 Common fields:
 
@@ -239,7 +287,7 @@ Common fields:
 - `warmUp`
 - `auditTimeoutMs`
 - `incremental` + `buildId`
-- `gitIgnoreApexAuditorDir` (auto-add `.apex-auditor/` to `.gitignore`)
+- `gitIgnoreApexAuditorDir` (auto-add `.signaler/` to `.gitignore`)
 - `budgets`
 
 Example:
@@ -277,7 +325,7 @@ Recommended workflow for large suites:
 
 ## Documentation
 
-The docs in `docs/` reflect the current shell-based workflow:
+The docs in `docs/` reflect the current workflows:
 
 - `docs/getting-started.md`
 - `docs/configuration-and-routes.md`

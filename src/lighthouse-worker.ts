@@ -38,6 +38,7 @@ type AuditTask = {
   readonly timeoutMs: number;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
+  readonly outputDir: string;
 };
 
 type ChromeSession = {
@@ -190,6 +191,7 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
           cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
           onlyCategories: task.onlyCategories,
           captureLevel: task.captureLevel,
+          outputDir: task.outputDir,
         }),
         task.timeoutMs,
       );
@@ -220,6 +222,7 @@ async function runSingleAudit(params: {
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
+  readonly outputDir: string;
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
   const options: Record<string, unknown> = {
@@ -251,7 +254,7 @@ async function runSingleAudit(params: {
 
   if (params.captureLevel !== undefined) {
     await captureLighthouseArtifacts({
-      outputRoot: resolve(".apex-auditor"),
+      outputRoot: resolve(params.outputDir),
       captureLevel: params.captureLevel,
       key: { label: params.label, path: params.path, device: params.device },
       lhr: lhrUnknown,

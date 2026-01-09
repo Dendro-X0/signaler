@@ -105,7 +105,7 @@ function convertRouteToPage(route: DetectedRoute): ApexPageConfig {
 }
 
 async function writeQuickstartConfig(config: ApexConfig): Promise<string> {
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   await mkdir(outputDir, { recursive: true });
   const configPath: string = join(outputDir, QUICKSTART_CONFIG_NAME);
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
@@ -135,6 +135,6 @@ async function buildQuickstartConfig(args: QuickstartArgs): Promise<string> {
 export async function runQuickstartCli(argv: readonly string[]): Promise<void> {
   const args: QuickstartArgs = parseQuickstartArgs(argv);
   const configPath: string = await buildQuickstartConfig(args);
-  const auditArgv: readonly string[] = ["node", "apex-auditor", "--config", configPath];
+  const auditArgv: readonly string[] = ["node", "signaler", "--config", configPath, "--output-dir", resolve(".signaler")];
   await runAuditCli(auditArgv);
 }

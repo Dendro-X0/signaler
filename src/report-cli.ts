@@ -74,7 +74,7 @@ type GlobalRedReport = {
 };
 
 function parseArgs(argv: readonly string[]): { readonly outputDir: string } {
-  let outputDir: string = resolve(".apex-auditor");
+  let outputDir: string = resolve(".signaler");
   for (let i: number = 2; i < argv.length; i += 1) {
     const arg: string = argv[i] ?? "";
     if ((arg === "--dir" || arg === "--output-dir") && i + 1 < argv.length) {

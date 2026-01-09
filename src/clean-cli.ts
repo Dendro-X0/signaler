@@ -112,7 +112,7 @@ async function confirmPrompt(question: string): Promise<boolean> {
 function buildPlan(args: CleanArgs): readonly CleanAction[] {
   const actions: CleanAction[] = [];
   if (args.removeReports) {
-    actions.push({ kind: "rm", path: resolve(args.projectRoot, ".apex-auditor"), existsByAssumption: true });
+    actions.push({ kind: "rm", path: resolve(args.projectRoot, ".signaler"), existsByAssumption: true });
   }
   if (args.removeConfig) {
     actions.push({ kind: "rm", path: args.configPath, existsByAssumption: true });

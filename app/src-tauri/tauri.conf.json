@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Signaler",
+  "version": "0.1.0",
+  "identifier": "com.signaler.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Signaler",
+        "width": 980,
+        "height": 720
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "externalBin": ["binaries/signaler"]
+  }
+}

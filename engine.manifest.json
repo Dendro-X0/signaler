@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": "0.4.2",
+  "minNode": "20.0.0",
+  "entry": "dist/bin.js",
+  "capabilities": ["audit", "measure", "report", "folder_static", "folder_bundle_only"],
+  "defaultOutputDirName": ".signaler"
+}

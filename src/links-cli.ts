@@ -301,7 +301,7 @@ function isConnectionErrorMessage(message: string): boolean {
 }
 
 function buildAiFindings(report: LinksReport): readonly AiFinding[] {
-  const evidence = [{ kind: "file", path: ".apex-auditor/links.json" }] as const;
+  const evidence = [{ kind: "file", path: ".signaler/links.json" }] as const;
   const findings: AiFinding[] = [];
   findings.push({
     title: "Discovery",
@@ -481,7 +481,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     broken,
   };
 
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   const outputPath: string = resolve(outputDir, "links.json");
   await mkdir(outputDir, { recursive: true });
   await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
@@ -523,7 +523,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     `Sitemap: ${sitemapUrl}`,
     `Discovered: ${report.discovered.total}${report.discovered.truncated ? " (truncated)" : ""}`,
     `Broken: ${report.broken.length}`,
-    `Output: .apex-auditor/links.json`,
+    `Output: .signaler/links.json`,
   ];
 
   // eslint-disable-next-line no-console

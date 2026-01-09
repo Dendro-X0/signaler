@@ -43,7 +43,7 @@ interface ParsedShellCommand {
   readonly args: readonly string[];
 }
 
-const SESSION_DIR_NAME = ".apex-auditor" as const;
+const SESSION_DIR_NAME = ".signaler" as const;
 const SESSION_FILE_NAME = "session.json" as const;
 const DEFAULT_CONFIG_PATH = "apex.config.json" as const;
 const DEFAULT_PROMPT = "> " as const;
@@ -576,30 +576,31 @@ type HelpLine = {
 };
 
 const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
-  { command: "measure", description: "Run fast metrics (CDP-based) for the current config" },
-  { command: "audit", description: "Run Lighthouse audits using the current session settings" },
-  { command: "audit --flags", description: "Print audit flags/options" },
-  { command: "bundle", description: "Bundle size audit for build outputs (.next/dist)" },
-  { command: "health", description: "HTTP status/latency checks for configured routes" },
-  { command: "links", description: "Broken links audit (sitemap + HTML link extraction)" },
+  { command: "audit", description: "Deep Lighthouse audit (slower)" },
+  { command: "measure", description: "Fast batch metrics (CDP, non-Lighthouse)" },
+  { command: "bundle", description: "Bundle size audit (Next.js .next or dist)" },
+  { command: "health", description: "HTTP status + latency checks" },
+  { command: "links", description: "Broken links audit" },
   { command: "headers", description: "Security headers audit" },
-  { command: "console", description: "Console errors + runtime exceptions audit (headless Chrome)" },
+  { command: "console", description: "Console errors + runtime exceptions audit" },
+  { command: "quick", description: "Run the quick pack (measure+headers+links+bundle+accessibility)" },
+  { command: "report", description: "Generate report-only outputs from existing artifacts" },
 ] as const;
 
 const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "pages", description: "Print configured pages/routes from the current config" },
   { command: "routes", description: "Alias for pages" },
-  { command: "add-page", description: "Add a page to apex.config.json (interactive)" },
-  { command: "rm-page [#|/path]", description: "Remove a page from apex.config.json (interactive)" },
-  { command: "clean", description: "Remove ApexAuditor artifacts (reports/cache and optionally config)" },
-  { command: "uninstall", description: "Remove .apex-auditor and the current config file" },
-  { command: "clear-screenshots", description: "Remove .apex-auditor/screenshots/" },
-  { command: "open", description: "Open the last HTML report (or .apex-auditor/report.html)" },
-  { command: "open-triage", description: "Open triage markdown (.apex-auditor/triage.md)" },
-  { command: "open-screenshots", description: "Open the screenshots output directory (.apex-auditor/screenshots/)" },
-  { command: "open-artifacts", description: "Open the Lighthouse artifacts directory (.apex-auditor/lighthouse-artifacts/)" },
-  { command: "open-diagnostics", description: "Open diagnostics JSON directory (.apex-auditor/lighthouse-artifacts/diagnostics/)" },
-  { command: "open-lhr", description: "Open full Lighthouse JSON directory (.apex-auditor/lighthouse-artifacts/lhr/)" },
+  { command: "add-page", description: "Add a page to signaler.config.json (interactive)" },
+  { command: "rm-page [#|/path]", description: "Remove a page from signaler.config.json (interactive)" },
+  { command: "clean", description: "Remove Signaler artifacts (reports/cache and optionally config)" },
+  { command: "uninstall", description: "Remove .signaler and the current config file" },
+  { command: "clear-screenshots", description: "Remove .signaler/screenshots/" },
+  { command: "open", description: "Open the last HTML report (or .signaler/report.html)" },
+  { command: "open-triage", description: "Open triage markdown (.signaler/triage.md)" },
+  { command: "open-screenshots", description: "Open the screenshots output directory (.signaler/screenshots/)" },
+  { command: "open-artifacts", description: "Open the Lighthouse artifacts directory (.signaler/lighthouse-artifacts/)" },
+  { command: "open-diagnostics", description: "Open diagnostics JSON directory (.signaler/lighthouse-artifacts/diagnostics/)" },
+  { command: "open-lhr", description: "Open full Lighthouse JSON directory (.signaler/lighthouse-artifacts/lhr/)" },
   { command: "diff", description: "Compare last run vs previous run (from this shell session)" },
   { command: "preset <id>", description: "Set preset: default|overview|quick|accurate|devtools-accurate|fast" },
   { command: "incremental on|off", description: "Toggle incremental caching" },
@@ -609,7 +610,6 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "help [audit|other|hidden|all]", description: "Show help (use categories to expand)" },
   { command: "exit", description: "Exit the shell" },
 ] as const;
-
 const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
   { command: "status", description: "Print current session prompt/status" },
   { command: "quit", description: "Alias for exit" },
@@ -1031,7 +1031,7 @@ function resolveCleanTargets(params: { readonly projectRoot: string; readonly se
   const removeConfig: boolean = params.args.includes("--remove-config") || params.args.includes("--all");
   const targets: string[] = [];
   if (removeReports) {
-    targets.push(resolve(params.projectRoot, ".apex-auditor"));
+    targets.push(resolve(params.projectRoot, ".signaler"));
   }
   if (removeConfig) {
     targets.push(resolve(params.projectRoot, params.session.configPath));

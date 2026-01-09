@@ -189,7 +189,7 @@ function selectTopViolations(result: AxeResult, limit: number): readonly AxeViol
 }
 
 function buildAccessibilityFindings(summary: AxeSummary): readonly RunnerFinding[] {
-  const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".apex-auditor/accessibility-summary.json" }] as const;
+  const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".signaler/accessibility-summary.json" }] as const;
   const counts: { critical: number; serious: number; moderate: number; minor: number } = { critical: 0, serious: 0, moderate: 0, minor: 0 };
   let errored: number = 0;
   for (const result of summary.results) {
@@ -296,7 +296,7 @@ async function runAccessibilityPass(params: {
 
 export async function runQuickCli(argv: readonly string[]): Promise<void> {
   const args: QuickArgs = parseArgs(argv);
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   await mkdir(outputDir, { recursive: true });
   const { configPath, config }: { readonly configPath: string; readonly config: ApexConfig } = await loadConfig({ configPath: args.configPath });
   const filteredConfig: ApexConfig = filterConfigDevices(config, args.deviceFilter);

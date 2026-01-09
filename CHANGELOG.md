@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.0 - 2026-01-09
+
+This release is a **remake / remaster** focused on distribution and usability.
+
+### Added
+- Distribution: Rust launcher as the stable entrypoint for distribution (`signaler doctor`, `signaler engine ...`, `signaler run ...`).
+- Engine contract: typed NDJSON events (progress + artifacts) and a stable `run.json` index for UIs.
+- Folder mode: static folder auditing with route detection, route caps, and bundle-only mode.
+- Desktop app scaffold: Tauri v2 + SvelteKit UI that runs the launcher as a sidecar and streams NDJSON.
+
+### Changed
+- Architecture: separated “engine” (Node.js audit logic) from “launcher” (Rust orchestrator) to reduce registry/OS friction.
+- Exports: shareable/export metadata is privacy-safe (no absolute config paths).
+
+### Migration notes
+- Prefer invoking via the launcher for distribution: `signaler run audit -- --config apex.config.json`.
+- Outputs are written under `.signaler/`.
+
 ## 0.4.2 - 2026-01-07
 
 ### Added

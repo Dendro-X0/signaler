@@ -107,7 +107,7 @@ type MeasureResult = {
 
 const DEFAULT_NAVIGATION_TIMEOUT_MS: number = 60_000;
 const DEFAULT_MAX_PARALLEL: number = 4;
-const DEFAULT_ARTIFACTS_DIR = ".apex-auditor/measure" as const;
+const DEFAULT_ARTIFACTS_DIR = ".signaler/measure" as const;
 const CHROME_FLAGS: readonly string[] = [
   "--headless=new",
   "--disable-gpu",

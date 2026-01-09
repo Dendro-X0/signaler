@@ -11,6 +11,7 @@ type BundleArgs = {
   readonly projectRoot: string;
   readonly jsonOutput: boolean;
   readonly top: number;
+  readonly outputDirOverride?: string;
 };
 
 type BundleFileKind = "js" | "css";
@@ -107,6 +108,7 @@ function parseArgs(argv: readonly string[]): BundleArgs {
   let projectRoot: string = process.cwd();
   let jsonOutput = false;
   let top = 15;
+  let outputDirOverride: string | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--project-root" || arg === "--root") && i + 1 < argv.length) {
@@ -114,6 +116,9 @@ function parseArgs(argv: readonly string[]): BundleArgs {
       i += 1;
     } else if (arg === "--json") {
       jsonOutput = true;
+    } else if ((arg === "--output-dir" || arg === "--dir") && i + 1 < argv.length) {
+      outputDirOverride = argv[i + 1] ?? outputDirOverride;
+      i += 1;
     } else if (arg === "--top" && i + 1 < argv.length) {
       const value: number = parseInt(argv[i + 1] ?? "", 10);
       if (!Number.isFinite(value) || value <= 0 || value > 100) {
@@ -123,7 +128,7 @@ function parseArgs(argv: readonly string[]): BundleArgs {
       i += 1;
     }
   }
-  return { projectRoot, jsonOutput, top };
+  return { projectRoot, jsonOutput, top, outputDirOverride };
 }
 
 function buildTopFilesTable(entries: readonly BundleFileEntry[], top: number): string {
@@ -140,7 +145,7 @@ function buildTopFilesTable(entries: readonly BundleFileEntry[], top: number): s
 }
 
 function buildAiFindings(report: BundleAuditSummary, top: number): readonly AiFinding[] {
-  const evidence = [{ kind: "file", path: ".apex-auditor/bundle-audit.json" }] as const;
+  const evidence = [{ kind: "file", path: ".signaler/bundle-audit.json" }] as const;
   const findings: AiFinding[] = [];
   findings.push({
     title: "Bundle totals",
@@ -213,7 +218,7 @@ export async function runBundleCli(argv: readonly string[], options?: { readonly
     files: allEntries,
   };
 
-  const outputDir: string = resolve(projectRoot, ".apex-auditor");
+  const outputDir: string = args.outputDirOverride ? resolve(args.outputDirOverride) : resolve(projectRoot, ".signaler");
   const outputPath: string = resolve(outputDir, "bundle-audit.json");
   await mkdir(outputDir, { recursive: true });
   await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");

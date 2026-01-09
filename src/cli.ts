@@ -16,6 +16,13 @@ import { postJsonWebhook } from "./webhooks.js";
 import { renderPanel } from "./ui/render-panel.js";
 import { renderTable } from "./ui/render-table.js";
 import { UiTheme } from "./ui/ui-theme.js";
+import { resolveOutputDir } from "./output-dir.js";
+import { readEngineVersion } from "./engine-version.js";
+import { writeEngineRunIndex } from "./write-engine-run-index.js";
+import { resolveEngineJsonMode } from "./engine-json.js";
+import type { EngineEventPayload } from "./engine-events-schema.js";
+import { emitEngineEvent } from "./engine-events.js";
+import { buildExportBundle } from "./build-export-bundle.js";
 import type {
   ApexCategory,
   ApexBudgets,
@@ -33,6 +40,8 @@ import type {
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
 type CliColorMode = "auto" | "always" | "never";
+
+type AuditOutputArtifact = { readonly kind: "file" | "dir"; readonly relativePath: string };
 
 async function runCommand(command: string, cwd: string): Promise<string> {
   return await new Promise<string>((resolveCommand, rejectCommand) => {
@@ -180,6 +189,7 @@ type BudgetViolationLine = {
 
 type ShareableExport = {
   readonly generatedAt: string;
+  readonly configFileName: string;
   readonly regressions: readonly RegressionLine[];
   readonly topIssues: readonly { readonly title: string; readonly count: number; readonly totalMs: number }[];
   readonly deepAuditTargets: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly score: number }[];
@@ -1686,7 +1696,7 @@ function buildAccessibilityIssuesPanel(results: readonly AxeResult[], useColor: 
 
 function buildAccessibilityRunnerFindings(summary: AxeSummary): readonly RunnerFindingLike[] {
   const aggregated: AccessibilitySummary = summariseAccessibility(summary);
-  const evidence = [{ kind: "file", path: ".apex-auditor/accessibility-summary.json" }] as const;
+  const evidence = [{ kind: "file", path: ".signaler/accessibility-summary.json" }] as const;
   const findings: RunnerFindingLike[] = [];
   const impactLines: readonly string[] = [
     `critical: ${aggregated.impactCounts.critical}`,
@@ -1875,8 +1885,15 @@ function collectTopIssues(results: readonly PageDeviceSummary[]): readonly {
   return [...counts.values()].sort((a, b) => b.totalMs - a.totalMs).slice(0, 5);
 }
 
-function buildSuggestedCommands(configPath: string, targets: readonly { readonly path: string; readonly device: ApexDevice }[]): readonly string[] {
-  return targets.map((t) => `pnpm tsx src/bin.ts --config ${configPath} --${t.device}-only --open-report # focus on ${t.path}`);
+function getFileNameFromPath(input: string): string {
+  const normalized: string = input.replace(/\\/g, "/");
+  const parts: readonly string[] = normalized.split("/").filter((p) => p.length > 0);
+  return parts.length === 0 ? "" : (parts[parts.length - 1] ?? "");
+}
+
+function buildSuggestedCommands(configFileName: string, targets: readonly { readonly path: string; readonly device: ApexDevice }[]): readonly string[] {
+  const configArg: string = configFileName.length > 0 ? configFileName : "<config.json>";
+  return targets.map((t) => `pnpm tsx src/bin.ts --config ${configArg} --${t.device}-only --open-report # focus on ${t.path}`);
 }
 
 function buildShareableExport(params: {
@@ -1885,10 +1902,11 @@ function buildShareableExport(params: {
   readonly current: RunSummary;
   readonly budgets: ApexBudgets | undefined;
 }): ShareableExport {
+  const configFileName: string = getFileNameFromPath(params.configPath);
   const regressions: readonly RegressionLine[] = collectRegressions(params.previousSummary, params.current);
   const deepAuditTargets = collectDeepAuditTargets(params.current.results);
   const suggestedCommands: readonly string[] = buildSuggestedCommands(
-    params.configPath,
+    configFileName,
     deepAuditTargets.map((t) => ({ path: t.path, device: t.device })),
   );
   const budgetViolations: readonly BudgetViolationLine[] =
@@ -1905,6 +1923,7 @@ function buildShareableExport(params: {
         }));
   return {
     generatedAt: new Date().toISOString(),
+    configFileName,
     regressions,
     topIssues: collectTopIssues(params.current.results),
     deepAuditTargets,
@@ -2410,7 +2429,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
 
 async function ensureApexAuditorGitIgnore(projectRoot: string): Promise<void> {
   const gitIgnorePath: string = resolve(projectRoot, ".gitignore");
-  const desiredLine: string = ".apex-auditor/";
+  const desiredLine: string = ".signaler/";
   try {
     let existing: string = "";
     try {
@@ -2421,7 +2440,7 @@ async function ensureApexAuditorGitIgnore(projectRoot: string): Promise<void> {
     const hasEntry: boolean = existing
       .split(/\r?\n/g)
       .map((line) => line.trim())
-      .some((line) => line === desiredLine || line === ".apex-auditor" || line === "/.apex-auditor" || line === "/.apex-auditor/");
+      .some((line) => line === desiredLine || line === ".signaler" || line === "/.signaler" || line === "/.signaler/");
     if (hasEntry) {
       return;
     }
@@ -2448,7 +2467,7 @@ function printAuditFlags(): void {
       "  --desktop-only     Run audits only for 'desktop' devices defined in the config",
       "  --parallel <n>     Override parallel workers (1-10)",
       "  --audit-timeout-ms <ms>  Per-audit timeout in milliseconds",
-      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .apex-auditor/...)",
+      "  --diagnostics      Capture DevTools-like Lighthouse tables + screenshots (writes .signaler/...)",
       "  --lhr              Also capture full Lighthouse result JSON per combo (implies --diagnostics)",
       "  --plan             Print resolved settings + run size estimate and exit without auditing",
       "  --max-steps <n>    Safety limit: refuse/prompt if planned Lighthouse runs exceed this",
@@ -2570,8 +2589,8 @@ async function resolveAutoBuildId(configPath: string): Promise<string | undefine
   return `git:${gitHead}`;
 }
 
-async function loadPreviousSummary(): Promise<RunSummary | undefined> {
-  const previousPath: string = resolve(".apex-auditor", "summary.json");
+async function loadPreviousSummary(params: { readonly outputDir: string }): Promise<RunSummary | undefined> {
+  const previousPath: string = resolve(params.outputDir, "summary.json");
   try {
     const raw: string = await readFile(previousPath, "utf8");
     const parsed: unknown = JSON.parse(raw) as unknown;
@@ -2781,6 +2800,8 @@ function buildChangesBox(previous: RunSummary, current: RunSummary, useColor: bo
  */
 export async function runAuditCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   const args: CliArgs = parseArgs(argv);
+  const resolvedOutput: { readonly outputDir: string } = resolveOutputDir(argv);
+  const engineJson: { readonly enabled: boolean } = resolveEngineJsonMode(argv);
   if (args.flagsOnly) {
     printAuditFlags();
     return;
@@ -2790,7 +2811,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (config.gitIgnoreApexAuditorDir === true) {
     await ensureApexAuditorGitIgnore(dirname(configPath));
   }
-  const previousSummary: RunSummary | undefined = await loadPreviousSummary();
+  const previousSummary: RunSummary | undefined = await loadPreviousSummary({ outputDir: resolvedOutput.outputDir });
 
   const DEFAULT_PARALLEL: number = 4;
   const DEFAULT_WARM_UP: boolean = true;
@@ -2863,7 +2884,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (args.focusWorst !== undefined) {
     if (previousSummary === undefined) {
       // eslint-disable-next-line no-console
-      console.error("Focus-worst mode requires a previous run. Expected .apex-auditor/summary.json to exist.");
+      console.error("Focus-worst mode requires a previous run. Expected .signaler/summary.json to exist.");
       process.exitCode = 1;
       return;
     }
@@ -2949,6 +2970,16 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     }
   }
   let summary: RunSummary;
+  if (engineJson.enabled) {
+    const event: EngineEventPayload = {
+      ts: new Date().toISOString(),
+      type: "run_started",
+      mode: "audit",
+      outputDir: resolvedOutput.outputDir,
+      configPath,
+    };
+    emitEngineEvent(event);
+  }
   const abortController: AbortController = new AbortController();
   if (options?.signal?.aborted === true) {
     abortController.abort();
@@ -3001,12 +3032,25 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     summary = await runAuditsForConfig({
       config: resolvedConfigForRun,
       configPath,
+      outputDir: resolvedOutput.outputDir,
       showParallel: args.showParallel,
       onlyCategories,
       captureLevel,
       signal: abortController.signal,
       onAfterWarmUp: startAuditSpinner,
       onProgress: ({ completed, total, path, device, etaMs }) => {
+        if (engineJson.enabled) {
+          const event: EngineEventPayload = {
+            ts: new Date().toISOString(),
+            type: "progress",
+            completed,
+            total,
+            path,
+            device,
+            etaMs,
+          };
+          emitEngineEvent(event);
+        }
         if (!process.stdout.isTTY) {
           return;
         }
@@ -3038,7 +3082,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     }
     stopSpinner();
   }
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolvedOutput.outputDir;
   await mkdir(outputDir, { recursive: true });
   if (captureLevel !== undefined && isTty && !args.ci && !args.jsonOutput) {
     // eslint-disable-next-line no-console
@@ -3114,6 +3158,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   });
   if (!args.noExport) {
     await writeJsonWithOptionalGzip(exportPath, shareable);
+    await writeJsonWithOptionalGzip(resolve(outputDir, "export-bundle.json"), buildExportBundle(summary));
   }
   const triagePath: string = resolve(outputDir, "triage.md");
   const overviewPath: string = resolve(outputDir, "overview.md");
@@ -3179,6 +3224,59 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     accessibilityAggregated = accessibilitySummary === undefined ? undefined : summariseAccessibility(accessibilitySummary);
   }
   await writeArtifactsNavigation({ outputDir });
+
+  const engineVersion: string = await readEngineVersion();
+  const artifactsBase: readonly AuditOutputArtifact[] = [
+    { kind: "file", relativePath: "run.json" },
+    { kind: "file", relativePath: "summary.json" },
+    { kind: "file", relativePath: "summary-lite.json" },
+    { kind: "file", relativePath: "issues.json" },
+    { kind: "file", relativePath: "ai-ledger.json" },
+    { kind: "file", relativePath: "red-issues.md" },
+    { kind: "file", relativePath: "pwa.json" },
+    { kind: "file", relativePath: "summary.md" },
+    { kind: "file", relativePath: "report.html" },
+    { kind: "file", relativePath: "triage.md" },
+    { kind: "file", relativePath: "overview.md" },
+  ];
+  const exportArtifacts: readonly AuditOutputArtifact[] = args.noExport
+    ? []
+    : [
+        { kind: "file", relativePath: "export.json" },
+        { kind: "file", relativePath: "export-bundle.json" },
+      ];
+  const artifacts: readonly AuditOutputArtifact[] = [...artifactsBase, ...exportArtifacts];
+  await writeEngineRunIndex({
+    outputDir,
+    index: {
+      schemaVersion: 1,
+      engineVersion,
+      startedAt: summary.meta.startedAt,
+      completedAt: summary.meta.completedAt,
+      outputDir,
+      mode: "audit",
+      artifacts,
+    },
+  });
+  if (engineJson.enabled) {
+    for (const artifact of artifacts) {
+      const event: EngineEventPayload = {
+        ts: new Date().toISOString(),
+        type: "artifact_written",
+        kind: artifact.kind,
+        relativePath: artifact.relativePath,
+      };
+      emitEngineEvent(event);
+    }
+    const completed: EngineEventPayload = {
+      ts: new Date().toISOString(),
+      type: "run_completed",
+      mode: "audit",
+      outputDir,
+      elapsedMs: summary.meta.elapsedMs,
+    };
+    emitEngineEvent(completed);
+  }
   // Open HTML report in browser if requested
   if (args.openReport) {
     openInBrowser(reportPath);
@@ -5806,7 +5904,7 @@ function buildTriageMarkdown(params: {
     }
     lines.push("");
     if (params.captureLevel !== undefined) {
-      lines.push("Artifacts links are relative to the `.apex-auditor/` folder, so they are clickable in most Markdown viewers.");
+      lines.push("Artifacts links are relative to the `.signaler/` folder, so they are clickable in most Markdown viewers.");
       lines.push("");
     }
   }

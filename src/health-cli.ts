@@ -262,7 +262,7 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
     results,
   };
 
-  const outputDir: string = resolve(".apex-auditor");
+  const outputDir: string = resolve(".signaler");
   const outputPath: string = resolve(outputDir, "health.json");
   await mkdir(outputDir, { recursive: true });
   await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
@@ -296,7 +296,7 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
     `Timeout: ${args.timeoutMs}ms`,
     `OK: ${okCount}`,
     `Errors: ${errorCount}`,
-    `Output: .apex-auditor/health.json`,
+    `Output: .signaler/health.json`,
   ];
 
   // eslint-disable-next-line no-console
