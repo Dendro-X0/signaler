@@ -1,106 +1,117 @@
-param(
-  [Parameter(Mandatory=$false)][string]$Repo,
-  [Parameter(Mandatory=$false)][string]$Version = "latest",
-  [Parameter(Mandatory=$false)][string]$InstallDir,
-  [Parameter(Mandatory=$false)][switch]$AddToPath
-)
+# Signaler CLI Installer for Windows
+# Usage: Run from extracted portable zip: .\release-assets\install.ps1
+
 $ErrorActionPreference = "Stop"
-function Get-DefaultRepo() {
-  return "Dendro-X0/signaler"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# Configuration
+$DefaultRepo = "Dendro-X0/signaler"
+$Version = "latest"
+
+# Get repository from environment or use default
+$RepoSlug = if ($env:SIGNALER_REPO) { $env:SIGNALER_REPO } else { $DefaultRepo }
+
+Write-Host "Installing Signaler CLI..." -ForegroundColor Green
+Write-Host "Repository: $RepoSlug"
+Write-Host "Version: $Version"
+
+# Set environment variable for future use
+[Environment]::SetEnvironmentVariable("SIGNALER_REPO", $RepoSlug, "User")
+$env:SIGNALER_REPO = $RepoSlug
+
+# Check if signaler is already installed
+$ExistingSignaler = Get-Command signaler -ErrorAction SilentlyContinue
+if ($ExistingSignaler) {
+    Write-Host "Signaler is already installed. Attempting to upgrade..." -ForegroundColor Yellow
+    try {
+        & $ExistingSignaler.Source upgrade --repo $RepoSlug
+        Write-Host "Upgrade completed successfully!" -ForegroundColor Green
+        & $ExistingSignaler.Source --help
+        exit 0
+    } catch {
+        Write-Host "Upgrade failed, continuing with fresh install..." -ForegroundColor Yellow
+    }
 }
-function Get-RepoOrFail() {
-  if ($Repo -and $Repo.Trim().Length -gt 0) { return $Repo.Trim() }
-  $envRepo = $env:SIGNALER_REPO
-  if ($envRepo -and $envRepo.Trim().Length -gt 0) { return $envRepo.Trim() }
-  return (Get-DefaultRepo)
+
+# Determine installation paths
+$InstallBase = Join-Path $env:LOCALAPPDATA "signaler"
+$InstallDir = Join-Path $InstallBase "current"
+$BinDir = Join-Path $InstallBase "bin"
+
+Write-Host "Install directory: $InstallDir"
+
+# Create directories
+if (!(Test-Path $InstallDir)) { New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null }
+if (!(Test-Path $BinDir)) { New-Item -ItemType Directory -Force -Path $BinDir | Out-Null }
+
+# For portable zip installation, we're already in the extracted directory
+$PortableRoot = $PSScriptRoot | Split-Path -Parent
+if (!(Test-Path (Join-Path $PortableRoot "dist\bin.js"))) {
+    Write-Error "This script must be run from the extracted portable zip directory."
+    Write-Host "Expected to find: dist\bin.js in $PortableRoot"
+    exit 1
 }
-function Set-UserEnvVar($name, $value) {
-  [Environment]::SetEnvironmentVariable($name, $value, "User")
-}
-function Resolve-InstallDir() {
-  if ($InstallDir -and $InstallDir.Trim().Length -gt 0) { return $InstallDir }
-  $base = Join-Path $env:LOCALAPPDATA "signaler"
-  return (Join-Path $base "current")
-}
-function Get-LatestRelease($repoSlug) {
-  $uri = "https://api.github.com/repos/$repoSlug/releases/latest"
-  return Invoke-RestMethod -Uri $uri -Headers @{"User-Agent"="signaler-installer"}
-}
-function Get-ReleaseByTag($repoSlug, $tag) {
-  $uri = "https://api.github.com/repos/$repoSlug/releases/tags/$tag"
-  return Invoke-RestMethod -Uri $uri -Headers @{"User-Agent"="signaler-installer"}
-}
-function Select-PortableZipAsset($release) {
-  foreach ($a in $release.assets) {
-    if ($a.name -like "*-portable.zip") { return $a }
-  }
-  throw "No *-portable.zip asset found in release."
-}
-function Ensure-Dir($p) {
-  if (!(Test-Path $p)) { New-Item -ItemType Directory -Force -Path $p | Out-Null }
-}
-function Expand-ZipToDir($zipPath, $destDir) {
-  Add-Type -AssemblyName System.IO.Compression.FileSystem
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $destDir, $true)
-}
-function Get-UserPath() {
-  return [Environment]::GetEnvironmentVariable("Path", "User")
-}
-function Set-UserPath($value) {
-  [Environment]::SetEnvironmentVariable("Path", $value, "User")
-}
-$repoSlug = Get-RepoOrFail
-Set-UserEnvVar "SIGNALER_REPO" $repoSlug
-$env:SIGNALER_REPO = $repoSlug
-$signalerCmd = Get-Command signaler -ErrorAction SilentlyContinue
-if ($signalerCmd) {
-  Write-Host "signaler is already installed. Running: signaler upgrade"
-  $upgradeArgs = @("upgrade", "--repo", $repoSlug)
-  if ($Version -ne "latest") { $upgradeArgs += @("--version", $Version) }
-  & $signalerCmd.Source @upgradeArgs
-  Write-Host "Done."
-  exit 0
-}
-$installRoot = Resolve-InstallDir
-$baseDir = Split-Path -Parent $installRoot
-$binDir = Join-Path $baseDir "bin"
-Ensure-Dir $installRoot
-Ensure-Dir $binDir
-$release = if ($Version -eq "latest") { Get-LatestRelease $repoSlug } else { Get-ReleaseByTag $repoSlug $Version }
-$asset = Select-PortableZipAsset $release
-$zipUrl = $asset.browser_download_url
-$tmpZip = Join-Path $env:TEMP "signaler-portable.zip"
-Write-Host "Downloading $zipUrl"
-Invoke-WebRequest -Uri $zipUrl -OutFile $tmpZip -Headers @{"User-Agent"="signaler-installer"}
-$stagingDir = Join-Path $env:TEMP ("signaler-staging-" + [Guid]::NewGuid().ToString("N"))
-Ensure-Dir $stagingDir
-Expand-ZipToDir $tmpZip $stagingDir
-$portableRoot = Get-ChildItem -Directory $stagingDir | Select-Object -First 1
-if (!$portableRoot) { throw "Portable zip did not contain a root directory." }
-if (Test-Path $installRoot) { Remove-Item -Recurse -Force $installRoot }
-Move-Item -Force $portableRoot.FullName $installRoot
-$launcherPath = Join-Path $binDir "signaler.cmd"
-$launcher = @"
+
+try {
+    # Install (remove existing and copy new)
+    Write-Host "Installing from: $PortableRoot"
+    if (Test-Path $InstallDir) { 
+        Remove-Item -Recurse -Force $InstallDir 
+    }
+    
+    # Copy all files from portable root to install directory
+    Copy-Item -Path $PortableRoot -Destination $InstallDir -Recurse -Force
+    
+    # Create launcher script
+    $LauncherPath = Join-Path $BinDir "signaler.cmd"
+    $LauncherContent = @"
 @echo off
 setlocal
-set "ROOT=$installRoot"
-node "%ROOT%\dist\bin.js" %*
+set "SIGNALER_ROOT=$InstallDir"
+node "%SIGNALER_ROOT%\dist\bin.js" %*
 "@
-Set-Content -Path $launcherPath -Value $launcher -Encoding ASCII
-Write-Host "Installed to: $installRoot"
-Write-Host "Launcher: $launcherPath"
-if ($AddToPath) {
-  $path = Get-UserPath
-  $segments = @()
-  if ($path) { $segments = $path.Split(';') }
-  if ($segments -notcontains $binDir) {
-    $newPath = if ($path -and $path.Length -gt 0) { "$path;$binDir" } else { $binDir }
-    Set-UserPath $newPath
-    Write-Host "Added to user PATH. Restart your terminal." 
-  } else {
-    Write-Host "Bin dir already in PATH." 
-  }
-} else {
-  Write-Host "Add this directory to PATH to run from anywhere: $binDir" 
+    Set-Content -Path $LauncherPath -Value $LauncherContent -Encoding ASCII
+    
+    Write-Host ""
+    Write-Host "Installation completed successfully!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Installation details:"
+    Write-Host "  Installed to: $InstallDir"
+    Write-Host "  Launcher: $LauncherPath"
+    Write-Host ""
+    
+    # Handle PATH setup
+    $CurrentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $PathSegments = if ($CurrentPath) { $CurrentPath.Split(';') } else { @() }
+    
+    if ($PathSegments -notcontains $BinDir) {
+        $NewPath = if ($CurrentPath) { "$CurrentPath;$BinDir" } else { $BinDir }
+        [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+        Write-Host "Added to PATH. Please restart your terminal or PowerShell session." -ForegroundColor Green
+    } else {
+        Write-Host "Bin directory already in PATH." -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "Quick start:"
+    Write-Host "  signaler --help"
+    Write-Host "  signaler wizard"
+    Write-Host ""
+    
+    # Test installation
+    Write-Host "Testing installation..."
+    try {
+        $TestOutput = & $LauncherPath --version 2>&1
+        Write-Host "Installation test passed!" -ForegroundColor Green
+    } catch {
+        Write-Host "Installation test failed, but files are installed correctly." -ForegroundColor Yellow
+        Write-Host "You may need to restart your terminal and try again."
+    }
+    
+} catch {
+    Write-Error "Installation failed: $_"
+    exit 1
 }
-Write-Host "Try: signaler --help" 
+
+Write-Host ""
+Write-Host "Installation completed! Restart your terminal to use 'signaler' command." -ForegroundColor Green 
