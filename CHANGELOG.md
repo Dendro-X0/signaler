@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.0.2 - 2026-01-12
+
+### Fixed
+- **Critical**: Fixed portable zip creation to include node_modules dependencies
+- Resolved "Cannot find module" errors during CLI execution in portable installations
+- Fixed npm install path issue in portable-zip.sh script
+- Ensured production dependencies are properly installed in portable distribution
+
+### Added
+- Comprehensive single-command installation system for Windows and Unix
+- Enhanced troubleshooting documentation for installation issues
+- Improved installer reliability with better error handling and PATH management
+
+## 1.0.1 - 2026-01-12
+
+### Added
+- Single-command installation support via GitHub Releases
+- Standalone installer scripts (install.sh for Unix, install.ps1 for Windows)
+- Automatic PATH configuration and environment setup
+- Self-upgrade functionality via `signaler upgrade` command
+
+### Fixed
+- PowerShell execution policy handling in Windows installer
+- Installation verification and testing procedures
+- Enhanced error messages and troubleshooting guidance
+
 ## 1.0.0 - 2026-01-09
 
 This release is a **remake / remaster** focused on distribution and usability.
