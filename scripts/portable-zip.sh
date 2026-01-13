@@ -6,6 +6,10 @@ ZIP_BASENAME="${CLI_NAME}-${PKG_VER}-portable"
 ZIP_DIR="release/${ZIP_BASENAME}"
 mkdir -p "${ZIP_DIR}"
 cp -R dist "${ZIP_DIR}/dist"
+# Install production dependencies in the zip directory
+cd "${ZIP_DIR}"
+npm install --production --no-package-lock
+cd ../..
 mkdir -p "${ZIP_DIR}/release-assets"
 cp release-assets/run.sh "${ZIP_DIR}/release-assets/run.sh"
 cp release-assets/run.cmd "${ZIP_DIR}/release-assets/run.cmd"
