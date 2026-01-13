@@ -38,6 +38,8 @@ If the single-command installation fails:
 
 1. **Windows PowerShell Issues:**
    - Ensure you're running PowerShell (not Command Prompt)
+   - If you get "execution policy" errors, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+   - Or use: `powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/Dendro-X0/signaler/releases/latest/download/install.ps1 | iex"`
    - Try running as Administrator if you get permission errors
    - If you get encoding errors, try: `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` first
    - Alternative: Download the portable zip manually and run `release-assets\install.ps1`
