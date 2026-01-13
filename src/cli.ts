@@ -3,20 +3,20 @@ import { dirname, join, relative, resolve } from "node:path";
 import { exec } from "node:child_process";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
-import { loadConfig } from "./config.js";
+import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
 import type { AxeResult, AxeSummary, AxeViolation } from "./accessibility-types.js";
 import { runAccessibilityAudit } from "./accessibility.js";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
 import { writeRedIssuesReport } from "./red-issues.js";
-import { startSpinner, stopSpinner, updateSpinnerMessage } from "./spinner.js";
-import { runAuditsForConfig } from "./lighthouse-runner.js";
-import { postJsonWebhook } from "./webhooks.js";
-import { renderPanel } from "./ui/render-panel.js";
-import { renderTable } from "./ui/render-table.js";
-import { UiTheme } from "./ui/ui-theme.js";
-import { resolveOutputDir } from "./output-dir.js";
+import { startSpinner, stopSpinner, updateSpinnerMessage } from "./ui/components/progress.js";
+import { runAuditsForConfig } from "./runners/lighthouse/runner.js";
+import { postJsonWebhook } from "./infrastructure/network/webhooks.js";
+import { renderPanel } from "./ui/components/panel.js";
+import { renderTable } from "./ui/components/table.js";
+import { UiTheme } from "./ui/themes/theme.js";
+import { resolveOutputDir } from "./infrastructure/filesystem/output.js";
 import { readEngineVersion } from "./engine-version.js";
 import { writeEngineRunIndex } from "./write-engine-run-index.js";
 import { resolveEngineJsonMode } from "./engine-json.js";
@@ -35,7 +35,7 @@ import type {
   OpportunitySummary,
   PageDeviceSummary,
   RunSummary,
-} from "./types.js";
+} from "./core/types.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 

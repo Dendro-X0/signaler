@@ -9,7 +9,33 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,13 +71,18 @@ jobs:
         run: |
           bash -eo pipefail ./scripts/portable-zip.sh
 
+      - name: Create standalone installers
+        shell: bash
+        run: |
+          bash -eo pipefail ./scripts/create-installers.sh
+
       - name: Checksums
         shell: bash
         run: |
           set -euo pipefail
           cd release
           shopt -s nullglob
-          files=( *.tgz *.zip )
+          files=( *.tgz *.zip *.sh *.ps1 )
           if [ ${#files[@]} -eq 0 ]; then
             echo "No release artifacts found." >&2
             exit 1
@@ -64,5 +95,29 @@ jobs:
           files: |
             release/*.tgz
             release/*.zip
+            release/*.sh
+            release/*.ps1
             release/SHA256SUMS.txt
           generate_release_notes: true
+          body: |
+            ## Quick Install
+
+            ### Unix/Linux/macOS
+            ```bash
+            curl -fsSL https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/install.sh | bash
+            ```
+
+            ### Windows (PowerShell)
+            ```powershell
+            iwr https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/install.ps1 | iex
+            ```
+
+            ### Manual Download
+            - Download `signaler-*-portable.zip` for manual installation
+            - Download `signaler-*.tgz` for npm-compatible package
+
+            ## Usage
+            After installation, run:
+            ```bash
+            signaler --help
+            ```

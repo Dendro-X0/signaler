@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, MetricValues, OpportunitySummary, PageDeviceSummary } from "./types.js";
-import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
+import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, MetricValues, OpportunitySummary, PageDeviceSummary } from "./core/types.js";
+import { captureLighthouseArtifacts } from "./runners/lighthouse/capture.js";
 
 type LighthouseLogLevel = "silent" | "error" | "info" | "verbose";
 

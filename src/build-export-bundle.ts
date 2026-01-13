@@ -1,4 +1,4 @@
-import type { ApexDevice, MetricValues, RunMeta, RunSummary } from "./types.js";
+import type { ApexDevice, MetricValues, RunMeta, RunSummary } from "./core/types.js";
 import type { EngineExportBundle } from "./engine-export-bundle-schema.js";
 import { stripUrl } from "./strip-url.js";
 

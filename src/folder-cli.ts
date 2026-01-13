@@ -4,11 +4,11 @@ import { runAuditCli } from "./cli.js";
 import { resolveEngineJsonMode } from "./engine-json.js";
 import type { EngineEventPayload } from "./engine-events-schema.js";
 import { emitEngineEvent } from "./engine-events.js";
-import { resolveOutputDir } from "./output-dir.js";
+import { resolveOutputDir } from "./infrastructure/filesystem/output.js";
 import { startStaticServer } from "./start-static-server.js";
-import type { ApexConfig, ApexDevice, ApexPageConfig } from "./types.js";
+import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
 import { detectRoutes } from "./route-detectors.js";
-import { pathExists } from "./fs-utils.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
 import { runBundleCli } from "./bundle-cli.js";
 
 type FolderArgs = {

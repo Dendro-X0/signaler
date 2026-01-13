@@ -20,7 +20,7 @@ import type {
   OpportunitySummary,
   PageDeviceSummary,
   RunSummary,
-} from "./types.js";
+} from "./core/types.js";
 import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
 
 interface ChromeSession {

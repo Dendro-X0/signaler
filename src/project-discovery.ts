@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import type { Dirent } from "node:fs";
 import { basename, join } from "node:path";
-import { pathExists } from "./fs-utils.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
 
 export type ProjectFrameworkId = "next";
 

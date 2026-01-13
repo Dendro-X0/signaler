@@ -19,4 +19,23 @@ cp LICENSE "${ZIP_DIR}/LICENSE"
 chmod +x "${ZIP_DIR}/release-assets/run.sh"
 chmod +x "${ZIP_DIR}/release-assets/signaler.sh"
 chmod +x "${ZIP_DIR}/release-assets/install.sh"
-(cd release && zip -r "${ZIP_BASENAME}.zip" "${ZIP_BASENAME}")
+
+# Create zip using different methods depending on what's available
+cd release
+if command -v zip >/dev/null 2>&1; then
+  # Use zip if available (Linux/macOS)
+  zip -r "${ZIP_BASENAME}.zip" "${ZIP_BASENAME}"
+elif command -v powershell >/dev/null 2>&1; then
+  # Use PowerShell Compress-Archive if available (Windows)
+  powershell -Command "Compress-Archive -Path '${ZIP_BASENAME}' -DestinationPath '${ZIP_BASENAME}.zip' -Force"
+elif command -v pwsh >/dev/null 2>&1; then
+  # Use PowerShell Core if available
+  pwsh -Command "Compress-Archive -Path '${ZIP_BASENAME}' -DestinationPath '${ZIP_BASENAME}.zip' -Force"
+elif command -v tar >/dev/null 2>&1; then
+  # Fallback to tar.gz if zip is not available
+  tar -czf "${ZIP_BASENAME}.tar.gz" "${ZIP_BASENAME}"
+  echo "Created ${ZIP_BASENAME}.tar.gz (zip not available)"
+else
+  echo "Warning: No compression tool available. Directory created but not compressed."
+  echo "Created directory: release/${ZIP_BASENAME}"
+fi

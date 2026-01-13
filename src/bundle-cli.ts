@@ -2,10 +2,10 @@ import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
-import { renderPanel } from "./ui/render-panel.js";
-import { renderTable } from "./ui/render-table.js";
-import { UiTheme } from "./ui/ui-theme.js";
-import { stopSpinner } from "./spinner.js";
+import { renderPanel } from "./ui/components/panel.js";
+import { renderTable } from "./ui/components/table.js";
+import { UiTheme } from "./ui/themes/theme.js";
+import { stopSpinner } from "./ui/components/progress.js";
 
 type BundleArgs = {
   readonly projectRoot: string;

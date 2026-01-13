@@ -1,0 +1,19 @@
+{
+	"/": [
+		"src/routes/+page.ts",
+		"src/routes/+layout.ts",
+		"src/routes/+layout.ts"
+	],
+	"/history": [
+		"src/routes/history/+page.ts",
+		"src/routes/+layout.ts"
+	],
+	"/results": [
+		"src/routes/results/+page.ts",
+		"src/routes/+layout.ts"
+	],
+	"/run": [
+		"src/routes/run/+page.ts",
+		"src/routes/+layout.ts"
+	]
+}

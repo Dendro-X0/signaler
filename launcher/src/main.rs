@@ -435,8 +435,16 @@ fn main() -> ExitCode {
                     if cmd_args.json {
                         match build_engine_resolution_report(&manifest_info) {
                             Ok(report) => {
-                                println!("{}", serde_json::to_string_pretty(&report)?);
-                                return ExitCode::SUCCESS;
+                                match serde_json::to_string_pretty(&report) {
+                                    Ok(json) => {
+                                        println!("{json}");
+                                        return ExitCode::SUCCESS;
+                                    }
+                                    Err(err) => {
+                                        eprintln!("engine failed: {err}");
+                                        return ExitCode::from(1);
+                                    }
+                                }
                             }
                             Err(err) => {
                                 eprintln!("engine failed: {err}");
@@ -451,8 +459,16 @@ fn main() -> ExitCode {
                     if cmd_args.json {
                         match build_engine_resolution_report(&manifest_info) {
                             Ok(report) => {
-                                println!("{}", serde_json::to_string_pretty(&report)?);
-                                ExitCode::SUCCESS
+                                match serde_json::to_string_pretty(&report) {
+                                    Ok(json) => {
+                                        println!("{json}");
+                                        ExitCode::SUCCESS
+                                    }
+                                    Err(err) => {
+                                        eprintln!("engine failed: {err}");
+                                        ExitCode::from(1)
+                                    }
+                                }
                             }
                             Err(err) => {
                                 eprintln!("engine failed: {err}");

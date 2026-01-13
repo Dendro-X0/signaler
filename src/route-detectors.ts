@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import type { Dirent } from "node:fs";
-import { pathExists, readTextFile } from "./fs-utils.js";
+import { pathExists, readTextFile } from "./infrastructure/filesystem/utils.js";
 
 export type RouteDetectorId =
   | "next-app"

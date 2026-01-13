@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import prompts, { type PromptObject } from "prompts";
 import { detectRoutes, type DetectedRoute } from "./route-detectors.js";
-import { pathExists } from "./fs-utils.js";
-import type { ApexConfig, ApexDevice, ApexPageConfig } from "./types.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
+import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
 import { runAuditCli } from "./cli.js";
 
 interface QuickstartArgs {

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { loadConfig } from "./config.js";
-import type { ApexConfig, ApexDevice } from "./types.js";
+import { loadConfig } from "./core/config.js";
+import type { ApexConfig, ApexDevice } from "./core/types.js";
 import { runMeasureCli } from "./measure-cli.js";
 import { runHeadersCli } from "./headers-cli.js";
 import { runLinksCli } from "./links-cli.js";

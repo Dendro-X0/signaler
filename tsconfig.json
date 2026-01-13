@@ -14,7 +14,19 @@
     "baseUrl": ".",
     "paths": {
       "./webhooks.js": ["./src/webhooks.ts"],
-      "./quick-cli.js": ["./src/quick-cli.ts"]
+      "./quick-cli.js": ["./src/quick-cli.ts"],
+      "@signaler/core": ["./src/core/index.ts"],
+      "@signaler/core/*": ["./src/core/*"],
+      "@signaler/cli": ["./src/cli/index.ts"],
+      "@signaler/cli/*": ["./src/cli/*"],
+      "@signaler/runners": ["./src/runners/index.ts"],
+      "@signaler/runners/*": ["./src/runners/*"],
+      "@signaler/reporting": ["./src/reporting/index.ts"],
+      "@signaler/reporting/*": ["./src/reporting/*"],
+      "@signaler/infrastructure": ["./src/infrastructure/index.ts"],
+      "@signaler/infrastructure/*": ["./src/infrastructure/*"],
+      "@signaler/ui": ["./src/ui/index.ts"],
+      "@signaler/ui/*": ["./src/ui/*"]
     }
   },
   "include": ["src"]

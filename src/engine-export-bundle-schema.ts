@@ -1,4 +1,4 @@
-import type { ApexDevice, MetricValues, RunMeta, RunSummary } from "./types.js";
+import type { ApexDevice, MetricValues, RunMeta, RunSummary } from "./core/types.js";
 
 type EngineExportBundleMeta = Omit<RunMeta, "configPath"> & {
   readonly configFileName: string;

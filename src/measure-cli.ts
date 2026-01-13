@@ -1,16 +1,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
-import type { ApexConfig, ApexDevice } from "./types.js";
-import { loadConfig } from "./config.js";
-import { runMeasureForConfig } from "./measure-runner.js";
-import type { MeasureSummary } from "./measure-types.js";
-import { isSpinnerActive, stopSpinner, updateSpinnerMessage } from "./spinner.js";
+import type { ApexConfig, ApexDevice } from "./core/types.js";
+import { loadConfig } from "./core/config.js";
+import { runMeasureForConfig } from "./runners/measure/runner.js";
+import type { MeasureSummary } from "./runners/measure/types.js";
+import { isSpinnerActive, stopSpinner, updateSpinnerMessage } from "./ui/components/progress.js";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
-import { renderPanel } from "./ui/render-panel.js";
-import { renderTable } from "./ui/render-table.js";
-import { UiTheme } from "./ui/ui-theme.js";
+import { renderPanel } from "./ui/components/panel.js";
+import { renderTable } from "./ui/components/table.js";
+import { UiTheme } from "./ui/themes/theme.js";
 
 type DeviceFilterFlag = "mobile" | "desktop";
 

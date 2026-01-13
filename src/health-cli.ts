@@ -2,13 +2,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { resolve } from "node:path";
-import type { ApexConfig } from "./types.js";
-import { loadConfig } from "./config.js";
+import type { ApexConfig } from "./core/types.js";
+import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
-import { renderPanel } from "./ui/render-panel.js";
-import { renderTable } from "./ui/render-table.js";
-import { UiTheme } from "./ui/ui-theme.js";
-import { stopSpinner } from "./spinner.js";
+import { renderPanel } from "./ui/components/panel.js";
+import { renderTable } from "./ui/components/table.js";
+import { UiTheme } from "./ui/themes/theme.js";
+import { stopSpinner } from "./ui/components/progress.js";
 
 type HealthArgs = {
   readonly configPath: string;

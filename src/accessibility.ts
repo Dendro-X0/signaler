@@ -2,7 +2,7 @@ import { request as httpRequest } from "node:http";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexConfig, ApexDevice } from "./types.js";
+import type { ApexConfig, ApexDevice } from "./core/types.js";
 import { createAxeScript } from "./axe-script.js";
 import { CdpClient } from "./cdp-client.js";
 import { buildUrl } from "./url.js";

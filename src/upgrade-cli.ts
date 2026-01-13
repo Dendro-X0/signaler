@@ -1,9 +1,9 @@
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { request } from "node:https";
+import { DownloadManager, type DownloadResult } from "./infrastructure/network/download.js";
 
 type UpgradeArgs = {
   readonly repo: string;
@@ -112,29 +112,45 @@ function pickPortableAsset(release: GitHubRelease): GitHubAsset {
 }
 
 function downloadToFile(params: { readonly url: string; readonly destPath: string }): Promise<void> {
-  return new Promise<void>((resolveDownload, rejectDownload) => {
-    const file = createWriteStream(params.destPath);
-    const req = request(params.url, { headers: { "User-Agent": "signaler" } }, (res) => {
-      if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
-        rejectDownload(new Error(`Download failed: ${res.statusCode ?? "unknown"}`));
-        res.resume();
+  return new Promise<void>(async (resolveDownload, rejectDownload) => {
+    try {
+      const downloadManager = new DownloadManager({
+        maxRetries: 3,
+        retryDelay: 1000,
+        timeout: 60000, // 60 second timeout for large files
+        userAgent: "signaler-upgrade",
+      });
+
+      // Validate source URL
+      const isValidSource = await downloadManager.validateSource(params.url);
+      if (!isValidSource) {
+        rejectDownload(new Error(`Invalid or untrusted download source: ${params.url}`));
         return;
       }
-      res.pipe(file);
-      file.on("finish", () => {
-        file.close();
-        resolveDownload();
+
+      // Add progress tracking
+      downloadManager.on('progress', (progress) => {
+        if (progress.percentage !== undefined) {
+          process.stdout.write(`\rDownloading: ${Math.round(progress.percentage)}%`);
+        }
       });
-    });
-    req.on("error", (err: unknown) => {
-      file.close();
-      rejectDownload(err);
-    });
-    file.on("error", (err: unknown) => {
-      file.close();
-      rejectDownload(err);
-    });
-    req.end();
+
+      downloadManager.on('retry', (event) => {
+        process.stdout.write(`\nRetry attempt ${event.attempt}/${event.maxRetries} (${event.error})\n`);
+      });
+
+      const result: DownloadResult = await downloadManager.downloadWithRetry(params.url, params.destPath);
+      
+      if (!result.success) {
+        rejectDownload(new Error(result.error || 'Download failed'));
+        return;
+      }
+
+      process.stdout.write('\n'); // New line after progress
+      resolveDownload();
+    } catch (error) {
+      rejectDownload(error);
+    }
   });
 }
 

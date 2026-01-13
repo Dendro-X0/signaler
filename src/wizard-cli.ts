@@ -4,9 +4,9 @@ import { join, resolve } from "node:path";
 import prompts, { type PromptObject } from "prompts";
 import { detectRoutes, type DetectedRoute, type RouteDetectorId } from "./route-detectors.js";
 import { discoverRuntimeRoutes } from "./sitemap-discovery.js";
-import { pathExists } from "./fs-utils.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
 import { discoverNextProjects, type DiscoveredProject } from "./project-discovery.js";
-import type { ApexConfig, ApexDevice, ApexPageConfig } from "./types.js";
+import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
 
 interface WizardArgs {
   readonly configPath: string;

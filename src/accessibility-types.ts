@@ -1,4 +1,4 @@
-import type { ApexDevice } from "./types.js";
+import type { ApexDevice } from "./core/types.js";
 
 export type AxeViolation = {
   readonly id: string;

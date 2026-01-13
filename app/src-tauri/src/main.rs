@@ -103,7 +103,10 @@ async fn start_run(
     args.push("--config".to_string());
     args.push(config_path);
   }
-  let sidecar = app.shell().sidecar("signaler").map_err(|e| e.to_string())?;
+  let sidecar = app
+    .shell()
+    .sidecar("binaries/signaler")
+    .map_err(|e| e.to_string())?;
   let (mut rx, child) = sidecar.args(args).spawn().map_err(|e| e.to_string())?;
   *child_guard = Some(child);
   let app_clone = app.clone();

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pathExists } from "./fs-utils.js";
-import { UiTheme } from "./ui/ui-theme.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
+import { UiTheme } from "./ui/themes/theme.js";
 
 type PackageManagerId = "pnpm" | "yarn" | "npm" | "bun" | "deno" | "unknown";
 

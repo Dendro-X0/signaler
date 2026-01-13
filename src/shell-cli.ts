@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import readline from "node:readline";
-import type { ApexDevice, PageDeviceSummary, RunSummary } from "./types.js";
+import type { ApexDevice, PageDeviceSummary, RunSummary } from "./core/types.js";
 import { runAuditCli } from "./cli.js";
 import { runBundleCli } from "./bundle-cli.js";
 import { runConsoleCli } from "./console-cli.js";
@@ -14,13 +14,13 @@ import { runMeasureCli } from "./measure-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
-import { loadConfig } from "./config.js";
+import { loadConfig } from "./core/config.js";
 import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
-import { pathExists } from "./fs-utils.js";
-import { renderPanel } from "./ui/render-panel.js";
-import { renderTable } from "./ui/render-table.js";
-import { startSpinner, stopSpinner, updateSpinnerMessage } from "./spinner.js";
-import { UiTheme } from "./ui/ui-theme.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
+import { renderPanel } from "./ui/components/panel.js";
+import { renderTable } from "./ui/components/table.js";
+import { startSpinner, stopSpinner, updateSpinnerMessage } from "./ui/components/progress.js";
+import { UiTheme } from "./ui/themes/theme.js";
 
 type PresetId = "default" | "overview" | "quick" | "accurate" | "devtools-accurate" | "fast";
 

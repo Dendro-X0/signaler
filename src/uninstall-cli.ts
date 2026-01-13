@@ -2,7 +2,7 @@ import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import readline from "node:readline";
 
-import { pathExists } from "./fs-utils.js";
+import { pathExists } from "./infrastructure/filesystem/utils.js";
 
 type PackageManagerId = "pnpm" | "npm" | "yarn" | "bun";
 
