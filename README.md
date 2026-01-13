@@ -16,33 +16,61 @@ The docs in this repo (`README.md` + `docs/`) focus on:
 
 ## Quick start
 
-1. Install from the Git repo (registry-free):
+### 1. Install (Single Command)
 
-Windows (PowerShell):
-
+**Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+iwr https://github.com/Dendro-X0/signaler/releases/latest/download/install.ps1 | iex
 ```
 
-macOS/Linux:
-
+**macOS/Linux/Unix:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+curl -fsSL https://github.com/Dendro-X0/signaler/releases/latest/download/install.sh | bash
 ```
 
-2. Create a config:
+**Manual Installation:**
+- Download the latest `signaler-*-portable.zip` from [GitHub Releases](https://github.com/Dendro-X0/signaler/releases)
+- Extract and run `./release-assets/install.sh` (Unix) or `./release-assets/install.ps1` (Windows)
+
+**Troubleshooting Installation:**
+
+If the single-command installation fails:
+
+1. **Windows PowerShell Issues:**
+   - Ensure you're running PowerShell (not Command Prompt)
+   - Try running as Administrator if you get permission errors
+   - If you get encoding errors, try: `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` first
+   - Alternative: Download the portable zip manually and run `release-assets\install.ps1`
+
+2. **Unix/Linux/macOS Issues:**
+   - Ensure you have `curl` and `unzip` installed
+   - Check that you have write permissions to `~/.local/share/signaler`
+   - Try the manual installation if the script fails
+
+3. **Node.js Requirement:**
+   - Signaler requires Node.js 18+ to be installed
+   - Check with: `node --version`
+   - Install from [nodejs.org](https://nodejs.org/) if needed
+
+4. **PATH Issues:**
+   - After installation, restart your terminal
+   - If `signaler` command not found, add the bin directory to your PATH manually
+   - Windows: `%LOCALAPPDATA%\signaler\bin`
+   - Unix: `~/.local/share/signaler/bin`
+
+### 2. Create a config:
 
 ```bash
 signaler wizard
 ```
 
-3. Run an audit (URL/config mode):
+### 3. Run an audit (URL/config mode):
 
 ```bash
 signaler audit --config apex.config.json
 ```
 
-4. Run folder mode (static build output):
+### 4. Run folder mode (static build output):
 
 ```bash
 signaler folder --root ./dist
