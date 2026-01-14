@@ -92,7 +92,7 @@ describe("DownloadManager", () => {
         progressEvents.push(progress);
       });
 
-      const testContent = "x".repeat(5000); // Medium-sized content
+      const testContent = "x".repeat(50000); // Larger content to ensure progress events
       
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
@@ -101,14 +101,14 @@ describe("DownloadManager", () => {
           'Content-Length': Buffer.byteLength(testContent).toString(),
         });
         
-        // Send content in chunks to trigger progress events
-        const chunks = testContent.match(/.{1,500}/g) || [];
+        // Send content in chunks with delays to trigger progress events
+        const chunks = testContent.match(/.{1,5000}/g) || [];
         let i = 0;
         const sendChunk = () => {
           if (i < chunks.length) {
             res.write(chunks[i]);
             i++;
-            setTimeout(sendChunk, 10); // Small delay to ensure progress events
+            setTimeout(sendChunk, 150); // Longer delay to ensure progress events are emitted
           } else {
             res.end();
           }
@@ -132,7 +132,7 @@ describe("DownloadManager", () => {
       }
 
       // Final result should have correct total bytes
-      expect(result.bytesDownloaded).toBe(5000);
+      expect(result.bytesDownloaded).toBe(50000);
       
       // Progress events should show reasonable progression
       const finalProgress = progressEvents[progressEvents.length - 1];
