@@ -5,7 +5,7 @@ PKG_VER="$(node -p "require('./package.json').version")"
 ZIP_BASENAME="${CLI_NAME}-${PKG_VER}-portable"
 ZIP_DIR="release/${ZIP_BASENAME}"
 mkdir -p "${ZIP_DIR}"
-cp -R dist-simplified "${ZIP_DIR}/dist"
+cp -R dist "${ZIP_DIR}/dist"
 # Install production dependencies in the zip directory
 cd "${ZIP_DIR}"
 pnpm install --prod --no-lockfile
