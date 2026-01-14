@@ -1,4 +1,4 @@
-name: Build Standalone Binaries
+name: Build Portable Packages
 
 on:
   push:
@@ -18,20 +18,16 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
-            target: node18-linux-x64
-            artifact: signaler-linux-x64
+            artifact: signaler-portable-linux-x64.tar.gz
           - os: macos-latest
             platform: macos-x64
-            target: node18-macos-x64
-            artifact: signaler-macos-x64
+            artifact: signaler-portable-macos-x64.tar.gz
           - os: macos-latest
             platform: macos-arm64
-            target: node18-macos-arm64
-            artifact: signaler-macos-arm64
+            artifact: signaler-portable-macos-arm64.tar.gz
           - os: windows-latest
             platform: windows-x64
-            target: node18-win-x64
-            artifact: signaler-windows-x64.exe
+            artifact: signaler-portable-windows-x64.zip
 
     steps:
       - name: Checkout
@@ -53,11 +49,17 @@ jobs:
       - name: Build TypeScript
         run: pnpm build
 
-      - name: Install pkg
-        run: pnpm add -g pkg
+      - name: Create portable package
+        shell: bash
+        run: bash scripts/build-portable-package.sh
 
-      - name: Build standalone executable
-        run: pkg dist/bin.js --targets ${{ matrix.target }} --output ${{ matrix.artifact }}
+      - name: Create archive (Unix)
+        if: runner.os != 'Windows'
+        run: tar -czf ${{ matrix.artifact }} portable-package/
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path portable-package -DestinationPath ${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -101,38 +103,63 @@ jobs:
 
             ### Windows
             ```powershell
-            iwr https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-windows-x64.exe -OutFile signaler.exe
-            .\signaler.exe --help
+            # Download and extract
+            iwr https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-portable-windows-x64.zip -OutFile signaler.zip
+            Expand-Archive signaler.zip -DestinationPath signaler-portable
+            cd signaler-portable\portable-package
+            
+            # Run
+            .\signaler.cmd wizard
             ```
 
             ### macOS (Intel)
             ```bash
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-macos-x64 -o signaler
+            # Download and extract
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-portable-macos-x64.tar.gz -o signaler.tar.gz
+            tar -xzf signaler.tar.gz
+            cd portable-package
             chmod +x signaler
-            ./signaler --help
+            
+            # Run
+            ./signaler wizard
             ```
 
             ### macOS (Apple Silicon)
             ```bash
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-macos-arm64 -o signaler
+            # Download and extract
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-portable-macos-arm64.tar.gz -o signaler.tar.gz
+            tar -xzf signaler.tar.gz
+            cd portable-package
             chmod +x signaler
-            ./signaler --help
+            
+            # Run
+            ./signaler wizard
             ```
 
             ### Linux
             ```bash
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-linux-x64 -o signaler
+            # Download and extract
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signaler-portable-linux-x64.tar.gz -o signaler.tar.gz
+            tar -xzf signaler.tar.gz
+            cd portable-package
             chmod +x signaler
-            ./signaler --help
+            
+            # Run
+            ./signaler wizard
             ```
+
+            ## Requirements
+
+            **Node.js 18+** must be installed on your system.
+            - Download from: https://nodejs.org/
 
             ## Features
 
-            These are **standalone executables** that include everything needed to run:
-            - ✅ No Node.js required
-            - ✅ No npm required
-            - ✅ No dependencies
-            - ✅ Just download and run
+            These are **portable packages** that include everything except Node.js:
+            - ✅ All compiled code
+            - ✅ All dependencies
+            - ✅ Wrapper scripts
+            - ⚠️ Requires Node.js 18+ on target machine
 
             ## Usage
 

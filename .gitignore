@@ -34,4 +34,5 @@ Thumbs.db
 .npmrc
 
 # Rust build artifacts
-launcher/target/
+launcher/target/signaler-pkg.exe
+portable-package/
