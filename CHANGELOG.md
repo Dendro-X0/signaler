@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.6 - 2026-01-13
+## 1.0.6 - 2026-01-14
 
 ### 🎯 Major Changes
 
@@ -9,6 +9,8 @@
 **Package Manager Migration**: Migrated from npm to pnpm throughout codebase for consistency with web projects and to avoid lock file conflicts.
 
 **Repository Cleanup**: Removed redundant simplified version files, test artifacts, and release artifacts from git tracking. Cleaned up duplicate configurations and documentation.
+
+**Standalone Binary Distribution**: Implemented npm-free distribution system using Bun standalone executables. No Node.js, no npm, no dependencies required!
 
 ### ✨ Added
 
@@ -21,6 +23,9 @@
 - **Incremental Caching**: Faster re-runs with `incremental: true` and `buildId` configuration
 - **Parallel Execution**: Auto-tuned worker count based on CPU/memory with manual override support
 - **Missing Dependencies**: Added prompts, enquirer, axe-core, open, ws, ansi-colors for full functionality
+- **Standalone Binaries**: GitHub Actions workflow to build Bun standalone executables for Windows, macOS (Intel/ARM), and Linux
+- **One-Line Installers**: Simple `install.sh` and `install.ps1` scripts that download pre-built binaries from GitHub Releases
+- **Distribution Documentation**: Comprehensive guides (INSTALL.md, INSTALL-WINDOWS.md, DISTRIBUTION-STRATEGY.md, RELEASE-PROCESS.md)
 
 ### 🔄 Changed
 
