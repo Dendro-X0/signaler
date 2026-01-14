@@ -16,29 +16,29 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### 1. Install
 
-**Via pnpm (recommended):**
+**Local Installation from Repository:**
+
+Since Signaler is not published to npm registry, install it directly from the repository:
+
 ```bash
-pnpm install -g @auditorix/signaler
+# Clone the repository
+git clone https://github.com/Dendro-X0/signaler.git
+cd signaler
+
+# Install dependencies and build
+pnpm install
+pnpm build
+
+# Link globally to make 'signaler' command available
+pnpm link --global
 ```
 
-**Or via npm:**
+After installation, verify it works:
 ```bash
-npm install -g @auditorix/signaler
+signaler --help
 ```
 
-**Registry-free installation (requires GitHub Release):**
-
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
-```
-
-**macOS/Linux:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-```
-
-> **Note:** Registry-free installation requires a published GitHub Release with portable binaries. Use pnpm/npm installation for the latest version.
+> **See [INSTALL.md](INSTALL.md) for detailed installation instructions, alternative methods, and troubleshooting.**
 
 ### 2. Initialize Configuration
 
@@ -160,7 +160,6 @@ signaler audit --focus-worst 10    # Re-audit worst 10 pages
 signaler measure                   # Fast CDP metrics
 signaler bundle                    # Build output analysis
 signaler health                    # HTTP health checks
-signaler upgrade                   # Self-update from GitHub
 ```
 
 ## CI/CD Integration
@@ -251,17 +250,23 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 
 ## Documentation
 
+- **[Installation Guide](INSTALL.md)** - Detailed installation instructions and troubleshooting
 - **[Getting Started](docs/getting-started.md)** - Installation and first run
 - **[CLI & CI](docs/cli-and-ci.md)** - Command reference and CI integration
 - **[Configuration](docs/configuration-and-routes.md)** - Config file format and options
 
-## Upgrade
+## Updating
 
-Self-upgrade to latest version:
+To update to the latest version:
 
 ```bash
-signaler upgrade
+cd signaler
+git pull origin main
+pnpm install
+pnpm build
 ```
+
+If you used `pnpm link --global`, the global command will automatically use the updated version.
 
 ## License
 
