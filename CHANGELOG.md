@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### 🔧 Fixed
+
+**Binary Compilation**: Switched from Bun to `pkg` for standalone executable compilation. Bun's bundler had path resolution issues with Lighthouse dependencies (locale files), causing runtime errors. `pkg` properly handles complex Node.js dependencies and creates working standalone executables.
+
+### 📝 Documentation
+
+- Added `BUN-COMPILATION-ISSUE.md` explaining the Bun compilation problem and solution
+- Updated GitHub Actions workflow to use `pkg` instead of Bun
+- Added build scripts for `pkg` and portable packages
+- Updated `DISTRIBUTION-STRATEGY.md` with pkg approach
+
 ## 1.0.6 - 2026-01-14
 
 ### 🎯 Major Changes
@@ -10,7 +23,7 @@
 
 **Repository Cleanup**: Removed redundant simplified version files, test artifacts, and release artifacts from git tracking. Cleaned up duplicate configurations and documentation.
 
-**Standalone Binary Distribution**: Implemented npm-free distribution system using Bun standalone executables. No Node.js, no npm, no dependencies required!
+**Standalone Binary Distribution**: Implemented npm-free distribution system using standalone executables. No Node.js, no npm, no dependencies required!
 
 ### ✨ Added
 
@@ -23,7 +36,7 @@
 - **Incremental Caching**: Faster re-runs with `incremental: true` and `buildId` configuration
 - **Parallel Execution**: Auto-tuned worker count based on CPU/memory with manual override support
 - **Missing Dependencies**: Added prompts, enquirer, axe-core, open, ws, ansi-colors for full functionality
-- **Standalone Binaries**: GitHub Actions workflow to build Bun standalone executables for Windows, macOS (Intel/ARM), and Linux
+- **Standalone Binaries**: GitHub Actions workflow to build standalone executables for Windows, macOS (Intel/ARM), and Linux
 - **One-Line Installers**: Simple `install.sh` and `install.ps1` scripts that download pre-built binaries from GitHub Releases
 - **Distribution Documentation**: Comprehensive guides (INSTALL.md, INSTALL-WINDOWS.md, DISTRIBUTION-STRATEGY.md, RELEASE-PROCESS.md)
 

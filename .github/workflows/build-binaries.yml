@@ -18,38 +18,46 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
-            target: bun-linux-x64
+            target: node18-linux-x64
             artifact: signaler-linux-x64
           - os: macos-latest
             platform: macos-x64
-            target: bun-darwin-x64
+            target: node18-macos-x64
             artifact: signaler-macos-x64
           - os: macos-latest
             platform: macos-arm64
-            target: bun-darwin-arm64
+            target: node18-macos-arm64
             artifact: signaler-macos-arm64
           - os: windows-latest
             platform: windows-x64
-            target: bun-windows-x64
+            target: node18-win-x64
             artifact: signaler-windows-x64.exe
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
 
       - name: Install dependencies
-        run: bun install
+        run: pnpm install
 
       - name: Build TypeScript
-        run: bun run build
+        run: pnpm build
+
+      - name: Install pkg
+        run: pnpm add -g pkg
 
       - name: Build standalone executable
-        run: bun build ./dist/bin.js --compile --target=${{ matrix.target }} --outfile ${{ matrix.artifact }}
+        run: pkg dist/bin.js --targets ${{ matrix.target }} --output ${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

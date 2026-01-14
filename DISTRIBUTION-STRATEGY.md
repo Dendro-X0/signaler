@@ -118,9 +118,11 @@ Not ideal for CLI tools, but works everywhere.
 
 ## Recommended Implementation Plan
 
-### Phase 1: Bun Standalone Executables (IMMEDIATE)
+### Phase 1: pkg Standalone Executables (CURRENT)
 
-1. Install Bun in GitHub Actions
+**UPDATE:** We switched from Bun to `pkg` due to path resolution issues with Lighthouse dependencies.
+
+1. Install pkg in GitHub Actions
 2. Build standalone executables for:
    - Windows x64
    - Linux x64
@@ -133,12 +135,16 @@ Not ideal for CLI tools, but works everywhere.
 - True standalone executables
 - No Node.js required
 - No npm required
-- One command download
-- ~90MB per platform (acceptable)
+- Handles complex dependencies (Lighthouse, Chrome Launcher)
+- Battle-tested with Node.js apps
+- ~80-100MB per platform (acceptable)
 
 **Cons:**
 - Larger file size than npm package
 - Requires GitHub Actions setup
+
+**Why not Bun?**
+Bun's compilation fails with Lighthouse because it tries to access locale files at runtime using paths that don't exist in the bundled executable (`B:\-BUN\root/locales/`). See [BUN-COMPILATION-ISSUE.md](BUN-COMPILATION-ISSUE.md) for details.
 
 ### Phase 2: Package Managers (OPTIONAL)
 
