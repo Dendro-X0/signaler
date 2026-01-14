@@ -2,58 +2,105 @@
 
 Signaler is not published to npm registry. You can install it using one of these methods:
 
-## Method 1: One-Line Installer (Recommended)
+## Method 1: One-Line Installer (Recommended) ⭐
 
-This method downloads, builds, and installs Signaler automatically.
+This method downloads a pre-built standalone executable from GitHub Releases. **No Node.js, no npm, no dependencies required!**
 
 ### Unix/Linux/macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
 ```
 
 Or with custom install location:
 ```bash
-SIGNALER_INSTALL_DIR=~/bin/signaler curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
+INSTALL_DIR=~/bin curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
 ```
 
-> **Note:** If you get a PowerShell execution policy error, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for a simple manual installation method that doesn't require changing execution policies.
+> **Note:** If you get a PowerShell execution policy error, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for a simple manual installation method.
 
 Or with custom install location:
 ```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 -OutFile install.ps1
-.\install.ps1 -InstallDir "C:\signaler"
+$env:SIGNALER_INSTALL_DIR="C:\signaler"; iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
 ```
 
 ### After Installation
 
 Restart your terminal and run:
 ```bash
-signaler-cli wizard
-signaler-cli audit
+signaler wizard
+signaler audit
 ```
 
 Or use the full path:
 ```bash
 # Unix/Linux/macOS
-~/.local/bin/signaler/signaler doctor
+~/.local/bin/signaler wizard
 
 # Windows
-%LOCALAPPDATA%\signaler\signaler.exe doctor
+%LOCALAPPDATA%\signaler\signaler.exe wizard
 ```
 
-## Method 2: Manual Installation
+### What Gets Installed
+
+- A single standalone executable (~90MB)
+- Includes Bun runtime + all dependencies
+- No Node.js required
+- No npm required
+- Just download and run!
+
+## Method 2: Direct Download (Manual)
+
+Download the pre-built binary directly from GitHub Releases:
+
+### Windows
+```powershell
+iwr https://github.com/Dendro-X0/signaler/releases/latest/download/signaler-windows-x64.exe -OutFile signaler.exe
+.\signaler.exe --help
+```
+
+### macOS (Intel)
+```bash
+curl -L https://github.com/Dendro-X0/signaler/releases/latest/download/signaler-macos-x64 -o signaler
+chmod +x signaler
+./signaler --help
+```
+
+### macOS (Apple Silicon)
+```bash
+curl -L https://github.com/Dendro-X0/signaler/releases/latest/download/signaler-macos-arm64 -o signaler
+chmod +x signaler
+./signaler --help
+```
+
+### Linux
+```bash
+curl -L https://github.com/Dendro-X0/signaler/releases/latest/download/signaler-linux-x64 -o signaler
+chmod +x signaler
+./signaler --help
+```
+
+Then move the binary to a directory in your PATH:
+```bash
+# Unix/Linux/macOS
+sudo mv signaler /usr/local/bin/
+
+# Windows (as Administrator)
+move signaler.exe C:\Windows\System32\
+```
+
+## Method 3: Build from Source
 
 ### Prerequisites
 - Node.js 18+ installed
 - Git installed
-- (Optional) Rust/Cargo for faster launcher
+- pnpm installed (`npm install -g pnpm`)
 
 ### Steps
 
@@ -66,61 +113,39 @@ cd signaler
 2. **Install dependencies:**
 ```bash
 pnpm install
-# or: npm install
 ```
 
 3. **Build the project:**
 ```bash
 pnpm build
-# or: npm run build
 ```
 
-4. **Build Rust launcher (optional but recommended):**
+4. **Run directly:**
 ```bash
-cd launcher
-cargo build --release
-cd ..
-```
-
-5. **Run directly:**
-```bash
-# With Rust launcher
-./launcher/target/release/signaler engine run wizard
-
-# Without Rust launcher
 node dist/bin.js wizard
+node dist/bin.js audit
 ```
 
 ### Add to PATH (Optional)
 
+Create a wrapper script and add to PATH:
+
 **Unix/Linux/macOS:**
-Add to `~/.bashrc` or `~/.zshrc`:
 ```bash
-export PATH="/path/to/signaler/launcher/target/release:$PATH"
-alias signaler='signaler engine run'
+echo '#!/bin/bash' > ~/bin/signaler
+echo 'node /path/to/signaler/dist/bin.js "$@"' >> ~/bin/signaler
+chmod +x ~/bin/signaler
 ```
 
 **Windows:**
-Add `C:\path\to\signaler\launcher\target\release` to your PATH environment variable.
-
-## Method 3: Standalone Package
-
-Build a portable package that can be copied to any machine:
-
-```bash
-cd signaler
-./scripts/create-standalone.sh
+Create `signaler.bat`:
+```batch
+@echo off
+node C:\path\to\signaler\dist\bin.js %*
 ```
+Add the directory containing `signaler.bat` to your PATH.
 
-This creates `standalone-dist/signaler-standalone.zip` containing:
-- Rust launcher binary
-- Node.js engine (dist/)
-- All dependencies (node_modules/)
-- Helper scripts
-
-Extract the zip and add the folder to your PATH.
-
-## Method 4: Run Directly (No Installation)
+## Method 4: Run from Source (No Installation)
 
 If you don't want to install, run directly from the repository:
 
@@ -143,14 +168,14 @@ node dist/bin.js audit
 Make sure you've run `pnpm install` and `pnpm build` in the signaler directory.
 
 ### "signaler: command not found" after installation
-- Restart your terminal
-- Check that the install directory is in your PATH
-- Use the full path to the binary
+- Restart your terminal (required for PATH changes to take effect)
+- Check that the install directory is in your PATH: `echo $PATH` (Unix) or `echo %PATH%` (Windows)
+- Use the full path to the binary: `~/.local/bin/signaler` (Unix) or `%LOCALAPPDATA%\signaler\signaler.exe` (Windows)
 
 ### Permission errors on Unix/Linux/macOS
-You may need to make the bin file executable:
+The binary should be executable after installation. If not:
 ```bash
-chmod +x ~/.local/bin/signaler/signaler
+chmod +x ~/.local/bin/signaler
 ```
 
 ### Node.js version errors
@@ -164,15 +189,24 @@ node --version
 To update to the latest version:
 
 ### If installed via one-line installer
-Run the installer again - it will replace the old version.
+Run the installer again - it will download and replace the old version:
+```bash
+# Unix/Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
 
-### If manually installed
+# Windows
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
+```
+
+### If manually downloaded
+Download the latest binary from GitHub Releases and replace the old one.
+
+### If built from source
 ```bash
 cd signaler
 git pull origin main
 pnpm install
 pnpm build
-cd launcher && cargo build --release && cd ..
 ```
 
 ## Uninstalling
@@ -181,18 +215,21 @@ cd launcher && cargo build --release && cd ..
 
 **Unix/Linux/macOS:**
 ```bash
-rm -rf ~/.local/bin/signaler
-# Remove from PATH in ~/.bashrc or ~/.zshrc
+rm ~/.local/bin/signaler
+# If you manually edited PATH, remove the entry from ~/.bashrc or ~/.zshrc
 ```
 
 **Windows:**
 ```powershell
 Remove-Item -Recurse -Force $env:LOCALAPPDATA\signaler
-# Remove from PATH in Environment Variables
+# Remove from PATH in Environment Variables (if added)
 ```
 
-### If manually installed
-Simply delete the cloned repository directory.
+### If manually downloaded
+Simply delete the binary file.
+
+### If built from source
+Delete the cloned repository directory.
 
 ## Development
 

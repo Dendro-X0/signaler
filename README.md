@@ -20,20 +20,22 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 **Unix/Linux/macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
 ```
 
-> **Windows users:** If you get execution policy errors, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for a simple manual installation.
+This downloads a pre-built standalone executable from GitHub Releases. No Node.js, no npm, no dependencies required!
+
+> **Windows users:** If you get execution policy errors, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for manual installation.
 
 After installation, restart your terminal and run:
 ```bash
-signaler-cli wizard
-signaler-cli audit
+signaler wizard
+signaler audit
 ```
 
 > **See [INSTALL.md](INSTALL.md) for detailed installation instructions, manual installation, and troubleshooting.**
