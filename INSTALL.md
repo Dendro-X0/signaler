@@ -20,8 +20,10 @@ SIGNALER_INSTALL_DIR=~/bin/signaler curl -fsSL https://raw.githubusercontent.com
 ### Windows (PowerShell)
 
 ```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
 ```
+
+> **Note:** If you get a PowerShell execution policy error, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for a simple manual installation method that doesn't require changing execution policies.
 
 Or with custom install location:
 ```powershell

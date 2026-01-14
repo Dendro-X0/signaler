@@ -25,8 +25,10 @@ curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/ins
 
 **Windows (PowerShell):**
 ```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
 ```
+
+> **Windows users:** If you get execution policy errors, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for a simple manual installation.
 
 After installation, restart your terminal and run:
 ```bash
