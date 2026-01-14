@@ -1,0 +1,10 @@
+{
+  "baseUrl": "https://example.com",
+  "pages": [
+    { "path": "/", "label": "Home" }
+  ],
+  "options": {
+    "device": "mobile",
+    "parallel": 1
+  }
+}

@@ -1,411 +1,265 @@
 # Signaler
 
-Signaler (formerly ApexAuditor) helps web teams move from noisy Lighthouse runs to structured, actionable insight.
+**A comprehensive web performance auditing tool for batch Lighthouse audits with automatic route detection and intelligent reporting.**
 
-This repository contains the **remastered** Signaler distribution:
+Signaler is designed for teams who need to audit dozens or hundreds of pages efficiently. It combines automatic framework detection, intelligent route discovery, and batch execution to provide actionable performance insights at scale.
 
-- **Engine (Node.js/TypeScript)**: the audit/measure logic and artifact writers.
-- **Launcher (Rust)**: a small orchestrator that resolves/runs the engine in a distribution-friendly way.
-- **App (Tauri v2 + SvelteKit)**: optional desktop UI that runs the launcher as a sidecar.
+## Why Signaler?
 
-The docs in this repo (`README.md` + `docs/`) focus on:
+**🎯 Batch-First**: Audit dozens or hundreds of pages in a single run  
+**🤖 Smart Detection**: Automatically detects Next.js, Nuxt, Remix, SvelteKit, and static sites  
+**🚀 Fast**: Parallel execution with auto-tuned workers and intelligent caching  
+**🔧 Comprehensive**: Full Lighthouse audits plus bundle, health, links, headers, and console checks  
+**📊 Actionable**: Rich HTML reports, triage guides, and AI-friendly JSON outputs
 
-- Developer-first CLI flows.
-- Registry-free distribution.
-- Stable artifacts and a small engine contract for UIs.
+## Quick Start
 
-## Quick start
+### 1. Install
 
-### 1. Install (Single Command)
+Registry-free installation (recommended):
 
 **Windows (PowerShell):**
 ```powershell
-iwr https://github.com/Dendro-X0/signaler/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-**macOS/Linux/Unix:**
+**macOS/Linux:**
 ```bash
-curl -fsSL https://github.com/Dendro-X0/signaler/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-**Manual Installation:**
-- Download the latest `signaler-*-portable.zip` from [GitHub Releases](https://github.com/Dendro-X0/signaler/releases)
-- Extract and run `./release-assets/install.sh` (Unix) or `./release-assets/install.ps1` (Windows)
+**Or via pnpm:**
+```bash
+pnpm install -g @auditorix/signaler
+```
 
-**Troubleshooting Installation:**
+### 2. Initialize Configuration
 
-If the single-command installation fails:
-
-1. **Windows PowerShell Issues:**
-   - Ensure you're running PowerShell (not Command Prompt)
-   - If you get "execution policy" errors, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-   - Or use: `powershell -ExecutionPolicy Bypass -Command "iwr https://github.com/Dendro-X0/signaler/releases/latest/download/install.ps1 | iex"`
-   - Try running as Administrator if you get permission errors
-   - If you get encoding errors, try: `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` first
-   - Alternative: Download the portable zip manually and run `release-assets\install.ps1`
-
-2. **Unix/Linux/macOS Issues:**
-   - Ensure you have `curl` and `unzip` installed
-   - Check that you have write permissions to `~/.local/share/signaler`
-   - Try the manual installation if the script fails
-
-3. **Node.js Requirement:**
-   - Signaler requires Node.js 18+ to be installed
-   - Check with: `node --version`
-   - Install from [nodejs.org](https://nodejs.org/) if needed
-
-4. **PATH Issues:**
-   - After installation, restart your terminal
-   - If `signaler` command not found, add the bin directory to your PATH manually
-   - Windows: `%LOCALAPPDATA%\signaler\bin`
-   - Unix: `~/.local/share/signaler/bin`
-
-### 2. Create a config:
+Run the interactive wizard to auto-detect your project and routes:
 
 ```bash
 signaler wizard
 ```
 
-### 3. Run an audit (URL/config mode):
+The wizard will:
+- Detect your framework (Next.js, Nuxt, Remix, SvelteKit, or static HTML)
+- Auto-discover routes from your filesystem, sitemap, or robots.txt
+- Generate an `apex.config.json` configuration file
+- Optionally filter routes with include/exclude patterns
+
+### 3. Run Batch Audit
 
 ```bash
-signaler audit --config apex.config.json
+signaler audit
 ```
 
-### 4. Run folder mode (static build output):
+Or use the interactive shell for more control:
 
 ```bash
-signaler folder --root ./dist
+signaler shell
 ```
 
-Artifacts are written under `.signaler/` by default.
-
-## Architecture
-
-### Launcher vs engine
-
-- The **launcher** is the stable entrypoint for the desktop app.
-- The **engine** is treated like a bundle that can be resolved locally (and later cached/downloaded).
-
-This separation makes it possible to ship Signaler as:
-
-- A portable zip that “just runs”.
-- A desktop app that can stream progress over NDJSON.
-
-## Installation
-
-### Registry-free (recommended)
-
-No registries are required. The most reliable way to install Signaler is to run the installer script from this Git repository.
-
-This installer downloads and installs the latest tagged GitHub Release portable zip.
-
-Windows (PowerShell):
-
-```powershell
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
-```
-
-macOS/Linux:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-```
-
-After install:
-
-```bash
-signaler --help
-```
-
-Upgrade later (no registry):
-
-```bash
-signaler upgrade
-```
-
-1. Download `signaler-<version>-portable.zip` from GitHub Releases.
-2. Unzip it.
-3. Run from the unpacked folder:
-
-Windows (PowerShell):
-
-```powershell
-cmd /c ".\\release-assets\\run.cmd --help"
-```
-
-macOS/Linux:
-
-```bash
-./release-assets/run.sh --help
-```
-
-If you want to run it without changing your system PATH, keep using `run.cmd` / `run.sh` from the unpacked folder.
-
-Tip: the portable zip contains installer scripts under `release-assets/`, but global installation is not guaranteed to work in all environments.
-
-### Portable zip
-
-You can download the portable ZIP from GitHub Releases and run it without installing.
-
-### Advanced: global install (experimental)
-
-The portable zip includes installer scripts:
-
-- Windows: `release-assets\\install.ps1`
-- macOS/Linux: `release-assets/install.sh`
-
-These attempt to install a global launcher and optionally update your PATH. If they fail in your environment, use the portable zip runner (`run.cmd` / `run.sh`) instead.
-
-## Most common commands
-
-Notes:
-
-- `init` auto-detects your stack from `package.json` (Next.js, Nuxt, Remix/React Router, SvelteKit, SPA) and can scan `apps/*` or `packages/*` inside monorepos.
-- The wizard can discover routes from the filesystem plus `robots.txt`/`sitemap.xml` and lets you filter includes/excludes (default filtering may be `Yes` for large route sets).
-- Static projects are discovered via HTML files in `dist/`, `build/`, `out/`, `public/`, and `src/`.
-- When using a localhost base URL (e.g. `http://localhost:3000`), keep the dev server port in sync to avoid auditing a different project.
-
-Inside the interactive shell:
-
-- **measure**
-- **audit**
-- **bundle** (scan build output sizes; writes `.signaler/bundle-audit.json`)
-- **health** (HTTP status/latency checks; writes `.signaler/health.json`)
-- **links** (broken links crawl; writes `.signaler/links.json`)
-- **headers** (security headers check; writes `.signaler/headers.json`)
-- **console** (console errors + runtime exceptions; writes `.signaler/console.json`)
-- **open** (open the latest HTML report)
-- **open-triage** (open `.signaler/triage.md`)
-- **open-screenshots** (open `.signaler/screenshots/`)
-- **open-diagnostics** (open `.signaler/lighthouse-artifacts/diagnostics/`)
-- **open-lhr** (open `.signaler/lighthouse-artifacts/lhr/`)
-- **open-artifacts** (open `.signaler/lighthouse-artifacts/`)
-- **pages** / **routes** (print configured pages/routes from the current config)
-- **add-page** (interactive: append a page to `apex.config.json`)
-- **rm-page** (interactive: remove a page from `apex.config.json`)
-- **clear-screenshots** (remove `.signaler/screenshots/`)
-- **init** (launch config wizard)
-- **config <path>** (switch config file)
-
-Cancel long-running commands:
-
-- **Esc** (returns you to the shell prompt)
-
-## Launcher CLI (Rust)
-
-The launcher is designed to be machine-friendly and UI-friendly, and is currently used by the desktop app.
-
-Note: the registry-free installer and the portable zip runner install/run the Node.js CLI (`node dist/bin.js`). The Rust launcher is not the primary distribution entrypoint yet.
-
-- `signaler doctor`
-- `signaler engine resolve --json`
-- `signaler engine path --json`
-- `signaler run audit --json -- <engine args...>`
-- `signaler run folder --json -- <engine args...>`
-
-For UIs, the engine can emit NDJSON events with `--engine-json`.
-
-## Install & release
-
-### GitHub Release asset (recommended)
-
-Download the portable zip (no registries, no package managers):
-
-1. Download `signaler-<version>-portable.zip` from the latest GitHub Release.
-2. Unzip it.
-3. Run:
-
-Windows:
-
-```bash
-release-assets\\run.cmd audit
-```
-
-macOS/Linux:
-
-```bash
-./release-assets/run.sh audit
-```
-
-This runs `node dist/bin.js` from the unpacked folder. Ensure you have Node.js installed.
-
-### Launcher (Rust)
-
-The desktop app uses a small Rust launcher sidecar. It provides:
-
-- `signaler doctor` (environment checks)
-- `signaler run audit -- <engine args...>`
-- `signaler run folder -- <engine args...>`
-- `signaler engine resolve` (prints the engine entrypoint)
-- `signaler engine run -- <engine args...>`
-
-If you prefer installing into an existing project, you can also use the `.tgz` asset:
-
-1. Download the `signaler-<version>.tgz` asset from the latest GitHub Release.
-2. Install it:
-
-```bash
-pnpm add -D ./signaler-<version>.tgz
-```
-
-Run the CLI with the project-local binary:
-
-```bash
-pnpm exec signaler --help
-```
-
-Note: `pnpm exec signaler` runs the version installed in your current project, which may be older than the latest release; repeat the download/`pnpm add` step whenever you need a newer build.
-
-### JSR install (optional)
-
-```bash
-npx jsr add @auditorix/signaler
-```
-
-or (pnpm 10.9+/yarn 4.9+/deno):
-
-```bash
-pnpm add jsr:@auditorix/signaler
-```
-
-JSR installs the published artifact and keeps you pinned to the release version.
-
-If you want a fully registry-free workflow, prefer GitHub Releases + `install.ps1`/`install.sh` + `signaler upgrade`.
-
-## Outputs
-
-All outputs are written under `.signaler/` in your project.
-
-Start here for a human-first prioritized list:
-
-- `red-issues.md`
-
-### `audit` outputs
-
-- `summary.json`
-- `summary-lite.json`
-- `summary.md`
-- `triage.md`
-- `issues.json`
-- `ai-ledger.json`
-- `ai-fix.json` (unless `audit --no-ai-fix`)
-- `ai-fix.min.json` (unless `audit --no-ai-fix`)
-- `pwa.json`
-- `export.json` (unless `audit --no-export`)
-- `report.html`
-- `screenshots/` (when `audit --diagnostics` or `audit --lhr` is used)
-- `lighthouse-artifacts/diagnostics/` (when `audit --diagnostics` or `audit --lhr` is used)
-- `lighthouse-artifacts/diagnostics-lite/` (when `audit --diagnostics` or `audit --lhr` is used)
-- `lighthouse-artifacts/lhr/` (when `audit --lhr` is used)
-- `accessibility-summary.json`
-- `accessibility/` (axe-core artifacts per page/device)
-
-Notes:
-
-- **Runs-per-combo is always 1**. Re-run the same command to compare results.
-- During an audit you will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
-- After `audit` completes, type `open` to open the latest HTML report.
-- Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
-- `ai-ledger.json` is the AI-first, one-run-sufficient index. It includes `regressions`/`improvements` (when a previous `.signaler/summary.json` exists) and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
-- `issues.json` includes an `offenders` section that aggregates repeated offenders (for example unused JS files) and links each offender back to the exact combo(s) and artifact pointers that contain the evidence.
-
-Speed and output controls:
-
-- `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
-- `audit --no-ai-fix` skips writing `ai-fix.json` and `ai-fix.min.json` entirely.
-- `audit --no-export` skips writing `export.json`.
-- `audit --focus-worst <n>` re-runs only the worst N combos from the previous `.signaler/summary.json`.
-
-### `measure` outputs
-
-- `measure-summary.json`
-- `measure-summary-lite.json`
-- `measure/` (screenshots and artifacts)
-
-### `bundle` outputs
-
-- `bundle-audit.json`
-
-### `health` outputs
-
-- `health.json`
-
-### `links` outputs
-
-- `links.json`
-
-### `headers` outputs
-
-- `headers.json`
-
-### `console` outputs
-
-- `console.json`
+Inside the shell:
+- `audit` - Full Lighthouse audits
+- `measure` - Fast CDP-based metrics
+- `bundle` - Build output analysis
+- `health` - HTTP health checks
+- `open` - View HTML report
+
+### 4. View Results
+
+Signaler generates comprehensive outputs in `.signaler/`:
+
+- **`report.html`** - Beautiful, interactive HTML report
+- **`triage.md`** - Prioritized issues for quick fixes
+- **`summary.json`** - Complete audit results
+- **`issues.json`** - Aggregated issues with offender tracking
+- **`ai-fix.json`** - AI-friendly fix recommendations
+
+## Key Features
+
+### Automatic Route Detection
+- **Next.js**: Filesystem routes from `pages/` or `app/`
+- **Nuxt**: Dynamic route detection with `[id]` and `_id` support
+- **Remix/React Router**: Route module discovery
+- **SvelteKit**: Route detection from `src/routes/`
+- **Static HTML**: Scans `dist/`, `build/`, `out/`, `public/`
+- **Sitemap/Robots**: Fallback discovery from sitemap.xml and robots.txt
+
+### Batch Auditing
+- Audit 10, 50, or 100+ pages in a single run
+- Parallel execution with auto-tuned workers
+- Mobile and desktop device emulation
+- Incremental caching for faster re-runs
+- Focus mode to re-audit only worst-performing pages
+
+### Comprehensive Checks
+- **Lighthouse**: Performance, Accessibility, Best Practices, SEO
+- **Bundle**: Build output size analysis
+- **Health**: HTTP status and response time checks
+- **Links**: Broken link detection
+- **Headers**: Security header validation
+- **Console**: Runtime error detection
+
+### Smart Outputs
+- **Triage-first**: Start with `triage.md` for prioritized fixes
+- **AI-ready**: `ai-fix.json` and `ai-ledger.json` for automated workflows
+- **Offender tracking**: `issues.json.offenders` identifies repeated problems
+- **PWA checks**: `pwa.json` for Progressive Web App validation
+- **Diff view**: Compare runs to track regressions and improvements
 
 ## Configuration
 
-Signaler reads `apex.config.json` by default.
+Minimal `apex.config.json`:
 
-Common fields:
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "pages": [
+    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] },
+    { "path": "/about", "label": "About", "devices": ["mobile", "desktop"] }
+  ]
+}
+```
 
-- `baseUrl`
-- `pages` (routes + devices)
-- `pages[].scope` (optional: `public` | `requires-auth`)
-- `throttlingMethod` (`simulate` or `devtools`)
-- `cpuSlowdownMultiplier`
-- `parallel`
-- `warmUp`
-- `auditTimeoutMs`
-- `incremental` + `buildId`
-- `gitIgnoreApexAuditorDir` (auto-add `.signaler/` to `.gitignore`)
-- `budgets`
-
-Example:
+Advanced options:
 
 ```json
 {
   "baseUrl": "http://localhost:3000",
   "throttlingMethod": "simulate",
   "cpuSlowdownMultiplier": 4,
-  "parallel": 4,
+  "parallel": 2,
   "warmUp": true,
+  "incremental": true,
+  "buildId": "abc123",
   "pages": [
-    { "path": "/", "label": "home", "devices": ["mobile", "desktop"], "scope": "public" },
-    { "path": "/account", "label": "account", "devices": ["mobile"], "scope": "requires-auth" },
-    { "path": "/docs", "label": "docs", "devices": ["desktop"], "scope": "public" }
+    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] }
   ],
   "budgets": {
-    "categories": { "performance": 80, "accessibility": 90, "bestPractices": 90, "seo": 90 },
+    "categories": { "performance": 90, "accessibility": 95 },
     "metrics": { "lcpMs": 2500, "inpMs": 200, "cls": 0.1 }
   }
 }
 ```
 
-## CLI tips
+## Command Line Usage
 
-- Use `audit --flags` to print all audit flags/options.
-- Use `audit --diagnostics` or `audit --lhr` when you want per-combo JSON artifacts and screenshots.
-- Start with `triage.md` and `issues.json` when the suite is large.
+```bash
+signaler wizard                    # Interactive setup wizard
+signaler shell                     # Interactive shell mode
+signaler audit                     # Run Lighthouse audits
+signaler audit --focus-worst 10    # Re-audit worst 10 pages
+signaler measure                   # Fast CDP metrics
+signaler bundle                    # Build output analysis
+signaler health                    # HTTP health checks
+signaler upgrade                   # Self-update from GitHub
+```
 
-Recommended workflow for large suites:
+## CI/CD Integration
 
-- Run a broad sweep with `throttlingMethod: simulate` (fast feedback).
-- Then re-run only the worst routes with `audit --focus-worst <n>` and `throttlingMethod: devtools` for a more DevTools-like focused rerun.
-- If parallel mode flakes (Chrome disconnects / Lighthouse target errors), retry with `audit --stable` (forces parallel=1).
+```yaml
+- run: pnpm exec signaler audit --ci --no-color --fail-on-budget
+```
+
+See `docs/cli-and-ci.md` for complete CI integration guide.
+
+## Output Structure
+
+```
+.signaler/
+├── report.html              # Interactive HTML report
+├── triage.md                # Prioritized fix guide
+├── summary.json             # Complete results
+├── summary-lite.json        # Lightweight summary
+├── issues.json              # Aggregated issues
+├── ai-fix.json              # AI-friendly fixes
+├── ai-ledger.json           # One-run AI index
+├── pwa.json                 # PWA validation
+├── bundle-audit.json        # Build analysis
+├── health.json              # HTTP checks
+└── lighthouse-artifacts/    # Detailed Lighthouse data
+```
+
+## What Makes Signaler Different
+
+### Built for Scale
+- Designed for batch audits of dozens or hundreds of pages
+- Single-page audits are better done in Chrome DevTools
+- Automatic route detection saves manual configuration
+- Parallel execution with intelligent worker tuning
+
+### Framework-Aware
+- Detects Next.js, Nuxt, Remix, SvelteKit automatically
+- Understands dynamic routes and filesystem conventions
+- Monorepo support with app/package selection
+- Static site support for pre-built outputs
+
+### Production-Ready
+- Registry-free installation via GitHub Releases
+- Self-upgrade capability without npm
+- Comprehensive error handling and retry logic
+- CI/CD integration with budget enforcement
+
+## Requirements
+
+- **Node.js 18+** (for npm installation)
+- **Chrome/Chromium** (automatically managed by Lighthouse)
+- For registry-free installation: No Node.js required (Rust launcher handles everything)
+
+## Common Use Cases
+
+**Large Site Audits**: Audit 50-100+ pages in a single batch run  
+**CI/CD Integration**: Automated performance checks with budget enforcement  
+**Framework Migration**: Track performance across route refactors  
+**Performance Monitoring**: Regular audits with diff tracking and regression detection  
+**Multi-Device Testing**: Simultaneous mobile and desktop audits
+
+## Troubleshooting
+
+### Installation Issues
+- Registry-free install recommended for most users
+- For npm install: Ensure Node.js 18+ is installed: `node --version`
+- Windows: Run PowerShell as Administrator if PATH update fails
+- macOS/Linux: Restart terminal after installation to refresh PATH
+
+### Audit Failures
+- Verify your `baseUrl` is accessible (start dev server first)
+- For large batches, reduce `parallel` or use `--stable` flag
+- Chrome disconnects: Retry with `--stable` to force single-worker mode
+- Timeout errors: Increase `auditTimeoutMs` in config
+
+### Configuration Problems
+- Run `signaler wizard` to auto-generate valid config
+- Validate JSON syntax in `apex.config.json`
+- Ensure `baseUrl` starts with `http://` or `https://`
+- Verify page paths start with `/`
+- For dynamic routes, ensure they're resolved (no `[slug]` patterns)
+
+### Performance Tips
+- Use `--focus-worst N` to re-audit only problematic pages
+- Enable `incremental: true` with `buildId` for faster re-runs
+- Use `throttlingMethod: "simulate"` for faster audits
+- Use `--no-ai-fix` and `--no-export` to reduce output size
 
 ## Documentation
 
-The docs in `docs/` reflect the current workflows:
+- **[Getting Started](docs/getting-started.md)** - Installation and first run
+- **[CLI & CI](docs/cli-and-ci.md)** - Command reference and CI integration
+- **[Configuration](docs/configuration-and-routes.md)** - Config file format and options
 
-- `docs/getting-started.md`
-- `docs/configuration-and-routes.md`
-- `docs/cli-and-ci.md`
+## Upgrade
 
-## Known issues
+Self-upgrade to latest version:
 
-- **Large-run Lighthouse stability**: very large audits (many page/device combinations) may show higher score variance than manual Lighthouse runs and can intermittently hit worker/Chrome disconnects. Workaround: reduce parallelism (e.g. `--stable`) and retry.
+```bash
+signaler upgrade
+```
 
 ## License
 
 MIT
+
+---
+
+**Built for scale. Designed for teams. Optimized for batch audits.**

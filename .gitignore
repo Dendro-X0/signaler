@@ -9,6 +9,19 @@ bun.lockb
 
 # Build output
 dist/
+dist-simplified/
+
+# Test artifacts
+.signaler/
+signaler-report/
+test-report/
+test-report-failed/
+apex.config.json
+
+# Release artifacts
+release/
+*.zip
+*.tgz
 
 # IDE / OS
 .DS_Store
@@ -19,3 +32,6 @@ Thumbs.db
 # Misc
 .env
 .npmrc
+
+# Rust build artifacts
+launcher/target/
