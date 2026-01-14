@@ -16,7 +16,17 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### 1. Install
 
-Registry-free installation (recommended):
+**Via pnpm (recommended):**
+```bash
+pnpm install -g @auditorix/signaler
+```
+
+**Or via npm:**
+```bash
+npm install -g @auditorix/signaler
+```
+
+**Registry-free installation (requires GitHub Release):**
 
 **Windows (PowerShell):**
 ```powershell
@@ -28,10 +38,7 @@ irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/ins
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-**Or via pnpm:**
-```bash
-pnpm install -g @auditorix/signaler
-```
+> **Note:** Registry-free installation requires a published GitHub Release with portable binaries. Use pnpm/npm installation for the latest version.
 
 ### 2. Initialize Configuration
 
