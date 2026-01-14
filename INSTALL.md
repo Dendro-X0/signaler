@@ -1,12 +1,57 @@
 # Installation Guide
 
-Since Signaler is not published to npm registry, you can install it directly from the repository.
+Signaler is not published to npm registry. You can install it using one of these methods:
 
-## Method 1: Local Installation (Recommended)
+## Method 1: One-Line Installer (Recommended)
+
+This method downloads, builds, and installs Signaler automatically.
+
+### Unix/Linux/macOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
+```
+
+Or with custom install location:
+```bash
+SIGNALER_INSTALL_DIR=~/bin/signaler curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
+```
+
+### Windows (PowerShell)
+
+```powershell
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
+```
+
+Or with custom install location:
+```powershell
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 -OutFile install.ps1
+.\install.ps1 -InstallDir "C:\signaler"
+```
+
+### After Installation
+
+Restart your terminal and run:
+```bash
+signaler-cli wizard
+signaler-cli audit
+```
+
+Or use the full path:
+```bash
+# Unix/Linux/macOS
+~/.local/bin/signaler/signaler doctor
+
+# Windows
+%LOCALAPPDATA%\signaler\signaler.exe doctor
+```
+
+## Method 2: Manual Installation
 
 ### Prerequisites
 - Node.js 18+ installed
-- pnpm installed (`npm install -g pnpm`)
+- Git installed
+- (Optional) Rust/Cargo for faster launcher
 
 ### Steps
 
@@ -19,43 +64,63 @@ cd signaler
 2. **Install dependencies:**
 ```bash
 pnpm install
+# or: npm install
 ```
 
 3. **Build the project:**
 ```bash
 pnpm build
+# or: npm run build
 ```
 
-4. **Link globally (makes `signaler` command available):**
+4. **Build Rust launcher (optional but recommended):**
 ```bash
-pnpm link --global
+cd launcher
+cargo build --release
+cd ..
 ```
 
-5. **Verify installation:**
+5. **Run directly:**
 ```bash
-signaler --help
+# With Rust launcher
+./launcher/target/release/signaler engine run wizard
+
+# Without Rust launcher
+node dist/bin.js wizard
 ```
 
-### Usage
+### Add to PATH (Optional)
 
-After installation, you can use `signaler` from any directory:
+**Unix/Linux/macOS:**
+Add to `~/.bashrc` or `~/.zshrc`:
+```bash
+export PATH="/path/to/signaler/launcher/target/release:$PATH"
+alias signaler='signaler engine run'
+```
+
+**Windows:**
+Add `C:\path\to\signaler\launcher\target\release` to your PATH environment variable.
+
+## Method 3: Standalone Package
+
+Build a portable package that can be copied to any machine:
 
 ```bash
-signaler wizard
-signaler audit
-signaler shell
+cd signaler
+./scripts/create-standalone.sh
 ```
 
-### Uninstall
+This creates `standalone-dist/signaler-standalone.zip` containing:
+- Rust launcher binary
+- Node.js engine (dist/)
+- All dependencies (node_modules/)
+- Helper scripts
 
-To uninstall:
-```bash
-pnpm uninstall -g @auditorix/signaler
-```
+Extract the zip and add the folder to your PATH.
 
-## Method 2: Run Directly (No Installation)
+## Method 4: Run Directly (No Installation)
 
-If you don't want to install globally, you can run it directly from the repository:
+If you don't want to install, run directly from the repository:
 
 ```bash
 # Clone and setup (one time)
@@ -70,39 +135,62 @@ node dist/bin.js wizard
 node dist/bin.js audit
 ```
 
-## Method 3: Create Alias (Unix/Linux/macOS)
-
-Add to your `~/.bashrc` or `~/.zshrc`:
-
-```bash
-alias signaler='node /path/to/signaler/dist/bin.js'
-```
-
-## Method 4: Add to PATH (Windows)
-
-1. Build the project as shown in Method 1
-2. Create a batch file `signaler.cmd` in a directory that's in your PATH:
-
-```batch
-@echo off
-node "C:\path\to\signaler\dist\bin.js" %*
-```
-
 ## Troubleshooting
 
 ### "Cannot find module" errors
 Make sure you've run `pnpm install` and `pnpm build` in the signaler directory.
 
-### "signaler: command not found" after pnpm link
+### "signaler: command not found" after installation
 - Restart your terminal
-- Check that pnpm's global bin directory is in your PATH
-- Run `pnpm bin -g` to see where global packages are installed
+- Check that the install directory is in your PATH
+- Use the full path to the binary
 
 ### Permission errors on Unix/Linux/macOS
 You may need to make the bin file executable:
 ```bash
-chmod +x dist/bin.js
+chmod +x ~/.local/bin/signaler/signaler
 ```
+
+### Node.js version errors
+Ensure you have Node.js 18+ installed:
+```bash
+node --version
+```
+
+## Updating
+
+To update to the latest version:
+
+### If installed via one-line installer
+Run the installer again - it will replace the old version.
+
+### If manually installed
+```bash
+cd signaler
+git pull origin main
+pnpm install
+pnpm build
+cd launcher && cargo build --release && cd ..
+```
+
+## Uninstalling
+
+### If installed via one-line installer
+
+**Unix/Linux/macOS:**
+```bash
+rm -rf ~/.local/bin/signaler
+# Remove from PATH in ~/.bashrc or ~/.zshrc
+```
+
+**Windows:**
+```powershell
+Remove-Item -Recurse -Force $env:LOCALAPPDATA\signaler
+# Remove from PATH in Environment Variables
+```
+
+### If manually installed
+Simply delete the cloned repository directory.
 
 ## Development
 

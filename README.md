@@ -16,29 +16,25 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### 1. Install
 
-**Local Installation from Repository:**
+**One-Line Installer (Recommended):**
 
-Since Signaler is not published to npm registry, install it directly from the repository:
-
+**Unix/Linux/macOS:**
 ```bash
-# Clone the repository
-git clone https://github.com/Dendro-X0/signaler.git
-cd signaler
-
-# Install dependencies and build
-pnpm install
-pnpm build
-
-# Link globally to make 'signaler' command available
-pnpm link --global
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.sh | bash
 ```
 
-After installation, verify it works:
-```bash
-signaler --help
+**Windows (PowerShell):**
+```powershell
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 | iex
 ```
 
-> **See [INSTALL.md](INSTALL.md) for detailed installation instructions, alternative methods, and troubleshooting.**
+After installation, restart your terminal and run:
+```bash
+signaler-cli wizard
+signaler-cli audit
+```
+
+> **See [INSTALL.md](INSTALL.md) for detailed installation instructions, manual installation, and troubleshooting.**
 
 ### 2. Initialize Configuration
 
