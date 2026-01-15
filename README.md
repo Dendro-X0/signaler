@@ -16,29 +16,32 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### Installation
 
-**Option 1: Standalone Executable (Recommended - No Node.js Required)**
-
-Download pre-built executable from [Releases](https://github.com/Dendro-X0/signaler/releases/latest):
-
-**Windows:**
-```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 -OutFile install.ps1
-.\install.ps1
-```
-
-**Manual:** Download `signaler-win.exe` from releases and add to PATH.
-
-**Option 2: From Source (For Developers)**
+**Recommended: Local Installation (No npm Registry)**
 
 ```bash
+# Clone and build
 git clone https://github.com/Dendro-X0/signaler.git
 cd signaler
 pnpm install
 pnpm run build
-pnpm link
+
+# Link globally (makes 'signaler' command available everywhere)
+pnpm link --global
+
+# Now use it in any project
+cd ~/my-project
+signaler wizard
+signaler audit
 ```
 
-See [INSTALL-STANDALONE.md](INSTALL-STANDALONE.md) for detailed instructions.
+**Why local installation?**
+- ✅ No npm registry issues
+- ✅ No packaging complications
+- ✅ Works immediately
+- ✅ Easy to update (`git pull && pnpm install && pnpm run build`)
+- ✅ You control everything
+
+See [INSTALL-LOCAL.md](INSTALL-LOCAL.md) for detailed instructions and alternative methods.
 
 ### 2. Initialize Configuration
 
