@@ -16,7 +16,21 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### Installation
 
-**Recommended: Local Installation (No npm Registry)**
+**Option 1: JSR (JavaScript Registry) - Recommended**
+
+```bash
+# Using npm/pnpm/yarn
+npx jsr add @auditorix/signaler
+
+# Or install globally
+npm install -g jsr:@auditorix/signaler
+
+# Then use it
+signaler wizard
+signaler audit
+```
+
+**Option 2: Local Installation (For Development)**
 
 ```bash
 # Clone and build
@@ -25,23 +39,23 @@ cd signaler
 pnpm install
 pnpm run build
 
-# Link globally (makes 'signaler' command available everywhere)
+# Link globally
 pnpm link --global
 
-# Now use it in any project
+# Use anywhere
 cd ~/my-project
 signaler wizard
 signaler audit
 ```
 
-**Why local installation?**
+**Why JSR?**
+- ✅ Simple installation (`npx jsr add`)
 - ✅ No npm registry issues
-- ✅ No packaging complications
-- ✅ Works immediately
-- ✅ Easy to update (`git pull && pnpm install && pnpm run build`)
-- ✅ You control everything
+- ✅ Works with npm, pnpm, yarn, deno
+- ✅ Modern package registry
 
-See [INSTALL-LOCAL.md](INSTALL-LOCAL.md) for detailed instructions and alternative methods.
+See [INSTALL-LOCAL.md](INSTALL-LOCAL.md) for local installation details.  
+See [PUBLISH-JSR.md](PUBLISH-JSR.md) for JSR publishing guide.
 
 ### 2. Initialize Configuration
 

@@ -1,22 +1,30 @@
 {
   "name": "@auditorix/signaler",
-  "version": "1.0.0",
-  "exports": "./dist/cli.js",
+  "version": "1.0.8",
+  "exports": {
+    ".": "./dist/index.js",
+    "./cli": "./dist/cli.js"
+  },
+  "bin": {
+    "signaler": "./dist/bin.js"
+  },
   "publish": {
     "include": [
-      "dist/**",
+      "dist/**/*.js",
+      "dist/**/*.d.ts",
       "README.md",
-      "package.json",
-      "LICENSE"
+      "LICENSE",
+      "CHANGELOG.md"
     ],
     "exclude": [
-      "node_modules/**",
-      ".github/**",
-      "!dist",
-      "!dist/**",
-      "!README.md",
-      "!package.json",
-      "!LICENSE"
+      "**/*.test.js",
+      "**/*.spec.js",
+      "node_modules",
+      ".github",
+      "src",
+      "test",
+      "scripts",
+      "release-assets"
     ]
   }
 }
