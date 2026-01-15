@@ -1,5 +1,5 @@
 {
-  "name": "@signaler/signaler",
+  "name": "@signaler/cli",
   "version": "1.0.8",
   "private": false,
   "description": "Web performance auditing tool with batch Lighthouse audits, automatic route detection, and comprehensive reporting",

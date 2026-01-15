@@ -1,5 +1,5 @@
 {
-  "name": "@signaler/signaler",
+  "name": "@signaler/cli",
   "version": "1.0.8",
   "exports": {
     ".": "./dist/index.js",

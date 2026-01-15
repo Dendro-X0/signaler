@@ -12,10 +12,10 @@ You now have **three ways** to install and use Signaler. Choose what works best 
 
 ```bash
 # Add to project
-npx jsr add @signaler/signaler
+npx jsr add @signaler/cli
 
 # Or install globally
-npm install -g jsr:@signaler/signaler
+npm install -g jsr:@signaler/cli
 ```
 
 ### Usage

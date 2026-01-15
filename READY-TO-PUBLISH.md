@@ -6,7 +6,7 @@ The dry run completed successfully. Your package is ready to publish to JSR.
 
 ## What Will Be Published
 
-- **Package**: `@signaler/signaler`
+- **Package**: `@signaler/cli`
 - **Version**: `1.0.8`
 - **Files**: 117 files (~700KB)
 - **Contents**: 
@@ -36,22 +36,22 @@ This will:
 2. Ask you to log in to JSR (or create account if needed)
 3. Prompt you to create the `@signaler` scope (first time only)
 4. Upload your package
-5. Make it available at `jsr:@signaler/signaler`
+5. Make it available at `jsr:@signaler/cli`
 
 ### 2. After Publishing
 
 Your package will be live at:
-- **JSR Page**: https://jsr.io/@signaler/signaler
-- **Import**: `jsr:@signaler/signaler`
+- **JSR Page**: https://jsr.io/@signaler/cli
+- **Import**: `jsr:@signaler/cli`
 
 ### 3. Test Installation
 
 ```bash
 # In a test project
-npx jsr add @signaler/signaler
+npx jsr add @signaler/cli
 
 # Or install globally
-npm install -g jsr:@signaler/signaler
+npm install -g jsr:@signaler/cli
 
 # Test it
 signaler --version
