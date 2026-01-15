@@ -5,6 +5,9 @@
   "description": "Web performance auditing tool with batch Lighthouse audits, automatic route detection, and comprehensive reporting",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "files": [
     "dist",
     "README.md"

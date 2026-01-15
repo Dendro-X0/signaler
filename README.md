@@ -226,9 +226,10 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 
 ## Requirements
 
-- **Node.js 18+** (for npm installation)
+- **Node.js 18+** (required - Bun/Deno not supported)
 - **Chrome/Chromium** (automatically managed by Lighthouse)
-- For registry-free installation: No Node.js required (Rust launcher handles everything)
+
+**⚠️ Important**: Signaler requires Node.js and does not work with Bun or Deno due to Lighthouse dependencies. See [RUNTIME-REQUIREMENTS.md](RUNTIME-REQUIREMENTS.md) for details.
 
 ## Common Use Cases
 
