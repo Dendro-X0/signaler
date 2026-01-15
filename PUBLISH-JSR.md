@@ -14,12 +14,7 @@ JSR is a modern package registry for JavaScript and TypeScript with better DX th
 ## Prerequisites
 
 1. **Create JSR account**: https://jsr.io/
-2. **Install JSR CLI**:
-   ```bash
-   npm install -g @jsr/cli
-   # or
-   deno install -A -f jsr:@jsr/cli
-   ```
+2. **No CLI installation needed** - Use `npx jsr publish` directly!
 
 ## Publishing Steps
 
@@ -30,25 +25,28 @@ pnpm install
 pnpm run build
 ```
 
-### 2. Login to JSR
+### 2. Publish to JSR
 
 ```bash
-jsr login
+npx jsr publish
 ```
 
-This opens a browser for authentication.
+This will:
+- Open your browser for authentication
+- Prompt you to authorize publishing
+- Upload your package to JSR
+- Make it available at `jsr:@auditorix/signaler`
 
-### 3. Publish
+**First time?** You'll be asked to:
+1. Log in to JSR (or create an account)
+2. Create the `@auditorix` scope (if it doesn't exist)
+3. Authorize the publish
 
-```bash
-jsr publish
-```
+### 3. Verify
 
-That's it! JSR will:
-- Read `jsr.json` configuration
-- Package the files listed in `publish.include`
-- Upload to JSR registry
-- Make it available via `jsr:@auditorix/signaler`
+After publishing, your package will be available at:
+- **JSR page**: https://jsr.io/@auditorix/signaler
+- **Import**: `jsr:@auditorix/signaler`
 
 ## Installation for Users
 
@@ -173,7 +171,7 @@ jsr publish
 ### Dry Run
 
 ```bash
-jsr publish --dry-run
+npx jsr publish --dry-run
 ```
 
 This shows what would be published without actually publishing.
@@ -243,15 +241,10 @@ jobs:
 
 ### "Package not found"
 
-Make sure you're logged in:
-```bash
-jsr whoami
-```
-
-If not logged in:
-```bash
-jsr login
-```
+Make sure you've created the scope and package on JSR first:
+1. Go to https://jsr.io/new
+2. Create the `@auditorix` scope
+3. Try publishing again with `npx jsr publish`
 
 ### "Version already exists"
 
@@ -291,18 +284,19 @@ pnpm add @auditorix/signaler
 
 **JSR is simpler than npm:**
 
-1. Login once: `jsr login`
-2. Build: `pnpm run build`
-3. Publish: `jsr publish`
+1. Build: `pnpm run build`
+2. Publish: `npx jsr publish`
+3. Authenticate in browser
+4. Done!
 
 No tokens, no conflicts, no hassle.
 
 ## Next Steps
 
 1. Create JSR account: https://jsr.io/
-2. Install JSR CLI: `npm install -g @jsr/cli`
-3. Login: `jsr login`
-4. Publish: `jsr publish`
+2. Build: `pnpm run build`
+3. Publish: `npx jsr publish`
+4. Authenticate in browser
 
 Your package will be available at:
 - `jsr:@auditorix/signaler`

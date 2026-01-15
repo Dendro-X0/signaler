@@ -10,21 +10,10 @@
   },
   "publish": {
     "include": [
-      "dist/**/*.js",
-      "dist/**/*.d.ts",
+      "dist/",
       "README.md",
       "LICENSE",
       "CHANGELOG.md"
-    ],
-    "exclude": [
-      "**/*.test.js",
-      "**/*.spec.js",
-      "node_modules",
-      ".github",
-      "src",
-      "test",
-      "scripts",
-      "release-assets"
     ]
   }
 }
