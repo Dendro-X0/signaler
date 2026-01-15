@@ -2,7 +2,16 @@
 
 **Release Date:** January 14, 2026  
 **Type:** Stability & UX Improvements  
-**Breaking Changes:** None
+**Breaking Changes:** None  
+**Hotfix Included:** Installer crash fix
+
+## ⚠️ Important: Installer Hotfix Included
+
+This release includes a critical hotfix for the PowerShell installer that was causing immediate crashes. The installer now:
+- Shows all error output instead of suppressing it
+- Pauses before exit so you can read errors
+- Provides detailed error messages and troubleshooting tips
+- Includes a debug installer (`debug-install.ps1`) for detailed diagnostics
 
 ## Overview
 
@@ -151,15 +160,34 @@ Five new utility modules were added:
 
 No breaking changes! Simply update to v1.0.8:
 
-```bash
-# If installed via npm/pnpm
-pnpm update @auditorix/signaler
+**Using PowerShell (Windows):**
+```powershell
+# Quick installer (fixed)
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/quick-install.ps1 | iex
 
-# If installed via GitHub
+# Debug installer (shows all details)
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/debug-install.ps1 | iex
+```
+
+**Using npm/pnpm:**
+```bash
+pnpm update @auditorix/signaler
+```
+
+**Using GitHub upgrade:**
+```bash
 signaler upgrade --repo Dendro-X0/signaler
 ```
 
 All existing configurations and workflows will continue to work.
+
+### Troubleshooting Installation
+
+If you experience issues, see [INSTALLER-TROUBLESHOOTING.md](INSTALLER-TROUBLESHOOTING.md) for:
+- Common issues and solutions
+- Manual installation steps
+- Debug installer usage
+- How to get help
 
 ## Testing
 
