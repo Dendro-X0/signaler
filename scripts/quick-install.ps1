@@ -7,6 +7,8 @@ $InstallDir = "$env:LOCALAPPDATA\signaler"
 $BinPath = "$InstallDir\signaler.exe"
 
 Write-Host "Quick installing Signaler..." -ForegroundColor Cyan
+Write-Host "Note: This installs the latest version from main branch" -ForegroundColor Yellow
+Write-Host ""
 
 # Create install directory
 if (!(Test-Path $InstallDir)) {
@@ -53,10 +55,15 @@ node "%~dp0dist\bin.js" %*
     Write-Host ""
     Write-Host "✓ Signaler installed!" -ForegroundColor Green
     Write-Host ""
+    Write-Host "Location: $InstallDir" -ForegroundColor Gray
+    Write-Host "Version: Latest from main branch" -ForegroundColor Gray
+    Write-Host ""
     Write-Host "Run: signaler wizard" -ForegroundColor Cyan
     Write-Host "Or:  signaler audit" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Note: Restart terminal if 'signaler' command not found" -ForegroundColor Yellow
+    Write-Host "Note: This creates signaler.cmd for PowerShell/CMD" -ForegroundColor Yellow
+    Write-Host "      For Bash/Git Bash, use the Unix installer or portable package" -ForegroundColor Yellow
     
 } finally {
     # Cleanup
