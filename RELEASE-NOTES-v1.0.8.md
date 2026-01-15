@@ -5,13 +5,22 @@
 **Breaking Changes:** None  
 **Hotfix Included:** Installer crash fix
 
-## ⚠️ Important: Installer Hotfix Included
+## ⚠️ Important: Critical Installer Fix Included
 
-This release includes a critical hotfix for the PowerShell installer that was causing immediate crashes. The installer now:
-- Shows all error output instead of suppressing it
-- Pauses before exit so you can read errors
-- Provides detailed error messages and troubleshooting tips
-- Includes a debug installer (`debug-install.ps1`) for detailed diagnostics
+This release includes a **critical fix** for the PowerShell installer that was causing immediate crashes.
+
+**Root Cause:** `ReadKey()` throws exceptions in non-interactive contexts (when run via `iwr | iex`)  
+**Impact:** Installer crashed immediately with no visible errors  
+**Solution:** Removed all interactive operations from the installer  
+
+The installer now:
+- ✅ Works correctly with `iwr | iex` pattern
+- ✅ Shows all error output in your console
+- ✅ Completes automatically without requiring user input
+- ✅ Displays clear error messages if something fails
+- ✅ Includes a debug installer (`debug-install.ps1`) for detailed diagnostics
+
+See `INSTALLER-ROOT-CAUSE-ANALYSIS.md` for technical details.
 
 ## Overview
 
