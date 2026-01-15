@@ -16,19 +16,32 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ### 1. Install
 
-**One-Line Installer (Recommended):**
+**Two-Step Installation (Recommended):**
+
+**Windows (PowerShell):**
+```powershell
+# Step 1: Download installer
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/quick-install.ps1 -OutFile install.ps1
+
+# Step 2: Run it
+.\install.ps1
+```
+
+**Why two steps?** This ensures all output and errors are visible. Never run installers via `iex` - they can crash and hide errors.
+
+**Alternative: Bootstrap Installer**
+```powershell
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/bootstrap-install.ps1 | iex
+```
 
 **Unix/Linux/macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
 ```
 
-**Windows (PowerShell):**
-```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
-```
-
 > **Prerequisites:** Node.js 16+ required. Download from https://nodejs.org/
+> 
+> **Troubleshooting:** If installation fails, see [INSTALL-FOOLPROOF.md](INSTALL-FOOLPROOF.md) for detailed instructions and log file location.
 
 After installation, restart your terminal and run:
 ```bash

@@ -1,179 +1,212 @@
-# Signaler Quick Installer
-# One command installation for Windows
-# Compatible with: iwr url | iex
-
-# CRITICAL: When run via iex, we cannot use ReadKey() or interactive prompts
-# The script must complete without requiring user input
+# Signaler Quick Installer - Radical Redesign
+# Logs everything to a file so errors are ALWAYS visible
 
 $ErrorActionPreference = "Stop"
+$LogFile = "$env:TEMP\signaler-install-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
-Write-Host ""
-Write-Host "=== Signaler Installer ===" -ForegroundColor Cyan
-Write-Host ""
-
-# Check Node.js version
-try {
-    $NodeVersion = node --version 2>&1
-    $NodeMajor = [int]($NodeVersion -replace 'v(\d+)\..*', '$1')
-    
-    if ($NodeMajor -lt 16) {
-        Write-Host "ERROR: Node.js 16+ required. You have $NodeVersion" -ForegroundColor Red
-        Write-Host "Install from: https://nodejs.org/" -ForegroundColor Yellow
-        Write-Host ""
-        throw "Incompatible Node.js version"
-    }
-    
-    Write-Host "Node.js: $NodeVersion" -ForegroundColor Green
-} catch {
-    Write-Host "ERROR: Node.js not found or not working" -ForegroundColor Red
-    Write-Host "Install from: https://nodejs.org/" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "After installing Node.js, restart PowerShell and try again." -ForegroundColor Yellow
-    Write-Host ""
-    throw "Node.js not available"
+function Write-Log {
+    param($Message, $Color = "White")
+    $Timestamp = Get-Date -Format "HH:mm:ss"
+    $LogMessage = "[$Timestamp] $Message"
+    Add-Content -Path $LogFile -Value $LogMessage
+    Write-Host $Message -ForegroundColor $Color
 }
 
-$InstallDir = "$env:LOCALAPPDATA\signaler"
-$TempZip = "$env:TEMP\signaler-$(Get-Random).zip"
-$ExtractDir = "$env:TEMP\signaler-extract-$(Get-Random)"
+function Write-LogError {
+    param($Message)
+    Write-Log "ERROR: $Message" "Red"
+}
+
+# Start logging
+Write-Log "=== Signaler Installer Started ===" "Cyan"
+Write-Log "Log file: $LogFile" "Gray"
+Write-Log ""
 
 try {
+    # Check Node.js
+    Write-Log "Checking Node.js..." "Yellow"
+    try {
+        $NodeVersion = node --version 2>&1
+        $NodeMajor = [int]($NodeVersion -replace 'v(\d+)\..*', '$1')
+        
+        if ($NodeMajor -lt 16) {
+            Write-LogError "Node.js 16+ required. You have $NodeVersion"
+            Write-Log "Install from: https://nodejs.org/" "Yellow"
+            throw "Incompatible Node.js version"
+        }
+        
+        Write-Log "Node.js: $NodeVersion" "Green"
+    } catch {
+        Write-LogError "Node.js not found or not working"
+        Write-Log "Install from: https://nodejs.org/" "Yellow"
+        Write-Log "After installing, restart PowerShell and try again." "Yellow"
+        throw "Node.js not available"
+    }
+
+    $InstallDir = "$env:LOCALAPPDATA\signaler"
+    $TempZip = "$env:TEMP\signaler-$(Get-Random).zip"
+    $ExtractDir = "$env:TEMP\signaler-extract-$(Get-Random)"
+
+    Write-Log "Install directory: $InstallDir" "Gray"
+    Write-Log ""
+
     # Create install directory
-    Write-Host "Install location: $InstallDir" -ForegroundColor Gray
     if (!(Test-Path $InstallDir)) {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+        Write-Log "Created install directory" "Green"
     }
-    
+
     # Download
-    Write-Host "Downloading..." -ForegroundColor Yellow
+    Write-Log "Downloading from GitHub..." "Yellow"
     Invoke-WebRequest -Uri "https://github.com/Dendro-X0/signaler/archive/refs/heads/main.zip" -OutFile $TempZip -UseBasicParsing
-    Write-Host "Downloaded" -ForegroundColor Green
-    
+    Write-Log "Downloaded: $((Get-Item $TempZip).Length / 1MB) MB" "Green"
+
     # Extract
-    Write-Host "Extracting..." -ForegroundColor Yellow
+    Write-Log "Extracting..." "Yellow"
     Expand-Archive -Path $TempZip -DestinationPath $ExtractDir -Force
-    Write-Host "Extracted" -ForegroundColor Green
-    
+    Write-Log "Extracted" "Green"
+
     # Copy files
-    Write-Host "Installing files..." -ForegroundColor Yellow
+    Write-Log "Installing files..." "Yellow"
     $SourceDir = "$ExtractDir\signaler-main"
     Copy-Item "$SourceDir\*" -Destination $InstallDir -Recurse -Force
-    Write-Host "Files installed" -ForegroundColor Green
-    
+    Write-Log "Files installed" "Green"
+
     # Build
-    Write-Host ""
-    Write-Host "Building (this takes 1-2 minutes)..." -ForegroundColor Yellow
-    Write-Host "Please wait..." -ForegroundColor Gray
-    Write-Host ""
+    Write-Log "" 
+    Write-Log "Building (1-2 minutes)..." "Yellow"
+    Write-Log "Please wait..." "Gray"
+    Write-Log ""
     
     Push-Location $InstallDir
     
-    # Run npm install with output
-    Write-Host "Running: npm install" -ForegroundColor Gray
-    $npmInstallResult = npm install 2>&1
+    # npm install
+    Write-Log "Running: npm install" "Gray"
+    $npmInstallStart = Get-Date
+    $npmInstallResult = npm install 2>&1 | Tee-Object -Variable npmInstallOutput
+    $npmInstallDuration = ((Get-Date) - $npmInstallStart).TotalSeconds
+    
+    Add-Content -Path $LogFile -Value "`n--- npm install output ---"
+    Add-Content -Path $LogFile -Value $npmInstallOutput
+    Add-Content -Path $LogFile -Value "--- end npm install output ---`n"
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host ""
-        Write-Host "npm install failed!" -ForegroundColor Red
-        Write-Host "Output:" -ForegroundColor Yellow
-        Write-Host $npmInstallResult
-        Write-Host ""
-        throw "npm install failed with exit code $LASTEXITCODE"
+        Write-LogError "npm install failed (exit code: $LASTEXITCODE, duration: $npmInstallDuration seconds)"
+        Write-Log "Output logged to: $LogFile" "Yellow"
+        throw "npm install failed"
     }
-    Write-Host "npm install completed" -ForegroundColor Green
+    Write-Log "npm install completed ($npmInstallDuration seconds)" "Green"
     
-    # Run npm build with output
-    Write-Host "Running: npm run build" -ForegroundColor Gray
-    $npmBuildResult = npm run build 2>&1
+    # npm build
+    Write-Log "Running: npm run build" "Gray"
+    $npmBuildStart = Get-Date
+    $npmBuildResult = npm run build 2>&1 | Tee-Object -Variable npmBuildOutput
+    $npmBuildDuration = ((Get-Date) - $npmBuildStart).TotalSeconds
+    
+    Add-Content -Path $LogFile -Value "`n--- npm build output ---"
+    Add-Content -Path $LogFile -Value $npmBuildOutput
+    Add-Content -Path $LogFile -Value "--- end npm build output ---`n"
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host ""
-        Write-Host "npm build failed!" -ForegroundColor Red
-        Write-Host "Output:" -ForegroundColor Yellow
-        Write-Host $npmBuildResult
-        Write-Host ""
-        throw "npm build failed with exit code $LASTEXITCODE"
+        Write-LogError "npm build failed (exit code: $LASTEXITCODE, duration: $npmBuildDuration seconds)"
+        Write-Log "Output logged to: $LogFile" "Yellow"
+        throw "npm build failed"
     }
-    Write-Host "npm build completed" -ForegroundColor Green
+    Write-Log "npm build completed ($npmBuildDuration seconds)" "Green"
     
     Pop-Location
-    
+
     # Verify build
     if (!(Test-Path "$InstallDir\dist\bin.js")) {
-        throw "Build completed but dist/bin.js not found"
+        Write-LogError "Build completed but dist/bin.js not found"
+        throw "Build verification failed"
     }
-    
+    Write-Log "Build verified" "Green"
+
     # Create launcher
-    Write-Host "Creating launcher..." -ForegroundColor Yellow
+    Write-Log "Creating launcher..." "Yellow"
     $LauncherScript = @"
 @echo off
 node "%~dp0dist\bin.js" %*
 "@
     $LauncherScript | Out-File -FilePath "$InstallDir\signaler.cmd" -Encoding ASCII
-    Write-Host "Launcher created" -ForegroundColor Green
-    
+    Write-Log "Launcher created" "Green"
+
     # Add to PATH
-    Write-Host "Adding to PATH..." -ForegroundColor Yellow
+    Write-Log "Adding to PATH..." "Yellow"
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($UserPath -notlike "*$InstallDir*") {
         [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
         $env:Path = "$env:Path;$InstallDir"
-        Write-Host "Added to PATH" -ForegroundColor Green
+        Write-Log "Added to PATH" "Green"
     } else {
-        Write-Host "Already in PATH" -ForegroundColor Green
+        Write-Log "Already in PATH" "Green"
     }
-    
+
     # Test installation
-    Write-Host ""
-    Write-Host "Testing installation..." -ForegroundColor Yellow
+    Write-Log ""
+    Write-Log "Testing installation..." "Yellow"
     $TestResult = & "$InstallDir\signaler.cmd" --version 2>&1
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host ""
-        Write-Host "============================================" -ForegroundColor Green
-        Write-Host "  INSTALLATION SUCCESSFUL!" -ForegroundColor Green
-        Write-Host "============================================" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "Version: $TestResult" -ForegroundColor Cyan
-        Write-Host ""
-        Write-Host "Next steps:" -ForegroundColor Yellow
-        Write-Host "  1. Restart your terminal (to refresh PATH)" -ForegroundColor White
-        Write-Host "  2. Run: signaler wizard" -ForegroundColor Cyan
-        Write-Host ""
-        Write-Host "Or run directly: $InstallDir\signaler.cmd wizard" -ForegroundColor Gray
-        Write-Host ""
+        Write-Log ""
+        Write-Log "============================================" "Green"
+        Write-Log "  INSTALLATION SUCCESSFUL!" "Green"
+        Write-Log "============================================" "Green"
+        Write-Log ""
+        Write-Log "Version: $TestResult" "Cyan"
+        Write-Log ""
+        Write-Log "Next steps:" "Yellow"
+        Write-Log "  1. Restart your terminal" "White"
+        Write-Log "  2. Run: signaler wizard" "Cyan"
+        Write-Log ""
+        Write-Log "Log saved to: $LogFile" "Gray"
     } else {
-        Write-Host ""
-        Write-Host "WARNING: Installation completed but test failed" -ForegroundColor Yellow
-        Write-Host "Test output: $TestResult" -ForegroundColor Gray
-        Write-Host ""
-        Write-Host "Try running: $InstallDir\signaler.cmd wizard" -ForegroundColor Cyan
-        Write-Host ""
+        Write-Log ""
+        Write-Log "WARNING: Installation completed but test failed" "Yellow"
+        Write-Log "Test output: $TestResult" "Gray"
+        Write-Log ""
+        Write-Log "Try: $InstallDir\signaler.cmd wizard" "Cyan"
+        Write-Log "Log saved to: $LogFile" "Gray"
     }
-    
+
 } catch {
-    Write-Host ""
-    Write-Host "============================================" -ForegroundColor Red
-    Write-Host "  INSTALLATION FAILED" -ForegroundColor Red
-    Write-Host "============================================" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host ""
+    Write-Log ""
+    Write-Log "============================================" "Red"
+    Write-Log "  INSTALLATION FAILED" "Red"
+    Write-Log "============================================" "Red"
+    Write-Log ""
+    Write-LogError $_.Exception.Message
     
     if ($_.Exception.InnerException) {
-        Write-Host "Details: $($_.Exception.InnerException.Message)" -ForegroundColor Yellow
-        Write-Host ""
+        Write-Log "Details: $($_.Exception.InnerException.Message)" "Yellow"
     }
     
-    Write-Host "Troubleshooting:" -ForegroundColor Yellow
-    Write-Host "  1. Check internet connection" -ForegroundColor White
-    Write-Host "  2. Run PowerShell as Administrator" -ForegroundColor White
-    Write-Host "  3. Check Node.js: node --version" -ForegroundColor White
-    Write-Host "  4. Check npm: npm --version" -ForegroundColor White
-    Write-Host "  5. Try debug installer:" -ForegroundColor White
-    Write-Host "     iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/debug-install.ps1 -OutFile install-debug.ps1" -ForegroundColor Gray
-    Write-Host "     .\install-debug.ps1" -ForegroundColor Gray
-    Write-Host ""
+    Write-Log ""
+    Write-Log "IMPORTANT: Full error log saved to:" "Yellow"
+    Write-Log "  $LogFile" "Cyan"
+    Write-Log ""
+    Write-Log "To view the log:" "Yellow"
+    Write-Log "  notepad `"$LogFile`"" "Gray"
+    Write-Log ""
+    Write-Log "Troubleshooting:" "Yellow"
+    Write-Log "  1. Check the log file above" "White"
+    Write-Log "  2. Verify Node.js: node --version" "White"
+    Write-Log "  3. Verify npm: npm --version" "White"
+    Write-Log "  4. Run as Administrator" "White"
+    Write-Log "  5. Check internet connection" "White"
+    Write-Log ""
+    
+    # Add full error details to log
+    Add-Content -Path $LogFile -Value "`n=== FULL ERROR DETAILS ==="
+    Add-Content -Path $LogFile -Value "Message: $($_.Exception.Message)"
+    Add-Content -Path $LogFile -Value "Type: $($_.Exception.GetType().FullName)"
+    if ($_.Exception.InnerException) {
+        Add-Content -Path $LogFile -Value "Inner Exception: $($_.Exception.InnerException.Message)"
+    }
+    Add-Content -Path $LogFile -Value "Stack Trace:"
+    Add-Content -Path $LogFile -Value $_.ScriptStackTrace
+    Add-Content -Path $LogFile -Value "=== END ERROR DETAILS ===`n"
     
     throw
 } finally {
@@ -184,4 +217,7 @@ node "%~dp0dist\bin.js" %*
     if (Test-Path $ExtractDir) {
         Remove-Item $ExtractDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+    
+    Write-Log "Cleanup completed" "Gray"
+    Write-Log "Log file: $LogFile" "Gray"
 }
