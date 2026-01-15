@@ -1,5 +1,5 @@
 {
-  "name": "@auditorix/signaler",
+  "name": "@signaler/signaler",
   "version": "1.0.8",
   "private": false,
   "description": "Web performance auditing tool with batch Lighthouse audits, automatic route detection, and comprehensive reporting",

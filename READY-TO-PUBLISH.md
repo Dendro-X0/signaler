@@ -6,7 +6,7 @@ The dry run completed successfully. Your package is ready to publish to JSR.
 
 ## What Will Be Published
 
-- **Package**: `@auditorix/signaler`
+- **Package**: `@signaler/signaler`
 - **Version**: `1.0.8`
 - **Files**: 117 files (~700KB)
 - **Contents**: 
@@ -34,24 +34,24 @@ npx jsr publish
 This will:
 1. Open your browser for authentication
 2. Ask you to log in to JSR (or create account if needed)
-3. Prompt you to create the `@auditorix` scope (first time only)
+3. Prompt you to create the `@signaler` scope (first time only)
 4. Upload your package
-5. Make it available at `jsr:@auditorix/signaler`
+5. Make it available at `jsr:@signaler/signaler`
 
 ### 2. After Publishing
 
 Your package will be live at:
-- **JSR Page**: https://jsr.io/@auditorix/signaler
-- **Import**: `jsr:@auditorix/signaler`
+- **JSR Page**: https://jsr.io/@signaler/signaler
+- **Import**: `jsr:@signaler/signaler`
 
 ### 3. Test Installation
 
 ```bash
 # In a test project
-npx jsr add @auditorix/signaler
+npx jsr add @signaler/signaler
 
 # Or install globally
-npm install -g jsr:@auditorix/signaler
+npm install -g jsr:@signaler/signaler
 
 # Test it
 signaler --version
@@ -60,10 +60,10 @@ signaler help
 
 ## Troubleshooting
 
-### "Scope @auditorix does not exist"
+### "Scope @signaler does not exist"
 
 1. Go to https://jsr.io/new
-2. Create the `@auditorix` scope
+2. Create the `@signaler` scope
 3. Run `npx jsr publish` again
 
 ### Browser doesn't open

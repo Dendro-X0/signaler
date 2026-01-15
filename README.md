@@ -20,10 +20,10 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ```bash
 # Using npm/pnpm/yarn
-npx jsr add @auditorix/signaler
+npx jsr add @signaler/signaler
 
 # Or install globally
-npm install -g jsr:@auditorix/signaler
+npm install -g jsr:@signaler/signaler
 
 # Then use it
 signaler wizard

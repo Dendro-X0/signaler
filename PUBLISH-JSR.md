@@ -35,48 +35,48 @@ This will:
 - Open your browser for authentication
 - Prompt you to authorize publishing
 - Upload your package to JSR
-- Make it available at `jsr:@auditorix/signaler`
+- Make it available at `jsr:@signaler/signaler`
 
 **First time?** You'll be asked to:
 1. Log in to JSR (or create an account)
-2. Create the `@auditorix` scope (if it doesn't exist)
+2. Create the `@signaler` scope (if it doesn't exist)
 3. Authorize the publish
 
 ### 3. Verify
 
 After publishing, your package will be available at:
-- **JSR page**: https://jsr.io/@auditorix/signaler
-- **Import**: `jsr:@auditorix/signaler`
+- **JSR page**: https://jsr.io/@signaler/signaler
+- **Import**: `jsr:@signaler/signaler`
 
 ## Installation for Users
 
 ### Using Deno
 
 ```bash
-deno install -A -n signaler jsr:@auditorix/signaler
+deno install -A -n signaler jsr:@signaler/signaler
 ```
 
 ### Using npm/pnpm/yarn
 
 ```bash
 # npm
-npx jsr add @auditorix/signaler
+npx jsr add @signaler/signaler
 
 # pnpm
-pnpm dlx jsr add @auditorix/signaler
+pnpm dlx jsr add @signaler/signaler
 
 # yarn
-yarn dlx jsr add @auditorix/signaler
+yarn dlx jsr add @signaler/signaler
 ```
 
 ### Using directly
 
 ```bash
 # Deno
-deno run -A jsr:@auditorix/signaler/cli wizard
+deno run -A jsr:@signaler/signaler/cli wizard
 
 # Node.js with jsr
-npx jsr:@auditorix/signaler wizard
+npx jsr:@signaler/signaler wizard
 ```
 
 ## Configuration
@@ -85,7 +85,7 @@ The `jsr.json` file configures what gets published:
 
 ```json
 {
-  "name": "@auditorix/signaler",
+  "name": "@signaler/signaler",
   "version": "1.0.8",
   "exports": {
     ".": "./dist/index.js",
@@ -197,7 +197,7 @@ JSR automatically generates documentation from:
 - TypeScript types
 - JSDoc comments
 
-View at: `https://jsr.io/@auditorix/signaler`
+View at: `https://jsr.io/@signaler/signaler`
 
 ## CI/CD Integration
 
@@ -243,7 +243,7 @@ jobs:
 
 Make sure you've created the scope and package on JSR first:
 1. Go to https://jsr.io/new
-2. Create the `@auditorix` scope
+2. Create the `@signaler` scope
 3. Try publishing again with `npx jsr publish`
 
 ### "Version already exists"
@@ -261,7 +261,7 @@ Make sure you ran `pnpm run build` before publishing.
 
 ### "Permission denied"
 
-You need to be a member of the `@auditorix` scope on JSR.
+You need to be a member of the `@signaler` scope on JSR.
 
 ## Migration from npm
 
@@ -274,10 +274,10 @@ If you were using npm before:
 Users can install from either:
 ```bash
 # From JSR
-pnpm dlx jsr add @auditorix/signaler
+pnpm dlx jsr add @signaler/signaler
 
 # From npm (if you publish there too)
-pnpm add @auditorix/signaler
+pnpm add @signaler/signaler
 ```
 
 ## Summary
@@ -299,5 +299,5 @@ No tokens, no conflicts, no hassle.
 4. Authenticate in browser
 
 Your package will be available at:
-- `jsr:@auditorix/signaler`
-- `https://jsr.io/@auditorix/signaler`
+- `jsr:@signaler/signaler`
+- `https://jsr.io/@signaler/signaler`

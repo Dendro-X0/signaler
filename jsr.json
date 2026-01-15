@@ -1,5 +1,5 @@
 {
-  "name": "@auditorix/signaler",
+  "name": "@signaler/signaler",
   "version": "1.0.8",
   "exports": {
     ".": "./dist/index.js",

@@ -52,16 +52,16 @@ npx jsr publish
 
 ### 6. Verify Publication
 
-Visit: https://jsr.io/@auditorix/signaler
+Visit: https://jsr.io/@signaler/signaler
 
 ### 7. Test Installation
 
 ```bash
 # In a different directory
-npx jsr add @auditorix/signaler
+npx jsr add @signaler/signaler
 
 # Or install globally
-npm install -g jsr:@auditorix/signaler
+npm install -g jsr:@signaler/signaler
 
 # Test it
 signaler --version
@@ -69,10 +69,10 @@ signaler --version
 
 ## Troubleshooting
 
-### "Scope @auditorix does not exist"
+### "Scope @signaler does not exist"
 
 1. Go to https://jsr.io/new
-2. Create the `@auditorix` scope
+2. Create the `@signaler` scope
 3. Try `npx jsr publish` again
 
 ### "Version 1.0.8 already exists"
@@ -95,10 +95,10 @@ Copy the URL from terminal and paste it in your browser manually.
 ## After Publishing
 
 Your package will be available:
-- **JSR**: `jsr:@auditorix/signaler`
-- **npm**: `npx jsr add @auditorix/signaler`
-- **Deno**: `deno add @auditorix/signaler`
-- **Web**: https://jsr.io/@auditorix/signaler
+- **JSR**: `jsr:@signaler/signaler`
+- **npm**: `npx jsr add @signaler/signaler`
+- **Deno**: `deno add @signaler/signaler`
+- **Web**: https://jsr.io/@signaler/signaler
 
 ## Update README
 

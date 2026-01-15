@@ -36,10 +36,10 @@ jsr publish
 
 ```bash
 # Add to project
-npx jsr add @auditorix/signaler
+npx jsr add @signaler/signaler
 
 # Or install globally
-npm install -g jsr:@auditorix/signaler
+npm install -g jsr:@signaler/signaler
 ```
 
 ### Usage
@@ -66,7 +66,7 @@ signaler audit
 ## Links
 
 - **JSR Homepage**: https://jsr.io/
-- **Your Package**: https://jsr.io/@auditorix/signaler (after publishing)
+- **Your Package**: https://jsr.io/@signaler/signaler (after publishing)
 - **Documentation**: Auto-generated from TypeScript
 
 ## Commands
@@ -91,7 +91,7 @@ Edit `jsr.json`:
 
 ```json
 {
-  "name": "@auditorix/signaler",
+  "name": "@signaler/signaler",
   "version": "1.0.8",
   "exports": {
     ".": "./dist/index.js",
