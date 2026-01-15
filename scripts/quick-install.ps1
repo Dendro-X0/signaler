@@ -1,9 +1,11 @@
 # Signaler Quick Installer
 # One command installation for Windows
 
-$ErrorActionPreference = "Stop"
+# Don't exit immediately on errors - we want to show them
+$ErrorActionPreference = "Continue"
 
 Write-Host "Installing Signaler..." -ForegroundColor Cyan
+Write-Host ""
 
 # Check Node.js version
 if (!(Get-Command "node" -ErrorAction SilentlyContinue)) {
@@ -48,14 +50,20 @@ try {
     Write-Host "Building (this may take a minute)..." -ForegroundColor Yellow
     Set-Location $InstallDir
     
-    & npm install --silent --no-progress 2>&1 | Out-Null
+    Write-Host "Running npm install..." -ForegroundColor Gray
+    $npmInstallOutput = & npm install 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "npm install failed"
+        Write-Host "npm install output:" -ForegroundColor Red
+        Write-Host $npmInstallOutput -ForegroundColor Red
+        throw "npm install failed with exit code $LASTEXITCODE"
     }
     
-    & npm run build --silent 2>&1 | Out-Null
+    Write-Host "Running npm build..." -ForegroundColor Gray
+    $npmBuildOutput = & npm run build 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "npm build failed"
+        Write-Host "npm build output:" -ForegroundColor Red
+        Write-Host $npmBuildOutput -ForegroundColor Red
+        throw "npm build failed with exit code $LASTEXITCODE"
     }
     
     # Verify build output
@@ -82,25 +90,57 @@ node "%~dp0dist\bin.js" %*
     $TestOutput = & "$InstallDir\signaler.cmd" --help 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Signaler installed successfully!" -ForegroundColor Green
+        Write-Host "============================================" -ForegroundColor Green
+        Write-Host "✓ INSTALLATION SUCCESSFUL!" -ForegroundColor Green
+        Write-Host "============================================" -ForegroundColor Green
         Write-Host ""
         Write-Host "Run: signaler wizard" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "Note: Restart terminal if 'signaler' command not found" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Press any key to exit..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     } else {
-        Write-Host "✗ Installation verification failed" -ForegroundColor Red
-        Write-Host "The CLI was installed but may not work correctly" -ForegroundColor Yellow
-        Write-Host "Try running: $InstallDir\signaler.cmd wizard" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "============================================" -ForegroundColor Red
+        Write-Host "✗ INSTALLATION VERIFICATION FAILED" -ForegroundColor Red
+        Write-Host "============================================" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "The CLI was installed but verification failed" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Verification output:" -ForegroundColor Yellow
+        Write-Host $TestOutput
+        Write-Host ""
+        Write-Host "Try running manually: $InstallDir\signaler.cmd wizard" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Press any key to exit..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     }
     
 } catch {
-    Write-Host "Installation failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "============================================" -ForegroundColor Red
+    Write-Host "INSTALLATION FAILED" -ForegroundColor Red
+    Write-Host "============================================" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Full error details:" -ForegroundColor Yellow
+    Write-Host $_.Exception | Format-List -Force | Out-String
+    Write-Host ""
+    Write-Host "Stack trace:" -ForegroundColor Yellow
+    Write-Host $_.ScriptStackTrace
     Write-Host ""
     Write-Host "Troubleshooting:" -ForegroundColor Yellow
     Write-Host "  • Check your internet connection" -ForegroundColor Yellow
     Write-Host "  • Ensure you have enough disk space" -ForegroundColor Yellow
     Write-Host "  • Try running PowerShell as Administrator" -ForegroundColor Yellow
     Write-Host "  • Check if antivirus is blocking the installation" -ForegroundColor Yellow
+    Write-Host "  • Check Node.js is properly installed: node --version" -ForegroundColor Yellow
+    Write-Host "  • Check npm is working: npm --version" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Press any key to exit..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
 } finally {
     # Cleanup
