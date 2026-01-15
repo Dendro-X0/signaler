@@ -28,17 +28,13 @@ curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh 
 iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
 ```
 
-This downloads a pre-built standalone executable from GitHub Releases. No Node.js, no npm, no dependencies required!
-
-> **Windows users:** If you get execution policy errors, see [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for manual installation.
+> **Prerequisites:** Node.js 16+ required. Download from https://nodejs.org/
 
 After installation, restart your terminal and run:
 ```bash
 signaler wizard
 signaler audit
 ```
-
-> **See [INSTALL.md](INSTALL.md) for detailed installation instructions, manual installation, and troubleshooting.**
 
 ### 2. Initialize Configuration
 
@@ -224,10 +220,21 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 ## Troubleshooting
 
 ### Installation Issues
-- Registry-free install recommended for most users
-- For npm install: Ensure Node.js 18+ is installed: `node --version`
-- Windows: Run PowerShell as Administrator if PATH update fails
-- macOS/Linux: Restart terminal after installation to refresh PATH
+
+**Node.js Not Found:**
+- Install Node.js 16+ from https://nodejs.org/
+- Restart terminal after installation
+- Verify: `node --version`
+
+**Command Not Found After Installation:**
+- Restart your terminal to refresh PATH
+- Windows: Run directly with `$env:LOCALAPPDATA\signaler\signaler.cmd wizard`
+- Unix: Run directly with `~/.local/bin/signaler wizard`
+
+**Installer Fails on Windows:**
+- Ensure Node.js is installed and in PATH
+- Run PowerShell as Administrator if PATH update fails
+- Check available disk space and memory
 
 ### Audit Failures
 - Verify your `baseUrl` is accessible (start dev server first)

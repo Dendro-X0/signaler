@@ -1,5 +1,69 @@
 # Changelog
 
+## 1.0.8 - 2026-01-14
+
+### 🔧 Stability Improvements
+
+**Installation:**
+- Added Node.js version check (requires 16+) with clear error messages
+- Added installation verification to ensure CLI works after installation
+- Improved PowerShell installer with better error handling and troubleshooting guidance
+- Added build output verification to catch installation failures early
+- Added memory check during installation
+
+**Error Handling:**
+- Improved error messages for common failures (missing config, connection refused, permission denied)
+- Added graceful shutdown handler for Ctrl+C interrupts with Chrome cleanup
+- Better error context with helpful suggestions for recovery
+- Added DEBUG/VERBOSE mode for detailed error information
+- Enhanced transient error detection for better retry logic
+
+**Configuration:**
+- Added comprehensive config validation before running audits
+- Validates baseUrl format and common mistakes
+- Checks for duplicate page paths
+- Validates parallel and timeout settings
+- Clear error messages with specific issues highlighted
+
+**Lighthouse Runner:**
+- Enhanced transient error detection (network, Chrome, timeout errors)
+- Improved Chrome process cleanup on shutdown and errors
+- Added memory monitoring and warnings for low memory conditions
+- Better error categorization for retry decisions
+- Automatic Chrome process cleanup on Ctrl+C and crashes
+
+**Parallel Execution:**
+- Enhanced worker pool management with graceful shutdown
+- Automatic parallelism reduction on high failure rates (>30%)
+- Memory-aware parallel worker calculation (1.5GB per worker)
+- Better worker cleanup with SIGTERM then SIGKILL
+- Adaptive parallelism: reduces workers when consecutive failures occur
+- Improved memory-based parallelism warnings
+
+**User Experience:**
+- Better progress indicators during installation
+- Clearer status messages throughout CLI operations
+- Helpful suggestions when errors occur
+- Improved troubleshooting guidance
+- Memory warnings when system resources are low
+- Parallelism reduction notifications
+- Spinner animations for warm-up phase
+- Better visual feedback during long operations
+
+### 🛠️ New Utilities
+
+- Added `utils/memory-monitor.ts` for memory status tracking
+- Added `utils/retry.ts` for retry logic with exponential backoff
+- Added `utils/chrome-cleanup.ts` for Chrome process management
+- Added `utils/worker-pool.ts` for adaptive parallel worker management
+- Added `utils/progress.ts` for progress indicators and spinners
+
+### 📝 Documentation
+
+- Updated installation scripts with verification steps
+- Added troubleshooting tips to error messages
+- Improved inline help and error guidance
+
 ## Unreleased
 
 ### 🔧 Fixed

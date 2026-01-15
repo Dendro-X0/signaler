@@ -13,7 +13,57 @@ export async function loadConfig({ configPath }: { configPath: string }): Promis
   const raw: string = await readFile(absolutePath, "utf8");
   const parsed: unknown = JSON.parse(raw) as unknown;
   const config: ApexConfig = normaliseConfig(parsed, absolutePath);
+  
+  // Validate config after normalization
+  const validationErrors = validateConfig(config);
+  if (validationErrors.length > 0) {
+    throw new Error(
+      `Configuration validation failed:\n${validationErrors.map(e => `  • ${e}`).join('\n')}\n\nConfig file: ${absolutePath}`
+    );
+  }
+  
   return { configPath: absolutePath, config };
+}
+
+/**
+ * Validate configuration for common issues
+ */
+function validateConfig(config: ApexConfig): string[] {
+  const errors: string[] = [];
+  
+  // Validate baseUrl format
+  if (!config.baseUrl.startsWith('http://') && !config.baseUrl.startsWith('https://')) {
+    errors.push('baseUrl must start with http:// or https://');
+  }
+  
+  // Check for common localhost mistakes
+  if (config.baseUrl.includes('localhost') && !config.baseUrl.match(/localhost:\d+/)) {
+    errors.push('baseUrl with localhost should include a port (e.g., http://localhost:3000)');
+  }
+  
+  // Validate pages
+  if (config.pages.length === 0) {
+    errors.push('At least one page is required');
+  }
+  
+  // Check for duplicate paths
+  const paths = config.pages.map(p => p.path);
+  const duplicates = paths.filter((path, index) => paths.indexOf(path) !== index);
+  if (duplicates.length > 0) {
+    errors.push(`Duplicate page paths found: ${duplicates.join(', ')}`);
+  }
+  
+  // Validate parallel setting
+  if (config.parallel !== undefined && (config.parallel < 1 || config.parallel > 10)) {
+    errors.push('parallel must be between 1 and 10');
+  }
+  
+  // Validate timeout
+  if (config.auditTimeoutMs !== undefined && config.auditTimeoutMs < 10000) {
+    errors.push('auditTimeoutMs should be at least 10000 (10 seconds)');
+  }
+  
+  return errors;
 }
 
 function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {

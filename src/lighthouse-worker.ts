@@ -81,7 +81,10 @@ type LighthouseResultLike = {
 
 function isTransientLighthouseError(error: unknown): boolean {
   const message: string = error instanceof Error && typeof error.message === "string" ? error.message : "";
+  const lowerMessage = message.toLowerCase();
+  
   return (
+    // Lighthouse-specific errors
     message.includes("performance mark has not been set") ||
     message.includes("TargetCloseError") ||
     message.includes("Target closed") ||
@@ -91,13 +94,21 @@ function isTransientLighthouseError(error: unknown): boolean {
     message.includes("CDP") ||
     message.includes("disconnected") ||
     message.includes("ApexAuditor timeout") ||
-    // Additional transient errors for better retry handling
+    // Network errors
     message.includes("WebSocket") ||
     message.includes("webSocket") ||
     message.includes("fetch failed") ||
-    message.includes("ECONNREFUSED") ||
-    message.includes("ECONNRESET") ||
-    message.includes("socket hang up")
+    lowerMessage.includes("econnrefused") ||
+    lowerMessage.includes("econnreset") ||
+    lowerMessage.includes("etimedout") ||
+    message.includes("socket hang up") ||
+    // Chrome errors
+    lowerMessage.includes("chrome") && lowerMessage.includes("crash") ||
+    message.includes("Protocol error") ||
+    message.includes("Session closed") ||
+    // Timeout errors
+    lowerMessage.includes("timeout") ||
+    lowerMessage.includes("timed out")
   );
 }
 

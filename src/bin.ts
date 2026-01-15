@@ -1,5 +1,22 @@
 #!/usr/bin/env node
 
+// Check Node.js version before importing anything
+const nodeVersion = process.versions.node;
+const major = parseInt(nodeVersion.split('.')[0], 10);
+if (major < 16) {
+  console.error(`Error: Node.js 16 or higher is required. You have ${nodeVersion}`);
+  console.error('Please upgrade Node.js: https://nodejs.org/');
+  process.exit(1);
+}
+
+// Check available memory
+import { freemem } from 'node:os';
+const freeMemoryMB = Math.round(freemem() / 1024 / 1024);
+if (freeMemoryMB < 512) {
+  console.warn(`⚠️  Warning: Low memory detected (${freeMemoryMB}MB free)`);
+  console.warn('   Signaler may run slowly or fail. Consider closing other applications.');
+}
+
 import { runAuditCli } from "./cli.js";
 import { runUpgradeCli } from "./upgrade-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
@@ -342,7 +359,60 @@ function isInteractiveTty(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY);
 }
 
+// Graceful shutdown handler
+let isShuttingDown = false;
+
+async function cleanupChromeProcesses(): Promise<void> {
+  try {
+    const { exec } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const execAsync = promisify(exec);
+    
+    if (process.platform === 'win32') {
+      await execAsync('taskkill /F /IM chrome.exe /T').catch(() => {});
+    } else {
+      await execAsync('pkill -9 -f "chrome.*--headless"').catch(() => {});
+    }
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
+function setupGracefulShutdown(): void {
+  const shutdown = async (signal: string): Promise<void> => {
+    if (isShuttingDown) {
+      return;
+    }
+    isShuttingDown = true;
+    
+    console.error(`\n\n⚠️  Received ${signal}, shutting down gracefully...`);
+    console.error("Cleaning up Chrome processes...");
+    
+    await cleanupChromeProcesses();
+    
+    console.error("Shutdown complete");
+    process.exit(0);
+  };
+  
+  process.on("SIGINT", () => void shutdown("SIGINT (Ctrl+C)"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  
+  // Cleanup on uncaught errors
+  process.on("uncaughtException", async (error) => {
+    console.error("\n❌ Uncaught exception:", error.message);
+    await cleanupChromeProcesses();
+    process.exit(1);
+  });
+  
+  process.on("unhandledRejection", async (reason) => {
+    console.error("\n❌ Unhandled rejection:", reason);
+    await cleanupChromeProcesses();
+    process.exit(1);
+  });
+}
+
 export async function runBin(argv: readonly string[]): Promise<void> {
+  setupGracefulShutdown();
   const parsed: ParsedBinArgs = parseBinArgs(argv);
   if (parsed.command === "help") {
     const topic: string | undefined = argv[3];
@@ -430,11 +500,39 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     await runOnce();
   } catch (error: unknown) {
     const message: string = error instanceof Error ? error.message : String(error);
-    if (message.includes("ENOENT")) {
-      // eslint-disable-next-line no-console
-      console.error("Config file not found. Run `signaler init` to create a config or set one with `config <path>`.");
+    
+    // Handle common error scenarios with helpful messages
+    if (message.includes("ENOENT") && message.includes("apex.config.json")) {
+      console.error("\n❌ Config file not found");
+      console.error("\nTo create a config file, run:");
+      console.error("  signaler wizard");
+      console.error("\nOr specify a config path:");
+      console.error("  signaler audit --config path/to/config.json");
+      process.exitCode = 1;
       return;
     }
+    
+    if (message.includes("ECONNREFUSED") || message.includes("ENOTFOUND")) {
+      console.error("\n❌ Cannot connect to baseUrl");
+      console.error("\nMake sure:");
+      console.error("  • Your development server is running");
+      console.error("  • The baseUrl in apex.config.json is correct");
+      console.error("  • The server is accessible from this machine");
+      process.exitCode = 1;
+      return;
+    }
+    
+    if (message.includes("EACCES") || message.includes("permission denied")) {
+      console.error("\n❌ Permission denied");
+      console.error("\nTry:");
+      console.error("  • Running with appropriate permissions");
+      console.error("  • Checking file/directory permissions");
+      console.error("  • Closing other applications that might lock files");
+      process.exitCode = 1;
+      return;
+    }
+    
+    // Re-throw unknown errors
     throw error;
   }
 
@@ -444,7 +542,26 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 }
 
 void runBin(process.argv).catch((error: unknown) => {
-  // eslint-disable-next-line no-console
-  console.error("ApexAuditor CLI failed:", error);
+  console.error("\n❌ Signaler CLI failed\n");
+  
+  if (error instanceof Error) {
+    console.error("Error:", error.message);
+    
+    // Show stack trace in verbose mode
+    if (process.env.DEBUG || process.env.VERBOSE) {
+      console.error("\nStack trace:");
+      console.error(error.stack);
+    } else {
+      console.error("\nFor more details, run with DEBUG=1 or VERBOSE=1");
+    }
+  } else {
+    console.error("Error:", String(error));
+  }
+  
+  console.error("\nNeed help? Check:");
+  console.error("  • README.md for documentation");
+  console.error("  • signaler help for command reference");
+  console.error("  • GitHub issues for known problems");
+  
   process.exitCode = 1;
 });
