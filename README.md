@@ -14,40 +14,31 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ## Quick Start
 
-### 1. Install
+### Installation
 
-**Two-Step Installation (Recommended):**
+**Option 1: Standalone Executable (Recommended - No Node.js Required)**
 
-**Windows (PowerShell):**
+Download pre-built executable from [Releases](https://github.com/Dendro-X0/signaler/releases/latest):
+
+**Windows:**
 ```powershell
-# Step 1: Download installer
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/quick-install.ps1 -OutFile install.ps1
-
-# Step 2: Run it
+iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/install-standalone.ps1 -OutFile install.ps1
 .\install.ps1
 ```
 
-**Why two steps?** This ensures all output and errors are visible. Never run installers via `iex` - they can crash and hide errors.
+**Manual:** Download `signaler-win.exe` from releases and add to PATH.
 
-**Alternative: Bootstrap Installer**
-```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/bootstrap-install.ps1 | iex
-```
+**Option 2: From Source (For Developers)**
 
-**Unix/Linux/macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
+git clone https://github.com/Dendro-X0/signaler.git
+cd signaler
+pnpm install
+pnpm run build
+pnpm link
 ```
 
-> **Prerequisites:** Node.js 16+ required. Download from https://nodejs.org/
-> 
-> **Troubleshooting:** If installation fails, see [INSTALL-FOOLPROOF.md](INSTALL-FOOLPROOF.md) for detailed instructions and log file location.
-
-After installation, restart your terminal and run:
-```bash
-signaler wizard
-signaler audit
-```
+See [INSTALL-STANDALONE.md](INSTALL-STANDALONE.md) for detailed instructions.
 
 ### 2. Initialize Configuration
 

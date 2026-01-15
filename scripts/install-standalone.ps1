@@ -1,141 +1,60 @@
-# Signaler Standalone Installer for Windows
-# Downloads and installs Signaler without npm
-
-param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\signaler",
-    [string]$Branch = "main"
-)
+# Simple installer - downloads pre-built executable
+# No npm, no Node.js, no compilation needed
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Installing Signaler..." -ForegroundColor Green
-Write-Host "Install directory: $InstallDir"
+Write-Host ""
+Write-Host "=== Signaler Standalone Installer ===" -ForegroundColor Cyan
+Write-Host ""
 
-# Check prerequisites
-try {
-    $null = Get-Command node -ErrorAction Stop
-} catch {
-    Write-Host "Error: Node.js is not installed. Please install Node.js 18+ first." -ForegroundColor Red
-    Write-Host "Visit: https://nodejs.org/"
+$InstallDir = "$env:LOCALAPPDATA\signaler"
+$ExePath = "$InstallDir\signaler.exe"
+
+# Get latest release
+Write-Host "Finding latest release..." -ForegroundColor Yellow
+$LatestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/Dendro-X0/signaler/releases/latest"
+$Version = $LatestRelease.tag_name
+Write-Host "Latest version: $Version" -ForegroundColor Green
+
+# Find Windows executable
+$Asset = $LatestRelease.assets | Where-Object { $_.name -like "*win*.exe" } | Select-Object -First 1
+
+if (!$Asset) {
+    Write-Host "ERROR: No Windows executable found in release" -ForegroundColor Red
     exit 1
 }
 
-try {
-    $null = Get-Command git -ErrorAction Stop
-} catch {
-    Write-Host "Error: git is not installed. Please install git first." -ForegroundColor Red
-    exit 1
+Write-Host "Downloading: $($Asset.name)" -ForegroundColor Yellow
+Write-Host "Size: $([math]::Round($Asset.size / 1MB, 2)) MB" -ForegroundColor Gray
+
+# Create directory
+if (!(Test-Path $InstallDir)) {
+    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
 
-# Create temp directory
-$TempDir = Join-Path $env:TEMP "signaler-install-$(Get-Random)"
-New-Item -ItemType Directory -Path $TempDir | Out-Null
+# Download
+Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $ExePath -UseBasicParsing
 
-try {
-    Write-Host "Downloading Signaler..."
-    Set-Location $TempDir
-    git clone --depth 1 --branch $Branch https://github.com/Dendro-X0/signaler.git signaler
-    Set-Location signaler
+Write-Host "Downloaded to: $ExePath" -ForegroundColor Green
 
-    # Check if pnpm is available
-    $PkgMgr = "npm"
-    try {
-        $null = Get-Command pnpm -ErrorAction Stop
-        $PkgMgr = "pnpm"
-    } catch {
-        Write-Host "pnpm not found, using npm (slower)" -ForegroundColor Yellow
-    }
-
-    Write-Host "Installing dependencies..."
-    & $PkgMgr install --prod
-
-    Write-Host "Building..."
-    & $PkgMgr run build
-
-    Write-Host "Building Rust launcher..."
-    try {
-        $null = Get-Command cargo -ErrorAction Stop
-        Set-Location launcher
-        cargo build --release
-        Set-Location ..
-    } catch {
-        Write-Host "Warning: Rust/cargo not found. Skipping Rust launcher build." -ForegroundColor Yellow
-        Write-Host "You can still use: node dist/bin.js"
-    }
-
-    # Create installation directory
-    if (Test-Path $InstallDir) {
-        Remove-Item -Recurse -Force $InstallDir
-    }
-    New-Item -ItemType Directory -Path $InstallDir | Out-Null
-
-    # Copy files
-    Write-Host "Installing to $InstallDir..."
-    Copy-Item -Recurse dist "$InstallDir\"
-    Copy-Item -Recurse node_modules "$InstallDir\"
-    Copy-Item package.json "$InstallDir\"
-
-    # Copy Rust binary if it exists
-    $RustBinary = "launcher\target\release\signaler.exe"
-    if (Test-Path $RustBinary) {
-        Copy-Item $RustBinary "$InstallDir\"
-    }
-
-    # Create engine manifest
-    $Manifest = @"
-{
-  "schemaVersion": 1,
-  "engineVersion": "1.0.6",
-  "minNode": "18.0.0",
-  "entry": "dist/bin.js",
-  "defaultOutputDirName": ".signaler"
+# Add to PATH
+$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($UserPath -notlike "*$InstallDir*") {
+    [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
+    $env:Path = "$env:Path;$InstallDir"
+    Write-Host "Added to PATH" -ForegroundColor Green
 }
-"@
-    $Manifest | Out-File -FilePath "$InstallDir\engine.manifest.json" -Encoding UTF8
 
-    # Create wrapper batch file
-    $WrapperBatch = @"
-@echo off
-setlocal
-set "SCRIPT_DIR=%~dp0"
-if exist "%SCRIPT_DIR%signaler.exe" (
-    "%SCRIPT_DIR%signaler.exe" engine run %*
-) else (
-    node "%SCRIPT_DIR%dist\bin.js" %*
-)
-"@
-    $WrapperBatch | Out-File -FilePath "$InstallDir\signaler-cli.cmd" -Encoding ASCII
+# Test
+Write-Host ""
+Write-Host "Testing installation..." -ForegroundColor Yellow
+& $ExePath --version
 
-    # Add to PATH
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($UserPath -notlike "*$InstallDir*") {
-        [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
-        Write-Host "Added $InstallDir to PATH" -ForegroundColor Green
-    }
-
-    Write-Host ""
-    Write-Host "✓ Signaler installed successfully!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Location: $InstallDir"
-    Write-Host ""
-    Write-Host "To use Signaler:"
-    if (Test-Path "$InstallDir\signaler.exe") {
-        Write-Host "  $InstallDir\signaler.exe doctor"
-        Write-Host "  $InstallDir\signaler.exe engine run wizard"
-        Write-Host "  $InstallDir\signaler.exe engine run audit"
-    } else {
-        Write-Host "  node $InstallDir\dist\bin.js --help"
-        Write-Host "  node $InstallDir\dist\bin.js wizard"
-    }
-    Write-Host ""
-    Write-Host "Or from anywhere (after restarting terminal):"
-    Write-Host "  signaler-cli wizard"
-    Write-Host "  signaler-cli audit"
-    Write-Host ""
-    Write-Host "Restart your terminal for PATH changes to take effect."
-
-} finally {
-    # Cleanup
-    Set-Location $env:TEMP
-    Remove-Item -Recurse -Force $TempDir -ErrorAction SilentlyContinue
-}
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "  INSTALLATION SUCCESSFUL!" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Restart your terminal, then run:" -ForegroundColor Yellow
+Write-Host "  signaler wizard" -ForegroundColor Cyan
+Write-Host ""
