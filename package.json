@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "private": false,
   "description": "Web performance auditing tool with batch Lighthouse audits, automatic route detection, and comprehensive reporting",
   "type": "module",
@@ -10,6 +10,7 @@
   },
   "files": [
     "dist",
+    "scripts/postinstall.js",
     "README.md"
   ],
   "bin": {
@@ -20,7 +21,8 @@
     "dev": "tsx src/bin.ts",
     "test": "vitest run",
     "start": "node dist/bin.js",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
     "ansi-colors": "^4.1.3",

@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.11 - 2026-01-15
+
+### 🚀 Features
+
+**Cross-Platform Support:**
+- Added postinstall script to create cross-platform CLI wrappers
+- CLI now works seamlessly in Git Bash, PowerShell, CMD, and Unix terminals
+- Automatically creates bash wrapper (`signaler`) for Unix/Git Bash
+- Automatically creates Windows wrapper (`signaler.cmd`) for CMD/PowerShell
+- No more need to run with `node` directly in Git Bash
+
+**Installation:**
+- Postinstall script runs automatically after `npx jsr add @signaler/cli`
+- Creates executable wrappers in the appropriate bin directory
+- Works for both global and local installations
+
+### 🐛 Bug Fixes
+
+**Git Bash Compatibility:**
+- Fixed "command not found" error in Git Bash
+- Users can now run `signaler wizard` directly in Git Bash
+- No need for aliases or workarounds
+
 ## 1.0.10 - 2026-01-15
 
 ### 🐛 Bug Fixes
