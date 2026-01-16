@@ -1,10 +1,10 @@
-# Installation Guide - Signaler CLI v1.0.10
+# Installation Guide - Signaler CLI v1.0.11
 
 ## ✅ Successfully Published to JSR
 
 The package has been published to JSR and is ready to use!
 
-**JSR Package:** https://jsr.io/@signaler/cli@1.0.10
+**JSR Package:** https://jsr.io/@signaler/cli@1.0.11
 
 ## Installation
 
@@ -14,85 +14,79 @@ npx jsr add @signaler/cli
 
 This installs the CLI globally to:
 ```
-C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd
+C:\Users\Administrator\AppData\Local\signaler\bin\
+```
+
+## Git Bash Setup (One-Time)
+
+After installation, run this one-time setup to enable Git Bash support:
+
+### Option 1: Using PowerShell (Recommended)
+```powershell
+# Download and run the setup script
+curl -o setup-bash-wrapper.ps1 https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.ps1
+pwsh -ExecutionPolicy Bypass -File setup-bash-wrapper.ps1
+```
+
+### Option 2: Using Git Bash
+```bash
+# Download and run the setup script
+curl -o setup-bash-wrapper.sh https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh
+bash setup-bash-wrapper.sh
+```
+
+### Option 3: Manual Setup
+```bash
+# Create the bash wrapper manually
+cat > "C:\Users\$USER\AppData\Local\signaler\bin\signaler" << 'EOF'
+#!/usr/bin/env bash
+SIGNALER_ROOT="$HOME/AppData/Local/signaler/current"
+exec node "$SIGNALER_ROOT/dist/bin.js" "$@"
+EOF
+
+# Make it executable
+chmod +x "C:\Users\$USER\AppData\Local\signaler\bin\signaler"
 ```
 
 ## Usage
 
-### Option 1: Use in PowerShell (Recommended)
+### After Setup - Works Everywhere!
 
-The `.cmd` wrapper works perfectly in PowerShell:
+Once you've run the setup script, the CLI works in all shells:
 
-```powershell
-# Open PowerShell
-signaler --version
+```bash
+# Git Bash
+signaler wizard
+signaler audit
+
+# PowerShell
+signaler wizard
+signaler audit
+
+# CMD
 signaler wizard
 signaler audit
 ```
 
-### Option 2: Use in Git Bash (Direct Node Execution)
-
-Since `.cmd` files don't work well in Git Bash, run the CLI directly with Node:
-
-```bash
-# From anywhere (using the installed version)
-node "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd"
-
-# Or use the wrapper scripts in the signaler directory
-cd signaler
-./run.sh wizard
-./run.ps1 audit
-```
-
-### Option 3: Run from Source (Development)
-
-```bash
-cd signaler
-node dist/bin.js wizard
-node dist/bin.js audit
-```
-
 ## Verification
 
-### In PowerShell:
-```powershell
-where.exe signaler
-# Should show: C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd
-
-signaler --version
-# Should show help text
-```
-
-### In Git Bash:
+### Check Installation
 ```bash
-# Check installation
-ls -la "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd"
+# Check if installed
+where.exe signaler  # Windows
+which signaler      # Unix/Mac
 
-# Run directly
-node "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd" --version
+# Test it
+signaler --version
 ```
+
+### Expected Output
+You should see the Signaler CLI help text without any errors.
 
 ## Using in Your Project
 
-### PowerShell:
-```powershell
-cd C:\path\to\your\project
-signaler wizard
-```
-
-### Git Bash:
 ```bash
-cd /c/path/to/your/project
-node "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd" wizard
-```
-
-Or create an alias in your `.bashrc`:
-```bash
-alias signaler='node "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd"'
-```
-
-Then you can use:
-```bash
+cd /path/to/your/project
 signaler wizard
 signaler audit
 ```
@@ -101,12 +95,13 @@ signaler audit
 
 ### "signaler: command not found" in Git Bash
 
-This is expected - `.cmd` files don't work in Git Bash. Use one of these solutions:
+**Solution:** Run the setup script (see "Git Bash Setup" above)
 
-1. **Switch to PowerShell** (recommended)
-2. **Run with Node directly:** `node "C:\Users\Administrator\AppData\Local\signaler\bin\signaler.cmd"`
-3. **Create a Bash alias** (see above)
-4. **Use the wrapper scripts** in the signaler directory
+```bash
+# Quick fix - download and run setup
+curl -o setup.sh https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh
+bash setup.sh
+```
 
 ### PowerShell Execution Policy Error
 
@@ -123,7 +118,7 @@ Then try the installation again.
 If you need to reinstall:
 
 ```bash
-# Uninstall (in PowerShell)
+# Uninstall
 npm uninstall -g @signaler/cli
 
 # Clear cache
@@ -131,34 +126,37 @@ npm cache clean --force
 
 # Reinstall
 npx jsr add @signaler/cli
+
+# Run setup again for Git Bash
+bash setup-bash-wrapper.sh
 ```
 
 ## Package Information
 
 - **Name:** @signaler/cli
-- **Version:** 1.0.10
+- **Version:** 1.0.11
 - **Published:** January 15, 2026
 - **JSR URL:** https://jsr.io/@signaler/cli
 - **Repository:** https://github.com/Dendro-X0/signaler
 
-## What's New in v1.0.10
+## What's New in v1.0.11
 
-- ✅ Verified JSR package with proper shebang
-- ✅ Resolved Bun runtime error (old executable issue)
-- ✅ All tests passing (27/27)
-- ✅ Clean package with no circular dependencies
-- ✅ Comprehensive documentation
+- ✅ Git Bash support via setup script
+- ✅ One-time setup creates bash wrapper automatically
+- ✅ Works in Git Bash, PowerShell, CMD, and Unix terminals
+- ✅ Simple `signaler` command works everywhere after setup
+- ✅ No need for aliases or workarounds
 
 ## Support
 
 If you encounter issues:
 
-1. Check this guide for common solutions
-2. Try running directly with Node.js
-3. Use PowerShell instead of Git Bash
-4. Check the GitHub repository for updates
+1. Run the setup script for Git Bash support
+2. Check this guide for common solutions
+3. Check the GitHub repository for updates
 
 ---
 
 **Status:** ✅ Package successfully published and working  
-**Recommended:** Use PowerShell for the best experience
+**Git Bash:** ✅ Supported via one-time setup script  
+**Recommended:** Run the setup script after installation

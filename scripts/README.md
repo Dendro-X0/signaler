@@ -1,109 +1,87 @@
-# Scripts Directory
+# Signaler CLI Setup Scripts
 
-This directory contains utility scripts for building and distributing Signaler.
+This directory contains setup scripts to enable Git Bash support for the Signaler CLI.
 
-## Build Scripts
+## Scripts
 
-### `build-standalone-bun.sh`
-Builds a standalone executable using Bun for the current platform.
+### setup-bash-wrapper.sh
+Bash script to create a Git Bash wrapper for Signaler CLI.
 
 **Usage:**
 ```bash
-./scripts/build-standalone-bun.sh
+bash setup-bash-wrapper.sh
 ```
 
-**Output:** `standalone-binaries/signaler`
+### setup-bash-wrapper.ps1
+PowerShell script to create a Git Bash wrapper for Signaler CLI.
 
-**Requirements:** Bun installed
-
-This creates a single executable that includes:
-- Bun runtime
-- All TypeScript code
-- All dependencies
-
-No Node.js or npm required to run the output!
-
-## Legacy Scripts (Deprecated)
-
-The following scripts are deprecated in favor of the GitHub Actions workflow that builds binaries automatically:
-
-### `install-standalone.sh` (Deprecated)
-Old installer that cloned the repo and built from source.
-
-**Replaced by:** `install.sh` (downloads pre-built binary)
-
-### `install-standalone.ps1` (Deprecated)
-Old Windows installer that cloned the repo and built from source.
-
-**Replaced by:** `install.ps1` (downloads pre-built binary)
-
-### `create-standalone.sh` (Deprecated)
-Created a portable package with Node.js dependencies.
-
-**Replaced by:** Bun standalone executables (no dependencies needed)
-
-## Current Distribution Method
-
-Signaler now uses **pre-built standalone binaries** distributed via GitHub Releases:
-
-1. **Build:** GitHub Actions builds binaries for all platforms (see `.github/workflows/build-binaries.yml`)
-2. **Release:** Binaries are uploaded to GitHub Releases
-3. **Install:** Users download with one command:
-
-**Unix/Linux/macOS:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.sh | bash
-```
-
-**Windows:**
+**Usage:**
 ```powershell
-iwr https://raw.githubusercontent.com/Dendro-X0/signaler/main/install.ps1 -UseBasicParsing | iex
+pwsh -ExecutionPolicy Bypass -File setup-bash-wrapper.ps1
 ```
 
-See [RELEASE-PROCESS.md](../RELEASE-PROCESS.md) for details on creating releases.
+### postinstall.js
+Automatic postinstall script (currently not used by JSR installations).
 
-## Building Locally
+## Why These Scripts?
 
-To build a standalone executable locally:
+JSR installations create a `.cmd` wrapper that works in PowerShell and CMD, but not in Git Bash. These scripts create an additional bash wrapper so the CLI works in all shells.
 
-1. **Install Bun:**
-```bash
-curl -fsSL https://bun.sh/install | bash
-```
+## One-Time Setup
 
-2. **Build TypeScript:**
-```bash
-pnpm install
-pnpm build
-```
-
-3. **Build standalone executable:**
-```bash
-./scripts/build-standalone-bun.sh
-```
-
-4. **Test:**
-```bash
-./standalone-binaries/signaler --help
-```
-
-## Cross-Platform Builds
-
-To build for other platforms, use Bun's target flag:
+After installing Signaler via `npx jsr add @signaler/cli`, run one of the setup scripts:
 
 ```bash
-# Windows
-bun build ./dist/bin.js --compile --target=bun-windows-x64 --outfile signaler-windows.exe
+# Option 1: Using bash
+bash setup-bash-wrapper.sh
 
-# Linux
-bun build ./dist/bin.js --compile --target=bun-linux-x64 --outfile signaler-linux
-
-# macOS Intel
-bun build ./dist/bin.js --compile --target=bun-darwin-x64 --outfile signaler-macos-x64
-
-# macOS Apple Silicon
-bun build ./dist/bin.js --compile --target=bun-darwin-arm64 --outfile signaler-macos-arm64
+# Option 2: Using PowerShell
+pwsh -ExecutionPolicy Bypass -File setup-bash-wrapper.ps1
 ```
 
-Note: Cross-compilation may not work for all platforms. Use GitHub Actions for reliable multi-platform builds.
+After running the setup, `signaler` will work in:
+- Git Bash ✅
+- PowerShell ✅
+- CMD ✅
+- Unix/Mac terminals ✅
 
+## What the Scripts Do
+
+1. Detect the Signaler installation directory
+2. Create a bash wrapper script at `C:\Users\$USER\AppData\Local\signaler\bin\signaler`
+3. Make it executable
+4. The wrapper calls `node` with the actual CLI script
+
+## Manual Setup
+
+If you prefer to create the wrapper manually:
+
+```bash
+cat > "C:\Users\$USER\AppData\Local\signaler\bin\signaler" << 'EOF'
+#!/usr/bin/env bash
+SIGNALER_ROOT="$HOME/AppData/Local/signaler/current"
+exec node "$SIGNALER_ROOT/dist/bin.js" "$@"
+EOF
+
+chmod +x "C:\Users\$USER\AppData\Local\signaler\bin\signaler"
+```
+
+## Troubleshooting
+
+### Script not found
+Make sure you're in the `signaler/scripts` directory or provide the full path.
+
+### Permission denied
+On Unix/Mac, you may need to make the script executable first:
+```bash
+chmod +x setup-bash-wrapper.sh
+./setup-bash-wrapper.sh
+```
+
+### Signaler not found
+Ensure Signaler is installed first:
+```bash
+npx jsr add @signaler/cli
+```
+
+Then run the setup script.
