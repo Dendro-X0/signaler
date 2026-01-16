@@ -1,162 +1,75 @@
-# Installation Guide - Signaler CLI v1.0.11
+# Installation Guide
 
-## ✅ Successfully Published to JSR
-
-The package has been published to JSR and is ready to use!
-
-**JSR Package:** https://jsr.io/@signaler/cli@1.0.11
-
-## Installation
+## Quick Install
 
 ```bash
 npx jsr add @signaler/cli
 ```
 
-This installs the CLI globally to:
-```
-C:\Users\Administrator\AppData\Local\signaler\bin\
-```
+## Platform-Specific Setup
 
-## Git Bash Setup (One-Time)
-
-After installation, run this one-time setup to enable Git Bash support:
-
-### Option 1: Using PowerShell (Recommended)
+### Windows (PowerShell/CMD)
+Works out of the box after installation:
 ```powershell
-# Download and run the setup script
-curl -o setup-bash-wrapper.ps1 https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.ps1
-pwsh -ExecutionPolicy Bypass -File setup-bash-wrapper.ps1
+signaler wizard
 ```
 
-### Option 2: Using Git Bash
+### Windows (Git Bash)
+Run the setup script once after installation:
 ```bash
-# Download and run the setup script
-curl -o setup-bash-wrapper.sh https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh
-bash setup-bash-wrapper.sh
+curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh | bash
 ```
 
-### Option 3: Manual Setup
+Then use normally:
 ```bash
-# Create the bash wrapper manually
-cat > "C:\Users\$USER\AppData\Local\signaler\bin\signaler" << 'EOF'
-#!/usr/bin/env bash
-SIGNALER_ROOT="$HOME/AppData/Local/signaler/current"
-exec node "$SIGNALER_ROOT/dist/bin.js" "$@"
-EOF
-
-# Make it executable
-chmod +x "C:\Users\$USER\AppData\Local\signaler\bin\signaler"
+signaler wizard
 ```
 
-## Usage
-
-### After Setup - Works Everywhere!
-
-Once you've run the setup script, the CLI works in all shells:
-
+### macOS/Linux
+Works out of the box after installation:
 ```bash
-# Git Bash
 signaler wizard
-signaler audit
-
-# PowerShell
-signaler wizard
-signaler audit
-
-# CMD
-signaler wizard
-signaler audit
 ```
 
 ## Verification
 
-### Check Installation
 ```bash
-# Check if installed
-where.exe signaler  # Windows
-which signaler      # Unix/Mac
-
-# Test it
 signaler --version
 ```
 
-### Expected Output
-You should see the Signaler CLI help text without any errors.
-
-## Using in Your Project
-
-```bash
-cd /path/to/your/project
-signaler wizard
-signaler audit
+Should display:
+```
+Signaler CLI
+...
 ```
 
 ## Troubleshooting
 
-### "signaler: command not found" in Git Bash
+### "signaler: command not found"
 
-**Solution:** Run the setup script (see "Git Bash Setup" above)
+**Solution 1: Restart your terminal**
+Close and reopen your terminal, then try again.
 
+**Solution 2: Use npx directly**
 ```bash
-# Quick fix - download and run setup
-curl -o setup.sh https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh
-bash setup.sh
+npx @jsr/signaler__cli wizard
 ```
 
-### PowerShell Execution Policy Error
+### Git Bash on Windows
 
-If you get execution policy errors in PowerShell:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+If `signaler` doesn't work in Git Bash, run the setup script:
+```bash
+curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh | bash
 ```
 
-Then try the installation again.
-
-### Reinstall
-
-If you need to reinstall:
+## Uninstall
 
 ```bash
-# Uninstall
 npm uninstall -g @signaler/cli
-
-# Clear cache
-npm cache clean --force
-
-# Reinstall
-npx jsr add @signaler/cli
-
-# Run setup again for Git Bash
-bash setup-bash-wrapper.sh
 ```
 
-## Package Information
+## Links
 
-- **Name:** @signaler/cli
-- **Version:** 1.0.11
-- **Published:** January 15, 2026
-- **JSR URL:** https://jsr.io/@signaler/cli
-- **Repository:** https://github.com/Dendro-X0/signaler
-
-## What's New in v1.0.11
-
-- ✅ Git Bash support via setup script
-- ✅ One-time setup creates bash wrapper automatically
-- ✅ Works in Git Bash, PowerShell, CMD, and Unix terminals
-- ✅ Simple `signaler` command works everywhere after setup
-- ✅ No need for aliases or workarounds
-
-## Support
-
-If you encounter issues:
-
-1. Run the setup script for Git Bash support
-2. Check this guide for common solutions
-3. Check the GitHub repository for updates
-
----
-
-**Status:** ✅ Package successfully published and working  
-**Git Bash:** ✅ Supported via one-time setup script  
-**Recommended:** Run the setup script after installation
+- **JSR Package:** https://jsr.io/@signaler/cli
+- **GitHub:** https://github.com/Dendro-X0/signaler
+- **Documentation:** https://github.com/Dendro-X0/signaler/tree/main/docs

@@ -1,56 +1,66 @@
 # Changelog
 
-## 1.0.12 - 2026-01-15
+## 1.0.12 - 2026-01-16
 
-### 🎨 Branding
+### 🎨 Branding & Identity
 
-**CLI Name Update:**
-- Changed CLI branding from "ApexAuditor CLI" to "Signaler CLI" to match package name
-- Updated interactive shell title from "ApexAuditor v{version}" to "Signaler v{version}"
-- Version number now correctly displays from package.json (1.0.12) instead of hardcoded v1.0.0
+- **Rebranded from "ApexAuditor" to "Signaler"**
+  - CLI now displays "Signaler CLI" instead of "ApexAuditor CLI"
+  - Interactive shell shows "Signaler v1.0.12" instead of "ApexAuditor v1.0.0"
+  - Version number now syncs automatically from package.json
 
-**Consistency:**
-- Package name: @signaler/cli
-- CLI display name: Signaler CLI
-- Version: Automatically synced from package.json
+### 🚀 Distribution
+
+- **JSR as Primary Distribution Method**
+  - Published to JSR: https://jsr.io/@signaler/cli
+  - Simple installation: `npx jsr add @signaler/cli`
+  - Works with npm, pnpm, yarn, and deno
+
+### 🐛 Bug Fixes
+
+- Fixed version display (was showing hardcoded v1.0.0, now shows correct version from package.json)
+- Resolved Bun runtime error caused by old executable installation
+- Fixed circular dependency in package.json
+- Improved cross-platform compatibility
+
+### 📚 Documentation
+
+- Updated README with JSR installation instructions
+- Added INSTALLATION-GUIDE.md for platform-specific setup
+- Cleaned up obsolete documentation files
+- Added Git Bash setup script for Windows users
+
+### 🧹 Cleanup
+
+- Removed obsolete build scripts (Bun, pkg)
+- Removed unused directories (app, dcos, launcher, portable-package, release-assets)
+- Removed redundant documentation files
+- Streamlined repository structure
 
 ## 1.0.11 - 2026-01-15
 
 ### 🚀 Features
 
-**Cross-Platform Support:**
-- Added postinstall script to create cross-platform CLI wrappers
-- CLI now works seamlessly in Git Bash, PowerShell, CMD, and Unix terminals
-- Automatically creates bash wrapper (`signaler`) for Unix/Git Bash
-- Automatically creates Windows wrapper (`signaler.cmd`) for CMD/PowerShell
-- No more need to run with `node` directly in Git Bash
-
-**Installation:**
-- Postinstall script runs automatically after `npx jsr add @signaler/cli`
-- Creates executable wrappers in the appropriate bin directory
-- Works for both global and local installations
-
-### 🐛 Bug Fixes
-
-**Git Bash Compatibility:**
-- Fixed "command not found" error in Git Bash
-- Users can now run `signaler wizard` directly in Git Bash
-- No need for aliases or workarounds
+- Added postinstall script for cross-platform CLI wrappers
+- Git Bash support via setup script
 
 ## 1.0.10 - 2026-01-15
 
 ### 🐛 Bug Fixes
 
-**Installation:**
 - Republished package to JSR with verified build
-- Confirmed shebang (`#!/usr/bin/env node`) is present in bin.js for cross-platform execution
-- Package works correctly when installed via `npx jsr add @signaler/cli`
-- Note: In Git Bash, use PowerShell or run directly with `node` if `.cmd` wrapper doesn't work
+- Confirmed shebang present for cross-platform execution
 
-**Documentation:**
-- Updated all documentation to reflect resolved Bun runtime error
-- Added comprehensive resolution summary and verification scripts
-- Clarified that the Bun issue was caused by an old installed executable, not the package itself
+## 1.0.9 - 2026-01-15
+
+### 🐛 Bug Fixes
+
+- Fixed circular dependency in package.json
+- Removed self-referencing JSR dependency
+
+## Earlier Versions
+
+See git history for versions 1.0.0 - 1.0.8
 
 ## 1.0.9 - 2026-01-15
 

@@ -1,4 +1,4 @@
-# Signaler
+# Signaler CLI
 
 **A comprehensive web performance auditing tool for batch Lighthouse audits with automatic route detection and intelligent reporting.**
 
@@ -12,52 +12,35 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 **🔧 Comprehensive**: Full Lighthouse audits plus bundle, health, links, headers, and console checks  
 **📊 Actionable**: Rich HTML reports, triage guides, and AI-friendly JSON outputs
 
-## Quick Start
+## Installation
 
-### Installation
-
-**Option 1: JSR (JavaScript Registry) - Recommended**
+### JSR (Recommended)
 
 ```bash
-# Using npm/pnpm/yarn
+# Install globally
 npx jsr add @signaler/cli
 
-# Or install globally
-npm install -g jsr:@signaler/cli
-
-# Then use it
-signaler wizard
-signaler audit
+# Verify installation
+signaler --version
 ```
 
-**Option 2: Local Installation (For Development)**
+**For Git Bash users on Windows:**
+After installation, run the setup script once:
+```bash
+bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh)
+```
+
+### Alternative: npx (No Installation)
 
 ```bash
-# Clone and build
-git clone https://github.com/Dendro-X0/signaler.git
-cd signaler
-pnpm install
-pnpm run build
-
-# Link globally
-pnpm link --global
-
-# Use anywhere
-cd ~/my-project
-signaler wizard
-signaler audit
+# Run directly without installing
+npx @jsr/signaler__cli wizard
+npx @jsr/signaler__cli audit
 ```
 
-**Why JSR?**
-- ✅ Simple installation (`npx jsr add`)
-- ✅ No npm registry issues
-- ✅ Works with npm, pnpm, yarn, deno
-- ✅ Modern package registry
+## Quick Start
 
-See [INSTALL-LOCAL.md](INSTALL-LOCAL.md) for local installation details.  
-See [PUBLISH-JSR.md](PUBLISH-JSR.md) for JSR publishing guide.
-
-### 2. Initialize Configuration
+### 1. Initialize Configuration
 
 Run the interactive wizard to auto-detect your project and routes:
 
@@ -71,7 +54,7 @@ The wizard will:
 - Generate an `apex.config.json` configuration file
 - Optionally filter routes with include/exclude patterns
 
-### 3. Run Batch Audit
+### 2. Run Batch Audit
 
 ```bash
 signaler audit
@@ -90,7 +73,7 @@ Inside the shell:
 - `health` - HTTP health checks
 - `open` - View HTML report
 
-### 4. View Results
+### 3. View Results
 
 Signaler generates comprehensive outputs in `.signaler/`:
 
