@@ -173,7 +173,7 @@ function printHelp(topic?: string): void {
   }
   console.log(
     [
-      "ApexAuditor CLI",
+      "Signaler CLI",
       "",
       "Usage:",
       "  signaler                 # interactive shell (default)",

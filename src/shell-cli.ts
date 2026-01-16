@@ -805,7 +805,7 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   lines.push(theme.dim("- Press Tab for auto-completion"));
   lines.push(theme.dim("- Press Ctrl+C or type exit to quit"));
   // eslint-disable-next-line no-console
-  console.log(renderPanel({ title: theme.magenta(theme.bold(`ApexAuditor v${version}`)), lines }));
+  console.log(renderPanel({ title: theme.magenta(theme.bold(`Signaler v${version}`)), lines }));
 }
 
 function createCompleter(): (line: string) => readonly [readonly string[], string] {

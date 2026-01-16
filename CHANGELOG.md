@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.12 - 2026-01-15
+
+### 🎨 Branding
+
+**CLI Name Update:**
+- Changed CLI branding from "ApexAuditor CLI" to "Signaler CLI" to match package name
+- Updated interactive shell title from "ApexAuditor v{version}" to "Signaler v{version}"
+- Version number now correctly displays from package.json (1.0.12) instead of hardcoded v1.0.0
+
+**Consistency:**
+- Package name: @signaler/cli
+- CLI display name: Signaler CLI
+- Version: Automatically synced from package.json
+
 ## 1.0.11 - 2026-01-15
 
 ### 🚀 Features
