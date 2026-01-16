@@ -166,14 +166,15 @@ $ grep -r "@signaler/cli" pnpm-lock.yaml
 - ⚠️ GitHub releases no longer automated
 
 ### Known Issues
-- ❌ Bun runtime error persists for users with Bun history (system-level issue, cannot be fixed in code)
+- ✅ Bun runtime error RESOLVED (old executable deleted on January 15, 2026)
 
 ## Next Steps
 
-1. **Publish v1.0.10 to JSR** with these changes
-2. **Update CHANGELOG.md** to document the cleanup
-3. **Monitor user feedback** on JSR installation
-4. **Consider adding** runtime detection for Bun artifacts (warning only)
+1. ✅ **Publish v1.0.9 to JSR** - DONE
+2. ✅ **Identify and fix Bun runtime error** - DONE (old executable deleted)
+3. ✅ **Update documentation** - DONE (KNOWN-ISSUES.md, RESOLUTION-SUMMARY.md)
+4. **Verify installation** - Run `verify-installation.ps1` after terminal restart
+5. **Optional cleanup** - Run `cleanup-obsolete-scripts.ps1` to remove diagnostic scripts
 
 ## Files Remaining
 

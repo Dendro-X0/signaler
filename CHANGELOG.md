@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.10 - 2026-01-15
+
+### 🐛 Bug Fixes
+
+**Installation:**
+- Republished package to JSR with verified build
+- Confirmed shebang (`#!/usr/bin/env node`) is present in bin.js for cross-platform execution
+- Package works correctly when installed via `npx jsr add @signaler/cli`
+- Note: In Git Bash, use PowerShell or run directly with `node` if `.cmd` wrapper doesn't work
+
+**Documentation:**
+- Updated all documentation to reflect resolved Bun runtime error
+- Added comprehensive resolution summary and verification scripts
+- Clarified that the Bun issue was caused by an old installed executable, not the package itself
+
 ## 1.0.9 - 2026-01-15
 
 ### 🐛 Bug Fixes
