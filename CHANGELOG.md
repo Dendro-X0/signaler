@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.9 - 2026-01-15
+
+### 🐛 Bug Fixes
+
+**Package Dependencies:**
+- Fixed critical circular dependency issue in package.json that was causing runtime errors
+- Removed self-referencing JSR dependency that prevented proper installation
+- Cleaned up package.json to ensure proper dependency resolution
+
+**Installation:**
+- Fixed Bun runtime error: "ENOENT: no such file or directory, scandir 'B:\-\BUN\root\locales/'"
+- Improved package publishing to JSR with corrected dependency tree
+- Verified local builds work correctly before publishing
+
 ## 1.0.8 - 2026-01-14
 
 ### 🔧 Stability Improvements
