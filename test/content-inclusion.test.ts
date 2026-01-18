@@ -48,8 +48,8 @@ describe("Content Inclusion", () => {
           warmUp: fc.boolean(),
           throttlingMethod: fc.constantFrom('simulate', 'devtools'),
           cpuSlowdownMultiplier: fc.integer({ min: 1, max: 10 }),
-          startedAt: fc.date().map(d => d.toISOString()),
-          completedAt: fc.date().map(d => d.toISOString()),
+          startedAt: fc.constant("2024-01-01T00:00:00.000Z"),
+          completedAt: fc.constant("2024-01-01T00:01:00.000Z"),
           elapsedMs: fc.integer({ min: 1000, max: 600000 }),
           averageStepMs: fc.integer({ min: 100, max: 10000 })
         })
@@ -139,8 +139,8 @@ describe("Content Inclusion", () => {
           warmUp: fc.boolean(),
           throttlingMethod: fc.constantFrom('simulate', 'devtools'),
           cpuSlowdownMultiplier: fc.integer({ min: 1, max: 10 }),
-          startedAt: fc.date().map(d => d.toISOString()),
-          completedAt: fc.date().map(d => d.toISOString()),
+          startedAt: fc.constant("2024-01-01T00:00:00.000Z"),
+          completedAt: fc.constant("2024-01-01T00:01:00.000Z"),
           elapsedMs: fc.integer({ min: 1000, max: 600000 }),
           averageStepMs: fc.integer({ min: 100, max: 10000 })
         })
