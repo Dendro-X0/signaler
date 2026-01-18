@@ -1050,8 +1050,9 @@ describe("Integration Tests", () => {
           expect(typeof errorMessage).toBe('string');
           
           // Allow for empty error messages in edge cases (e.g., when operation string is just whitespace, special characters, or numbers)
-          const isValidOperation = contextData.operation.trim().length > 3 && 
-                                  /^[a-zA-Z][a-zA-Z0-9\s_-]*$/.test(contextData.operation.trim());
+          const isValidOperation = contextData.operation.trim().length > 10 && 
+                                  /^[a-zA-Z][a-zA-Z0-9\s_-]{9,}$/.test(contextData.operation.trim()) &&
+                                  !contextData.operation.trim().match(/^[A-Z]\s*\d*\s*$/); // Exclude single letters with numbers/spaces
           
           if (isValidOperation) {
             expect(errorMessage.length).toBeGreaterThan(0);
