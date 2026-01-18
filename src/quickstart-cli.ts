@@ -125,7 +125,7 @@ async function buildQuickstartConfig(args: QuickstartArgs): Promise<string> {
 }
 
 /**
- * Run the ApexAuditor quickstart flow.
+ * Run the Signaler quickstart flow.
  *
  * This command discovers common routes from the current project, asks for a base URL
  * if needed, writes a temporary config file, and then delegates to the audit CLI.

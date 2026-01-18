@@ -36,6 +36,7 @@ import { runReportCli } from "./report-cli.js";
 import { runFolderCli } from "./folder-cli.js";
 import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
+import { readEngineVersion } from "./engine-version.js";
 
 type ApexCommandId =
   | "audit"
@@ -59,7 +60,8 @@ type ApexCommandId =
   | "help"
   | "init"
   | "config"
-  | "export";
+  | "export"
+  | "version";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -73,6 +75,9 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
   }
   if (rawCommand === "help" || rawCommand === "--help" || rawCommand === "-h") {
     return { command: "help", argv };
+  }
+  if (rawCommand === "version" || rawCommand === "--version" || rawCommand === "-v") {
+    return { command: "version", argv };
   }
   if (rawCommand === "shell") {
     const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
@@ -104,6 +109,34 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     return { command: rawCommand as ApexCommandId, argv: commandArgv };
   }
   return { command: "help", argv };
+}
+
+async function printVersion(): Promise<void> {
+  const version = await readEngineVersion();
+  const nodeVersion = process.versions.node;
+  const platform = `${process.platform} ${process.arch}`;
+  
+  console.log(`
+┌─────────────────────────────────────────────────┐
+│                 Signaler CLI                    │
+├─────────────────────────────────────────────────┤
+│ Version         │ ${version.padEnd(30)} │
+│ Node.js         │ ${nodeVersion.padEnd(30)} │
+│ Platform        │ ${platform.padEnd(30)} │
+│ Package Manager │ JSR (@signaler/cli)${' '.repeat(9)} │
+└─────────────────────────────────────────────────┘
+
+Installation:
+  npx jsr add @signaler/cli@${version}
+
+Quick Start:
+  signaler wizard      # Interactive setup
+  signaler audit       # Run performance audit
+  signaler help        # Show all commands
+
+Documentation:
+  https://jsr.io/@signaler/cli
+`);
 }
 
 function printHelp(topic?: string): void {
@@ -215,7 +248,7 @@ function printHelp(topic?: string): void {
       "    console    Console errors + runtime exceptions audit (headless Chrome)",
       "",
       "  Maintenance:",
-      "    clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
+      "    clean      Remove Signaler artifacts (reports/cache and optionally config)",
       "    uninstall  One-click uninstall (removes .signaler/ and apex.config.json)",
       "    clear-screenshots  Remove .signaler/screenshots/",
       "",
@@ -427,6 +460,11 @@ export async function runBin(argv: readonly string[]): Promise<void> {
   if (parsed.command === "help") {
     const topic: string | undefined = argv[3];
     printHelp(topic);
+    return;
+  }
+
+  if (parsed.command === "version") {
+    await printVersion();
     return;
   }
 

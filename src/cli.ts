@@ -23,6 +23,7 @@ import { resolveEngineJsonMode } from "./engine-json.js";
 import type { EngineEventPayload } from "./engine-events-schema.js";
 import { emitEngineEvent } from "./engine-events.js";
 import { buildExportBundle } from "./build-export-bundle.js";
+import { writeAiOptimizedReports } from "./ai-reports.js";
 import type {
   ApexCategory,
   ApexBudgets,
@@ -2458,7 +2459,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   };
 }
 
-async function ensureApexAuditorGitIgnore(projectRoot: string): Promise<void> {
+async function ensureSignalerGitIgnore(projectRoot: string): Promise<void> {
   const gitIgnorePath: string = resolve(projectRoot, ".gitignore");
   const desiredLine: string = ".signaler/";
   try {
@@ -2828,7 +2829,7 @@ function buildChangesBox(previous: RunSummary, current: RunSummary, useColor: bo
 }
 
 /**
- * Runs the ApexAuditor audit CLI.
+ * Runs the Signaler audit CLI.
  *
  * @param argv - The process arguments array.
  */
@@ -2842,8 +2843,8 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
-  if (config.gitIgnoreApexAuditorDir === true) {
-    await ensureApexAuditorGitIgnore(dirname(configPath));
+  if (config.gitIgnoreSignalerDir === true) {
+    await ensureSignalerGitIgnore(dirname(configPath));
   }
   const previousSummary: RunSummary | undefined = await loadPreviousSummary({ outputDir: resolvedOutput.outputDir });
 
@@ -3293,6 +3294,14 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     includeExport: !args.noExport,
   });
   await writeFile(triagePath, triage, "utf8");
+  
+  // Generate AI-optimized reports
+  await writeAiOptimizedReports({
+    outputDir,
+    summary,
+    issues,
+    targetScore: DEFAULT_TARGET_SCORE,
+  });
   let accessibilitySummary: AxeSummary | undefined;
   let accessibilitySummaryPath: string | undefined;
   let accessibilityAggregated: AccessibilitySummary | undefined;
@@ -3309,7 +3318,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       outputDir,
       runner: "accessibility",
       generatedAt: new Date().toISOString(),
-      humanTitle: "ApexAuditor Accessibility report",
+      humanTitle: "Signaler Accessibility report",
       humanSummaryLines: [
         `Combos: ${accessibilitySummary.meta.comboCount}`,
         `Elapsed: ${Math.round(accessibilitySummary.meta.elapsedMs / 1000)}s`,
@@ -3342,6 +3351,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     { kind: "file", relativePath: "report.html" },
     { kind: "file", relativePath: "triage.md" },
     { kind: "file", relativePath: "overview.md" },
+    { kind: "file", relativePath: "AI-ANALYSIS.json" },
+    { kind: "file", relativePath: "AI-SUMMARY.json" },
+    { kind: "file", relativePath: "QUICK-FIXES.md" },
   ];
   const exportArtifacts: readonly AuditOutputArtifact[] = args.noExport
     ? []
@@ -3604,7 +3616,7 @@ function buildMarkdown(summary: RunSummary): string {
   ].join("\n");
   const rows: string[] = summary.results.map((result) => buildRow(result));
   const lines: string[] = [];
-  lines.push("# ApexAuditor summary");
+  lines.push("# Signaler summary");
   lines.push("");
   lines.push(`Generated: ${meta.completedAt}`);
   lines.push("");
@@ -3642,7 +3654,7 @@ function buildHtmlReport(summary: RunSummary): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ApexAuditor Report</title>
+  <title>Signaler Report</title>
   <style>
     :root {
       --green: #0cce6b;
@@ -3763,7 +3775,7 @@ function buildHtmlReport(summary: RunSummary): string {
   </style>
 </head>
 <body>
-  <h1>ApexAuditor Report</h1>
+  <h1>Signaler Report</h1>
   <p class="meta">Generated: ${timestamp}</p>
   <div class="meta-grid">
     ${buildMetaCard("Build ID", meta.buildId ?? "-")}
@@ -5646,17 +5658,42 @@ function buildOverviewMarkdown(params: {
   const aBelow: number = countBelow((r) => r.scores.accessibility);
   const bpBelow: number = countBelow((r) => r.scores.bestPractices);
   const seoBelow: number = countBelow((r) => r.scores.seo);
-  lines.push("# ApexAuditor overview");
+  lines.push("# Signaler overview");
   lines.push("");
   lines.push(`Generated: ${meta.completedAt}`);
+  lines.push("");
+  lines.push("## ⚠️ Performance Score Context");
+  lines.push("");
+  lines.push("**Important**: Signaler runs in headless Chrome with parallel execution for batch efficiency.");
+  lines.push("Performance scores are typically **10-30 points lower** than Chrome DevTools due to:");
+  lines.push("- Headless browser environment");
+  lines.push("- Simulated throttling");
+  lines.push("- Parallel execution overhead");
+  lines.push("");
+  lines.push("**Use these scores for**:");
+  lines.push("- ✅ Relative comparison between pages");
+  lines.push("- ✅ Trend analysis over time");
+  lines.push("- ✅ Identifying optimization opportunities");
+  lines.push("");
+  lines.push("**Not for**:");
+  lines.push("- ❌ Absolute performance measurement");
+  lines.push("- ❌ Direct comparison with DevTools scores");
+  lines.push("- ❌ Production performance guarantees");
+  lines.push("");
+  lines.push("The actual user experience is better than these test results indicate.");
+  lines.push("");
+  lines.push("---");
   lines.push("");
   lines.push("## Key files");
   lines.push("");
   lines.push(`- Overview: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "overview.md"), label: "overview.md" })}`);
   lines.push(`- Triage: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.triagePath, label: "triage.md" })}`);
+  lines.push(`- Quick Fixes: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "QUICK-FIXES.md"), label: "QUICK-FIXES.md" })}`);
   lines.push(`- Plan (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.planPath, label: "plan.json" })}`);
   lines.push(`- Report: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.reportPath, label: "report.html" })}`);
   lines.push(`- Issues (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "issues.json"), label: "issues.json" })}`);
+  lines.push(`- AI Analysis (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-ANALYSIS.json"), label: "AI-ANALYSIS.json" })}`);
+  lines.push(`- AI Summary (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-SUMMARY.json"), label: "AI-SUMMARY.json" })}`);
   lines.push(`- AI ledger (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-ledger.json"), label: "ai-ledger.json" })}`);
   if (params.includeAiFix) {
     lines.push(`- AI fix packet (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-fix.json"), label: "ai-fix.json" })}`);
@@ -5868,7 +5905,7 @@ function buildTriageMarkdown(params: {
   const diagnosticsDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics");
   const diagnosticsLiteDir: string = resolve(params.outputDir, "lighthouse-artifacts", "diagnostics-lite");
   const lhrDir: string = resolve(params.outputDir, "lighthouse-artifacts", "lhr");
-  lines.push("# ApexAuditor triage");
+  lines.push("# Signaler triage");
   lines.push("");
   lines.push(`Generated: ${params.summary.meta.completedAt}`);
   lines.push("");

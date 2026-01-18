@@ -355,7 +355,7 @@ function buildPrompt(session: ShellSessionState): string {
   const presetText: string = session.preset;
   const configText: string = session.configPath;
   const header: string = [
-    theme.cyan("ApexAuditor"),
+    theme.cyan("Signaler"),
     theme.dim("config:"),
     configText,
     theme.dim("| preset:"),
@@ -1242,7 +1242,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
 }
 
 /**
- * Starts ApexAuditor in interactive shell mode.
+ * Starts Signaler in interactive shell mode.
  */
 export async function runShellCli(argv: readonly string[]): Promise<void> {
   void argv;

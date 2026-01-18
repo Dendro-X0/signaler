@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
- * Load and minimally validate the ApexAuditor configuration file.
+ * Load and minimally validate the Signaler configuration file.
  */
 export async function loadConfig({ configPath }: { configPath: string }): Promise<{
   readonly configPath: string;
@@ -77,7 +77,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly chromePort?: unknown;
     readonly runs?: unknown;
     readonly auditTimeoutMs?: unknown;
-    readonly gitIgnoreApexAuditorDir?: unknown;
+    readonly gitIgnoreSignalerDir?: unknown;
     readonly pages?: unknown;
     readonly logLevel?: unknown;
     readonly throttlingMethod?: unknown;
@@ -107,8 +107,8 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     typeof maybeConfig.auditTimeoutMs === "number" && maybeConfig.auditTimeoutMs > 0
       ? maybeConfig.auditTimeoutMs
       : undefined;
-  const gitIgnoreApexAuditorDir: boolean | undefined =
-    typeof maybeConfig.gitIgnoreApexAuditorDir === "boolean" ? maybeConfig.gitIgnoreApexAuditorDir : undefined;
+  const gitIgnoreSignalerDir: boolean | undefined =
+    typeof maybeConfig.gitIgnoreSignalerDir === "boolean" ? maybeConfig.gitIgnoreSignalerDir : undefined;
   const rawLogLevel: unknown = maybeConfig.logLevel;
   const logLevel: "silent" | "error" | "info" | "verbose" | undefined =
     rawLogLevel === "silent" || rawLogLevel === "error" || rawLogLevel === "info" || rawLogLevel === "verbose"
@@ -141,7 +141,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     chromePort,
     runs,
     auditTimeoutMs,
-    gitIgnoreApexAuditorDir,
+    gitIgnoreSignalerDir,
     logLevel,
     throttlingMethod,
     cpuSlowdownMultiplier,

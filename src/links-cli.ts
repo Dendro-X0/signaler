@@ -489,7 +489,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     outputDir,
     runner: "links",
     generatedAt: new Date().toISOString(),
-    humanTitle: "ApexAuditor Links report",
+    humanTitle: "Signaler Links report",
     humanSummaryLines: [
       `Discovered: ${report.discovered.total}${report.discovered.truncated ? " (truncated)" : ""}`,
       `Broken: ${report.broken.length}`,

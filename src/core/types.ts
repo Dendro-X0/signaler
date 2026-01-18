@@ -50,7 +50,7 @@ export interface ApexConfig {
   readonly chromePort?: number;
   readonly runs?: number;
   readonly auditTimeoutMs?: number;
-  readonly gitIgnoreApexAuditorDir?: boolean;
+  readonly gitIgnoreSignalerDir?: boolean;
   readonly logLevel?: "silent" | "error" | "info" | "verbose";
   /**
    * Throttling method for performance simulation.

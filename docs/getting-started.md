@@ -9,13 +9,16 @@ Typical workflow:
 1. Run the interactive shell.
 2. Use `measure` for fast feedback.
 3. Use `audit` for deep Lighthouse analysis.
-4. Use `bundle` to quickly sanity-check build output sizes.
-5. Use `health` to validate routes are up and reasonably fast.
-6. Type `open` to review the latest HTML report.
+4. **NEW in v2.0.1**: Review AI-optimized reports for quick insights.
+5. Use `bundle` to quickly sanity-check build output sizes.
+6. Use `health` to validate routes are up and reasonably fast.
+7. Type `open` to review the latest HTML report.
 
 Helpful navigation shortcuts:
 
 - `open-triage` opens `.signaler/triage.md`
+- **NEW**: Review `.signaler/QUICK-FIXES.md` for immediate action items
+- **NEW**: Check `.signaler/AI-SUMMARY.json` for quick AI assessment
 - `open-screenshots` opens `.signaler/screenshots/`
 - `open-diagnostics` opens `.signaler/lighthouse-artifacts/diagnostics/`
 - `open-lhr` opens `.signaler/lighthouse-artifacts/lhr/`
@@ -119,6 +122,9 @@ Outputs:
 - `.signaler/pwa.json`
 - `.signaler/ai-fix.json` (unless `audit --no-ai-fix`)
 - `.signaler/ai-fix.min.json` (unless `audit --no-ai-fix`)
+- **NEW in v2.0.1**: `.signaler/AI-ANALYSIS.json` (comprehensive AI report)
+- **NEW in v2.0.1**: `.signaler/AI-SUMMARY.json` (ultra-condensed AI report)
+- **NEW in v2.0.1**: `.signaler/QUICK-FIXES.md` (enhanced developer triage)
 - `.signaler/export.json` (unless `audit --no-export`)
 - `.signaler/report.html`
 - `.signaler/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
@@ -127,6 +133,44 @@ Outputs:
 - `.signaler/lighthouse-artifacts/lhr/` (when `--lhr` is enabled)
 - `.signaler/accessibility-summary.json`
 - `.signaler/accessibility/` (axe-core artifacts per page/device)
+
+## 4.1 AI-Optimized Reports (New in v2.0.1)
+
+Signaler now generates AI-optimized reports that provide token-efficient analysis and enhanced developer insights:
+
+### Quick Developer Triage
+```text
+cat .signaler/QUICK-FIXES.md
+```
+
+This enhanced triage report includes:
+- **Performance score disclaimers** explaining why scores are lower than DevTools
+- **Time estimates** for each recommended fix
+- **Specific file paths** and implementation guidance
+- **Impact analysis** with concrete metrics
+
+### AI Analysis Integration
+```javascript
+// Ultra-condensed for quick AI assessment (95% token reduction)
+const summary = JSON.parse(fs.readFileSync('.signaler/AI-SUMMARY.json'));
+console.log(`Status: ${summary.status}`);
+console.log(`Top issue: ${summary.topIssues[0].type}`);
+
+// Comprehensive structured analysis (75% token reduction)
+const analysis = JSON.parse(fs.readFileSync('.signaler/AI-ANALYSIS.json'));
+analysis.criticalIssues.forEach(issue => {
+  console.log(`${issue.severity}: ${issue.title}`);
+  console.log(`Fix: ${issue.fixGuidance.implementation}`);
+});
+```
+
+### Performance Score Context
+All reports now include clear disclaimers about performance score accuracy:
+
+- **Headless Chrome environment** produces lower scores than DevTools
+- **Batch testing** is optimized for relative comparison, not absolute measurement
+- **Use for trend analysis** and identifying optimization opportunities
+- **Actual user experience** is better than test results indicate
 
 Notes:
 

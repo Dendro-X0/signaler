@@ -77,7 +77,7 @@ function buildFailureSummary(task: AuditTask, errorMessage: string): PageDeviceS
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   const timeoutPromise: Promise<T> = new Promise<T>((_, reject) => {
     setTimeout(() => {
-      reject(new Error(`ApexAuditor timeout after ${timeoutMs}ms`));
+      reject(new Error(`Signaler timeout after ${timeoutMs}ms`));
     }, timeoutMs);
   });
   return Promise.race([promise, timeoutPromise]);
@@ -315,7 +315,7 @@ async function runParallelInProcesses(
     worker.inFlightTaskIndex = undefined;
     if (response.type === "error") {
       totalFailures++;
-      const isTimeout: boolean = response.errorMessage.includes("timeout") || response.errorMessage.includes("Timeout") || response.errorMessage.includes("ApexAuditor timeout");
+      const isTimeout: boolean = response.errorMessage.includes("timeout") || response.errorMessage.includes("Timeout") || response.errorMessage.includes("Signaler timeout");
       const prefix: string = isTimeout ? "Timeout" : "Worker error";
       logLinePreservingProgress(`${prefix}: ${task.path} [${task.device}] (run ${next.runIndex + 1}/${task.runs}). Retrying... (${response.errorMessage})`);
       const retryItem = flight

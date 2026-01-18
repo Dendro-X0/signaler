@@ -457,7 +457,7 @@ export async function runConsoleCli(argv: readonly string[], options?: { readonl
         outputDir,
         runner: "console",
         generatedAt: new Date().toISOString(),
-        humanTitle: "ApexAuditor Console report",
+        humanTitle: "Signaler Console report",
         humanSummaryLines: [`Combos: ${results.length}`, `Error combos: ${errorCombos}`, `Events: ${eventCount}`],
         artifacts: [{ label: "Console events (JSON)", relativePath: "console.json" }],
         aiMeta: {

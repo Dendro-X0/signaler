@@ -34,11 +34,11 @@ function toRelativeLink(name: string, kind: DirEntry["kind"]): string {
 
 function buildMarkdown(params: { readonly generatedAt: string; readonly entries: readonly DirEntry[] }): string {
   const lines: string[] = [];
-  lines.push("# ApexAuditor artifacts navigation");
+  lines.push("# Signaler artifacts navigation");
   lines.push("");
   lines.push(`Generated: ${params.generatedAt}`);
   lines.push("");
-  lines.push("This folder contains outputs produced by ApexAuditor commands. Use this document to quickly locate the right artifact for a task.");
+  lines.push("This folder contains outputs produced by Signaler commands. Use this document to quickly locate the right artifact for a task.");
   lines.push("");
   lines.push("## Quick start");
   lines.push("");

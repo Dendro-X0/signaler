@@ -93,7 +93,7 @@ function isTransientLighthouseError(error: unknown): boolean {
     message.includes("top level events") ||
     message.includes("CDP") ||
     message.includes("disconnected") ||
-    message.includes("ApexAuditor timeout") ||
+    message.includes("Signaler timeout") ||
     // Network errors
     message.includes("WebSocket") ||
     message.includes("webSocket") ||
@@ -174,7 +174,7 @@ function computeRetryDelayMs(params: { readonly attempt: number }): number {
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   const timeoutPromise: Promise<T> = new Promise<T>((_, reject) => {
     setTimeout(() => {
-      reject(new Error(`ApexAuditor timeout after ${timeoutMs}ms`));
+      reject(new Error(`Signaler timeout after ${timeoutMs}ms`));
     }, timeoutMs);
   });
   return Promise.race([promise, timeoutPromise]);

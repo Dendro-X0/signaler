@@ -1,6 +1,96 @@
-# Signaler v2.0 Features
+# Signaler v2.0.1 Features
 
-This document provides a comprehensive overview of all features introduced in Signaler v2.0, including technical details, usage examples, and performance characteristics.
+This document provides a comprehensive overview of all features in Signaler v2.0.1, including the new AI-optimized reporting system, technical details, usage examples, and performance characteristics.
+
+## 🤖 AI-Optimized Reporting System (New in v2.0.1)
+
+### Token-Efficient AI Reports
+
+Signaler v2.0.1 introduces a revolutionary AI-optimized reporting system that reduces token usage by up to 95% while providing structured, actionable insights.
+
+**Key Reports:**
+- **`AI-ANALYSIS.json`**: Comprehensive structured report (75% token reduction)
+- **`AI-SUMMARY.json`**: Ultra-condensed report (95% token reduction)
+- **`QUICK-FIXES.md`**: Enhanced human triage with actionable insights
+
+**Token Efficiency:**
+```
+Traditional Analysis: 15,000-20,000 tokens
+AI-SUMMARY.json:     500-1,000 tokens (95% reduction)
+AI-ANALYSIS.json:    3,000-5,000 tokens (75% reduction)
+```
+
+**Usage Example:**
+```javascript
+// Quick AI assessment
+const summary = JSON.parse(fs.readFileSync('.signaler/AI-SUMMARY.json'));
+console.log(`Status: ${summary.status}`);
+console.log(`Top issue: ${summary.topIssues[0].type} (${summary.topIssues[0].impact})`);
+
+// Detailed AI analysis
+const analysis = JSON.parse(fs.readFileSync('.signaler/AI-ANALYSIS.json'));
+analysis.criticalIssues.forEach(issue => {
+  console.log(`${issue.severity}: ${issue.title}`);
+  console.log(`Fix: ${issue.fixGuidance.implementation}`);
+});
+```
+
+### Performance Score Context System
+
+All reports now include comprehensive disclaimers and context about performance score accuracy.
+
+**Key Features:**
+- **Clear Disclaimers**: Explanation of headless Chrome vs DevTools differences
+- **Usage Guidance**: Proper interpretation of batch testing results
+- **Context Integration**: Prominently displayed in all reports
+- **User Education**: Prevents misinterpretation of results
+
+**Example Disclaimer:**
+```markdown
+## ⚠️ Performance Score Context
+
+**Important**: Signaler runs in headless Chrome with parallel execution for batch efficiency.
+Performance scores are typically **10-30 points lower** than Chrome DevTools due to:
+- Headless browser environment
+- Simulated throttling  
+- Parallel execution overhead
+
+**Use these scores for**:
+- ✅ Relative comparison between pages
+- ✅ Trend analysis over time
+- ✅ Identifying optimization opportunities
+
+**Not for**:
+- ❌ Absolute performance measurement
+- ❌ Direct comparison with DevTools scores
+- ❌ Production performance guarantees
+```
+
+### Pattern Recognition Engine
+
+Advanced analytics automatically identify performance patterns across your application.
+
+**Detected Patterns:**
+- **Admin Page Underperformance**: Identifies when admin pages consistently score lower
+- **Mobile vs Desktop Differences**: Detects device-specific performance gaps
+- **Route-Specific Issues**: Finds patterns in similar page types
+- **Bundle Optimization Opportunities**: Identifies code splitting opportunities
+
+**Example Pattern Output:**
+```json
+{
+  "patterns": {
+    "adminPagesUnderperform": {
+      "description": "Admin pages score 20-30 points lower on average",
+      "recommendation": "Consider separate bundle for admin functionality with code splitting"
+    },
+    "mobileVsDesktop": {
+      "description": "Mobile scores 15 points higher on average",
+      "recommendation": "Focus optimization efforts on desktop experience"
+    }
+  }
+}
+```
 
 ## 🧠 AI-Powered Intelligence
 

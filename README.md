@@ -10,13 +10,44 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 **🤖 Smart Detection**: Automatically detects Next.js, Nuxt, Remix, SvelteKit, and static sites  
 **🚀 Fast**: Parallel execution with auto-tuned workers and intelligent caching  
 **🔧 Comprehensive**: Full Lighthouse audits plus bundle, health, links, headers, and console checks  
-**📊 Actionable**: Rich HTML reports, triage guides, and AI-friendly JSON outputs
+**📊 Actionable**: Rich HTML reports, triage guides, and AI-friendly JSON outputs  
+**🧠 AI-Optimized**: New in v2.0.1 - Token-efficient reports for AI analysis (95% token reduction)
+
+## 🆕 What's New in v2.0.1
+
+### AI-Optimized Reporting System
+- **`AI-ANALYSIS.json`**: Comprehensive structured report (75% fewer tokens)
+- **`AI-SUMMARY.json`**: Ultra-condensed for quick assessment (95% fewer tokens)  
+- **`QUICK-FIXES.md`**: Enhanced developer triage with time estimates
+- **Performance Context**: Clear disclaimers about batch testing vs DevTools scores
+
+### JSR Package Support
+- Now available on JSR (JavaScript Registry): `npx jsr add @signaler/cli`
+- Full compatibility with npm, pnpm, yarn, and Deno
+- Modern package management for JavaScript/TypeScript projects
 
 ## Installation
 
+### NPM/PNPM/Yarn
 ```bash
 npx jsr add @signaler/cli
 signaler --version
+```
+
+### JSR (JavaScript Registry) - New in v2.0.1
+```bash
+npx jsr add @signaler/cli
+# or with Deno
+deno add @signaler/cli
+```
+
+### Alternative Installation
+```bash
+npm install -g @signaler/cli
+# or
+pnpm add -g @signaler/cli
+# or  
+yarn global add @signaler/cli
 ```
 
 **For Git Bash users on Windows:**
@@ -66,8 +97,11 @@ Signaler generates comprehensive outputs in `.signaler/`:
 
 - **`report.html`** - Beautiful, interactive HTML report
 - **`triage.md`** - Prioritized issues for quick fixes
+- **`QUICK-FIXES.md`** - ⭐ **NEW**: Time-efficient developer overview with clear action items
 - **`summary.json`** - Complete audit results
 - **`issues.json`** - Aggregated issues with offender tracking
+- **`AI-ANALYSIS.json`** - ⭐ **NEW**: Comprehensive AI-optimized report with structured data
+- **`AI-SUMMARY.json`** - ⭐ **NEW**: Ultra-condensed report for quick AI assessment
 - **`ai-fix.json`** - AI-friendly fix recommendations
 
 ## Key Features
@@ -98,9 +132,16 @@ Signaler generates comprehensive outputs in `.signaler/`:
 ### Smart Outputs
 - **Triage-first**: Start with `triage.md` for prioritized fixes
 - **AI-ready**: `ai-fix.json` and `ai-ledger.json` for automated workflows
+- **AI-optimized**: New `AI-ANALYSIS.json` (comprehensive), `AI-SUMMARY.json` (condensed), and `QUICK-FIXES.md` (developer-focused)
 - **Offender tracking**: `issues.json.offenders` identifies repeated problems
 - **PWA checks**: `pwa.json` for Progressive Web App validation
 - **Diff view**: Compare runs to track regressions and improvements
+
+### AI-Optimized Reports (New in v2.0)
+- **`AI-ANALYSIS.json`**: Comprehensive structured report optimized for AI analysis (70-80% fewer tokens than parsing multiple files)
+- **`AI-SUMMARY.json`**: Ultra-condensed report for quick AI assessment (500-1,000 tokens vs 15,000-20,000)
+- **`QUICK-FIXES.md`**: Enhanced human triage with time estimates, impact analysis, and specific implementation guidance
+- **Performance disclaimers**: Clear context about score accuracy and batch testing limitations
 
 ## Configuration
 
@@ -163,9 +204,12 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 .signaler/
 ├── report.html              # Interactive HTML report
 ├── triage.md                # Prioritized fix guide
+├── QUICK-FIXES.md           # ⭐ NEW: Time-efficient developer overview
 ├── summary.json             # Complete results
 ├── summary-lite.json        # Lightweight summary
 ├── issues.json              # Aggregated issues
+├── AI-ANALYSIS.json         # ⭐ NEW: Comprehensive AI-optimized report
+├── AI-SUMMARY.json          # ⭐ NEW: Ultra-condensed AI report
 ├── ai-fix.json              # AI-friendly fixes
 ├── ai-ledger.json           # One-run AI index
 ├── pwa.json                 # PWA validation

@@ -226,7 +226,7 @@ export async function runBundleCli(argv: readonly string[], options?: { readonly
     outputDir,
     runner: "bundle",
     generatedAt: report.meta.scannedAt,
-    humanTitle: "ApexAuditor Bundle report",
+    humanTitle: "Signaler Bundle report",
     humanSummaryLines: [
       `Project: ${projectRoot}`,
       `Detected: ${[hasNext ? ".next" : "", hasDist ? "dist" : ""].filter((v) => v.length > 0).join(", ") || "(none)"}`,

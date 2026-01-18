@@ -769,7 +769,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
     await ensureWritable(absolutePath);
     const config = await buildConfig();
     await writeFile(absolutePath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
-    console.log(`Saved ApexAuditor config to ${absolutePath}`);
+    console.log(`Saved Signaler config to ${absolutePath}`);
   } catch (error: unknown) {
     if (error instanceof WizardAbortError) {
       return;

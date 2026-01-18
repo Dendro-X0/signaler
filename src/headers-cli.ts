@@ -365,7 +365,7 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
     outputDir,
     runner: "headers",
     generatedAt: new Date().toISOString(),
-    humanTitle: "ApexAuditor Headers report",
+    humanTitle: "Signaler Headers report",
     humanSummaryLines: [
       `Targets: ${results.length}`,
       `Fail: ${results.filter((r) => r.missing.length > 0 || Boolean(r.runtimeErrorMessage)).length}`,

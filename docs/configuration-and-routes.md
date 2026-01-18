@@ -31,7 +31,7 @@ Common fields:
 - `warmUp` (optional)
 - `auditTimeoutMs` (optional per-audit timeout)
 - `incremental` + `buildId` (optional cache reuse)
-- `gitIgnoreApexAuditorDir` (optional; when true, Signaler appends `.signaler/` to `.gitignore` if a `.gitignore` exists)
+- `gitIgnoreSignalerDir` (optional; when true, Signaler appends `.signaler/` to `.gitignore` if a `.gitignore` exists)
 - `budgets` (optional)
 
 ## Route auto-detection notes

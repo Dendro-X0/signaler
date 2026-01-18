@@ -259,7 +259,7 @@ function buildErrorTable(summary: MeasureSummary): string {
 }
 
 /**
- * Runs the ApexAuditor measure CLI (fast batch metrics, non-Lighthouse).
+ * Runs the Signaler measure CLI (fast batch metrics, non-Lighthouse).
  *
  * @param argv - The process arguments array.
  */
@@ -311,7 +311,7 @@ export async function runMeasureCli(argv: readonly string[], options?: { readonl
     outputDir,
     runner: "measure",
     generatedAt: lite.generatedAt,
-    humanTitle: "ApexAuditor Measure report",
+    humanTitle: "Signaler Measure report",
     humanSummaryLines: buildSummaryLines(summary),
     artifacts: [
       { label: "Summary", relativePath: "measure-summary.json" },

@@ -91,7 +91,7 @@ function buildMarkdown(params: {
   readonly runnerReports: readonly RunnerAiReport[];
 }): string {
   const lines: string[] = [];
-  lines.push("# ApexAuditor Quick report");
+  lines.push("# Signaler Quick report");
   lines.push("");
   lines.push(`Generated: ${params.generatedAt}`);
   lines.push("");

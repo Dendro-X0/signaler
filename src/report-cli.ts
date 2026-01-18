@@ -96,7 +96,7 @@ async function readJson<T extends object>(absolutePath: string): Promise<T> {
 
 function buildMarkdown(params: { readonly report: GlobalRedReport; readonly aiJsonRelPath: string }): string {
   const lines: string[] = [];
-  lines.push("# ApexAuditor Global Red Report");
+  lines.push("# Signaler Global Red Report");
   lines.push("");
   lines.push(`Generated: ${params.report.generatedAt}`);
   lines.push("");

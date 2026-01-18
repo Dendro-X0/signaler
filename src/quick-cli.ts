@@ -282,7 +282,7 @@ async function runAccessibilityPass(params: {
     outputDir: params.outputDir,
     runner: "accessibility",
     generatedAt: new Date().toISOString(),
-    humanTitle: "ApexAuditor Accessibility report",
+    humanTitle: "Signaler Accessibility report",
     humanSummaryLines: [`Combos: ${summary.meta.comboCount}`, `Elapsed: ${Math.round(summary.meta.elapsedMs / 1000)}s`],
     artifacts: [
       { label: "Accessibility summary (JSON)", relativePath: "accessibility-summary.json" },
