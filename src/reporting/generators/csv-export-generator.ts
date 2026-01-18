@@ -46,13 +46,6 @@ export class CSVExportGenerator {
   async generatePerformanceCSV(data: ProcessedAuditData): Promise<string> {
     const sections: string[] = [];
 
-    if (this.config.includeHeaders) {
-      sections.push('# Signaler Performance Report - CSV Export');
-      sections.push(`# Generated: ${new Date().toISOString()}`);
-      sections.push(`# Total Pages: ${data.performanceMetrics.totalPages}`);
-      sections.push('');
-    }
-
     // Performance overview section
     sections.push(this.generatePerformanceOverview(data));
     sections.push('');
@@ -78,11 +71,6 @@ export class CSVExportGenerator {
   async generateIssueSummaryCSV(data: ProcessedAuditData): Promise<string> {
     const sections: string[] = [];
 
-    if (this.config.includeHeaders) {
-      sections.push('# Issue Summary Export');
-      sections.push('');
-    }
-
     // Issue aggregation by type
     const issueAggregation = this.aggregateIssuesByType(data.pages);
     sections.push(this.formatIssueAggregation(issueAggregation));
@@ -99,11 +87,6 @@ export class CSVExportGenerator {
    */
   async generateTrendAnalysisCSV(historicalData: TrendData[]): Promise<string> {
     const sections: string[] = [];
-
-    if (this.config.includeHeaders) {
-      sections.push('# Performance Trend Analysis');
-      sections.push('');
-    }
 
     // Trend data headers
     const headers = [
@@ -153,7 +136,6 @@ export class CSVExportGenerator {
   private generatePerformanceOverview(data: ProcessedAuditData): string {
     const sections: string[] = [];
     
-    sections.push('# Performance Overview');
     sections.push(this.formatCSVRow(['Metric', 'Value']));
     sections.push(this.formatCSVRow(['Total Pages', data.performanceMetrics.totalPages.toString()]));
     sections.push(this.formatCSVRow(['Average Performance Score', data.performanceMetrics.averagePerformanceScore.toString()]));
@@ -168,8 +150,6 @@ export class CSVExportGenerator {
    */
   private generatePageMetricsCSV(pages: PageAuditResult[]): string {
     const sections: string[] = [];
-    
-    sections.push('# Page Performance Metrics');
     
     // Headers
     const headers = [
@@ -224,8 +204,6 @@ export class CSVExportGenerator {
    */
   private generateDetailedIssueCSV(pages: PageAuditResult[]): string {
     const sections: string[] = [];
-    
-    sections.push('# Detailed Issue Breakdown');
     
     // Headers
     const headers = [
@@ -306,8 +284,6 @@ export class CSVExportGenerator {
    */
   private formatIssueAggregation(aggregation: Map<string, IssueAggregation>): string {
     const sections: string[] = [];
-    
-    sections.push('# Issue Aggregation by Type');
     
     // Headers
     const headers = [
