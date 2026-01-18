@@ -14,13 +14,8 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ## Installation
 
-### JSR (Recommended)
-
 ```bash
-# Install globally
 npx jsr add @signaler/cli
-
-# Verify installation
 signaler --version
 ```
 
@@ -28,14 +23,6 @@ signaler --version
 After installation, run the setup script once:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh)
-```
-
-### Alternative: npx (No Installation)
-
-```bash
-# Run directly without installing
-npx @jsr/signaler__cli wizard
-npx @jsr/signaler__cli audit
 ```
 
 ## Quick Start

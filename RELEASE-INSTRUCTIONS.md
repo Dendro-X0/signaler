@@ -1,128 +1,69 @@
-# Signaler v2.0.0 Release Instructions
+# Signaler v2.0.0 Release Instructions - JSR Only
 
-## 🎉 Release Status: Ready for Manual Publication
+## 🎉 Release Status: Ready for JSR Publication
 
 ### ✅ Completed Steps
 - [x] Version bumped to 2.0.0
 - [x] CI tests passing (6/6 platforms)
 - [x] v2.0.0 tag created and pushed
-- [x] Binary releases prepared
 - [x] Documentation verified
+- [x] Simplified to JSR-only distribution
 
-### 📦 Release Assets Available
-- `signaler-cli-v2.0.0.tar.gz` (91MB) - Linux/macOS binary
-- `signaler-cli-v2.0.0.zip` (98MB) - Windows binary
-- Installation scripts included
+### 🚀 JSR-Only Publication Strategy
 
-### 🚀 Manual Publication Steps
+**Why JSR-Only?**
+- ✅ Cleaner distribution model
+- ✅ Automatic dependency management
+- ✅ No GitHub Releases complexity
+- ✅ Avoids outdated release confusion
+- ✅ Better CI/CD reliability
 
-#### 1. JSR Publication (Primary Distribution)
+### 📦 Publication Steps
+
+#### Option 1: Automated (Preferred)
+The v2.0.0 tag should trigger the JSR publish workflow automatically.
+
+#### Option 2: Manual JSR Publishing
 ```bash
-# From the signaler directory:
+# Authenticate with JSR (one-time setup)
+npx jsr auth
+
+# Publish to JSR
 npx jsr publish --allow-slow-types
 ```
 
-**Note**: This requires JSR authentication. If you haven't set up JSR auth:
+Or use the helper script:
 ```bash
-npx jsr auth
+./publish-jsr.sh      # Linux/macOS
+# or
+publish-jsr.bat       # Windows
 ```
 
-#### 2. GitHub Release Creation
-1. Go to: https://github.com/Dendro-X0/signaler/releases
-2. Click "Create a new release"
-3. Choose tag: `v2.0.0`
-4. Release title: `Signaler v2.0 - Intelligence & Scale`
-5. Upload binary assets:
-   - `signaler-cli-v2.0.0.tar.gz`
-   - `signaler-cli-v2.0.0.zip`
-6. Use the description below:
+### 🎯 Installation Instructions
 
----
-
-## Release Description Template
-
-```markdown
-# Signaler v2.0: Intelligence & Scale
-
-🎉 **Major Release**: Complete transformation with AI-powered insights and enterprise performance optimizations.
-
-## 🚀 Key Features
-- 🧠 **AI-Powered Intelligence**: Pattern recognition and predictive analytics
-- ⚡ **10x Performance**: Faster processing with 70% memory reduction
-- 📊 **Advanced Reporting**: Executive dashboards and developer-optimized reports
-- 🔧 **Enhanced CI/CD**: Full platform integration with quality gates
-
-## 📦 Installation
-
-### Option 1: JSR (Recommended)
+**Primary and Only Method:**
 ```bash
 npx jsr add @signaler/cli@2.0.0
 signaler --version
 ```
 
-### Option 2: Binary Download
-1. Download the appropriate binary:
-   - **Linux/macOS**: `signaler-cli-v2.0.0.tar.gz`
-   - **Windows**: `signaler-cli-v2.0.0.zip`
-2. Extract and run installation script:
-   - **Linux/macOS**: `./install.sh`
-   - **Windows**: `install.bat`
-3. Use: `node dist/bin.js --version`
+### 📚 Documentation Updates Needed
 
-## 📚 Documentation
-- [Features Guide](https://github.com/Dendro-X0/signaler/blob/main/docs/FEATURES.md)
-- [Migration Guide](https://github.com/Dendro-X0/signaler/blob/main/docs/MIGRATION.md)
-- [Release Notes](https://github.com/Dendro-X0/signaler/blob/main/docs/RELEASE-NOTES-v2.0.md)
+Update README.md and documentation to reflect JSR-only installation:
 
-## 🔄 Migration from v1.x
+```markdown
+## Installation
+
 ```bash
-# Install v2.0
-npx jsr add @signaler/cli@2.0.0
-
-# Migrate configuration
-signaler migrate --from ./old-config.js --to ./signaler.config.js
+npx jsr add @signaler/cli
 ```
 
-## 🛠️ What's New in v2.0
-- Complete rewrite with TypeScript
-- AI-powered performance insights
-- 70% memory usage reduction
-- Enhanced CI/CD integration
-- Executive dashboard reporting
-- Cross-platform compatibility improvements
-
-## 📋 Requirements
-- Node.js >= 18.0.0
-- npm, pnpm, or yarn
-
-## 🆘 Support
-- **Issues**: [GitHub Issues](https://github.com/Dendro-X0/signaler/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/Dendro-X0/signaler/wiki)
-
----
-
-**Full Changelog**: https://github.com/Dendro-X0/signaler/compare/v1.0.12...v2.0.0
+That's it! No binary downloads, no GitHub Releases complexity.
 ```
-
-### 🔧 JSR Authentication Setup (If Needed)
-
-If JSR publishing fails with authentication errors:
-
-1. **Create JSR Account**: Visit https://jsr.io and sign up
-2. **Generate Token**: Go to account settings and create an API token
-3. **Authenticate CLI**:
-   ```bash
-   npx jsr auth
-   # Follow the prompts to authenticate
-   ```
-4. **Retry Publishing**:
-   ```bash
-   npx jsr publish --allow-slow-types
-   ```
 
 ### ✅ Verification Steps
 
-After publication:
+After JSR publication:
 
 1. **Verify JSR**: Check https://jsr.io/@signaler/cli
 2. **Test Installation**:
@@ -130,21 +71,35 @@ After publication:
    npx jsr add @signaler/cli@2.0.0
    signaler --version
    ```
-3. **Test Binary**: Download and test binary installation
-4. **Update README**: Add v2.0.0 installation instructions
+3. **Update Documentation**: Remove GitHub Releases references
+
+### 🧹 Cleanup Tasks
+
+- [ ] Delete outdated GitHub Releases (v1.0.9 and earlier)
+- [ ] Update README.md to JSR-only installation
+- [ ] Remove binary release files from repository
+- [ ] Update all documentation references
 
 ### 🎯 Post-Release Tasks
 
 - [ ] Publish to JSR
-- [ ] Create GitHub Release
-- [ ] Upload binary assets
-- [ ] Test installations
-- [ ] Update documentation links
-- [ ] Announce release
+- [ ] Test JSR installation
+- [ ] Clean up GitHub Releases
+- [ ] Update documentation
+- [ ] Announce JSR-only approach
 
 ---
 
-## 🎉 Ready to Release!
+## 🎉 JSR-Only Release Strategy
 
-All technical preparations are complete. The release is ready for manual publication following the steps above.
-```
+This simplified approach eliminates:
+- ❌ GitHub Releases complexity
+- ❌ Binary file management
+- ❌ Multiple distribution channels
+- ❌ Version confusion
+
+And provides:
+- ✅ Single source of truth (JSR)
+- ✅ Automatic updates
+- ✅ Better dependency management
+- ✅ Cleaner CI/CD pipeline

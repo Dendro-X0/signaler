@@ -1,4 +1,4 @@
-name: Publish v2.0 to JSR
+name: Publish to JSR
 
 on:
   workflow_dispatch:
@@ -53,40 +53,3 @@ jobs:
 
       - name: Publish to JSR
         run: npx jsr publish --allow-slow-types
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Signaler v2.0 - Intelligence & Scale
-          body: |
-            # Signaler v2.0: Intelligence & Scale
-            
-            🎉 **Major Release**: Complete transformation with AI-powered insights and enterprise performance optimizations.
-            
-            ## 🚀 Key Features
-            - 🧠 **AI-Powered Intelligence**: Pattern recognition and predictive analytics
-            - ⚡ **10x Performance**: Faster processing with 70% memory reduction
-            - 📊 **Advanced Reporting**: Executive dashboards and developer-optimized reports
-            - 🔧 **Enhanced CI/CD**: Full platform integration with quality gates
-            
-            ## 📚 Documentation
-            - [Features Guide](./docs/FEATURES.md)
-            - [Migration Guide](./docs/MIGRATION.md)
-            - [Release Notes](./docs/RELEASE-NOTES-v2.0.md)
-            
-            ## 🔄 Migration
-            ```bash
-            # Install v2.0
-            npx jsr add @signaler/cli@2.0.0
-            
-            # Migrate configuration
-            signaler migrate --from ./old-config.js --to ./signaler.config.js
-            ```
-            
-            See the [Migration Guide](./docs/MIGRATION.md) for complete instructions.
-          draft: false
-          prerelease: false
