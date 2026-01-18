@@ -65,7 +65,7 @@ async function readJsonFile<T extends object>(absolutePath: string): Promise<T |
 }
 
 async function runBundleFromShell(args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", ...args];
+  const argv: string[] = ["node", "signaler", ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Scanning bundles");
     try {
@@ -82,7 +82,7 @@ async function runBundleFromShell(args: readonly string[]): Promise<void> {
 }
 
 async function runHealthFromShell(session: ShellSessionState, args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", "--config", session.configPath, ...args];
+  const argv: string[] = ["node", "signaler", "--config", session.configPath, ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Running health checks");
     try {
@@ -99,7 +99,7 @@ async function runHealthFromShell(session: ShellSessionState, args: readonly str
 }
 
 async function runLinksFromShell(session: ShellSessionState, args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", "--config", session.configPath, ...args];
+  const argv: string[] = ["node", "signaler", "--config", session.configPath, ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Crawling links");
     try {
@@ -116,7 +116,7 @@ async function runLinksFromShell(session: ShellSessionState, args: readonly stri
 }
 
 async function runHeadersFromShell(session: ShellSessionState, args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", "--config", session.configPath, ...args];
+  const argv: string[] = ["node", "signaler", "--config", session.configPath, ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Checking security headers");
     try {
@@ -133,7 +133,7 @@ async function runHeadersFromShell(session: ShellSessionState, args: readonly st
 }
 
 async function runConsoleAuditFromShell(session: ShellSessionState, args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", "--config", session.configPath, ...args];
+  const argv: string[] = ["node", "signaler", "--config", session.configPath, ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Capturing console errors");
     try {
@@ -494,7 +494,7 @@ async function runDiff(projectRoot: string): Promise<void> {
 }
 
 function buildAuditArgvFromSession(session: ShellSessionState): readonly string[] {
-  const args: string[] = ["node", "apex-auditor", "audit", "--config", session.configPath];
+  const args: string[] = ["node", "signaler", "audit", "--config", session.configPath];
   if (session.preset === "overview") {
     args.push("--overview");
   }
@@ -942,7 +942,7 @@ async function runAudit(projectRoot: string, session: ShellSessionState, passthr
 }
 
 async function runMeasureFromShell(session: ShellSessionState, args: readonly string[]): Promise<void> {
-  const argv: string[] = ["node", "apex-auditor", "--config", session.configPath, ...args];
+  const argv: string[] = ["node", "signaler", "--config", session.configPath, ...args];
   const escResult = await runWithEscAbort(async (signal) => {
     startSpinner("Running measure (fast metrics)");
     try {
@@ -1136,24 +1136,24 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session, shouldExit: false };
   }
   if (command.id === "clean") {
-    const argv: string[] = ["node", "apex-auditor", "--project-root", projectRoot, "--config-path", session.configPath, ...command.args];
+    const argv: string[] = ["node", "signaler", "--project-root", projectRoot, "--config-path", session.configPath, ...command.args];
     await runCleanCli(argv);
     return { session, shouldExit: false };
   }
   if (command.id === "uninstall") {
-    const argv: string[] = ["node", "apex-auditor", "--project-root", projectRoot, "--config-path", session.configPath, ...command.args];
+    const argv: string[] = ["node", "signaler", "--project-root", projectRoot, "--config-path", session.configPath, ...command.args];
     await runUninstallCli(argv);
     return { session, shouldExit: false };
   }
   if (command.id === "clear-screenshots") {
-    const argv: string[] = ["node", "apex-auditor", "--project-root", projectRoot, ...command.args];
+    const argv: string[] = ["node", "signaler", "--project-root", projectRoot, ...command.args];
     await runClearScreenshotsCli(argv);
     return { session, shouldExit: false };
   }
   if (command.id === "init") {
     // eslint-disable-next-line no-console
     console.log("Starting config wizard...");
-    await runWizardCli(["node", "apex-auditor"]);
+    await runWizardCli(["node", "signaler"]);
     // eslint-disable-next-line no-console
     console.log(`Ready. Next: ${theme.cyan("measure")} or ${theme.cyan("audit")}.`);
     return { session, shouldExit: false };
@@ -1285,7 +1285,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         rl.off("line", onLine);
       }
       try {
-        await runWizardCli(["node", "apex-auditor"]);
+        await runWizardCli(["node", "signaler"]);
       } finally {
         rl.on("SIGINT", onSigint);
         if (rlClosed) {

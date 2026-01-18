@@ -102,7 +102,7 @@ function isTransientLighthouseError(error: unknown): boolean {
 }
 
 async function createChromeSession(): Promise<ChromeSession> {
-  const userDataDir: string = await mkdtemp(join(tmpdir(), "apex-auditor-chrome-"));
+  const userDataDir: string = await mkdtemp(join(tmpdir(), "signaler-chrome-"));
   const chrome = await launchChrome({
     chromeFlags: [
       "--headless=new",

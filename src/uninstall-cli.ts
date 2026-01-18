@@ -113,7 +113,7 @@ async function detectPackageManager(projectRoot: string): Promise<PackageManager
 }
 
 function buildDependencyUninstallCommand(packageManager: PackageManagerId | "unknown"): string {
-  const packageName: string = "apex-auditor";
+  const packageName: string = "signaler";
   if (packageManager === "pnpm") {
     return `pnpm remove ${packageName}`;
   }
@@ -132,6 +132,8 @@ function buildDependencyUninstallCommand(packageManager: PackageManagerId | "unk
 function buildPlan(args: UninstallArgs): readonly UninstallAction[] {
   const actions: UninstallAction[] = [];
   actions.push({ kind: "rm", path: resolve(args.projectRoot, ".signaler"), existsByAssumption: true });
+  // Also remove legacy directory if it exists
+  actions.push({ kind: "rm", path: resolve(args.projectRoot, ".apex-auditor"), existsByAssumption: false });
   actions.push({ kind: "rm", path: args.configPath, existsByAssumption: true });
   return actions;
 }

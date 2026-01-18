@@ -1,8 +1,8 @@
 {
   "name": "@signaler/cli",
-  "version": "1.0.12",
+  "version": "2.0.0",
   "private": false,
-  "description": "Web performance auditing tool with batch Lighthouse audits, automatic route detection, and comprehensive reporting",
+  "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -11,7 +11,10 @@
   "files": [
     "dist",
     "scripts/postinstall.js",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "docs"
   ],
   "bin": {
     "signaler": "./dist/bin.js"
@@ -22,7 +25,8 @@
     "test": "vitest run",
     "start": "node dist/bin.js",
     "prepublishOnly": "pnpm run build",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "ansi-colors": "^4.1.3",

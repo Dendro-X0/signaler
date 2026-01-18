@@ -212,7 +212,7 @@ function resolveParallelCount(params: { readonly requested?: number; readonly ta
 }
 
 async function createChromeSession(): Promise<ChromeSession> {
-  const userDataDir: string = await mkdtemp(join(tmpdir(), "apex-auditor-measure-chrome-"));
+  const userDataDir: string = await mkdtemp(join(tmpdir(), "signaler-measure-chrome-"));
   const chrome = await launchChrome({ chromeFlags: [...CHROME_FLAGS, `--user-data-dir=${userDataDir}`] });
   return {
     port: chrome.port,

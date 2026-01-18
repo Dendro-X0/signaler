@@ -266,6 +266,9 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 - **[Getting Started](docs/getting-started.md)** - Installation and first run
 - **[CLI & CI](docs/cli-and-ci.md)** - Command reference and CI integration
 - **[Configuration](docs/configuration-and-routes.md)** - Config file format and options
+- **[Features Guide](docs/FEATURES.md)** - Comprehensive feature documentation for v2.0
+- **[Migration Guide](docs/MIGRATION.md)** - Migration instructions from v1.x to v2.0
+- **[Release Notes](docs/RELEASE-NOTES-v2.0.md)** - Complete v2.0 release notes
 
 ## Updating
 

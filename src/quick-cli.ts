@@ -301,20 +301,20 @@ export async function runQuickCli(argv: readonly string[]): Promise<void> {
   const { configPath, config }: { readonly configPath: string; readonly config: ApexConfig } = await loadConfig({ configPath: args.configPath });
   const filteredConfig: ApexConfig = filterConfigDevices(config, args.deviceFilter);
   const deviceArgs: readonly string[] = buildDeviceArgs(args.deviceFilter);
-  let measureArgv: readonly string[] = ["node", "apex-auditor", "--config", configPath, ...deviceArgs];
+  let measureArgv: readonly string[] = ["node", "signaler", "--config", configPath, ...deviceArgs];
   measureArgv = buildCliArgs({ base: measureArgv, flag: "--parallel", value: args.measureParallel?.toString() });
   measureArgv = buildCliArgs({ base: measureArgv, flag: "--timeout-ms", value: args.measureTimeoutMs?.toString() });
   await runMeasureCli(measureArgv);
-  let headersArgv: readonly string[] = ["node", "apex-auditor", "--config", configPath];
+  let headersArgv: readonly string[] = ["node", "signaler", "--config", configPath];
   headersArgv = buildCliArgs({ base: headersArgv, flag: "--parallel", value: args.headersParallel?.toString() });
   headersArgv = buildCliArgs({ base: headersArgv, flag: "--timeout-ms", value: args.headersTimeoutMs?.toString() });
   await runHeadersCli(headersArgv);
-  let linksArgv: readonly string[] = ["node", "apex-auditor", "--config", configPath];
+  let linksArgv: readonly string[] = ["node", "signaler", "--config", configPath];
   linksArgv = buildCliArgs({ base: linksArgv, flag: "--parallel", value: args.linksParallel?.toString() });
   linksArgv = buildCliArgs({ base: linksArgv, flag: "--timeout-ms", value: args.linksTimeoutMs?.toString() });
   linksArgv = buildCliArgs({ base: linksArgv, flag: "--max-urls", value: (args.linksMaxUrls ?? DEFAULT_LINKS_MAX_URLS).toString() });
   await runLinksCli(linksArgv);
-  let bundleArgv: readonly string[] = ["node", "apex-auditor", "--project-root", args.projectRoot];
+  let bundleArgv: readonly string[] = ["node", "signaler", "--project-root", args.projectRoot];
   bundleArgv = buildCliArgs({ base: bundleArgv, flag: "--top", value: args.bundleTop?.toString() });
   await runBundleCli(bundleArgv);
   await runAccessibilityPass({

@@ -232,7 +232,7 @@ async function fetchHeaders(params: { readonly url: string; readonly timeoutMs: 
         port: u.port.length > 0 ? parseInt(u.port, 10) : undefined,
         path: `${u.pathname}${u.search}`,
         method: "GET",
-        headers: { "user-agent": "apex-auditor/headers" },
+        headers: { "user-agent": "signaler/headers" },
       },
       (res) => {
         res.on("data", () => undefined);

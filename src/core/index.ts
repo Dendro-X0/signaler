@@ -9,3 +9,4 @@
 export * from './types.js';
 export * from './config.js';
 export * from './audit-engine.js';
+export * from './configuration-manager.js';

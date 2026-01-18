@@ -127,7 +127,7 @@ async function runHttpHealthCheck(params: { readonly url: string; readonly timeo
         port: u.port.length > 0 ? parseInt(u.port, 10) : undefined,
         path: `${u.pathname}${u.search}`,
         method: "GET",
-        headers: { "user-agent": "apex-auditor/health" },
+        headers: { "user-agent": "signaler/health" },
       },
       (res) => {
         const ttfbMs: number = Date.now() - startedAtMs;

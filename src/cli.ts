@@ -36,6 +36,7 @@ import type {
   PageDeviceSummary,
   RunSummary,
 } from "./core/types.js";
+import { PerformanceBudgetManager, generateCIBudgetReport, generateGitHubActionsReport, generateGitLabCIReport, generateJenkinsReport, sendBudgetWebhook, validateWebhookUrl, createMonitoringPayload, type BudgetResult } from "./performance-budget.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -97,6 +98,9 @@ interface CliArgs {
   readonly accessibilityPass: boolean;
   readonly webhookUrl: string | undefined;
   readonly webhookAlways: boolean;
+  readonly ciPlatform: "github" | "gitlab" | "jenkins" | undefined;
+  readonly budgetWebhookUrl: string | undefined;
+  readonly budgetWebhookRetries: number | undefined;
 }
 
 function colorScore(score: number | undefined, theme: UiTheme): string {
@@ -1526,7 +1530,7 @@ function buildRuntimeMeta(params: {
 }
 
 type WebhookPayload = {
-  readonly type: "apex-auditor";
+  readonly type: "signaler";
   readonly buildId?: string;
   readonly elapsedMs: number;
   readonly regressions: readonly RegressionLine[];
@@ -1561,7 +1565,7 @@ function buildWebhookPayload(params: {
   const regressions: readonly RegressionLine[] = collectRegressions(params.previous, params.current);
   const budgetPassed: boolean = params.budgetViolations.length === 0;
   return {
-    type: "apex-auditor",
+    type: "signaler",
     buildId: params.current.meta.buildId,
     elapsedMs: params.current.meta.elapsedMs,
     regressions,
@@ -2210,6 +2214,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let accessibilityPass = false;
   let webhookUrl: string | undefined;
   let webhookAlways = false;
+  let ciPlatform: "github" | "gitlab" | "jenkins" | undefined;
+  let budgetWebhookUrl: string | undefined;
+  let budgetWebhookRetries: number | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2309,6 +2316,27 @@ function parseArgs(argv: readonly string[]): CliArgs {
       i += 1;
     } else if (arg === "--webhook-always") {
       webhookAlways = true;
+    } else if (arg === "--ci-platform" && i + 1 < argv.length) {
+      const value = argv[i + 1];
+      if (value === "github" || value === "gitlab" || value === "jenkins") {
+        ciPlatform = value;
+      } else {
+        throw new Error(`Invalid --ci-platform value: ${value}. Expected "github", "gitlab", or "jenkins".`);
+      }
+      i += 1;
+    } else if (arg === "--budget-webhook-url" && i + 1 < argv.length) {
+      budgetWebhookUrl = argv[i + 1];
+      if (!validateWebhookUrl(budgetWebhookUrl)) {
+        throw new Error(`Invalid --budget-webhook-url: ${budgetWebhookUrl}. Must be a valid HTTP or HTTPS URL.`);
+      }
+      i += 1;
+    } else if (arg === "--budget-webhook-retries" && i + 1 < argv.length) {
+      const value = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value < 0 || value > 10) {
+        throw new Error(`Invalid --budget-webhook-retries value: ${argv[i + 1]}. Expected integer between 0 and 10.`);
+      }
+      budgetWebhookRetries = value;
+      i += 1;
     } else if (arg === "--max-steps" && i + 1 < argv.length) {
       const value: number = parseInt(argv[i + 1], 10);
       if (Number.isNaN(value) || value <= 0) {
@@ -2424,6 +2452,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
     accessibilityPass,
     webhookUrl,
     webhookAlways,
+    ciPlatform,
+    budgetWebhookUrl,
+    budgetWebhookRetries,
   };
 }
 
@@ -2482,6 +2513,9 @@ function printAuditFlags(): void {
       "  --accessibility-pass  Run a fast axe-core accessibility sweep after audits",
       "  --webhook-url <url> Send a JSON webhook",
       "  --webhook-always   Send webhook even if there are no regressions/violations",
+      "  --ci-platform <platform>  Generate platform-specific reports (github|gitlab|jenkins)",
+      "  --budget-webhook-url <url>  Send budget results to webhook with retry logic",
+      "  --budget-webhook-retries <n>  Number of webhook retry attempts (0-10, default 3)",
       "  --show-parallel    Print the resolved parallel workers before running",
       "  --incremental      Reuse cached results for unchanged combos (requires --build-id)",
       "  --build-id <id>    Build identifier used as the cache key boundary for --incremental",
@@ -3149,6 +3183,76 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   await writeFile(reportPath, html, "utf8");
   const budgetViolations: readonly BudgetViolation[] =
     effectiveConfig.budgets === undefined ? [] : collectBudgetViolations(summary.results, effectiveConfig.budgets);
+  
+  // Enhanced performance budget evaluation
+  let budgetResult: BudgetResult | undefined;
+  let budgetManager: PerformanceBudgetManager | undefined;
+  if (effectiveConfig.budgets !== undefined) {
+    budgetManager = new PerformanceBudgetManager(
+      PerformanceBudgetManager.fromApexBudgets(effectiveConfig.budgets)
+    );
+    budgetResult = budgetManager.evaluateBudgets(summary.results);
+    
+    // Write budget report to output directory
+    const budgetReportPath = resolve(outputDir, "performance-budget.json");
+    await writeFile(budgetReportPath, generateCIBudgetReport(budgetResult, "json"), "utf8");
+    
+    // Write console format for CI/CD integration
+    const budgetConsoleReportPath = resolve(outputDir, "performance-budget.txt");
+    await writeFile(budgetConsoleReportPath, generateCIBudgetReport(budgetResult, "console"), "utf8");
+    
+    // Write JUnit format for CI/CD integration
+    const budgetJUnitReportPath = resolve(outputDir, "performance-budget-junit.xml");
+    await writeFile(budgetJUnitReportPath, generateCIBudgetReport(budgetResult, "junit"), "utf8");
+    
+    // Generate CI/CD platform-specific reports
+    if (args.ci || args.ciPlatform) {
+      // GitHub Actions format
+      const githubReportPath = resolve(outputDir, "performance-budget-github.txt");
+      await writeFile(githubReportPath, generateGitHubActionsReport(budgetResult), "utf8");
+      
+      // GitLab CI format
+      const gitlabReportPath = resolve(outputDir, "performance-budget-gitlab.json");
+      await writeFile(gitlabReportPath, generateGitLabCIReport(budgetResult), "utf8");
+      
+      // Jenkins format
+      const jenkinsReport = generateJenkinsReport(budgetResult);
+      const jenkinsJUnitPath = resolve(outputDir, "performance-budget-jenkins.xml");
+      const jenkinsPropsPath = resolve(outputDir, "performance-budget-jenkins.properties");
+      await writeFile(jenkinsJUnitPath, jenkinsReport.junit, "utf8");
+      await writeFile(jenkinsPropsPath, jenkinsReport.properties, "utf8");
+      
+      // Platform-specific output to console
+      if (args.ciPlatform === "github") {
+        console.log("\n" + generateGitHubActionsReport(budgetResult));
+      } else if (args.ciPlatform === "gitlab") {
+        console.log("\nGitLab CI report written to performance-budget-gitlab.json");
+      } else if (args.ciPlatform === "jenkins") {
+        console.log("\nJenkins reports written to performance-budget-jenkins.xml and performance-budget-jenkins.properties");
+      }
+    }
+    
+    // Send budget webhook if configured
+    if (args.budgetWebhookUrl) {
+      try {
+        // Create enhanced monitoring payload
+        const monitoringPayload = createMonitoringPayload(budgetResult, {
+          buildId: effectiveConfig.buildId,
+          projectName: configPath.split(/[/\\]/).slice(-2, -1)[0] || 'unknown'
+        });
+        
+        await sendBudgetWebhook(budgetResult, {
+          url: args.budgetWebhookUrl,
+          retries: args.budgetWebhookRetries,
+          timeout: 10000
+        });
+        console.log(`Budget webhook sent to ${args.budgetWebhookUrl}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to send budget webhook: ${message}`);
+      }
+    }
+  }
   const exportPath: string = resolve(outputDir, "export.json");
   const shareable: ShareableExport = buildShareableExport({
     configPath,
@@ -3367,6 +3471,14 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     }
   }
   printCiSummary({ isCi: args.ci, failOnBudget: args.failOnBudget, violations: budgetViolations });
+  
+  // Set exit code based on enhanced budget results
+  if (budgetManager && budgetResult) {
+    const exitCode = budgetManager.getExitCode(budgetResult, args.ci, args.failOnBudget);
+    if (exitCode !== 0) {
+      process.exitCode = exitCode;
+    }
+  }
   printSectionHeader("Lowest performance", useColor);
   // eslint-disable-next-line no-console
   console.log(buildLowestPerformancePanel(summary.results, useColor));
@@ -5429,8 +5541,8 @@ function buildPlanJson(params: { readonly summary: RunSummary; readonly issues: 
         .map(toAffectedCombo),
       expectedImpact: { scoreUplift: "high", primarySignals: ["performance score", "LCP", "TBT", "INP", "CLS"] },
       nextCommands: [
-        "apex-auditor audit --diagnostics --stable",
-        "apex-auditor audit --diagnostics --throttling devtools --stable",
+        "signaler audit --diagnostics --stable",
+        "signaler audit --diagnostics --throttling devtools --stable",
       ],
       acceptanceCriteria: [
         `The worst combos reach ${params.targetScore}+ performance score (or show a clear upward trend).`,
@@ -5449,7 +5561,7 @@ function buildPlanJson(params: { readonly summary: RunSummary; readonly issues: 
         .slice(0, 20)
         .map(toAffectedCombo),
       expectedImpact: { scoreUplift: "medium", primarySignals: ["accessibility score"] },
-      nextCommands: ["apex-auditor audit --stable"],
+      nextCommands: ["signaler audit --stable"],
       acceptanceCriteria: [`All combos reach ${params.targetScore}+ accessibility score.`],
     });
   }
@@ -5464,7 +5576,7 @@ function buildPlanJson(params: { readonly summary: RunSummary; readonly issues: 
         .slice(0, 20)
         .map(toAffectedCombo),
       expectedImpact: { scoreUplift: "low", primarySignals: ["best-practices score"] },
-      nextCommands: ["apex-auditor audit --stable"],
+      nextCommands: ["signaler audit --stable"],
       acceptanceCriteria: [`All combos reach ${params.targetScore}+ best practices score.`],
     });
   }
@@ -5479,7 +5591,7 @@ function buildPlanJson(params: { readonly summary: RunSummary; readonly issues: 
         .slice(0, 20)
         .map(toAffectedCombo),
       expectedImpact: { scoreUplift: "low", primarySignals: ["seo score"] },
-      nextCommands: ["apex-auditor audit --stable"],
+      nextCommands: ["signaler audit --stable"],
       acceptanceCriteria: [`All combos reach ${params.targetScore}+ SEO score.`],
     });
   }
@@ -5626,12 +5738,12 @@ function buildOverviewMarkdown(params: {
   lines.push("");
   lines.push("```bash");
   lines.push("# Full sweep (fast feedback)");
-  lines.push("apex-auditor audit --diagnostics");
+  lines.push("signaler audit --diagnostics");
   lines.push("# Focused rerun (high signal)");
   lines.push("# - re-runs only the worst N combos from the previous summary.json");
-  lines.push("apex-auditor audit --focus-worst 10 --diagnostics");
+  lines.push("signaler audit --focus-worst 10 --diagnostics");
   lines.push("# Fallback stability mode (only if parallel flakes)");
-  lines.push("apex-auditor audit --stable --diagnostics");
+  lines.push("signaler audit --stable --diagnostics");
   lines.push("```");
   const prev: RunSummary | undefined = params.previousSummary;
   const prevThrottling: ApexThrottlingMethod | undefined = prev?.meta.throttlingMethod;

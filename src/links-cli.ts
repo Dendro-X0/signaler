@@ -143,7 +143,7 @@ async function fetchText(params: { readonly url: string; readonly timeoutMs: num
         path: `${u.pathname}${u.search}`,
         method: "GET",
         headers: {
-          "user-agent": "apex-auditor/links",
+          "user-agent": "signaler/links",
           accept: params.accept ?? "text/html,application/xml;q=0.9,*/*;q=0.8",
         },
       },
@@ -177,7 +177,7 @@ async function fetchStatus(params: { readonly url: string; readonly timeoutMs: n
         port: u.port.length > 0 ? parseInt(u.port, 10) : undefined,
         path: `${u.pathname}${u.search}`,
         method: "GET",
-        headers: { "user-agent": "apex-auditor/links" },
+        headers: { "user-agent": "signaler/links" },
       },
       (res) => {
         let bytes = 0;

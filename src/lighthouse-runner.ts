@@ -514,7 +514,7 @@ async function createChromeSession(chromePort?: number): Promise<ChromeSession> 
   if (typeof chromePort === "number") {
     return { port: chromePort };
   }
-  const userDataDir: string = await mkdtemp(join(tmpdir(), "apex-auditor-chrome-"));
+  const userDataDir: string = await mkdtemp(join(tmpdir(), "signaler-chrome-"));
   const chrome = await launchChrome({
     chromeFlags: [
       "--headless=new",

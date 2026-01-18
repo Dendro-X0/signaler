@@ -27,11 +27,14 @@ export interface ReportMetadata {
   generatedAt: string;
   version: string;
   source: string;
+  generationTimeMs?: number;
+  pageCount?: number;
+  streamingUsed?: boolean;
 }
 
 export type OutputFormat = 'html' | 'json' | 'markdown' | 'csv';
 
-// Re-export reporting modules (will be added during migration)
-// export * from './generators/index.js';
+// Re-export reporting modules
+export * from './generators/index.js';
 // export * from './formatters/index.js';
 // export * from './artifacts/index.js';

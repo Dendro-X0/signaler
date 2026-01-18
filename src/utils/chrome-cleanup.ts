@@ -70,7 +70,8 @@ export async function cleanupChromeUserDataDirs(): Promise<number> {
   try {
     const entries = await readdir(tmpdir);
     const chromeDirs = entries.filter((entry: string) => 
-      entry.startsWith('apex-auditor-chrome-') || 
+      entry.startsWith('signaler-chrome-') || 
+      entry.startsWith('apex-auditor-chrome-') || // backward compatibility
       entry.startsWith('signaler-chrome-')
     );
     

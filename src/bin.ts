@@ -34,6 +34,8 @@ import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
 import { runFolderCli } from "./folder-cli.js";
+import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
+import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
 
 type ApexCommandId =
   | "audit"
@@ -55,7 +57,9 @@ type ApexCommandId =
   | "guide"
   | "shell"
   | "help"
-  | "init";
+  | "init"
+  | "config"
+  | "export";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -92,7 +96,9 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "wizard" ||
     rawCommand === "quickstart" ||
     rawCommand === "guide" ||
-    rawCommand === "init"
+    rawCommand === "init" ||
+    rawCommand === "config" ||
+    rawCommand === "export"
   ) {
     const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
     return { command: rawCommand as ApexCommandId, argv: commandArgv };
@@ -212,6 +218,10 @@ function printHelp(topic?: string): void {
       "    clean      Remove ApexAuditor artifacts (reports/cache and optionally config)",
       "    uninstall  One-click uninstall (removes .signaler/ and apex.config.json)",
       "    clear-screenshots  Remove .signaler/screenshots/",
+      "",
+      "  Configuration and Export:",
+      "    config     Manage configuration files (create, validate, show)",
+      "    export     Export audit data in various formats (CSV, JSON, Excel)",
       "",
       "  Help:",
       "    help       Show this help message",
@@ -337,8 +347,8 @@ function printHelp(topic?: string): void {
       "  - Prints a file:// link to the HTML report after completion",
       "",
       "Quick start:",
-      "  pnpm dlx apex-auditor@latest wizard      # guided setup",
-      "  pnpm dlx apex-auditor@latest audit       # run with apex.config.json",
+      "  pnpm dlx signaler@latest wizard      # guided setup",
+      "  pnpm dlx signaler@latest audit       # run with apex.config.json",
       "",
       "Defaults:",
       "  - Parallel auto-tunes from CPU/memory (up to 4 by default)",
@@ -492,6 +502,16 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
       await runWizardCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "config") {
+      const configOptions = parseConfigArgs(parsed.argv.slice(2));
+      await ConfigCli.handle(configOptions);
+      return;
+    }
+    if (parsed.command === "export") {
+      const exportOptions = parseExportArgs(parsed.argv.slice(2));
+      await ExportCli.handle(exportOptions);
       return;
     }
   };
