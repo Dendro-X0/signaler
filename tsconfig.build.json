@@ -3,8 +3,11 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "dist",
-    "declaration": false,
-    "sourceMap": false
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
 }

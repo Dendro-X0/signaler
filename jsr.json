@@ -14,6 +14,10 @@
       "docs/",
       "jsr.json",
       "package.json"
+    ],
+    "exclude": [
+      "dist/**/*.test.*",
+      "dist/**/*.spec.*"
     ]
   }
 }
