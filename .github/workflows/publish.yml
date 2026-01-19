@@ -7,6 +7,11 @@ on:
         description: 'Version to publish (e.g., 2.0.0)'
         required: true
         default: '2.0.0'
+      force:
+        description: 'Force publish even if version exists'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v2.*'
@@ -51,5 +56,32 @@ jobs:
           test -f docs/RELEASE-NOTES-v2.0.md
           echo "✅ All v2.0 documentation verified"
 
+      - name: Check if version already exists
+        id: version_check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Checking if @signaler/cli@$VERSION already exists on JSR..."
+          
+          # Try to get package info from JSR API
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://jsr.io/@signaler/cli/$VERSION" || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "⚠️  Version $VERSION already exists on JSR"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Version $VERSION does not exist, proceeding with publish"
+          fi
+
       - name: Publish to JSR
+        if: steps.version_check.outputs.exists == 'false' || github.event.inputs.force == 'true'
         run: npx jsr publish --allow-slow-types
+
+      - name: Skip publish (already exists)
+        if: steps.version_check.outputs.exists == 'true' && github.event.inputs.force != 'true'
+        run: |
+          echo "✅ Version ${{ steps.version_check.outputs.version }} already published to JSR"
+          echo "Skipping publish step to avoid conflicts"
+          echo "Use workflow_dispatch with force=true to republish if needed"
