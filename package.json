@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": false,
   "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
   "type": "module",
@@ -37,6 +37,7 @@
     "enquirer": "^2.4.1",
     "lighthouse": "^13.0.1",
     "open": "^10.1.0",
+    "playwright": "^1.48.0",
     "prompts": "^2.4.2",
     "ws": "^8.18.0"
   },
