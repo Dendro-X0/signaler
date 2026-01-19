@@ -2,10 +2,7 @@
   "name": "@signaler/cli",
   "version": "2.1.0",
   "exports": {
-    ".": {
-      "types": "./dist/bin.d.ts",
-      "default": "./dist/bin.js"
-    }
+    ".": "./dist/bin.js"
   },
   "publish": {
     "include": [
