@@ -143,7 +143,7 @@ export class MultiAuditAiOptimizer {
         return {
           id,
           title: entries[0].title,
-          types: types.sort((a: AuditType, b: AuditType) => a.localeCompare(b)),
+          types: [...types].sort((a: AuditType, b: AuditType) => a.localeCompare(b)),
           severity,
           impact,
         };

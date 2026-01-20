@@ -1,4 +1,5 @@
-import type { AuditDevice, AuditPlugin, AuditResult, Issue, PageConfig } from "./plugin-interface.js";
+import type { PageConfig } from "./multi-audit-engine.js";
+import type { AuditDevice, AuditPlugin, AuditResult, Issue } from "./plugin-interface.js";
 
 type PageExecutionMeta = {
   readonly startTime: number;
