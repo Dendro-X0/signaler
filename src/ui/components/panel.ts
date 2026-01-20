@@ -57,6 +57,9 @@ function computeContentWidth(params: PanelParams): number {
   return Math.max(10, ...lengths);
 }
 
+/**
+ * Render a boxed panel with title, optional subtitle, and body lines.
+ */
 export function renderPanel(params: PanelParams): string {
   const contentWidth: number = computeContentWidth(params);
   const top: string = `${BOX.topLeft}${repeatChar(BOX.horizontal, contentWidth + 2)}${BOX.topRight}`;

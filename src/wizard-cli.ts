@@ -762,6 +762,9 @@ async function buildConfig(): Promise<ApexConfig> {
   };
 }
 
+/**
+ * Run the interactive configuration wizard CLI.
+ */
 export async function runWizardCli(argv: readonly string[]): Promise<void> {
   try {
     const args = parseArgs(argv);

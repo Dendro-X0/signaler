@@ -3,6 +3,9 @@ import { join, relative, sep } from "node:path";
 import type { Dirent } from "node:fs";
 import { pathExists, readTextFile } from "./infrastructure/filesystem/utils.js";
 
+/**
+ * Identifier for the route detection strategy.
+ */
 export type RouteDetectorId =
   | "next-app"
   | "next-pages"
@@ -12,6 +15,9 @@ export type RouteDetectorId =
   | "spa-html"
   | "static-html";
 
+/**
+ * Options for automatic route detection.
+ */
 export interface DetectRoutesOptions {
   readonly projectRoot: string;
   readonly limit?: number;
@@ -19,22 +25,34 @@ export interface DetectRoutesOptions {
   readonly preferredDetectorId?: RouteDetectorId;
 }
 
+/**
+ * Single detected route entry.
+ */
 export interface DetectedRoute {
   readonly path: string;
   readonly label: string;
   readonly source: string;
 }
 
+/**
+ * Logger hook for route detection decisions.
+ */
 export interface RouteDetectionLogger {
   log(entry: RouteDetectionLogEntry): void;
 }
 
+/**
+ * Log entry emitted during route detection.
+ */
 export interface RouteDetectionLogEntry {
   readonly detectorId: string;
   readonly message: string;
   readonly context?: RouteDetectionLogContext;
 }
 
+/**
+ * Optional context attached to a route detection log entry.
+ */
 export interface RouteDetectionLogContext {
   readonly limit?: number;
   readonly candidateCount?: number;
@@ -72,6 +90,9 @@ const ROUTE_DETECTORS: readonly RouteDetector[] = [
   createStaticHtmlDetector(),
 ];
 
+/**
+ * Detect application routes based on the project structure.
+ */
 export async function detectRoutes(options: DetectRoutesOptions): Promise<readonly DetectedRoute[]> {
   const limit = options.limit ?? DEFAULT_LIMIT;
   const orderedDetectors = orderDetectors(options.preferredDetectorId);

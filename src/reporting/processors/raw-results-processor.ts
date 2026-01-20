@@ -7,6 +7,9 @@
 
 import type { RunSummary, PageDeviceSummary, MetricValues, CategoryScores } from '../../types.js';
 
+/**
+ * Normalized audit data derived from raw Lighthouse results.
+ */
 export interface ProcessedAuditData {
   readonly pages: PageAuditResult[];
   readonly globalIssues: GlobalIssue[];
@@ -14,6 +17,9 @@ export interface ProcessedAuditData {
   readonly auditMetadata: AuditMetadata;
 }
 
+/**
+ * Normalized audit result for a single page.
+ */
 export interface PageAuditResult {
   readonly label: string;
   readonly path: string;
@@ -24,6 +30,9 @@ export interface PageAuditResult {
   readonly opportunities: Opportunity[];
 }
 
+/**
+ * Identified issue impacting a page.
+ */
 export interface Issue {
   readonly id: string;
   readonly title: string;
@@ -37,6 +46,9 @@ export interface Issue {
   };
 }
 
+/**
+ * Opportunity candidate with estimated savings.
+ */
 export interface Opportunity {
   readonly id: string;
   readonly title: string;
@@ -45,12 +57,18 @@ export interface Opportunity {
   readonly estimatedSavingsBytes?: number;
 }
 
+/**
+ * Resource affected by an {@link Issue}.
+ */
 export interface Resource {
   readonly url: string;
   readonly type: 'script' | 'stylesheet' | 'image' | 'font' | 'other';
   readonly size: number;
 }
 
+/**
+ * Issue that affects multiple pages.
+ */
 export interface GlobalIssue {
   readonly type: string;
   readonly description: string;
@@ -58,6 +76,9 @@ export interface GlobalIssue {
   readonly severity: 'critical' | 'high' | 'medium' | 'low';
 }
 
+/**
+ * Aggregate metrics derived from processed results.
+ */
 export interface PerformanceMetrics {
   readonly averageScores: CategoryScores;
   readonly totalPages: number;
@@ -65,6 +86,9 @@ export interface PerformanceMetrics {
   readonly disclaimer: string;
 }
 
+/**
+ * Metadata describing a processed audit run.
+ */
 export interface AuditMetadata {
   readonly startedAt: string;
   readonly completedAt: string;
@@ -74,6 +98,9 @@ export interface AuditMetadata {
   readonly cpuSlowdownMultiplier: number;
 }
 
+/**
+ * Validation report for raw results input.
+ */
 export interface ValidationReport {
   readonly isValid: boolean;
   readonly errors: string[];

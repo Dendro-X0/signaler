@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, PageAuditResult } from './report-generator-engine.js';
 
+/**
+ * Configuration options for the visual performance dashboard.
+ */
 export interface DashboardConfig {
   enableComparisons: boolean;
   enableProgressTracking: boolean;
@@ -15,6 +18,9 @@ export interface DashboardConfig {
   animationsEnabled: boolean;
 }
 
+/**
+ * Historical summary snapshot used for trend charts.
+ */
 export interface HistoricalData {
   timestamp: string;
   averagePerformanceScore: number;
@@ -23,12 +29,18 @@ export interface HistoricalData {
   estimatedTotalSavings: number;
 }
 
+/**
+ * Before/after dataset used for comparison dashboards.
+ */
 export interface ComparisonData {
   before: ProcessedAuditData;
   after: ProcessedAuditData;
   improvements: PerformanceImprovement[];
 }
 
+/**
+ * Single metric improvement entry.
+ */
 export interface PerformanceImprovement {
   metric: string;
   beforeValue: number;

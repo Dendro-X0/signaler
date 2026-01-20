@@ -30,6 +30,9 @@ export enum RecoveryAction {
   GRACEFUL_DEGRADATION = 'graceful_degradation'
 }
 
+/**
+ * Error context metadata attached to a {@link SignalerError} instance.
+ */
 export interface ErrorContext {
   readonly operation: string;
   readonly component: string;
@@ -38,6 +41,9 @@ export interface ErrorContext {
   readonly stackTrace?: string;
 }
 
+/**
+ * Strategy describing how an error should be recovered or reported.
+ */
 export interface RecoveryStrategy {
   action: RecoveryAction;
   maxRetries?: number;
@@ -46,6 +52,9 @@ export interface RecoveryStrategy {
   suggestedSolutions?: string[];
 }
 
+/**
+ * Base class for all typed errors thrown by Signaler.
+ */
 export abstract class SignalerError extends Error {
   public category: ErrorCategory;
   public severity: ErrorSeverity;
@@ -90,6 +99,9 @@ export abstract class SignalerError extends Error {
 }
 
 // File System Errors
+/**
+ * Error raised for filesystem operations (read/write/create/delete).
+ */
 export class FileSystemError extends SignalerError {
   constructor(
     message: string,
@@ -123,6 +135,9 @@ export class FileSystemError extends SignalerError {
   }
 }
 
+/**
+ * Error raised when the CLI cannot create a required directory.
+ */
 export class DirectoryCreationError extends FileSystemError {
   constructor(directoryPath: string, originalError?: Error) {
     super(
@@ -143,6 +158,9 @@ export class DirectoryCreationError extends FileSystemError {
   }
 }
 
+/**
+ * Error raised when writing a file fails.
+ */
 export class FileWriteError extends FileSystemError {
   constructor(filePath: string, originalError?: Error) {
     super(
@@ -157,6 +175,9 @@ export class FileWriteError extends FileSystemError {
   }
 }
 
+/**
+ * Error raised when reading a file fails.
+ */
 export class FileReadError extends FileSystemError {
   constructor(filePath: string, originalError?: Error) {
     super(
@@ -173,6 +194,9 @@ export class FileReadError extends FileSystemError {
 }
 
 // Data Processing Errors
+/**
+ * Error raised when processing or transforming data fails.
+ */
 export class DataProcessingError extends SignalerError {
   constructor(
     message: string,
@@ -204,6 +228,9 @@ export class DataProcessingError extends SignalerError {
   }
 }
 
+/**
+ * Error raised when JSON serialization fails.
+ */
 export class JSONSerializationError extends DataProcessingError {
   constructor(dataType: string, originalError?: Error) {
     super(
@@ -214,10 +241,13 @@ export class JSONSerializationError extends DataProcessingError {
       ErrorSeverity.MEDIUM
     );
 
-    this.recoveryStrategy.fallbackOptions = ['simplified_structure', 'string_fallback'];
+    this.recoveryStrategy.fallbackOptions = ['minimal_output', 'text_format'];
   }
 }
 
+/**
+ * Error raised when pattern analysis fails.
+ */
 export class PatternAnalysisError extends DataProcessingError {
   constructor(patternType: string, originalError?: Error) {
     super(
@@ -233,6 +263,9 @@ export class PatternAnalysisError extends DataProcessingError {
 }
 
 // Performance Errors
+/**
+ * Error raised for performance-related constraints (timeouts/memory).
+ */
 export class PerformanceError extends SignalerError {
   constructor(
     message: string,
@@ -265,6 +298,9 @@ export class PerformanceError extends SignalerError {
   }
 }
 
+/**
+ * Error raised when report generation exceeds the configured timeout.
+ */
 export class ReportGenerationTimeoutError extends PerformanceError {
   constructor(timeoutMs: number, actualMs: number) {
     super(
@@ -278,6 +314,9 @@ export class ReportGenerationTimeoutError extends PerformanceError {
   }
 }
 
+/**
+ * Error raised when the system detects insufficient available memory.
+ */
 export class MemoryExhaustionError extends PerformanceError {
   constructor(requiredMB: number, availableMB: number) {
     super(
@@ -294,6 +333,9 @@ export class MemoryExhaustionError extends PerformanceError {
 }
 
 // Integration Errors
+/**
+ * Error raised for third-party or platform integration failures.
+ */
 export class IntegrationError extends SignalerError {
   constructor(
     message: string,
@@ -326,6 +368,9 @@ export class IntegrationError extends SignalerError {
   }
 }
 
+/**
+ * Error raised when a webhook delivery fails.
+ */
 export class WebhookDeliveryError extends IntegrationError {
   constructor(webhookUrl: string, originalError?: Error) {
     super(
@@ -337,10 +382,13 @@ export class WebhookDeliveryError extends IntegrationError {
     );
 
     this.recoveryStrategy.maxRetries = 5;
-    this.recoveryStrategy.fallbackOptions = ['local_log', 'skip_webhook'];
+    this.recoveryStrategy.fallbackOptions = ['local_storage', 'retry_later'];
   }
 }
 
+/**
+ * Error raised for CI/CD provider integration failures.
+ */
 export class CICDIntegrationError extends IntegrationError {
   constructor(platform: string, operation: string, originalError?: Error) {
     super(
@@ -351,11 +399,14 @@ export class CICDIntegrationError extends IntegrationError {
       ErrorSeverity.MEDIUM
     );
 
-    this.recoveryStrategy.fallbackOptions = ['generic_format', 'local_output'];
+    this.recoveryStrategy.fallbackOptions = ['basic_analysis', 'skip_pattern_analysis'];
   }
 }
 
 // Network Errors
+/**
+ * Error raised for network-related operations (requests/connections).
+ */
 export class NetworkError extends SignalerError {
   constructor(
     message: string,
@@ -389,6 +440,9 @@ export class NetworkError extends SignalerError {
 }
 
 // Validation Errors
+/**
+ * Error raised when configuration or input validation fails.
+ */
 export class ValidationError extends SignalerError {
   constructor(
     message: string,

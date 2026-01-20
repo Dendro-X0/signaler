@@ -1,23 +1,35 @@
 import type { ApexDevice } from "../../core/types.js";
 
+/**
+ * Timing metrics collected during a measurement run.
+ */
 export type MeasureTiming = {
   readonly ttfbMs?: number;
   readonly domContentLoadedMs?: number;
   readonly loadMs?: number;
 };
 
+/**
+ * Web vitals captured during a measurement run.
+ */
 export type MeasureVitals = {
   readonly lcpMs?: number;
   readonly cls?: number;
   readonly inpMs?: number;
 };
 
+/**
+ * Summary statistics about long tasks detected on the page.
+ */
 export type MeasureLongTasks = {
   readonly count: number;
   readonly totalMs: number;
   readonly maxMs: number;
 };
 
+/**
+ * Network statistics captured during the measurement run.
+ */
 export type MeasureNetwork = {
   readonly totalRequests: number;
   readonly totalBytes: number;
@@ -27,11 +39,17 @@ export type MeasureNetwork = {
   readonly lateScriptRequests: number;
 };
 
+/**
+ * Paths and lightweight artifacts captured during measurement.
+ */
 export type MeasureArtifacts = {
   readonly screenshotPath?: string;
   readonly consoleErrors: readonly string[];
 };
 
+/**
+ * Result summary for a single page/device measurement combination.
+ */
 export type MeasurePageDeviceSummary = {
   readonly url: string;
   readonly path: string;
@@ -46,6 +64,9 @@ export type MeasurePageDeviceSummary = {
   readonly runtimeErrorMessage?: string;
 };
 
+/**
+ * Metadata describing a measurement run.
+ */
 export type MeasureMeta = {
   readonly configPath: string;
   readonly resolvedParallel: number;
@@ -56,6 +77,9 @@ export type MeasureMeta = {
   readonly averageComboMs: number;
 };
 
+/**
+ * Aggregate summary output for a measurement run.
+ */
 export type MeasureSummary = {
   readonly meta: MeasureMeta;
   readonly results: readonly MeasurePageDeviceSummary[];

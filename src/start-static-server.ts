@@ -63,6 +63,9 @@ function safeJoin(root: string, urlPath: string): string | undefined {
   return join(root, normal);
 }
 
+/**
+ * Start a lightweight local static file server.
+ */
 export async function startStaticServer(params: { readonly rootDir: string }): Promise<StaticServer> {
   const rootDir: string = resolve(params.rootDir);
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {

@@ -295,6 +295,9 @@ function buildResultsTable(results: readonly HeaderCheckResult[]): string {
   return renderTable({ headers: ["Label", "Path", "Status", "Missing", "Missing headers"], rows });
 }
 
+/**
+ * Runs the headers-check CLI flow.
+ */
 export async function runHeadersCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   stopSpinner();
   const args: HeadersArgs = parseArgs(argv);

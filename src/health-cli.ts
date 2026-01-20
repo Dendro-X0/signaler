@@ -216,6 +216,9 @@ function isConnectionErrorMessage(message: string): boolean {
   return message.includes("ECONNREFUSED") || message.includes("ENOTFOUND") || message.includes("EAI_AGAIN") || message.includes("Timed out");
 }
 
+/**
+ * Runs the health-check CLI flow.
+ */
 export async function runHealthCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   stopSpinner();
   const args: HealthArgs = parseArgs(argv);

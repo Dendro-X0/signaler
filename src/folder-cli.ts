@@ -56,6 +56,9 @@ function toPages(routes: readonly { readonly path: string; readonly label: strin
   return routes.map((r) => ({ path: r.path, label: r.label, devices: DEFAULT_DEVICES }));
 }
 
+/**
+ * Runs the folder-mode CLI flow.
+ */
 export async function runFolderCli(argv: readonly string[]): Promise<void> {
   const args: FolderArgs = parseFolderArgs(argv);
   const engineJson: { readonly enabled: boolean } = resolveEngineJsonMode(argv);

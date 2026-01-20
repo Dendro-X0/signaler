@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, Issue } from '../processors/raw-results-processor.js';
 
+/**
+ * Issue prioritized by aggregate impact across all pages.
+ */
 export interface PrioritizedIssue {
   readonly issue: Issue;
   readonly affectedPagesCount: number;
@@ -16,6 +19,9 @@ export interface PrioritizedIssue {
   readonly priority: number;
 }
 
+/**
+ * Actionable recommendation describing how to remediate an issue.
+ */
 export interface ActionableRecommendation {
   readonly action: string;
   readonly implementation: {

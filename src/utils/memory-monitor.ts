@@ -4,6 +4,9 @@
 
 import { freemem, totalmem } from "node:os";
 
+/**
+ * Snapshot of current system memory status.
+ */
 export interface MemoryStatus {
   readonly freeMemoryMB: number;
   readonly totalMemoryMB: number;

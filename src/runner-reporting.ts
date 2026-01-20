@@ -67,6 +67,9 @@ function normalizeRelativePath(path: string): string {
   return path.replace(/\\/g, "/");
 }
 
+/**
+ * Write runner reports (human Markdown + AI JSON) into an output directory.
+ */
 export async function writeRunnerReports(params: RunnerReportWriteParams): Promise<{ readonly reportMdPath: string; readonly aiJsonPath: string }> {
   const reportMdPath: string = resolve(params.outputDir, `${params.runner}.report.md`);
   const aiJsonPath: string = resolve(params.outputDir, `${params.runner}.ai.json`);

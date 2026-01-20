@@ -7,11 +7,15 @@
 
 import type { ProcessedAuditData, Issue, PageAuditResult } from '../processors/raw-results-processor.js';
 
+/**
+ * Issue aggregated across pages with computed impact and recommendations.
+ */
 export interface AggregatedIssue {
   readonly id: string;
   readonly title: string;
   readonly description: string;
   readonly severity: Issue['severity'];
+
   readonly category: Issue['category'];
   readonly affectedPages: PageIssueDetail[];
   readonly totalImpact: {
@@ -25,6 +29,9 @@ export interface AggregatedIssue {
   readonly frameworkRecommendations: FrameworkRecommendation[];
 }
 
+/**
+ * Per-page details for a single aggregated issue.
+ */
 export interface PageIssueDetail {
   readonly pageLabel: string;
   readonly pagePath: string;
@@ -34,6 +41,9 @@ export interface PageIssueDetail {
   readonly impactBytes: number;
 }
 
+/**
+ * Framework-specific remediation recommendation.
+ */
 export interface FrameworkRecommendation {
   readonly framework: 'nextjs' | 'react' | 'vue' | 'angular' | 'generic';
   readonly recommendation: string;
@@ -41,6 +51,9 @@ export interface FrameworkRecommendation {
   readonly priority: 'high' | 'medium' | 'low';
 }
 
+/**
+ * Estimated performance score impact for implementing a set of fixes.
+ */
 export interface PerformanceImpactCalculation {
   readonly currentAverageScore: number;
   readonly projectedImprovement: number;

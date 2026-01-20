@@ -7,6 +7,9 @@
 
 import { MemoryOptimizer } from './memory-optimizer.js';
 
+/**
+ * Compact representation of a page result using typed arrays.
+ */
 export interface CompactPageResult {
   label: string;
   path: string;
@@ -17,6 +20,9 @@ export interface CompactPageResult {
   opportunityIds: Uint16Array; // References to shared opportunity pool
 }
 
+/**
+ * Compact issue representation stored in a shared pool.
+ */
 export interface CompactIssue {
   id: number;
   titleHash: number; // Hash of title for deduplication
@@ -26,6 +32,9 @@ export interface CompactIssue {
   estimatedSavingsBytes: number;
 }
 
+/**
+ * Compact opportunity representation stored in a shared pool.
+ */
 export interface CompactOpportunity {
   id: number;
   titleHash: number;

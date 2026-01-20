@@ -1,3 +1,6 @@
+/**
+ * Remove query string and hash fragment from a URL string.
+ */
 export function stripUrl(input: string): string {
   try {
     const url: URL = new URL(input);

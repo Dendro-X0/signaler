@@ -6,6 +6,10 @@ type PackageJson = {
   readonly version?: unknown;
 };
 
+/**
+ * Reads the current engine version from the package metadata.
+ * @returns The engine version as a string.
+ */
 export async function readEngineVersion(): Promise<string> {
   const here: string = dirname(fileURLToPath(import.meta.url));
   const pkgPath: string = resolve(here, "..", "package.json");

@@ -1,3 +1,6 @@
+/**
+ * Build a URL string from a base URL, path, and optional query string.
+ */
 export function buildUrl(params: { readonly baseUrl: string; readonly path: string; readonly query?: string }): string {
   const cleanBase: string = params.baseUrl.replace(/\/$/, "");
   const cleanPath: string = params.path.startsWith("/") ? params.path : `/${params.path}`;

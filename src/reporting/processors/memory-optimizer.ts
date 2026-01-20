@@ -7,6 +7,9 @@
 
 import { EventEmitter } from 'node:events';
 
+/**
+ * Configuration options for memory monitoring and optimization.
+ */
 export interface MemoryConfig {
   maxHeapSizeMB: number;
   gcThresholdMB: number;
@@ -16,6 +19,9 @@ export interface MemoryConfig {
   emergencyThreshold: number; // percentage of max heap
 }
 
+/**
+ * Current memory usage metrics.
+ */
 export interface MemoryMetrics {
   heapUsedMB: number;
   heapTotalMB: number;
@@ -28,6 +34,9 @@ export interface MemoryMetrics {
   peakUsageMB: number;
 }
 
+/**
+ * Memory alert emitted when usage crosses configured thresholds.
+ */
 export interface MemoryAlert {
   level: 'warning' | 'critical' | 'emergency';
   message: string;

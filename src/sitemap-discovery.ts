@@ -110,6 +110,9 @@ async function fetchText(url: string): Promise<HttpResponse> {
   });
 }
 
+/**
+ * Discover runtime routes by fetching routes from `robots.txt` / sitemap XML.
+ */
 export async function discoverRuntimeRoutes(options: SitemapDiscoveryOptions): Promise<readonly string[]> {
   const limit: number = Math.max(1, options.limit);
   const base: URL = new URL(options.baseUrl);

@@ -77,11 +77,15 @@ function renderRow(cells: readonly string[], widths: readonly number[]): string 
   return `${BOX.vertical}${padded.join(BOX.vertical)}${BOX.vertical}`;
 }
 
+/**
+ * Render a boxed table with headers and rows.
+ */
 export function renderTable(params: TableParams): string {
   const widths: readonly number[] = computeWidths(params);
   const top: string = joinBorder(widths, BOX.topLeft, BOX.junctionTop, BOX.topRight);
   const header: string = renderRow(params.headers, widths);
   const mid: string = joinBorder(widths, BOX.junctionLeft, BOX.junctionMid, BOX.junctionRight);
+
   const body: string[] = params.rows.map((r) => renderRow(r, widths));
   const bottom: string = joinBorder(widths, BOX.bottomLeft, BOX.junctionBottom, BOX.bottomRight);
   return [top, header, mid, ...body, bottom].join("\n");

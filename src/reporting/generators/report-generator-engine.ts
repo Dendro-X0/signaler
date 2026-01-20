@@ -13,124 +13,388 @@ import { OptimizedFileIO, calculateOptimalBufferSize } from '../processors/optim
 import { MemoryOptimizer, withMemoryMonitoring, checkMemoryAvailability } from '../processors/memory-optimizer.js';
 import { CompactAuditStorage, StreamingAuditProcessor, MemoryEfficientAggregator } from '../processors/memory-efficient-structures.js';
 
+/**
+ * Configuration for {@link ReportGeneratorEngine}.
+ */
 export interface ReportGeneratorConfig {
+  /**
+   * List of output formats to generate reports in.
+   */
   outputFormats: OutputFormat[];
+  /**
+   * Whether to include screenshots in the report.
+   */
   includeScreenshots: boolean;
+  /**
+   * Maximum number of issues to include in each report.
+   */
   maxIssuesPerReport: number;
+  /**
+   * Whether to optimize token usage in the report.
+   */
   tokenOptimization: boolean;
-  streamingThreshold: number; // Number of pages above which to use streaming
+  /**
+   * Number of pages above which to use streaming report generation.
+   */
+  streamingThreshold: number;
+  /**
+   * Whether to display progress indicators during report generation.
+   */
   enableProgressIndicators: boolean;
+  /**
+   * Whether to optimize file I/O operations during report generation.
+   */
   optimizeFileIO: boolean;
+  /**
+   * Whether to enable compression for report output.
+   */
   compressionEnabled: boolean;
+  /**
+   * Maximum amount of memory (in MB) to allocate for report generation.
+   */
   maxMemoryMB: number;
 }
 
+/**
+ * Normalized audit data used internally for report generation.
+ */
 export interface ProcessedAuditData {
+  /**
+   * List of page-level audit results.
+   */
   pages: PageAuditResult[];
+  /**
+   * List of global issues affecting multiple pages.
+   */
   globalIssues: GlobalIssue[];
+  /**
+   * Aggregate performance metrics computed across pages.
+   */
   performanceMetrics: PerformanceMetrics;
+  /**
+   * Metadata about the audit run.
+   */
   auditMetadata: AuditMetadata;
 }
 
+/**
+ * Normalized audit result for a single page.
+ */
 export interface PageAuditResult {
+  /**
+   * Label for the page (e.g. URL or title).
+   */
   label: string;
+  /**
+   * Path to the page (e.g. URL).
+   */
   path: string;
+  /**
+   * Device type used for the audit (desktop or mobile).
+   */
   device: 'desktop' | 'mobile';
+  /**
+   * Scores for different audit categories.
+   */
   scores: {
+    /**
+     * Performance score.
+     */
     performance: number;
+    /**
+     * Accessibility score.
+     */
     accessibility: number;
+    /**
+     * Best practices score.
+     */
     bestPractices: number;
+    /**
+     * SEO score.
+     */
     seo: number;
   };
+  /**
+   * Metrics for the page (e.g. LCP, FCP, TBT, CLS).
+   */
   metrics: {
+    /**
+     * Largest Contentful Paint (LCP) time in milliseconds.
+     */
     lcpMs: number;
+    /**
+     * First Contentful Paint (FCP) time in milliseconds.
+     */
     fcpMs: number;
+    /**
+     * Total Blocking Time (TBT) in milliseconds.
+     */
     tbtMs: number;
+    /**
+     * Cumulative Layout Shift (CLS) score.
+     */
     cls: number;
   };
+  /**
+   * List of issues detected on the page.
+   */
   issues: Issue[];
+  /**
+   * List of opportunities for improvement on the page.
+   */
   opportunities: Opportunity[];
 }
 
+/**
+ * Issue record produced for report generation.
+ */
 export interface Issue {
+  /**
+   * Unique identifier for the issue.
+   */
   id: string;
+  /**
+   * Title of the issue.
+   */
   title: string;
+  /**
+   * Description of the issue.
+   */
   description: string;
+  /**
+   * Severity of the issue (critical, high, medium, or low).
+   */
   severity: 'critical' | 'high' | 'medium' | 'low';
+  /**
+   * Category of the issue (e.g. JavaScript, CSS, images, caching, network).
+   */
   category: 'javascript' | 'css' | 'images' | 'caching' | 'network';
+  /**
+   * List of resources affected by the issue.
+   */
   affectedResources: Resource[];
+  /**
+   * Estimated savings from fixing the issue.
+   */
   estimatedSavings: {
+    /**
+     * Estimated time savings in milliseconds.
+     */
     timeMs: number;
+    /**
+     * Estimated byte savings.
+     */
     bytes: number;
   };
+  /**
+   * List of actionable recommendations for fixing the issue.
+   */
   fixRecommendations: ActionableRecommendation[];
 }
 
+/**
+ * Opportunity record produced for report generation.
+ */
 export interface Opportunity {
+  /**
+   * Unique identifier for the opportunity.
+   */
   id: string;
+  /**
+   * Title of the opportunity.
+   */
   title: string;
+  /**
+   * Description of the opportunity.
+   */
   description: string;
+  /**
+   * Estimated savings from addressing the opportunity.
+   */
   estimatedSavings: {
+    /**
+     * Estimated time savings in milliseconds.
+     */
     timeMs: number;
+    /**
+     * Estimated byte savings.
+     */
     bytes: number;
   };
 }
 
+/**
+ * Resource referenced by an issue or opportunity.
+ */
 export interface Resource {
+  /**
+   * URL of the resource.
+   */
   url: string;
+  /**
+   * Type of the resource (e.g. image, script, stylesheet).
+   */
   type: string;
+  /**
+   * Size of the resource in bytes.
+   */
   size: number;
 }
 
+/**
+ * Actionable recommendation describing how to remediate an issue.
+ */
 export interface ActionableRecommendation {
+  /**
+   * Action to take to fix the issue.
+   */
   action: string;
+  /**
+   * Implementation details for the recommendation.
+   */
   implementation: {
+    /**
+     * Difficulty level of the recommendation (easy, medium, or hard).
+     */
     difficulty: 'easy' | 'medium' | 'hard';
+    /**
+     * Estimated time required to implement the recommendation.
+     */
     estimatedTime: string;
+    /**
+     * Optional code example for the recommendation.
+     */
     codeExample?: string;
+    /**
+     * List of documentation resources for the recommendation.
+     */
     documentation: string[];
   };
+  /**
+   * Optional framework-specific information for the recommendation.
+   */
   framework?: 'nextjs' | 'react' | 'vue' | 'angular';
 }
 
+/**
+ * Issue that affects multiple pages.
+ */
 export interface GlobalIssue {
+  /**
+   * Type of the issue.
+   */
   type: string;
+  /**
+   * List of pages affected by the issue.
+   */
   affectedPages: string[];
+  /**
+   * Severity of the issue (critical, high, medium, or low).
+   */
   severity: 'critical' | 'high' | 'medium' | 'low';
+  /**
+   * Description of the issue.
+   */
   description: string;
 }
 
+/**
+ * Aggregate performance metrics computed across pages.
+ */
 export interface PerformanceMetrics {
+  /**
+   * Average performance score across pages.
+   */
   averagePerformanceScore: number;
+  /**
+   * Total number of pages audited.
+   */
   totalPages: number;
+  /**
+   * Number of critical issues detected.
+   */
   criticalIssuesCount: number;
+  /**
+   * Estimated total savings from fixing all issues.
+   */
   estimatedTotalSavings: number;
 }
 
+/**
+ * Report template contract used by the generator engine.
+ */
 export interface ReportTemplate {
+  /**
+   * Name of the report template.
+   */
   name: string;
+  /**
+   * Output format of the report.
+   */
   format: OutputFormat;
+  /**
+   * Generate the report content using the provided data.
+   */
   generate(data: ProcessedAuditData): Promise<string>;
 }
 
+/**
+ * Developer-focused report outputs.
+ */
 export interface DeveloperReports {
+  /**
+   * Quick fixes report content.
+   */
   quickFixes: string;
+  /**
+   * Triage report content.
+   */
   triage: string;
+  /**
+   * Overview report content.
+   */
   overview: string;
 }
 
+/**
+ * AI-focused report outputs.
+ */
 export interface AIReports {
+  /**
+   * Analysis report content.
+   */
   analysis: string;
+  /**
+   * Structured issues report content.
+   */
   structuredIssues: string;
 }
 
+/**
+ * Executive-focused report outputs.
+ */
 export interface ExecutiveReports {
+  /**
+   * Dashboard report content.
+   */
   dashboard: string;
+  /**
+   * Performance summary report content.
+   */
   performanceSummary: string;
 }
 
+/**
+ * Integration outputs suitable for CI/CD and webhooks.
+ */
 export interface IntegrationOutputs {
+  /**
+   * List of CI/CD report contents.
+   */
   cicdReports: string[];
+  /**
+   * List of webhook payload contents.
+   */
   webhookPayloads: string[];
 }
 

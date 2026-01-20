@@ -165,6 +165,9 @@ export interface ApexConfig {
   readonly budgets?: ApexBudgets;
 }
 
+/**
+ * Collected performance metric values for a single run.
+ */
 export interface MetricValues {
   readonly lcpMs?: number;
   readonly fcpMs?: number;
@@ -173,6 +176,9 @@ export interface MetricValues {
   readonly inpMs?: number;
 }
 
+/**
+ * Lighthouse category scores for a single run.
+ */
 export interface CategoryScores {
   readonly performance?: number;
   readonly accessibility?: number;
@@ -180,8 +186,14 @@ export interface CategoryScores {
   readonly seo?: number;
 }
 
+/**
+ * Supported Lighthouse category identifiers.
+ */
 export type ApexCategory = "performance" | "accessibility" | "best-practices" | "seo";
 
+/**
+ * Summary of an optimization opportunity and its estimated savings.
+ */
 export interface OpportunitySummary {
   readonly id: string;
   readonly title: string;
@@ -189,6 +201,9 @@ export interface OpportunitySummary {
   readonly estimatedSavingsBytes?: number;
 }
 
+/**
+ * Numeric distribution statistics.
+ */
 export interface NumericStats {
   readonly n: number;
   readonly min: number;
@@ -199,6 +214,9 @@ export interface NumericStats {
   readonly stddev: number;
 }
 
+/**
+ * Aggregated statistics across a page/device combo run.
+ */
 export interface ComboRunStats {
   readonly scores: {
     readonly performance?: NumericStats;
@@ -215,6 +233,9 @@ export interface ComboRunStats {
   };
 }
 
+/**
+ * Summary of a single audited page/device pair.
+ */
 export interface PageDeviceSummary {
   readonly url: string;
   readonly path: string;
@@ -229,6 +250,9 @@ export interface PageDeviceSummary {
   readonly runtimeErrorMessage?: string;
 }
 
+/**
+ * Metadata describing an audit run.
+ */
 export interface RunMeta {
   readonly configPath: string;
   readonly buildId?: string;
@@ -250,6 +274,9 @@ export interface RunMeta {
   readonly averageStepMs: number;
 }
 
+/**
+ * Aggregate summary output for an audit run.
+ */
 export interface RunSummary {
   readonly meta: RunMeta;
   readonly results: readonly PageDeviceSummary[];

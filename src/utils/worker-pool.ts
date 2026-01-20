@@ -5,6 +5,9 @@
 import { cpus, freemem } from "node:os";
 import { getMemoryStatus } from "./memory-monitor.js";
 
+/**
+ * Configuration for selecting parallel worker count.
+ */
 export interface WorkerPoolConfig {
   readonly requestedParallel?: number;
   readonly taskCount: number;
@@ -13,6 +16,9 @@ export interface WorkerPoolConfig {
   readonly maxWorkers?: number;
 }
 
+/**
+ * Recommendation result for parallel worker count.
+ */
 export interface ParallelRecommendation {
   readonly parallel: number;
   readonly reason: string;

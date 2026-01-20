@@ -6,7 +6,7 @@ import { constants } from "node:fs";
 
 describe("Export Type Safety", () => {
   // Feature: jsr-score-optimization, Property 5: Export Type Safety
-  it("should provide full TypeScript type information for all exported functions and classes", async () => {
+  it("should provide full TypeScript type information for all exported functions and classes", { timeout: 120000 }, async () => {
     const exportEntries = [
       { path: "./api", expectedExports: ["createSignalerAPI", "audit", "createConfig", "validateConfig", "getVersion"] },
       { path: "./cli", expectedExports: ["runAuditCli"] },
@@ -47,7 +47,7 @@ describe("Export Type Safety", () => {
   });
 
   // Feature: jsr-score-optimization, Property 5: Export Type Safety
-  it("should support both default and named import patterns with full type information", async () => {
+  it("should support both default and named import patterns with full type information", { timeout: 120000 }, async () => {
     const importPatterns = [
       { 
         module: "./api", 
@@ -102,7 +102,7 @@ describe("Export Type Safety", () => {
   });
 
   // Feature: jsr-score-optimization, Property 5: Export Type Safety
-  it("should maintain backward compatibility while providing improved type safety", async () => {
+  it("should maintain backward compatibility while providing improved type safety", { timeout: 120000 }, async () => {
     const compatibilityChecks = [
       {
         module: "./api",

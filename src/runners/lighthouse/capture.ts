@@ -329,11 +329,15 @@ async function writeJsonWithOptionalGzip(absolutePath: string, jsonText: string)
   if (Buffer.byteLength(jsonText, "utf8") < GZIP_MIN_BYTES) {
     return;
   }
+
   const gzPath: string = `${absolutePath}.gz`;
   const gz: Buffer = gzipSync(Buffer.from(jsonText, "utf8"));
   await writeFile(gzPath, gz);
 }
 
+/**
+ * Capture and persist Lighthouse artifacts (screenshots/diagnostics/LHR) for a single run.
+ */
 export async function captureLighthouseArtifacts(params: {
   readonly outputRoot: string;
   readonly captureLevel: CaptureLevel;

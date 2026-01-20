@@ -5,6 +5,9 @@
 import type { AuditRunner } from '../index.js';
 
 // Bundle analysis interfaces
+/**
+ * Configuration options for the bundle analysis runner.
+ */
 export interface BundleConfig {
   buildDir: string;
   patterns?: string[];

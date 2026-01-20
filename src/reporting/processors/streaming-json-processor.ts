@@ -8,18 +8,53 @@
 import { Transform, Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+/**
+ * Configuration parameters for streaming JSON processing.
+ */
 export interface StreamingConfig {
+  /**
+   * The size of each chunk in the data stream.
+   */
   chunkSize: number;
+  /**
+   * The maximum amount of memory (in MB) that can be used during processing.
+   */
   maxMemoryMB: number;
+  /**
+   * Whether to enable compression for the output data.
+   */
   enableCompression: boolean;
+  /**
+   * An optional callback function to report progress during processing.
+   * @param processed The number of items processed so far.
+   * @param total The total number of items to be processed.
+   */
   progressCallback?: (processed: number, total: number) => void;
 }
 
+/**
+ * Metrics captured during streaming processing.
+ */
 export interface StreamingMetrics {
+  /**
+   * The total number of items in the data stream.
+   */
   totalItems: number;
+  /**
+   * The number of items that have been processed so far.
+   */
   processedItems: number;
+  /**
+   * The current memory usage (in MB) during processing.
+   */
   memoryUsageMB: number;
+  /**
+   * The total processing time (in milliseconds) so far.
+   */
   processingTimeMs: number;
+  /**
+   * The compression ratio (if compression is enabled).
+   */
   compressionRatio?: number;
 }
 

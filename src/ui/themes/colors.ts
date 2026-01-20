@@ -2,10 +2,19 @@
  * Color definitions and ANSI escape codes
  */
 
+/**
+ * Color token identifiers supported by the CLI theme layer.
+ */
 export type ColorToken = "reset" | "bold" | "dim" | "cyan" | "magenta" | "yellow" | "green" | "red";
 
+/**
+ * Mapping from a color token to an ANSI escape sequence.
+ */
 export type ColorMap = Readonly<Record<ColorToken, string>>;
 
+/**
+ * Default ANSI color palette.
+ */
 export const ANSI_COLORS: ColorMap = {
   reset: "\u001b[0m",
   bold: "\u001b[1m",
@@ -17,7 +26,13 @@ export const ANSI_COLORS: ColorMap = {
   red: "\u001b[31m",
 } as const;
 
+/**
+ * ANSI escape code for blue.
+ */
 export const ANSI_BLUE = "\u001B[34m";
+/**
+ * ANSI escape code for resetting formatting.
+ */
 export const ANSI_RESET = "\u001B[0m";
 
 /**

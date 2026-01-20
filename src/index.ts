@@ -24,8 +24,19 @@ export * from './infrastructure/index.js';
 export * from './ui/index.js';
 
 // Main application interface
+/**
+ * Public application interface for invoking Signaler programmatically.
+ */
 export interface SignalerApp {
+  /**
+   * The version of the Signaler application.
+   */
   version: string;
+  /**
+   * Runs the Signaler application with the given arguments.
+   * @param args The arguments to pass to the application.
+   * @returns A promise that resolves when the application has finished running.
+   */
   run(args: string[]): Promise<void>;
 }
 

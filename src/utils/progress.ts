@@ -2,6 +2,9 @@
  * Progress indicator utilities for better UX
  */
 
+/**
+ * Configuration options for {@link ProgressBar}.
+ */
 export interface ProgressBarOptions {
   readonly total: number;
   readonly width?: number;
@@ -11,6 +14,9 @@ export interface ProgressBarOptions {
   readonly showETA?: boolean;
 }
 
+/**
+ * Renderable progress bar for CLI output.
+ */
 export class ProgressBar {
   private current = 0;
   private readonly total: number;

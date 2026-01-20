@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, PageAuditResult, Issue } from './report-generator-engine.js';
 
+/**
+ * Aggregate data used to render an executive dashboard.
+ */
 export interface DashboardData {
   performanceOverview: PerformanceOverview;
   scoreDistribution: ScoreDistribution;
@@ -15,6 +18,9 @@ export interface DashboardData {
   auditSummary: AuditSummary;
 }
 
+/**
+ * High-level performance metrics for an audit run.
+ */
 export interface PerformanceOverview {
   totalPages: number;
   averagePerformanceScore: number;
@@ -24,6 +30,9 @@ export interface PerformanceOverview {
   auditDuration: string;
 }
 
+/**
+ * Distribution of performance scores across pages.
+ */
 export interface ScoreDistribution {
   excellent: number; // 90-100
   good: number;      // 75-89
@@ -31,6 +40,9 @@ export interface ScoreDistribution {
   poor: number;      // 0-49
 }
 
+/**
+ * Summary entry for a worst-performing page.
+ */
 export interface WorstPerformingPage {
   label: string;
   path: string;
@@ -40,6 +52,9 @@ export interface WorstPerformingPage {
   estimatedSavingsMs: number;
 }
 
+/**
+ * Estimated gains from addressing top issues.
+ */
 export interface PotentialGains {
   totalTimeSavingsMs: number;
   totalBytesSavings: number;
@@ -47,6 +62,9 @@ export interface PotentialGains {
   topImpactCategories: ImpactCategory[];
 }
 
+/**
+ * Aggregate impact for a single category.
+ */
 export interface ImpactCategory {
   category: string;
   affectedPages: number;
@@ -54,6 +72,9 @@ export interface ImpactCategory {
   priority: 'critical' | 'high' | 'medium' | 'low';
 }
 
+/**
+ * Metadata summary for the audit run.
+ */
 export interface AuditSummary {
   auditedAt: string;
   configPath: string;

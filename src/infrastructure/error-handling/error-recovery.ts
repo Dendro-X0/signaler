@@ -22,6 +22,9 @@ import {
 import { retryAsync, isTransientError } from '../../utils/retry.js';
 import { getMemoryStatus } from '../../utils/memory-monitor.js';
 
+/**
+ * Execution context used when attempting error recovery.
+ */
 export interface RecoveryContext {
   readonly operation: string;
   readonly component: string;
@@ -31,6 +34,9 @@ export interface RecoveryContext {
   readonly metadata?: Record<string, unknown>;
 }
 
+/**
+ * Result of an attempted recovery action.
+ */
 export interface RecoveryResult {
   readonly success: boolean;
   readonly action: RecoveryAction;
@@ -40,11 +46,29 @@ export interface RecoveryResult {
   readonly shouldRetry: boolean;
 }
 
+/**
+ * Logger interface used by the recovery system.
+ */
 export interface ErrorLogger {
+  /**
+   * Logs an error with its recovery context.
+   * 
+   * @param error The error to log.
+   * @param context The recovery context.
+   */
   logError(error: SignalerError, context: RecoveryContext): Promise<void>;
+  /**
+   * Logs the result of an attempted recovery action.
+   * 
+   * @param result The recovery result.
+   * @param context The recovery context.
+   */
   logRecovery(result: RecoveryResult, context: RecoveryContext): Promise<void>;
 }
 
+/**
+ * Coordinates recovery actions for classified errors.
+ */
 export class ErrorRecoveryManager {
   private readonly logger: ErrorLogger;
   private readonly tempDir: string;

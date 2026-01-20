@@ -140,6 +140,9 @@ async function buildSuggestions(projectRoot: string): Promise<Suggestions> {
   };
 }
 
+/**
+ * Builds user-facing guidance lines for starting the dev server before running audits.
+ */
 export async function buildDevServerGuidanceLines(params: {
   readonly projectRoot: string;
   readonly baseUrl: string;

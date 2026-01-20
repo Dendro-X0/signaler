@@ -35,6 +35,9 @@ import {
 import { retryAsync, isTransientError } from '../../utils/retry.js';
 import { getMemoryStatus, checkMemoryAvailability } from '../../utils/memory-monitor.js';
 
+/**
+ * Configuration options for {@link ErrorHandler}.
+ */
 export interface ErrorHandlerConfig {
   readonly enableConsoleLogging: boolean;
   readonly enableFileLogging: boolean;
@@ -53,11 +56,30 @@ const DEFAULT_CONFIG: ErrorHandlerConfig = {
   timeoutMs: 10000
 };
 
+/**
+ * Main error handling orchestrator that classifies errors and applies recovery strategies.
+ */
 export class ErrorHandler {
+  /**
+   * Configuration for the error handler.
+   */
   private readonly config: ErrorHandlerConfig;
+
+  /**
+   * Manager for error recovery strategies.
+   */
   private readonly recoveryManager: ErrorRecoveryManager;
+
+  /**
+   * Logger for error logging.
+   */
   private readonly logger: ErrorLogger;
 
+  /**
+   * Creates a new instance of the error handler with the given configuration.
+   * 
+   * @param config - Configuration options for the error handler.
+   */
   constructor(config: Partial<ErrorHandlerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     

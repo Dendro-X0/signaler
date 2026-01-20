@@ -8,6 +8,9 @@
 
 import type { ProcessedAuditData, PageAuditResult, Issue, ActionableRecommendation } from './report-generator-engine.js';
 
+/**
+ * Configuration options for the issue explorer visualization.
+ */
 export interface IssueVisualizationConfig {
   enableSyntaxHighlighting: boolean;
   enableCodeExamples: boolean;
@@ -17,18 +20,25 @@ export interface IssueVisualizationConfig {
   theme: 'light' | 'dark' | 'auto';
 }
 
+/**
+ * Grouped issue model used for rendering the explorer.
+ */
 export interface IssueGroup {
   id: string;
   title: string;
   description: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   category: string;
+
   affectedPages: PageIssueInfo[];
   totalSavings: number;
   recommendations: ActionableRecommendation[];
   codeExamples: CodeExample[];
 }
 
+/**
+ * Page-level issue info used within a grouped issue.
+ */
 export interface PageIssueInfo {
   pageLabel: string;
   pagePath: string;
@@ -37,17 +47,24 @@ export interface PageIssueInfo {
   resources: string[];
 }
 
+/**
+ * Code example entry used within issue recommendations.
+ */
 export interface CodeExample {
   language: string;
   title: string;
   description: string;
   beforeCode?: string;
+
   afterCode?: string;
   singleCode?: string;
   framework?: string;
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
+/**
+ * Multi-step action workflow to address a grouped issue.
+ */
 export interface ActionWorkflow {
   id: string;
   title: string;
@@ -57,6 +74,9 @@ export interface ActionWorkflow {
   prerequisites: string[];
 }
 
+/**
+ * Single step in an action workflow.
+ */
 export interface ActionStep {
   stepNumber: number;
   title: string;

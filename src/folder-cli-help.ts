@@ -1,3 +1,6 @@
+/**
+ * Provides CLI help text for folder mode.
+ */
 export function folderCliHelp(): string {
   return [
     "Folder mode:",

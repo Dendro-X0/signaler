@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, PageAuditResult, Issue, Opportunity } from './report-generator-engine.js';
 
+/**
+ * Configuration options for the interactive HTML report.
+ */
 export interface HTMLReportConfig {
   includeCharts: boolean;
   enableFiltering: boolean;
@@ -15,11 +18,17 @@ export interface HTMLReportConfig {
   theme: 'light' | 'dark' | 'auto';
 }
 
+/**
+ * Chart.js compatible dataset container.
+ */
 export interface ChartData {
   labels: string[];
   datasets: ChartDataset[];
 }
 
+/**
+ * Chart.js compatible dataset entry.
+ */
 export interface ChartDataset {
   label: string;
   data: number[];
@@ -27,12 +36,18 @@ export interface ChartDataset {
   borderColor: string[];
 }
 
+/**
+ * Filtering options for issues/pages in the report.
+ */
 export interface FilterOptions {
   severityLevels: string[];
   categories: string[];
   scoreRanges: ScoreRange[];
 }
 
+/**
+ * Named score range option for filtering.
+ */
 export interface ScoreRange {
   min: number;
   max: number;

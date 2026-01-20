@@ -5,15 +5,25 @@ const SPINNER_INTERVAL_MS: number = 80;
 const ANSI_BLUE: string = "\u001B[34m";
 const ANSI_RESET: string = "\u001B[0m";
 
+/**
+ * Terminal spinner progress indicator.
+ */
 export class SpinnerProgress implements ProgressIndicator {
   private interval?: NodeJS.Timeout;
   private frameIndex: number = 0;
   private message: string = "";
 
+  /**
+   * Check whether the spinner is currently active.
+   */
   isActive(): boolean {
     return this.interval !== undefined;
   }
 
+  /**
+   * Start the spinner with an initial message.
+   * @param message Initial message to display.
+   */
   start(message: string = ""): void {
     if (!process.stdout.isTTY) {
       return;
@@ -28,6 +38,10 @@ export class SpinnerProgress implements ProgressIndicator {
     }, SPINNER_INTERVAL_MS);
   }
 
+  /**
+   * Update the spinner message.
+   * @param message New message to display.
+   */
   update(message: string): void {
     if (!process.stdout.isTTY || this.interval === undefined) {
       return;
@@ -35,6 +49,9 @@ export class SpinnerProgress implements ProgressIndicator {
     this.message = message;
   }
 
+  /**
+   * Stop the spinner.
+   */
   stop(): void {
     if (this.interval === undefined) {
       return;
@@ -51,10 +68,17 @@ export class SpinnerProgress implements ProgressIndicator {
 // Legacy functions for backward compatibility
 let globalSpinner: SpinnerProgress | undefined;
 
+/**
+ * Check whether the global spinner is currently active.
+ */
 export function isSpinnerActive(): boolean {
   return globalSpinner?.isActive() ?? false;
 }
 
+/**
+ * Start a global spinner with an initial message.
+ * @param message Initial message to display.
+ */
 export function startSpinner(message: string): void {
   if (!globalSpinner) {
     globalSpinner = new SpinnerProgress();
@@ -62,10 +86,17 @@ export function startSpinner(message: string): void {
   globalSpinner.start(message);
 }
 
+/**
+ * Update the global spinner message.
+ * @param message New message to display.
+ */
 export function updateSpinnerMessage(message: string): void {
   globalSpinner?.update(message);
 }
 
+/**
+ * Stop the global spinner.
+ */
 export function stopSpinner(): void {
   globalSpinner?.stop();
 }

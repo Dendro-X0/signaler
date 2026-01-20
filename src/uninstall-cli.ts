@@ -152,6 +152,9 @@ async function executePlan(plan: readonly UninstallAction[], dryRun: boolean): P
   return executed;
 }
 
+/**
+ * Run the uninstall CLI to remove Signaler files/config from a project.
+ */
 export async function runUninstallCli(argv: readonly string[]): Promise<void> {
   const startedAtMs: number = Date.now();
   const args: UninstallArgs = parseArgs(argv);

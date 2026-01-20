@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, PageAuditResult } from './report-generator-engine.js';
 
+/**
+ * Structured summary report for performance tracking.
+ */
 export interface PerformanceSummaryReport {
   metadata: SummaryMetadata;
   overallMetrics: OverallMetrics;
@@ -17,6 +20,9 @@ export interface PerformanceSummaryReport {
   comparisonBaseline: ComparisonBaseline;
 }
 
+/**
+ * Metadata describing a generated performance summary report.
+ */
 export interface SummaryMetadata {
   reportVersion: string;
   generatedAt: string;
@@ -27,6 +33,9 @@ export interface SummaryMetadata {
   signalerVersion: string;
 }
 
+/**
+ * Aggregated metrics across the full audit run.
+ */
 export interface OverallMetrics {
   averageScores: {
     performance: number;
@@ -54,6 +63,9 @@ export interface OverallMetrics {
   };
 }
 
+/**
+ * Metrics for a single page entry within a summary report.
+ */
 export interface PageMetrics {
   label: string;
   path: string;
@@ -83,6 +95,9 @@ export interface PageMetrics {
   hash: string; // For detecting changes
 }
 
+/**
+ * Category breakdown for issues and impact.
+ */
 export interface CategoryBreakdown {
   javascript: CategoryMetrics;
   css: CategoryMetrics;
@@ -91,6 +106,9 @@ export interface CategoryBreakdown {
   network: CategoryMetrics;
 }
 
+/**
+ * Metrics for a single issue category.
+ */
 export interface CategoryMetrics {
   issueCount: number;
   affectedPages: number;
@@ -99,6 +117,9 @@ export interface CategoryMetrics {
   averageImpact: number;
 }
 
+/**
+ * Summary of issue counts and top issue types.
+ */
 export interface IssuesSummary {
   totalIssues: number;
   criticalIssues: number;
@@ -109,6 +130,9 @@ export interface IssuesSummary {
   globalIssues: GlobalIssueSummary[];
 }
 
+/**
+ * Aggregated entry for a top issue type.
+ */
 export interface TopIssueType {
   id: string;
   title: string;
@@ -118,6 +142,9 @@ export interface TopIssueType {
   severity: string;
 }
 
+/**
+ * Global issue summary entry.
+ */
 export interface GlobalIssueSummary {
   type: string;
   affectedPages: number;
@@ -125,6 +152,9 @@ export interface GlobalIssueSummary {
   description: string;
 }
 
+/**
+ * Trend data point for historical tracking.
+ */
 export interface TrendData {
   timestamp: number;
   performanceScore: number;
@@ -139,6 +169,9 @@ export interface TrendData {
   averageCLS: number;
 }
 
+/**
+ * Comparison baseline describing previous run and deltas.
+ */
 export interface ComparisonBaseline {
   canCompare: boolean;
   previousRun?: {

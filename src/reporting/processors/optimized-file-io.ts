@@ -11,6 +11,9 @@ import { pipeline } from 'node:stream/promises';
 import { join, dirname } from 'node:path';
 import { Transform, Writable } from 'node:stream';
 
+/**
+ * Configuration for optimized batched file writing.
+ */
 export interface FileIOConfig {
   batchSize: number;
   compressionLevel: number;
@@ -20,6 +23,9 @@ export interface FileIOConfig {
   tempDirectory?: string;
 }
 
+/**
+ * Single write operation description.
+ */
 export interface WriteOperation {
   path: string;
   content: string | Buffer;
@@ -27,6 +33,9 @@ export interface WriteOperation {
   compress?: boolean;
 }
 
+/**
+ * Result summary for a batched write.
+ */
 export interface BatchWriteResult {
   successCount: number;
   errorCount: number;
@@ -36,6 +45,9 @@ export interface BatchWriteResult {
   errors: Array<{ path: string; error: string }>;
 }
 
+/**
+ * Metrics captured by the optimized file I/O manager.
+ */
 export interface FileIOMetrics {
   totalWrites: number;
   totalReads: number;

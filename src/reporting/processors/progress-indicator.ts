@@ -7,6 +7,9 @@
 
 import { EventEmitter } from 'node:events';
 
+/**
+ * Configuration options for progress indicator rendering.
+ */
 export interface ProgressConfig {
   showPercentage: boolean;
   showETA: boolean;
@@ -16,6 +19,9 @@ export interface ProgressConfig {
   format: 'bar' | 'spinner' | 'dots' | 'minimal';
 }
 
+/**
+ * Current progress state snapshot.
+ */
 export interface ProgressState {
   current: number;
   total: number;
@@ -29,6 +35,9 @@ export interface ProgressState {
   message?: string;
 }
 
+/**
+ * Incremental progress update event payload.
+ */
 export interface ProgressUpdate {
   current: number;
   total?: number;

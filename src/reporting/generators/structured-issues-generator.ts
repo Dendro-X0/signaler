@@ -7,6 +7,9 @@
 
 import type { ProcessedAuditData, Issue, PageAuditResult, ReportTemplate, ActionableRecommendation } from './report-generator-engine.js';
 
+/**
+ * Structured JSON report describing issues and remediation instructions.
+ */
 export interface StructuredIssuesReport {
   metadata: {
     generatedAt: string;
@@ -22,6 +25,9 @@ export interface StructuredIssuesReport {
   machineReadableInstructions: MachineInstruction[];
 }
 
+/**
+ * Detailed issue record with page context, resources, and fix steps.
+ */
 export interface DetailedIssue {
   id: string;
   title: string;
@@ -39,6 +45,9 @@ export interface DetailedIssue {
   priority: number;
 }
 
+/**
+ * Page-level occurrence of an issue.
+ */
 export interface AffectedPage {
   path: string;
   label: string;
@@ -51,6 +60,9 @@ export interface AffectedPage {
   specificResources: string[];
 }
 
+/**
+ * Detailed resource information used in structured issue reports.
+ */
 export interface DetailedResource {
   url: string;
   type: string;
@@ -62,6 +74,9 @@ export interface DetailedResource {
   compressionOpportunity?: boolean;
 }
 
+/**
+ * Step-by-step fix instruction for a single issue.
+ */
 export interface FixInstruction {
   step: number;
   action: string;
@@ -80,6 +95,9 @@ export interface FixInstruction {
   };
 }
 
+/**
+ * Code example snippet used in remediation guidance.
+ */
 export interface CodeExample {
   language: string;
   framework?: string;
@@ -90,6 +108,9 @@ export interface CodeExample {
   context: 'component' | 'configuration' | 'build' | 'server';
 }
 
+/**
+ * Configuration change instruction associated with a fix.
+ */
 export interface ConfigurationChange {
   file: string;
   section: string;
@@ -98,13 +119,31 @@ export interface ConfigurationChange {
   description: string;
 }
 
+/**
+ * Represents a testing strategy for an issue.
+ */
 export interface TestingStrategy {
+  /**
+   * Performance tests to validate the fix.
+   */
   performanceTests: string[];
+  /**
+   * Functional tests to validate the fix.
+   */
   functionalTests: string[];
+  /**
+   * Regression tests to validate the fix.
+   */
   regressionTests: string[];
+  /**
+   * Monitoring metrics to track after the fix.
+   */
   monitoringMetrics: string[];
 }
 
+/**
+ * Analysis of issues and opportunities associated with a file path.
+ */
 export interface FilePathAnalysis {
   path: string;
   issues: string[];
@@ -116,6 +155,9 @@ export interface FilePathAnalysis {
   recommendedActions: string[];
 }
 
+/**
+ * Cross-cutting optimization recommendation.
+ */
 export interface OptimizationRecommendation {
   category: string;
   recommendation: string;
@@ -132,6 +174,9 @@ export interface OptimizationRecommendation {
   };
 }
 
+/**
+ * Detailed implementation step for an optimization recommendation.
+ */
 export interface DetailedStep {
   order: number;
   description: string;
@@ -140,6 +185,9 @@ export interface DetailedStep {
   verification: string;
 }
 
+/**
+ * Machine-readable remediation instructions for automation.
+ */
 export interface MachineInstruction {
   issueId: string;
   automationLevel: 'full' | 'partial' | 'manual';
@@ -148,6 +196,9 @@ export interface MachineInstruction {
   rollbackStrategy: string;
 }
 
+/**
+ * Single executable command in a machine-readable instruction set.
+ */
 export interface Command {
   type: 'npm' | 'yarn' | 'file-edit' | 'configuration' | 'build';
   command: string;
