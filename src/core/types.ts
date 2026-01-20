@@ -22,6 +22,9 @@ export type ApexPageScope = "public" | "requires-auth";
  */
 export type ApexThrottlingMethod = "simulate" | "devtools";
 
+/**
+ * Page configuration entry for the audit plan.
+ */
 export interface ApexPageConfig {
   readonly path: string;
   readonly label: string;
