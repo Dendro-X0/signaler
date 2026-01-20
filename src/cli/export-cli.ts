@@ -10,15 +10,45 @@ import { resolve, dirname } from 'path';
 import { CSVExportGenerator, type CSVExportConfig, type TrendData } from '../reporting/generators/csv-export-generator.js';
 import type { ProcessedAuditData } from '../reporting/generators/report-generator-engine.js';
 
+/**
+ * Options for the `export` CLI command.
+ */
 export interface ExportCliOptions {
+  /**
+   * Path to the input file containing audit data.
+   */
   input?: string;
+  /**
+   * Path to the output file for the exported data.
+   */
   output?: string;
+  /**
+   * Format of the exported data.
+   */
   format?: 'csv' | 'json' | 'xlsx';
+  /**
+   * Type of data to export.
+   */
   type?: 'performance' | 'issues' | 'trends';
+  /**
+   * Delimiter to use for CSV exports.
+   */
   delimiter?: ',' | ';' | '\t';
+  /**
+   * Whether to include headers in the exported data.
+   */
   includeHeaders?: boolean;
+  /**
+   * Whether to include metrics in the exported data.
+   */
   includeMetrics?: boolean;
+  /**
+   * Whether to include issues in the exported data.
+   */
   includeIssues?: boolean;
+  /**
+   * Whether to include trends in the exported data.
+   */
   includeTrends?: boolean;
   historical?: string;
 }

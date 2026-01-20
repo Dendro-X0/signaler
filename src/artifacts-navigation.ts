@@ -85,6 +85,9 @@ function buildMarkdown(params: { readonly generatedAt: string; readonly entries:
   return `${lines.join("\n")}\n`;
 }
 
+/**
+ * Generate and write `NAVIGATION.md` into the artifacts output directory.
+ */
 export async function writeArtifactsNavigation(params: WriteArtifactsNavigationParams): Promise<{ readonly absolutePath: string }> {
   const entries: readonly DirEntry[] = await listDirEntries(params.outputDir);
   const generatedAt: string = new Date().toISOString();

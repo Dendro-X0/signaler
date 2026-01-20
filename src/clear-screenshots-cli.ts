@@ -89,6 +89,9 @@ async function executePlan(plan: readonly ClearAction[], dryRun: boolean): Promi
   return executed;
 }
 
+/**
+ * Run the `clear-screenshots` CLI command.
+ */
 export async function runClearScreenshotsCli(argv: readonly string[]): Promise<void> {
   const startedAtMs: number = Date.now();
   const args: ClearScreenshotsArgs = parseArgs(argv);

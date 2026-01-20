@@ -134,6 +134,9 @@ async function executePlan(plan: readonly CleanAction[], dryRun: boolean): Promi
   return executed;
 }
 
+/**
+ * Run the `clean` CLI command.
+ */
 export async function runCleanCli(argv: readonly string[]): Promise<void> {
   const startedAtMs: number = Date.now();
   const args: CleanArgs = parseArgs(argv);

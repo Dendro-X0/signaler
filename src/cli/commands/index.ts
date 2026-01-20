@@ -9,6 +9,9 @@ export interface CLICommand {
   execute(args: string[]): Promise<void>;
 }
 
+/**
+ * Registry for resolving and executing CLI commands.
+ */
 export interface CommandRegistry {
   register(command: CLICommand): void;
   execute(commandName: string, args: string[]): Promise<void>;

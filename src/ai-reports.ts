@@ -55,7 +55,29 @@ interface IssuesIndex {
   }[];
 }
 
-// AI-optimized report types
+/**
+ * AI-optimized comprehensive analysis report structure.
+ * Provides structured data optimized for AI consumption with 70-80% fewer tokens
+ * than parsing multiple separate files.
+ * 
+ * @example
+ * ```typescript
+ * const report: AiAnalysisReport = {
+ *   meta: {
+ *     disclaimer: "Batch testing disclaimer...",
+ *     auditSummary: {
+ *       totalPages: 10,
+ *       elapsedTime: "2m 30s",
+ *       targetScore: 90
+ *     }
+ *   },
+ *   // ... other properties
+ * };
+ * ```
+ */
+/**
+ * Comprehensive AI-optimized report structure.
+ */
 export interface AiAnalysisReport {
   readonly meta: {
     readonly disclaimer: string;
@@ -72,6 +94,9 @@ export interface AiAnalysisReport {
   readonly patterns: Record<string, Pattern>;
 }
 
+/**
+ * Critical issue summary used by `AI-ANALYSIS.json`.
+ */
 export interface CriticalIssue {
   readonly id: string;
   readonly title: string;
@@ -83,6 +108,9 @@ export interface CriticalIssue {
   readonly fixGuidance: FixGuidance;
 }
 
+/**
+ * Low-effort improvement candidate used by `AI-ANALYSIS.json`.
+ */
 export interface QuickWin {
   readonly issue: string;
   readonly impact: string;
@@ -90,6 +118,9 @@ export interface QuickWin {
   readonly files: readonly string[];
 }
 
+/**
+ * Worst-performing page/device combinations used by `AI-ANALYSIS.json`.
+ */
 export interface WorstPerformer {
   readonly path: string;
   readonly device: string;
@@ -97,17 +128,26 @@ export interface WorstPerformer {
   readonly primaryIssues: readonly string[];
 }
 
+/**
+ * Pattern detected across a run, with a human-readable recommendation.
+ */
 export interface Pattern {
   readonly description: string;
   readonly recommendation: string;
 }
 
+/**
+ * Representative offender entry for an issue.
+ */
 export interface Offender {
   readonly path: string;
   readonly impact: string;
   readonly device: string;
 }
 
+/**
+ * High-level guidance for addressing an issue.
+ */
 export interface FixGuidance {
   readonly difficulty: "easy" | "medium" | "hard";
   readonly estimatedTime: string;
@@ -115,6 +155,9 @@ export interface FixGuidance {
   readonly codeExample?: string;
 }
 
+/**
+ * Ultra-condensed report for quick assessment.
+ */
 export interface AiSummaryReport {
   readonly status: "needs_optimization" | "good" | "excellent";
   readonly disclaimer: string;
@@ -124,6 +167,9 @@ export interface AiSummaryReport {
   readonly estimatedFixTime: string;
 }
 
+/**
+ * Condensed issue entry used by `AI-SUMMARY.json`.
+ */
 export interface SummaryIssue {
   readonly type: string;
   readonly impact: string;
@@ -131,6 +177,9 @@ export interface SummaryIssue {
   readonly priority: number;
 }
 
+/**
+ * Condensed worst-page entry used by `AI-SUMMARY.json`.
+ */
 export interface SummaryPage {
   readonly path: string;
   readonly score: number;

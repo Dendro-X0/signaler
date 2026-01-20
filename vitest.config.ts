@@ -6,6 +6,24 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 30000, // 30 seconds timeout for tests
     hookTimeout: 10000, // 10 seconds for setup/teardown
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'test/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        'scripts/',
+      ],
+      thresholds: {
+        lines: 80,
+        functions: 85,
+        branches: 75,
+        statements: 80,
+      },
+    },
   },
   resolve: {
     alias: {

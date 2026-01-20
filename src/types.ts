@@ -1,5 +1,13 @@
+/**
+ * Device type for audit execution.
+ * Determines the viewport size and user agent used during audits.
+ */
 export type ApexDevice = "mobile" | "desktop";
 
+/**
+ * Page access scope for authentication requirements.
+ * Helps categorize pages based on their access requirements.
+ */
 export type ApexPageScope = "public" | "requires-auth";
 
 /**
@@ -9,6 +17,20 @@ export type ApexPageScope = "public" | "requires-auth";
  */
 export type ApexThrottlingMethod = "simulate" | "devtools";
 
+/**
+ * Configuration for a single page to be audited.
+ * Defines the path, label, target devices, and access scope.
+ * 
+ * @example
+ * ```typescript
+ * const pageConfig: ApexPageConfig = {
+ *   path: "/products",
+ *   label: "Products Page",
+ *   devices: ["mobile", "desktop"],
+ *   scope: "public"
+ * };
+ * ```
+ */
 export interface ApexPageConfig {
   readonly path: string;
   readonly label: string;
@@ -16,6 +38,20 @@ export interface ApexPageConfig {
   readonly scope?: ApexPageScope;
 }
 
+/**
+ * Performance budget thresholds for Lighthouse categories.
+ * Defines minimum acceptable scores (0-100) for each category.
+ * 
+ * @example
+ * ```typescript
+ * const budgets: CategoryBudgetThresholds = {
+ *   performance: 90,
+ *   accessibility: 95,
+ *   bestPractices: 85,
+ *   seo: 90
+ * };
+ * ```
+ */
 export interface CategoryBudgetThresholds {
   readonly performance?: number;
   readonly accessibility?: number;
@@ -23,6 +59,21 @@ export interface CategoryBudgetThresholds {
   readonly seo?: number;
 }
 
+/**
+ * Performance budget thresholds for Core Web Vitals metrics.
+ * Defines maximum acceptable values for key performance metrics.
+ * 
+ * @example
+ * ```typescript
+ * const metricBudgets: MetricBudgetThresholds = {
+ *   lcpMs: 2500,    // Largest Contentful Paint
+ *   fcpMs: 1800,    // First Contentful Paint
+ *   tbtMs: 300,     // Total Blocking Time
+ *   cls: 0.1,       // Cumulative Layout Shift
+ *   inpMs: 200      // Interaction to Next Paint
+ * };
+ * ```
+ */
 export interface MetricBudgetThresholds {
   readonly lcpMs?: number;
   readonly fcpMs?: number;
@@ -31,11 +82,52 @@ export interface MetricBudgetThresholds {
   readonly inpMs?: number;
 }
 
+/**
+ * Complete performance budget configuration.
+ * Combines category scores and metric thresholds for comprehensive budget enforcement.
+ * 
+ * @example
+ * ```typescript
+ * const budgets: ApexBudgets = {
+ *   categories: {
+ *     performance: 90,
+ *     accessibility: 95
+ *   },
+ *   metrics: {
+ *     lcpMs: 2500,
+ *     cls: 0.1
+ *   }
+ * };
+ * ```
+ */
 export interface ApexBudgets {
   readonly categories?: CategoryBudgetThresholds;
   readonly metrics?: MetricBudgetThresholds;
 }
 
+/**
+ * Main configuration interface for Signaler audits.
+ * Defines all settings for audit execution including pages, performance budgets,
+ * and execution parameters.
+ * 
+ * @example
+ * ```typescript
+ * const config: ApexConfig = {
+ *   baseUrl: "http://localhost:3000",
+ *   throttlingMethod: "simulate",
+ *   parallel: 2,
+ *   warmUp: true,
+ *   pages: [
+ *     { path: "/", label: "Home", devices: ["mobile", "desktop"] },
+ *     { path: "/about", label: "About", devices: ["mobile"] }
+ *   ],
+ *   budgets: {
+ *     categories: { performance: 90 },
+ *     metrics: { lcpMs: 2500 }
+ *   }
+ * };
+ * ```
+ */
 export interface ApexConfig {
   readonly baseUrl: string;
   readonly query?: string;

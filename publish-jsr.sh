@@ -1,7 +1,7 @@
 #!/bin/bash
-# Signaler v2.0.0 JSR Publishing Script
+# Signaler v2.1.0 JSR Publishing Script
 
-echo "🚀 Publishing Signaler CLI v2.0.0 to JSR..."
+echo "🚀 Publishing Signaler CLI v2.1.0 to JSR..."
 
 # Check if we're in the right directory
 if [ ! -f "jsr.json" ]; then
@@ -36,11 +36,11 @@ echo "📦 Publishing to JSR..."
 npx jsr publish --allow-slow-types
 
 if [ $? -eq 0 ]; then
-    echo "🎉 Successfully published @signaler/cli@2.0.0 to JSR!"
+    echo "🎉 Successfully published @signaler/cli@2.1.0 to JSR!"
     echo ""
     echo "📋 Next steps:"
     echo "1. Verify at: https://jsr.io/@signaler/cli"
-    echo "2. Test installation: npx jsr add @signaler/cli@2.0.0"
+    echo "2. Test installation: npx jsr add @signaler/cli@2.1.0"
     echo "3. Create GitHub Release with binary assets"
 else
     echo "❌ JSR publishing failed. Check the error above."

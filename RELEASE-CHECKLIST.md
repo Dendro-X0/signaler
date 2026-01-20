@@ -1,16 +1,16 @@
-# Signaler v2.0.0 Release Checklist
+# Signaler v2.1.0 Release Checklist
 
-## ✅ Pre-Release Validation
+## Pre-Release Validation
 
 ### Version Updates
-- [x] Updated `package.json` version to `2.0.0`
-- [x] Updated `jsr.json` version to `2.0.0`
-- [x] Updated `CHANGELOG.md` with v2.0.0 release notes
+- [x] Updated `package.json` version to `2.1.0`
+- [x] Updated `jsr.json` version to `2.1.0`
+- [x] Updated `CHANGELOG.md` with v2.1.0 release notes
 
 ### Documentation
 - [x] Created comprehensive `docs/FEATURES.md`
 - [x] Created detailed `docs/MIGRATION.md`
-- [x] Created complete `docs/RELEASE-NOTES-v2.0.md`
+- [x] Created complete `docs/RELEASE-NOTES-v2.1.md`
 - [x] Created `docs/IMPLEMENTATION-SUMMARY.md`
 - [x] Updated `README.md` with new documentation links
 
@@ -24,30 +24,30 @@
 - [x] Added documentation verification step
 - [x] Added GitHub release creation
 
-## 🚀 Release Process
+## Release Process
 
 ### Option 1: Manual GitHub Release (Recommended)
 
 1. **Commit and Push Changes**:
    ```bash
    git add .
-   git commit -m "Release v2.0.0 - Intelligence & Scale
+   git commit -m "Release v2.1.0 - Multi-Audit Foundation
 
-   🚀 Major release with AI-powered insights and enterprise optimizations
+   🚀 Major architecture release with pluggable audits
    
-   - AI-optimized reports with pattern recognition
-   - 10x performance improvements with streaming architecture
-   - Executive dashboards and developer-optimized reports
-   - Enhanced CI/CD integration with quality gates
-   - Comprehensive documentation and migration guides"
+   - Plugin interface system and registry
+   - Multi-audit engine with shared execution context
+   - Intelligent batch scheduling and parallel execution
+   - Performance optimizations with caching and resource limits
+   - Backward-compatible workflows and reports"
    
    git push origin main
    ```
 
 2. **Create and Push Tag**:
    ```bash
-   git tag v2.0.0
-   git push origin v2.0.0
+   git tag v2.1.0
+   git push origin v2.1.0
    ```
 
 3. **Automatic Release**: The GitHub workflow will automatically:
@@ -62,16 +62,16 @@
 
 2. **Trigger Workflow**:
    - Go to GitHub Actions
-   - Select "Publish v2.0 to JSR" workflow
+   - Select "Publish v2.1 to JSR" workflow
    - Click "Run workflow"
-   - Enter version: `2.0.0`
+   - Enter version: `2.1.0`
    - Click "Run workflow"
 
-## 📋 Post-Release Tasks
+## Post-Release Tasks
 
 ### Verification
 - [ ] Verify JSR publication: https://jsr.io/@signaler/cli
-- [ ] Test installation: `npx jsr add @signaler/cli@2.0.0`
+- [ ] Test installation: `npx jsr add @signaler/cli@2.1.0`
 - [ ] Verify GitHub release created
 - [ ] Check release notes and assets
 
@@ -86,7 +86,7 @@
 ### Installation Test
 ```bash
 # Test JSR installation
-npx jsr add @signaler/cli@2.0.0
+npx jsr add @signaler/cli@2.1.0
 
 # Verify version
 signaler --version
@@ -108,19 +108,19 @@ signaler validate --config ./signaler.config.js
 
 - **Features**: [docs/FEATURES.md](docs/FEATURES.md)
 - **Migration**: [docs/MIGRATION.md](docs/MIGRATION.md)
-- **Release Notes**: [docs/RELEASE-NOTES-v2.0.md](docs/RELEASE-NOTES-v2.0.md)
+- **Release Notes**: [docs/RELEASE-NOTES-v2.1.md](docs/RELEASE-NOTES-v2.1.md)
 - **Implementation Summary**: [docs/IMPLEMENTATION-SUMMARY.md](docs/IMPLEMENTATION-SUMMARY.md)
 
 ## 🎯 Key Features to Highlight
 
-- **AI-Powered Intelligence**: Pattern recognition and predictive analytics
-- **10x Performance**: Faster processing with 70% memory reduction
-- **Enterprise Features**: Advanced CI/CD integration and monitoring
-- **Comprehensive Documentation**: Complete guides for all stakeholders
-- **Seamless Migration**: Automated tools and detailed instructions
+- **Plugin Architecture**: Pluggable audits with dependency-aware registry
+- **Multi-Audit Engine**: Coordinated execution with shared context
+- **Intelligent Scheduling**: Parallel batches with resource-aware limits
+- **Performance Optimizations**: Caching and pooled resource management
+- **Backward Compatibility**: Existing workflows unchanged
 
 ---
 
 **Ready for Release!** 🚀
 
-The v2.0.0 release is prepared and ready to deploy. All documentation is complete, version numbers are updated, and the CI/CD pipeline is configured for automatic publishing.
+The v2.1.0 release is prepared and ready to deploy. All documentation is complete, version numbers are updated, and the CI/CD pipeline is configured for automatic publishing.

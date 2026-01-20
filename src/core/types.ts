@@ -5,8 +5,14 @@
  * throughout the Signaler application.
  */
 
+/**
+ * Device profiles supported by Signaler.
+ */
 export type ApexDevice = "mobile" | "desktop";
 
+/**
+ * Scope classification for a page in the audit plan.
+ */
 export type ApexPageScope = "public" | "requires-auth";
 
 /**
@@ -95,6 +101,9 @@ export interface CategoryScores {
   readonly seo?: number;
 }
 
+/**
+ * Lighthouse category keys used in scoring.
+ */
 export type ApexCategory = "performance" | "accessibility" | "best-practices" | "seo";
 
 export interface OpportunitySummary {

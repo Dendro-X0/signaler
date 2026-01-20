@@ -454,6 +454,9 @@ function setupGracefulShutdown(): void {
   });
 }
 
+/**
+ * Main CLI entrypoint for the `@signaler/cli` binary.
+ */
 export async function runBin(argv: readonly string[]): Promise<void> {
   setupGracefulShutdown();
   const parsed: ParsedBinArgs = parseBinArgs(argv);

@@ -1,0 +1,56 @@
+# Source files
+src/
+test/
+tests/
+__tests__/
+
+# Configuration files
+tsconfig*.json
+vitest.config.ts
+*.config.js
+*.config.ts
+.eslintrc*
+.prettierrc*
+
+# Development files
+.env*
+.kiro/
+.github/
+.git/
+node_modules/
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Build artifacts
+*.tsbuildinfo
+*.map
+*.log
+*.tmp
+*.temp
+
+# Documentation (except essential)
+AI-*.md
+CLEANUP-*.md
+CONTRIBUTING.md
+INSTALLATION-GUIDE.md
+KNOWN-ISSUES.md
+RELEASE-*.md
+
+# Scripts and tools
+publish-jsr.*
+*.bat
+*.sh
+engine.manifest.json
+signaler-test.json
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+.npmrc
+
+# OS files
+.DS_Store
+Thumbs.db

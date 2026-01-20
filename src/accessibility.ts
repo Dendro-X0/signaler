@@ -152,6 +152,36 @@ async function runAxeForPage(params: {
   }
 }
 
+/**
+ * Runs a comprehensive accessibility audit using axe-core for all configured pages.
+ * Performs automated accessibility testing across multiple devices and generates
+ * detailed violation reports with remediation guidance.
+ * 
+ * @param params - Configuration parameters for the accessibility audit
+ * @param params.config - Apex configuration containing pages and settings
+ * @param params.configPath - Path to the configuration file
+ * @param params.parallelOverride - Optional override for parallel execution count
+ * @param params.timeoutMs - Optional timeout in milliseconds for each page audit
+ * @param params.artifactsDir - Directory to store audit artifacts and results
+ * 
+ * @returns Promise resolving to AxeSummary containing all accessibility results
+ * 
+ * @example
+ * ```typescript
+ * const summary = await runAccessibilityAudit({
+ *   config: apexConfig,
+ *   configPath: './apex.config.json',
+ *   parallelOverride: 2,
+ *   timeoutMs: 30000,
+ *   artifactsDir: './.signaler'
+ * });
+ * 
+ * console.log(`Found ${summary.results.length} accessibility violations`);
+ * summary.results.forEach(result => {
+ *   console.log(`${result.label}: ${result.violations.length} violations`);
+ * });
+ * ```
+ */
 export async function runAccessibilityAudit(params: {
   readonly config: ApexConfig;
   readonly configPath: string;

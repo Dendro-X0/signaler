@@ -12,31 +12,58 @@ export interface AuditRunner {
   validate(config: RunnerConfig): boolean;
 }
 
+/**
+ * Configuration passed to an `AuditRunner`.
+ */
 export interface RunnerConfig {
+  /**
+   * Name of the runner.
+   */
   name: string;
+  /**
+   * URL to run the audit on.
+   */
   url?: string;
+  /**
+   * Page configuration.
+   */
   page?: PageConfig;
+  /**
+   * Additional configuration properties.
+   */
   [key: string]: unknown;
 }
 
+/**
+ * Result returned by an `AuditRunner`.
+ */
 export interface RunnerResult {
   success: boolean;
   error?: string;
   [key: string]: unknown;
 }
 
+/**
+ * Registry for audit runners.
+ */
 export interface RunnerRegistry {
   register(runner: AuditRunner): void;
   get(name: string): AuditRunner | undefined;
   list(): AuditRunner[];
 }
 
+/**
+ * Public audit engine interface.
+ */
 export interface AuditEngine {
   runAudit(config: AuditConfig): Promise<AuditResult>;
   getAvailableRunners(): RunnerInfo[];
   validateConfig(config: unknown): AuditConfig;
 }
 
+/**
+ * Top-level configuration for an audit run.
+ */
 export interface AuditConfig {
   baseUrl: string;
   pages: PageConfig[];
@@ -46,6 +73,9 @@ export interface AuditConfig {
   timeout?: number;
 }
 
+/**
+ * Configuration for an audited page.
+ */
 export interface PageConfig {
   path: string;
   label: string;
@@ -53,17 +83,26 @@ export interface PageConfig {
   scope?: 'public' | 'requires-auth';
 }
 
+/**
+ * Output configuration for reports and artifacts.
+ */
 export interface OutputConfig {
   directory: string;
   formats: ('html' | 'json' | 'markdown')[];
   artifacts: boolean;
 }
 
+/**
+ * Result of an audit run.
+ */
 export interface AuditResult {
   meta: AuditMetadata;
   results: PageResult[];
 }
 
+/**
+ * Metadata for a completed audit run.
+ */
 export interface AuditMetadata {
   configPath: string;
   startedAt: string;
@@ -73,11 +112,17 @@ export interface AuditMetadata {
   totalRunners: number;
 }
 
+/**
+ * Result for a single page.
+ */
 export interface PageResult {
   page: PageConfig;
   runnerResults: Record<string, RunnerResult>;
 }
 
+/**
+ * Discoverable information about an audit runner.
+ */
 export interface RunnerInfo {
   name: string;
   version: string;

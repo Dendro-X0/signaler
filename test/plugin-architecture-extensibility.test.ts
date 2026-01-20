@@ -39,6 +39,7 @@ describe("Plugin Architecture Extensibility", () => {
         executionTime: fc.integer({ min: 100, max: 5000 })
       }),
       async ({ pluginName, pluginVersion, auditType, phase, dependencies, config, shouldSucceed, executionTime }) => {
+        registry = new DefaultPluginRegistry();
         // Create a mock plugin that implements the AuditPlugin interface
         const mockPlugin: AuditPlugin = {
           name: pluginName,

@@ -1,8 +1,65 @@
 {
   "name": "@signaler/cli",
   "version": "2.1.0",
+  "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
+  "keywords": [
+    "performance",
+    "monitoring",
+    "web-performance",
+    "lighthouse",
+    "accessibility",
+    "seo",
+    "audit",
+    "cli",
+    "typescript",
+    "javascript",
+    "ci-cd",
+    "automation",
+    "testing",
+    "optimization",
+    "analytics",
+    "reporting"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/signaler/signaler",
+  "homepage": "https://signaler.dev",
   "exports": {
-    ".": "./dist/bin.js"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./bin": {
+      "import": "./dist/bin.js",
+      "types": "./dist/bin.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "types": "./dist/api.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./runners": {
+      "import": "./dist/runners/index.js",
+      "types": "./dist/runners/index.d.ts"
+    },
+    "./reporting": {
+      "import": "./dist/reporting/index.js",
+      "types": "./dist/reporting/index.d.ts"
+    },
+    "./infrastructure": {
+      "import": "./dist/infrastructure/index.js",
+      "types": "./dist/infrastructure/index.d.ts"
+    },
+    "./ui": {
+      "import": "./dist/ui/index.js",
+      "types": "./dist/ui/index.d.ts"
+    }
   },
   "publish": {
     "include": [
@@ -11,13 +68,58 @@
       "README.md",
       "CHANGELOG.md",
       "LICENSE",
-      "docs/",
-      "jsr.json",
-      "package.json"
+      "docs/getting-started.md",
+      "docs/api-reference.md",
+      "docs/configuration-and-routes.md",
+      "docs/cli-and-ci.md",
+      "docs/troubleshooting.md",
+      "docs/examples/"
     ],
     "exclude": [
       "dist/**/*.test.*",
-      "dist/**/*.spec.*"
+      "dist/**/*.spec.*",
+      "dist/**/*.map",
+      "dist/**/test/",
+      "dist/**/tests/",
+      "dist/**/__tests__/",
+      "dist/**/*.development.*",
+      "dist/**/*.dev.*",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/*.log",
+      "**/*.tmp",
+      "**/*.temp",
+      "**/*.tsbuildinfo",
+      "**/node_modules/",
+      "**/.git/",
+      "**/.github/",
+      "**/.kiro/",
+      "**/test/",
+      "**/tests/",
+      "**/__tests__/",
+      "**/coverage/",
+      "**/.nyc_output/",
+      "**/playwright-report/",
+      "**/test-results/",
+      "**/*.config.ts",
+      "**/*.config.js",
+      "**/tsconfig*.json",
+      "**/.env*",
+      "**/pnpm-lock.yaml",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/.npmrc",
+      "**/AI-*.md",
+      "**/CLEANUP-*.md",
+      "**/CONTRIBUTING.md",
+      "**/INSTALLATION-GUIDE.md",
+      "**/KNOWN-ISSUES.md",
+      "**/RELEASE-*.md",
+      "**/engine.manifest.json",
+      "**/signaler-test.json",
+      "**/publish-jsr.*",
+      "**/*.bat",
+      "**/*.sh"
     ]
   }
 }

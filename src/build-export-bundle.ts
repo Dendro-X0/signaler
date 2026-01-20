@@ -35,6 +35,9 @@ function buildExportMeta(meta: RunMeta): ExportBundleMeta {
   };
 }
 
+/**
+ * Build a shareable export payload from a run summary.
+ */
 export function buildExportBundle(summary: RunSummary): ExportBundle {
   const generatedAt: string = new Date().toISOString();
   const results: ExportBundle["results"] = summary.results.map((r) => {

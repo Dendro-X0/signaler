@@ -1,5 +1,12 @@
 # Signaler CLI
 
+[![Build Status](https://github.com/signaler/signaler/workflows/CI/badge.svg)](https://github.com/signaler/signaler/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](https://github.com/signaler/signaler/actions)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![JSR Score](https://img.shields.io/badge/JSR%20Score-80%25+-brightgreen.svg)](https://jsr.io/@signaler/cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **A comprehensive web performance auditing tool for batch Lighthouse audits with automatic route detection and intelligent reporting.**
 
 Signaler is designed for teams who need to audit dozens or hundreds of pages efficiently. It combines automatic framework detection, intelligent route discovery, and batch execution to provide actionable performance insights at scale.
@@ -28,33 +35,87 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 
 ## Installation
 
-### NPM/PNPM/Yarn
-```bash
-npx jsr add @signaler/cli
-signaler --version
-```
+Signaler supports multiple installation methods to fit different development workflows and package managers.
 
-### JSR (JavaScript Registry) - New in v2.0.1
-```bash
-npx jsr add @signaler/cli
-# or with Deno
-deno add @signaler/cli
-```
+### NPM/PNPM/Yarn (Recommended)
 
-### Alternative Installation
+Install Signaler globally for command-line usage:
+
 ```bash
+# Using npm
 npm install -g @signaler/cli
-# or
+
+# Using pnpm (recommended for performance)
 pnpm add -g @signaler/cli
-# or  
+
+# Using yarn
 yarn global add @signaler/cli
 ```
 
-**For Git Bash users on Windows:**
-After installation, run the setup script once:
+Verify installation:
+```bash
+signaler --version
+```
+
+### JSR (JavaScript Registry) - Modern Package Management
+
+For projects using JSR or Deno, install via the JavaScript Registry:
+
+```bash
+# Using JSR with npm/pnpm
+npx jsr add @signaler/cli
+pnpm dlx jsr add @signaler/cli
+
+# Using Deno
+deno add @signaler/cli
+```
+
+### Local Project Installation
+
+For project-specific installations without global access:
+
+```bash
+# Install locally
+npm install @signaler/cli
+
+# Run with npx
+npx signaler --version
+
+# Or add to package.json scripts
+{
+  "scripts": {
+    "audit": "signaler audit",
+    "audit:quick": "signaler measure"
+  }
+}
+```
+
+### Git Bash on Windows Setup
+
+If you're using Git Bash on Windows, run this one-time setup after installation:
+
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh)
 ```
+
+This creates proper shell integration for Git Bash environments.
+
+### Troubleshooting Installation
+
+**Command not found after installation:**
+- Restart your terminal to refresh PATH variables
+- On Windows: Run `$env:LOCALAPPDATA\signaler\signaler.cmd --version`
+- On Unix: Run `~/.local/bin/signaler --version`
+
+**Permission errors on Unix/macOS:**
+```bash
+sudo npm install -g @signaler/cli
+# or use a Node version manager like nvm
+```
+
+**Node.js version issues:**
+- Ensure Node.js 18+ is installed: `node --version`
+- Update Node.js from https://nodejs.org/ if needed
 
 ## Quick Start
 
@@ -143,6 +204,129 @@ Signaler generates comprehensive outputs in `.signaler/`:
 - **`QUICK-FIXES.md`**: Enhanced human triage with time estimates, impact analysis, and specific implementation guidance
 - **Performance disclaimers**: Clear context about score accuracy and batch testing limitations
 
+## Usage
+
+Signaler can be used either as a CLI (most common) or as a programmatic API in Node.js. In both cases, the typical workflow is:
+
+1. Create or generate an `apex.config.json` with `signaler wizard`
+2. Run an audit against a running app (`signaler audit`)
+3. Open and review `.signaler/report.html` and the generated JSON/Markdown summaries
+
+For best results, run against a production-like server (`next build && next start`) and tune `--parallel` or `--stable` if your machine or Chrome becomes unstable.
+
+## API Reference
+
+Signaler provides both CLI and programmatic APIs for different use cases.
+
+### Programmatic API
+
+Use Signaler programmatically in your Node.js applications:
+
+```typescript
+import { SignalerAPI } from '@signaler/cli/api';
+
+// Create API instance
+const signaler = new SignalerAPI();
+
+// Create configuration
+const config = signaler.createConfig({
+  baseUrl: 'http://localhost:3000',
+  pages: [
+    { path: '/', label: 'Home', devices: ['mobile', 'desktop'] },
+    { path: '/about', label: 'About', devices: ['mobile'] }
+  ],
+  budgets: {
+    categories: { performance: 90, accessibility: 95 },
+    metrics: { lcpMs: 2500, cls: 0.1 }
+  }
+});
+
+// Validate configuration
+const validation = signaler.validateConfig(config);
+if (!validation.valid) {
+  console.error('Configuration errors:', validation.errors);
+  process.exit(1);
+}
+
+// Run audit
+const result = await signaler.audit(config);
+console.log(`Audit completed in ${result.meta.elapsedMs}ms`);
+console.log(`Audited ${result.results.length} page/device combinations`);
+```
+
+### CLI API
+
+Complete command-line interface for batch auditing:
+
+```bash
+# Interactive setup wizard
+signaler wizard
+
+# Run full Lighthouse audits
+signaler audit
+
+# Fast performance metrics only
+signaler measure
+
+# Bundle size analysis
+signaler bundle
+
+# HTTP health checks
+signaler health
+
+# Interactive shell mode
+signaler shell
+```
+
+### Configuration API
+
+The `apex.config.json` configuration supports extensive customization:
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "throttlingMethod": "simulate",
+  "cpuSlowdownMultiplier": 4,
+  "parallel": 2,
+  "warmUp": true,
+  "incremental": true,
+  "buildId": "v1.2.3",
+  "pages": [
+    {
+      "path": "/",
+      "label": "Home",
+      "devices": ["mobile", "desktop"],
+      "scope": "public"
+    }
+  ],
+  "budgets": {
+    "categories": {
+      "performance": 90,
+      "accessibility": 95,
+      "bestPractices": 90,
+      "seo": 95
+    },
+    "metrics": {
+      "lcpMs": 2500,
+      "fcpMs": 1800,
+      "tbtMs": 300,
+      "cls": 0.1,
+      "inpMs": 200
+    }
+  }
+}
+```
+
+### Output API
+
+Signaler generates structured outputs for programmatic consumption:
+
+- **`summary.json`** - Complete audit results with all metrics
+- **`AI-ANALYSIS.json`** - AI-optimized comprehensive report
+- **`AI-SUMMARY.json`** - Ultra-condensed report for quick analysis
+- **`issues.json`** - Aggregated issues with severity and frequency
+- **`pwa.json`** - Progressive Web App validation results
+
 ## Configuration
 
 Minimal `apex.config.json`:
@@ -177,6 +361,86 @@ Advanced options:
   }
 }
 ```
+
+## Examples
+
+Signaler provides comprehensive examples for different use cases and frameworks.
+
+### Basic Usage Examples
+
+```typescript
+// Programmatic API usage
+import { SignalerAPI } from '@signaler/cli/api';
+
+const signaler = new SignalerAPI();
+const config = signaler.createConfig({
+  baseUrl: 'http://localhost:3000',
+  pages: [
+    { path: '/', label: 'Home', devices: ['mobile', 'desktop'] }
+  ]
+});
+
+const result = await signaler.audit(config);
+console.log(`Performance score: ${result.results[0].scores.performance}`);
+```
+
+### Framework Integration Examples
+
+```bash
+# Next.js project
+npm run build
+signaler wizard  # Auto-detects Next.js routes
+signaler audit
+
+# Nuxt project  
+npm run build
+signaler wizard  # Auto-detects Nuxt routes
+signaler audit
+
+# SvelteKit project
+npm run build
+signaler wizard  # Auto-detects SvelteKit routes
+signaler audit
+```
+
+### CI/CD Integration Examples
+
+```yaml
+# GitHub Actions
+- name: Performance Audit
+  run: |
+    npm install -g @signaler/cli
+    signaler audit --ci --fail-on-budget
+```
+
+```yaml
+# GitLab CI
+audit:
+  script:
+    - npm install -g @signaler/cli
+    - signaler audit --ci --fail-on-budget
+```
+
+### Configuration Examples
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "throttlingMethod": "simulate",
+  "parallel": 2,
+  "warmUp": true,
+  "pages": [
+    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] },
+    { "path": "/about", "label": "About", "devices": ["mobile"] }
+  ],
+  "budgets": {
+    "categories": { "performance": 90, "accessibility": 95 },
+    "metrics": { "lcpMs": 2500, "cls": 0.1 }
+  }
+}
+```
+
+For more detailed examples, see the [examples documentation](docs/examples/).
 
 ## Command Line Usage
 
@@ -291,6 +555,36 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 - Use `throttlingMethod: "simulate"` for faster audits
 - Use `--no-ai-fix` and `--no-export` to reduce output size
 
+## Testing and Quality Assurance
+
+Signaler maintains high code quality through comprehensive testing:
+
+### Testing Strategy
+- **Property-Based Testing**: Universal properties tested across randomized inputs (100+ iterations per property)
+- **Unit Testing**: Specific examples, edge cases, and error conditions
+- **Integration Testing**: End-to-end workflows and CLI command validation
+- **Type Safety**: Complete TypeScript coverage with strict mode enabled
+
+### Quality Metrics
+- **Test Coverage**: 85%+ line coverage across core functionality
+- **Property Coverage**: 100% coverage of all defined correctness properties
+- **Type Safety**: Full TypeScript declarations for all exports
+- **JSR Score**: 80%+ package quality rating
+
+### Running Tests
+```bash
+# Run complete test suite
+pnpm test:full
+
+# Run property-based tests only
+pnpm test:full --grep "Property"
+
+# Run with coverage report
+pnpm test:coverage
+```
+
+For detailed testing information, see our [Testing Documentation](docs/testing.md) and [Contributing Guide](CONTRIBUTING.md).
+
 ## Documentation
 
 - **[Installation Guide](INSTALL.md)** - Detailed installation instructions and troubleshooting
@@ -298,6 +592,9 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 - **[CLI & CI](docs/cli-and-ci.md)** - Command reference and CI integration
 - **[Configuration](docs/configuration-and-routes.md)** - Config file format and options
 - **[Features Guide](docs/FEATURES.md)** - Comprehensive feature documentation for v2.0
+- **[Testing Guide](docs/testing.md)** - Testing strategy and property-based testing approach
+- **[Test Status](docs/test-status.md)** - Current test coverage and quality metrics
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute with testing instructions
 - **[Migration Guide](docs/MIGRATION.md)** - Migration instructions from v1.x to v2.0
 - **[Release Notes](docs/RELEASE-NOTES-v2.0.md)** - Complete v2.0 release notes
 

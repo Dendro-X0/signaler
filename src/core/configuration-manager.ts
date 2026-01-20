@@ -8,6 +8,9 @@
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
+/**
+ * Root configuration for Signaler.
+ */
 export interface SignalerConfig {
   // Core audit settings
   audit: {
@@ -76,6 +79,9 @@ export interface SignalerConfig {
   };
 }
 
+/**
+ * Webhook delivery configuration.
+ */
 export interface WebhookConfig {
   url: string;
   events: ('audit-complete' | 'budget-violation' | 'critical-issues')[];
@@ -84,6 +90,9 @@ export interface WebhookConfig {
   timeout: number;
 }
 
+/**
+ * Custom rule definition for team policies.
+ */
 export interface CustomRule {
   id: string;
   name: string;

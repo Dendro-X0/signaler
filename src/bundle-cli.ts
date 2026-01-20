@@ -168,6 +168,9 @@ function buildAiFindings(report: BundleAuditSummary, top: number): readonly AiFi
   return findings;
 }
 
+/**
+ * Run the bundle size scan CLI command.
+ */
 export async function runBundleCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   stopSpinner();
   const args: BundleArgs = parseArgs(argv);

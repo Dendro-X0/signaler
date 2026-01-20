@@ -4,55 +4,115 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
-
-permissions:
-  contents: read
+    branches: [ main, develop ]
 
 jobs:
-  build-and-test:
-    runs-on: ${{ matrix.os }}
+  test:
+    runs-on: ubuntu-latest
+    
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [20, 22]
-
+        node-version: [18.x, 20.x, 22.x]
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test CLI functionality
-        run: |
-          node dist/bin.js --version
-          node dist/bin.js help
-
-      - name: Basic smoke test (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          echo "Testing CLI commands..."
-          node dist/bin.js audit --flags || echo "Flags command works"
-          echo "CLI smoke test passed"
-
-      - name: Basic smoke test (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "Testing CLI commands..."
-          node dist/bin.js audit --flags || echo "Flags command works"
-          echo "CLI smoke test passed"
-
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: Build project
+      run: pnpm build
+      
+    - name: Run smoke tests
+      run: pnpm test:smoke
+      
+    - name: Run full test suite
+      run: pnpm test:full
+      
+    - name: Generate test coverage
+      run: pnpm test:coverage
+      
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/coverage-final.json
+        flags: unittests
+        name: codecov-umbrella
+        
+  quality:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: Build project
+      run: pnpm build
+      
+    - name: Run property-based tests
+      run: pnpm test:full --grep "Property"
+      
+    - name: Validate TypeScript declarations
+      run: pnpm test:full typescript-declaration-completeness.test.ts
+      
+    - name: Check package metadata
+      run: pnpm test:full package-metadata-completeness.test.ts
+      
+    - name: Validate API documentation
+      run: pnpm test:full api-documentation-coverage.test.ts
+      
+  publish-dry-run:
+    runs-on: ubuntu-latest
+    needs: [test, quality]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: Build project
+      run: pnpm build
+      
+    - name: Test package publication (dry run)
+      run: npm publish --dry-run

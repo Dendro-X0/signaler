@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.1 - 2026-01-20
+
+### 🧩 Comprehensive Audit System: Result + Report Aggregation
+
+- Added `ResultCollector` to unify per-page plugin results into a single validated page result format
+- Added `ReportAggregator` for cross-audit issue prioritization and cross-cutting issue identification
+- Added multi-audit AI reporting via `MultiAuditAiOptimizer` (token-efficient multi-audit summary)
+- Integrated `ResultCollector` into `MultiAuditEngine.auditPage`
+- Added property-based tests for:
+  - Result aggregation completeness
+  - Issue prioritization consistency
+  - Cross-cutting issue identification
+  - Multi-audit AI report completeness
+  - Token efficiency maintenance
+
 ## 2.1.0 - 2026-01-18
 
 ### 🏗️ Multi-Audit Architecture Foundation

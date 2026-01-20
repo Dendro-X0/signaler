@@ -84,6 +84,9 @@ type EventListenerEntry = {
   readonly listener: (params: unknown, sessionId: string | undefined) => void;
 };
 
+/**
+ * Minimal Chrome DevTools Protocol (CDP) client for sending commands over a WebSocket.
+ */
 export class CdpClient {
   private readonly url: string;
   private socket: WebSocketLike | undefined;

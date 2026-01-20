@@ -365,6 +365,9 @@ function buildErrorTable(results: readonly ConsoleTargetResult[]): string {
   return renderTable({ headers: ["Label", "Path", "Dev", "Errors"], rows });
 }
 
+/**
+ * Run the `console` CLI command.
+ */
 export async function runConsoleCli(argv: readonly string[], options?: { readonly signal?: AbortSignal }): Promise<void> {
   stopSpinner();
   const args: ConsoleArgs = parseArgs(argv);

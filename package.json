@@ -1,9 +1,52 @@
 {
   "name": "@signaler/cli",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "private": false,
   "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
+  "keywords": [
+    "performance",
+    "monitoring",
+    "web-performance",
+    "lighthouse",
+    "accessibility",
+    "seo",
+    "audit",
+    "cli",
+    "typescript",
+    "javascript",
+    "ci-cd",
+    "automation",
+    "testing",
+    "optimization",
+    "analytics",
+    "reporting",
+    "nextjs",
+    "nuxt",
+    "remix",
+    "sveltekit",
+    "playwright",
+    "chrome-devtools"
+  ],
+  "author": {
+    "name": "Signaler Team",
+    "email": "team@signaler.dev",
+    "url": "https://signaler.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/signaler/signaler.git"
+  },
+  "homepage": "https://signaler.dev",
+  "bugs": {
+    "url": "https://github.com/signaler/signaler/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/signaler"
+  },
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
@@ -13,20 +56,41 @@
     "scripts/postinstall.js",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE",
-    "docs"
+    "LICENSE"
   ],
   "bin": {
     "signaler": "./dist/bin.js"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "types": "./dist/api.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
+    },
+    "./bin": {
+      "import": "./dist/bin.js",
+      "types": "./dist/bin.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:optimized": "pnpm run build && node scripts/optimize-build.js",
+    "prepare:jsr": "pnpm run build:optimized && node scripts/prepare-jsr.js",
     "dev": "tsx src/bin.ts",
     "test": "echo 'Tests disabled for CI reliability. Use test:full for complete test suite.'",
     "test:full": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:smoke": "pnpm build && node dist/bin.js --version && node dist/bin.js help",
     "start": "node dist/bin.js",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "pnpm run build:optimized",
     "postinstall": "node scripts/postinstall.js",
     "release": "node scripts/release.js"
   },
@@ -45,6 +109,7 @@
     "@types/node": "^22.0.0",
     "@types/prompts": "^2.4.9",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.0.14",
     "fast-check": "^4.5.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

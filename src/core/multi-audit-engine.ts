@@ -13,11 +13,11 @@ import type {
   AuditContext, 
   AuditResult, 
   PluginConfig,
-  AuditDevice,
-  Issue
+  AuditDevice
 } from './plugin-interface.js';
 import { DefaultPluginRegistry } from './plugin-registry.js';
 import { DefaultAuditContext } from './audit-context.js';
+import { ResultCollector } from './result-collector.js';
 
 /**
  * Configuration for the multi-audit engine
@@ -144,6 +144,7 @@ export interface ErrorRecoveryOptions {
 export class MultiAuditEngine {
   private pluginRegistry: PluginRegistry;
   private errorRecoveryOptions: ErrorRecoveryOptions;
+  private readonly resultCollector: ResultCollector;
 
   constructor(
     pluginRegistry?: PluginRegistry,
@@ -157,6 +158,7 @@ export class MultiAuditEngine {
       continueOnPageFailure: true,
       ...errorRecoveryOptions
     };
+    this.resultCollector = new ResultCollector();
   }
 
   /**
@@ -308,18 +310,12 @@ export class MultiAuditEngine {
     });
 
     const pluginResults: Record<string, AuditResult> = {};
-    const allIssues: Issue[] = [];
-    const combinedMetrics: Record<string, number> = {};
 
     // Execute plugins in order
     for (const plugin of plugins) {
       try {
         const result = await this.executePluginWithRetry(plugin, context, executionConfig.timeout);
         pluginResults[plugin.name] = result;
-        
-        // Aggregate issues and metrics
-        allIssues.push(...result.issues);
-        Object.assign(combinedMetrics, result.metrics);
         
         // Store plugin results in shared data for other plugins
         if (executionConfig.shareData) {
@@ -347,18 +343,27 @@ export class MultiAuditEngine {
 
     const endTime = Date.now();
 
-    return {
+    const collected = this.resultCollector.collectPageResult({
       page,
       device,
       url,
+      plugins,
       pluginResults,
-      allIssues,
-      combinedMetrics,
       executionMeta: {
         startTime,
         endTime,
         totalExecutionMs: endTime - startTime
       }
+    });
+
+    return {
+      page: collected.page,
+      device: collected.device,
+      url: collected.url,
+      pluginResults: collected.pluginResults as Record<string, AuditResult>,
+      allIssues: collected.allIssues,
+      combinedMetrics: collected.combinedMetrics as Record<string, number>,
+      executionMeta: collected.executionMeta
     };
   }
 

@@ -1,5 +1,8 @@
 const AXE_CDN_URL = "https://cdn.jsdelivr.net/npm/axe-core@4.8.4/axe.min.js" as const;
 
+/**
+ * Create an in-page script snippet that loads axe-core (if needed) and executes it.
+ */
 export function createAxeScript(): string {
   return `(function() {
     return new Promise((resolve) => {

@@ -8,6 +8,9 @@ export interface ArgumentParser {
   validate(args: ParsedArguments): boolean;
 }
 
+/**
+ * Parsed CLI arguments.
+ */
 export interface ParsedArguments {
   command: string;
   flags: Record<string, unknown>;

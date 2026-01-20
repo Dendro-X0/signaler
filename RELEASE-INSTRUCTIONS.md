@@ -1,11 +1,11 @@
-# Signaler v2.0.0 Release Instructions - JSR Only
+# Signaler v2.1.0 Release Instructions - JSR Only
 
 ## 🎉 Release Status: Ready for JSR Publication
 
 ### ✅ Completed Steps
-- [x] Version bumped to 2.0.0
+- [x] Version bumped to 2.1.0
 - [x] CI tests passing (6/6 platforms)
-- [x] v2.0.0 tag created and pushed
+- [x] v2.1.0 tag created and pushed
 - [x] Documentation verified
 - [x] Simplified to JSR-only distribution
 
@@ -21,7 +21,7 @@
 ### 📦 Publication Steps
 
 #### Option 1: Automated (Preferred)
-The v2.0.0 tag should trigger the JSR publish workflow automatically.
+The v2.1.0 tag should trigger the JSR publish workflow automatically.
 
 #### Option 2: Manual JSR Publishing
 ```bash
@@ -43,7 +43,7 @@ publish-jsr.bat       # Windows
 
 **Primary and Only Method:**
 ```bash
-npx jsr add @signaler/cli@2.0.0
+npx jsr add @signaler/cli@2.1.0
 signaler --version
 ```
 
@@ -68,7 +68,7 @@ After JSR publication:
 1. **Verify JSR**: Check https://jsr.io/@signaler/cli
 2. **Test Installation**:
    ```bash
-   npx jsr add @signaler/cli@2.0.0
+   npx jsr add @signaler/cli@2.1.0
    signaler --version
    ```
 3. **Update Documentation**: Remove GitHub Releases references

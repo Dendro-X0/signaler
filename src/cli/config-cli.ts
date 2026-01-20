@@ -9,12 +9,33 @@ import { writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ConfigurationManager, type SignalerConfig } from '../core/configuration-manager.js';
 
+/**
+ * Options for the `config` CLI command.
+ */
 export interface ConfigCliOptions {
+  /**
+   * Initialize a new configuration file.
+   */
   init?: boolean;
+  /**
+   * Validate an existing configuration file.
+   */
   validate?: boolean;
+  /**
+   * The format of the configuration file (json or yaml).
+   */
   format?: 'json' | 'yaml';
+  /**
+   * The environment name for environment-specific configuration.
+   */
   environment?: string;
+  /**
+   * The output path for the configuration file.
+   */
   output?: string;
+  /**
+   * Create a template configuration file even if one already exists.
+   */
   template?: boolean;
 }
 
