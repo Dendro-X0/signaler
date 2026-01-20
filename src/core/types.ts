@@ -32,6 +32,9 @@ export interface ApexPageConfig {
   readonly scope?: ApexPageScope;
 }
 
+/**
+ * Budget thresholds for Lighthouse category scores.
+ */
 export interface CategoryBudgetThresholds {
   readonly performance?: number;
   readonly accessibility?: number;
@@ -39,6 +42,9 @@ export interface CategoryBudgetThresholds {
   readonly seo?: number;
 }
 
+/**
+ * Budget thresholds for Lighthouse metric values.
+ */
 export interface MetricBudgetThresholds {
   readonly lcpMs?: number;
   readonly fcpMs?: number;
@@ -47,11 +53,17 @@ export interface MetricBudgetThresholds {
   readonly inpMs?: number;
 }
 
+/**
+ * Combined budgets for categories and metrics.
+ */
 export interface ApexBudgets {
   readonly categories?: CategoryBudgetThresholds;
   readonly metrics?: MetricBudgetThresholds;
 }
 
+/**
+ * Top-level configuration for an audit run.
+ */
 export interface ApexConfig {
   readonly baseUrl: string;
   readonly query?: string;
@@ -89,6 +101,9 @@ export interface ApexConfig {
   readonly budgets?: ApexBudgets;
 }
 
+/**
+ * Normalized metric values collected per run.
+ */
 export interface MetricValues {
   readonly lcpMs?: number;
   readonly fcpMs?: number;
@@ -97,6 +112,9 @@ export interface MetricValues {
   readonly inpMs?: number;
 }
 
+/**
+ * Normalized category scores collected per run.
+ */
 export interface CategoryScores {
   readonly performance?: number;
   readonly accessibility?: number;
@@ -109,6 +127,9 @@ export interface CategoryScores {
  */
 export type ApexCategory = "performance" | "accessibility" | "best-practices" | "seo";
 
+/**
+ * Summary information for an opportunity.
+ */
 export interface OpportunitySummary {
   readonly id: string;
   readonly title: string;
@@ -116,6 +137,9 @@ export interface OpportunitySummary {
   readonly estimatedSavingsBytes?: number;
 }
 
+/**
+ * Basic numeric statistics computed from multiple runs.
+ */
 export interface NumericStats {
   readonly n: number;
   readonly min: number;
@@ -126,6 +150,9 @@ export interface NumericStats {
   readonly stddev: number;
 }
 
+/**
+ * Aggregated statistics for a page/device combo across multiple runs.
+ */
 export interface ComboRunStats {
   readonly scores: {
     readonly performance?: NumericStats;
@@ -142,6 +169,9 @@ export interface ComboRunStats {
   };
 }
 
+/**
+ * Summary data for a single audited page/device.
+ */
 export interface PageDeviceSummary {
   readonly url: string;
   readonly path: string;
@@ -156,6 +186,9 @@ export interface PageDeviceSummary {
   readonly runtimeErrorMessage?: string;
 }
 
+/**
+ * Metadata describing a run execution.
+ */
 export interface RunMeta {
   readonly configPath: string;
   readonly buildId?: string;
@@ -177,6 +210,9 @@ export interface RunMeta {
   readonly averageStepMs: number;
 }
 
+/**
+ * Run summary containing metadata and results.
+ */
 export interface RunSummary {
   readonly meta: RunMeta;
   readonly results: readonly PageDeviceSummary[];
