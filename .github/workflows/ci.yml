@@ -32,7 +32,7 @@ jobs:
         
     - name: Ensure pnpm
       run: |
-        corepack enable
+        corepack prepare pnpm@10 --activate
         pnpm --version
         
     - name: Install dependencies
