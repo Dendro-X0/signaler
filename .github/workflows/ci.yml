@@ -107,7 +107,7 @@ jobs:
       run: pnpm build
       
     - name: Run property-based tests
-      run: pnpm test:full --grep "Property"
+      run: pnpm test:full -- --filter Property
       
     - name: Validate TypeScript declarations
       run: pnpm test:full typescript-declaration-completeness.test.ts
