@@ -785,7 +785,7 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   const { version, session } = params;
   const padCmd = (cmd: string): string => cmd.padEnd(14, " ");
   const lines: string[] = [];
-  lines.push(theme.dim("Performance + metrics assistant (measure-first, Lighthouse optional)"));
+  lines.push(theme.dim("A comprehensive web performance auditing tool for batch Lighthouse audits with automatic route detection and intelligent reporting"));
   lines.push("");
   lines.push(theme.bold("Audit commands"));
   lines.push(`${theme.cyan(padCmd("measure"))}Fast batch metrics (LCP/CLS/INP + screenshot + console errors)`);

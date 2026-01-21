@@ -337,6 +337,31 @@ Signaler generates structured outputs for programmatic consumption:
 - **`issues.json`** - Aggregated issues with severity and frequency
 - **`pwa.json`** - Progressive Web App validation results
 
+## Examples
+
+See `docs/examples/` for more complete end-to-end examples.
+
+### CLI
+
+```bash
+signaler wizard
+signaler audit
+```
+
+### Programmatic API
+
+```typescript
+import { createSignalerAPI } from "@signaler/cli/api";
+
+const api = createSignalerAPI();
+const result = await api.audit({
+  baseUrl: "http://localhost:3000",
+  pages: [{ path: "/", label: "Home", devices: ["mobile", "desktop"] }]
+});
+
+console.log(result.meta);
+```
+
 ## Command Line Usage
 
 ```bash
