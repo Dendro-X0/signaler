@@ -7,7 +7,8 @@ export default defineConfig({
     testTimeout: 30000, // 30 seconds timeout for tests
     hookTimeout: 10000, // 10 seconds for setup/teardown
     coverage: {
-      provider: 'v8',
+      // Use Istanbul provider for compatibility with Node 18 (avoids inspector/promises dependency)
+      provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
