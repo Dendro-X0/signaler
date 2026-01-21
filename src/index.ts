@@ -3,6 +3,7 @@
  * 
  * This is the main entry point for the Signaler application.
  * It provides access to all modules through a clean, modular API.
+ * @module
  */
 
 // Core functionality

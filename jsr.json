@@ -24,19 +24,12 @@
   "repository": "https://github.com/signaler/signaler",
   "homepage": "https://signaler.dev",
   "exports": {
-    ".": "./dist/index.js",
-    "./bin": "./dist/bin.js",
-    "./api": "./dist/api.js",
-    "./cli": "./dist/cli.js",
-    "./core": "./dist/core/index.js",
-    "./runners": "./dist/runners/index.js",
-    "./reporting": "./dist/reporting/index.js",
-    "./infrastructure": "./dist/infrastructure/index.js",
-    "./ui": "./dist/ui/index.js"
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts"
   },
   "publish": {
     "include": [
-      "dist/",
+      "src/",
       "scripts/postinstall.js",
       "README.md",
       "CHANGELOG.md",

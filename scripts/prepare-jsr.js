@@ -44,6 +44,16 @@ async function validateJSRConfig() {
     
     // Check that all export paths exist
     for (const [exportPath, exportConfig] of Object.entries(jsrJson.exports)) {
+      if (typeof exportConfig === 'string') {
+        const targetPath = join(rootPath, exportConfig);
+        try {
+          await access(targetPath, constants.F_OK);
+        } catch {
+          throw new Error(`Export file not found for ${exportPath}: ${exportConfig}`);
+        }
+        continue;
+      }
+
       if (typeof exportConfig === 'object' && exportConfig !== null) {
         const config = exportConfig;
         
@@ -118,16 +128,18 @@ async function validatePackageJson() {
 async function checkEssentialFiles() {
   console.log('🔍 Checking essential files...');
   
+  const jsrJsonPath = join(rootPath, 'jsr.json');
+  const jsrContent = await readFile(jsrJsonPath, 'utf-8');
+  const jsrJson = JSON.parse(jsrContent);
+
+  const exportTargets = Object.values(jsrJson.exports)
+    .filter((value) => typeof value === 'string');
+
   const essentialFiles = [
     'README.md',
     'LICENSE',
     'CHANGELOG.md',
-    'dist/index.js',
-    'dist/index.d.ts',
-    'dist/bin.js',
-    'dist/bin.d.ts',
-    'dist/api.js',
-    'dist/api.d.ts'
+    ...exportTargets,
   ];
   
   const missingFiles = [];

@@ -3,6 +3,7 @@
  * 
  * This entry point provides a clean programmatic API for using Signaler
  * without the CLI interface. Ideal for integration into other tools and applications.
+ * @module
  */
 
 // Import types for the API interface

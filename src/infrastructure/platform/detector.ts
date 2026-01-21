@@ -280,4 +280,4 @@ export class DefaultPlatformDetector implements PlatformDetector {
 }
 
 // Export a default instance
-export const platformDetector = new DefaultPlatformDetector();
+export const platformDetector: PlatformDetector = new DefaultPlatformDetector();
