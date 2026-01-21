@@ -31,16 +31,11 @@
   "publish": {
     "include": [
       "src/",
+      "dist/",
       "scripts/postinstall.js",
       "README.md",
       "CHANGELOG.md",
-      "LICENSE",
-      "docs/getting-started.md",
-      "docs/api-reference.md",
-      "docs/configuration-and-routes.md",
-      "docs/cli-and-ci.md",
-      "docs/troubleshooting.md",
-      "docs/examples/"
+      "LICENSE"
     ],
     "exclude": [
       "dist/**/*.test.*",
