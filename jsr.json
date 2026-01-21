@@ -24,42 +24,15 @@
   "repository": "https://github.com/signaler/signaler",
   "homepage": "https://signaler.dev",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./bin": {
-      "import": "./dist/bin.js",
-      "types": "./dist/bin.d.ts"
-    },
-    "./api": {
-      "import": "./dist/api.js",
-      "types": "./dist/api.d.ts"
-    },
-    "./cli": {
-      "import": "./dist/cli.js",
-      "types": "./dist/cli.d.ts"
-    },
-    "./core": {
-      "import": "./dist/core/index.js",
-      "types": "./dist/core/index.d.ts"
-    },
-    "./runners": {
-      "import": "./dist/runners/index.js",
-      "types": "./dist/runners/index.d.ts"
-    },
-    "./reporting": {
-      "import": "./dist/reporting/index.js",
-      "types": "./dist/reporting/index.d.ts"
-    },
-    "./infrastructure": {
-      "import": "./dist/infrastructure/index.js",
-      "types": "./dist/infrastructure/index.d.ts"
-    },
-    "./ui": {
-      "import": "./dist/ui/index.js",
-      "types": "./dist/ui/index.d.ts"
-    }
+    ".": "./dist/index.js",
+    "./bin": "./dist/bin.js",
+    "./api": "./dist/api.js",
+    "./cli": "./dist/cli.js",
+    "./core": "./dist/core/index.js",
+    "./runners": "./dist/runners/index.js",
+    "./reporting": "./dist/reporting/index.js",
+    "./infrastructure": "./dist/infrastructure/index.js",
+    "./ui": "./dist/ui/index.js"
   },
   "publish": {
     "include": [
