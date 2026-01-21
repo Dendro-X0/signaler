@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.3 - 2026-01-20
+
+### 📦 JSR Packaging + Documentation Sync
+
+- Updated JSR publication config to explicitly include essential package files (`dist/`, `README.md`, `CHANGELOG.md`, `LICENSE`)
+- Normalized the `jsr.json` README configuration to match the repository `README.md`
+- Fixed publication optimization tests to support `jsr.json` string exports (TypeScript source entrypoints)
+- Cleaned up root-level release/troubleshooting markdown files to keep documentation consolidated under `/docs`
+
 ## 2.1.1 - 2026-01-20
 
 ### 🧩 Comprehensive Audit System: Result + Report Aggregation

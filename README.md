@@ -33,6 +33,16 @@ Signaler is designed for teams who need to audit dozens or hundreds of pages eff
 - Full compatibility with npm, pnpm, yarn, and Deno
 - Modern package management for JavaScript/TypeScript projects
 
+## Documentation
+
+The canonical documentation lives in `/docs` in this repository:
+
+- `docs/getting-started.md`
+- `docs/cli-and-ci.md`
+- `docs/configuration-and-routes.md`
+- `docs/api-reference.md`
+- `docs/troubleshooting.md`
+
 ## Installation
 
 Signaler supports multiple installation methods to fit different development workflows and package managers.
@@ -327,121 +337,6 @@ Signaler generates structured outputs for programmatic consumption:
 - **`issues.json`** - Aggregated issues with severity and frequency
 - **`pwa.json`** - Progressive Web App validation results
 
-## Configuration
-
-Minimal `apex.config.json`:
-
-```json
-{
-  "baseUrl": "http://localhost:3000",
-  "pages": [
-    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] },
-    { "path": "/about", "label": "About", "devices": ["mobile", "desktop"] }
-  ]
-}
-```
-
-Advanced options:
-
-```json
-{
-  "baseUrl": "http://localhost:3000",
-  "throttlingMethod": "simulate",
-  "cpuSlowdownMultiplier": 4,
-  "parallel": 2,
-  "warmUp": true,
-  "incremental": true,
-  "buildId": "abc123",
-  "pages": [
-    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] }
-  ],
-  "budgets": {
-    "categories": { "performance": 90, "accessibility": 95 },
-    "metrics": { "lcpMs": 2500, "inpMs": 200, "cls": 0.1 }
-  }
-}
-```
-
-## Examples
-
-Signaler provides comprehensive examples for different use cases and frameworks.
-
-### Basic Usage Examples
-
-```typescript
-// Programmatic API usage
-import { SignalerAPI } from '@signaler/cli/api';
-
-const signaler = new SignalerAPI();
-const config = signaler.createConfig({
-  baseUrl: 'http://localhost:3000',
-  pages: [
-    { path: '/', label: 'Home', devices: ['mobile', 'desktop'] }
-  ]
-});
-
-const result = await signaler.audit(config);
-console.log(`Performance score: ${result.results[0].scores.performance}`);
-```
-
-### Framework Integration Examples
-
-```bash
-# Next.js project
-npm run build
-signaler wizard  # Auto-detects Next.js routes
-signaler audit
-
-# Nuxt project  
-npm run build
-signaler wizard  # Auto-detects Nuxt routes
-signaler audit
-
-# SvelteKit project
-npm run build
-signaler wizard  # Auto-detects SvelteKit routes
-signaler audit
-```
-
-### CI/CD Integration Examples
-
-```yaml
-# GitHub Actions
-- name: Performance Audit
-  run: |
-    npm install -g @signaler/cli
-    signaler audit --ci --fail-on-budget
-```
-
-```yaml
-# GitLab CI
-audit:
-  script:
-    - npm install -g @signaler/cli
-    - signaler audit --ci --fail-on-budget
-```
-
-### Configuration Examples
-
-```json
-{
-  "baseUrl": "http://localhost:3000",
-  "throttlingMethod": "simulate",
-  "parallel": 2,
-  "warmUp": true,
-  "pages": [
-    { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] },
-    { "path": "/about", "label": "About", "devices": ["mobile"] }
-  ],
-  "budgets": {
-    "categories": { "performance": 90, "accessibility": 95 },
-    "metrics": { "lcpMs": 2500, "cls": 0.1 }
-  }
-}
-```
-
-For more detailed examples, see the [examples documentation](docs/examples/).
-
 ## Command Line Usage
 
 ```bash
@@ -504,10 +399,10 @@ See `docs/cli-and-ci.md` for complete CI integration guide.
 
 ## Requirements
 
-- **Node.js 18+** (required - Bun/Deno not supported)
+- **Node.js 18+** (required)
 - **Chrome/Chromium** (automatically managed by Lighthouse)
 
-**⚠️ Important**: Signaler requires Node.js and does not work with Bun or Deno due to Lighthouse dependencies. See [RUNTIME-REQUIREMENTS.md](RUNTIME-REQUIREMENTS.md) for details.
+**⚠️ Important**: Signaler requires Node.js and does not work with Bun or Deno due to Lighthouse dependencies.
 
 ## Common Use Cases
 
@@ -577,24 +472,24 @@ Signaler maintains high code quality through comprehensive testing:
 pnpm test:full
 
 # Run property-based tests only
-pnpm test:full --grep "Property"
+pnpm test:full --filter "Property"
 
 # Run with coverage report
 pnpm test:coverage
 ```
 
-For detailed testing information, see our [Testing Documentation](docs/testing.md) and [Contributing Guide](CONTRIBUTING.md).
+For detailed testing information, see our [Testing Documentation](docs/testing.md).
 
 ## Documentation
 
-- **[Installation Guide](INSTALL.md)** - Detailed installation instructions and troubleshooting
+- **Getting Started** - `docs/getting-started.md`
 - **[Getting Started](docs/getting-started.md)** - Installation and first run
 - **[CLI & CI](docs/cli-and-ci.md)** - Command reference and CI integration
 - **[Configuration](docs/configuration-and-routes.md)** - Config file format and options
 - **[Features Guide](docs/FEATURES.md)** - Comprehensive feature documentation for v2.0
 - **[Testing Guide](docs/testing.md)** - Testing strategy and property-based testing approach
 - **[Test Status](docs/test-status.md)** - Current test coverage and quality metrics
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute with testing instructions
+- **Contributing** - See GitHub repository guidelines
 - **[Migration Guide](docs/MIGRATION.md)** - Migration instructions from v1.x to v2.0
 - **[Release Notes](docs/RELEASE-NOTES-v2.0.md)** - Complete v2.0 release notes
 
