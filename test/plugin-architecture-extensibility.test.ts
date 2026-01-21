@@ -133,15 +133,11 @@ describe("Plugin Architecture Extensibility", () => {
         expect(typeof isValidConfig).toBe('boolean');
 
         if (isValidConfig) {
-          if (config.enabled || shouldSucceed) {
-            await expect(mockPlugin.configure(config)).resolves.toBeUndefined();
+          const shouldThrow: boolean = !config.enabled && shouldSucceed;
+          if (shouldThrow) {
+            await expect(mockPlugin.configure(config)).rejects.toThrow('Plugin is disabled');
           } else {
-            // Plugin might throw if disabled and shouldSucceed is false
-            try {
-              await mockPlugin.configure(config);
-            } catch (error) {
-              expect(error).toBeInstanceOf(Error);
-            }
+            await expect(mockPlugin.configure(config)).resolves.toBeUndefined();
           }
         }
 
