@@ -4,6 +4,9 @@ import { readFile, access, stat, readdir } from "node:fs/promises";
 import { resolve, join, extname, basename } from "node:path";
 import { constants } from "node:fs";
 
+type JsrExportObject = Readonly<{ import?: string; types?: string }>;
+type JsrExportConfig = string | JsrExportObject;
+
 describe("Publication Optimization", () => {
   // Feature: jsr-score-optimization, Property 6: Publication Optimization
   it("should organize files according to JSR best practices", async () => {
@@ -16,32 +19,32 @@ describe("Publication Optimization", () => {
       const jsrJson = JSON.parse(jsrContent);
       
       // Test that all exports point to valid files
-      const exportEntries = Object.entries(jsrJson.exports);
+      const exportEntries = Object.entries(jsrJson.exports) as Array<[string, JsrExportConfig]>;
       
       for (const [exportPath, exportConfig] of exportEntries) {
-        if (typeof exportConfig === 'object' && exportConfig !== null) {
-          const config = exportConfig as { import?: string; types?: string };
-          
-          // Check that import file exists
-          if (config.import) {
-            const importPath = resolve(config.import);
-            await access(importPath, constants.F_OK);
-            expect(extname(config.import)).toBe('.js');
-          }
-          
-          // Check that types file exists and has correct extension
-          if (config.types) {
-            const typesPath = resolve(config.types);
-            await access(typesPath, constants.F_OK);
-            expect(config.types.endsWith('.d.ts')).toBe(true);
-          }
-          
-          // Check that import and types files are in same directory
-          if (config.import && config.types) {
-            const importDir = config.import.substring(0, config.import.lastIndexOf('/'));
-            const typesDir = config.types.substring(0, config.types.lastIndexOf('/'));
-            expect(importDir).toBe(typesDir);
-          }
+        void exportPath;
+        if (typeof exportConfig === "string") {
+          const exportTargetPath = resolve(exportConfig);
+          await access(exportTargetPath, constants.F_OK);
+          const extension = extname(exportConfig);
+          expect([".ts", ".js", ".mts", ".cts"].includes(extension)).toBe(true);
+          continue;
+        }
+        const config: JsrExportObject = exportConfig;
+        if (config.import) {
+          const importPath = resolve(config.import);
+          await access(importPath, constants.F_OK);
+          expect(extname(config.import)).toBe(".js");
+        }
+        if (config.types) {
+          const typesPath = resolve(config.types);
+          await access(typesPath, constants.F_OK);
+          expect(config.types.endsWith(".d.ts")).toBe(true);
+        }
+        if (config.import && config.types) {
+          const importDir = config.import.substring(0, config.import.lastIndexOf("/"));
+          const typesDir = config.types.substring(0, config.types.lastIndexOf("/"));
+          expect(importDir).toBe(typesDir);
         }
       }
       
@@ -49,24 +52,23 @@ describe("Publication Optimization", () => {
       fc.assert(fc.property(
         fc.constantFrom(...exportEntries),
         ([exportPath, exportConfig]) => {
-          if (typeof exportConfig === 'object' && exportConfig !== null) {
-            const config = exportConfig as { import?: string; types?: string };
-            
-            // Both import and types should be defined for proper TypeScript support
+          void exportPath;
+          if (typeof exportConfig === "string") {
+            const extension = extname(exportConfig);
+            expect([".ts", ".js", ".mts", ".cts"].includes(extension)).toBe(true);
+            return true;
+          }
+          const config: JsrExportObject = exportConfig;
+          if (config.import || config.types) {
             expect(config.import).toBeDefined();
             expect(config.types).toBeDefined();
-            
-            if (config.import && config.types) {
-              // Should have proper file extensions
-              expect(config.import.endsWith('.js')).toBe(true);
-              expect(config.types.endsWith('.d.ts')).toBe(true);
-              
-              // Should be in dist directory
-              expect(config.import.startsWith('./dist/')).toBe(true);
-              expect(config.types.startsWith('./dist/')).toBe(true);
-            }
           }
-          
+          if (config.import && config.types) {
+            expect(config.import.endsWith(".js")).toBe(true);
+            expect(config.types.endsWith(".d.ts")).toBe(true);
+            expect(config.import.startsWith("./dist/")).toBe(true);
+            expect(config.types.startsWith("./dist/")).toBe(true);
+          }
           return true;
         }
       ), { numRuns: 100 });
