@@ -65,12 +65,12 @@ jobs:
 
       - name: Verify documentation
         run: |
-          echo "Verifying v2.1 documentation exists..."
+          echo "Verifying v2.4 documentation exists..."
           ls -la docs/
           test -f docs/FEATURES.md
           test -f docs/MIGRATION.md
-          test -f docs/RELEASE-NOTES-v2.1.md
-          echo "✅ All v2.1 documentation verified"
+          test -f docs/RELEASE-NOTES-v2.4.md
+          echo "✅ All v2.4 documentation verified"
 
       - name: Check if version already exists
         id: version_check
