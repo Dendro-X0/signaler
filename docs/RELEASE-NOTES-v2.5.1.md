@@ -1,8 +1,8 @@
-# Signaler v2.5.0 Release Notes
+# Signaler v2.5.1 Release Notes
 
 ## Overview
 
-Signaler v2.5.0 (The Mobile & UX Optimization Update) focuses on delivering a superior mobile user experience and deep insights into the impact of third-party dependencies.
+Signaler v2.5.1 (The Mobile & UX Optimization Update) focuses on delivering a superior mobile user experience and deep insights into the impact of third-party dependencies.
 
 ## Highlights
 
@@ -30,17 +30,17 @@ Signaler v2.5.0 (The Mobile & UX Optimization Update) focuses on delivering a su
 
 ## Migration Notes
 
-This update is fully backward compatible. v2.5.0 introduces new metrics and metadata that will appear in your reports automatically.
+This update is fully backward compatible. v2.5.1 introduces new metrics and metadata that will appear in your reports automatically.
 
 ## Installation
 
 ```bash
-npx jsr add @signaler/cli@2.5.0
+npx jsr add @signaler/cli@2.5.1
 ```
 
 ## Verification Checklist
 
 - [ ] Confirm package version is updated in `package.json` and `jsr.json`.
 - [ ] Verify unit tests pass with `pnpm test:full`.
-- [ ] Run `signaler --version` to confirm 2.5.0.
+- [ ] Run `signaler --version` to confirm 2.5.1.
 - [ ] Verify that `mobile-ux` and `third-party-scripts` plugins are executed during audits.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.5.0 - 2026-01-22
+## 2.5.1 - 2026-01-22
 
 ### 🚀 Phase 4: Mobile & UX Optimization
 

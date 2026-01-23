@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
   "keywords": [
     "performance",
