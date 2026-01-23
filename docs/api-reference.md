@@ -433,6 +433,6 @@ const config = signaler.createConfig({
 ## Support
 
 For additional help:
-- [GitHub Issues](https://github.com/signaler/signaler/issues)
+- [GitHub Issues](https://github.com/Dendro-X0/ApexAuditor/issues)
 - [Documentation](https://signaler.dev/docs)
 - [Examples Repository](https://github.com/signaler/examples)

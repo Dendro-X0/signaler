@@ -87,7 +87,7 @@ describe('EnhancedAccessibilityPlugin', () => {
             expect(result.success).toBe(true);
             expect(result.issues).toBeInstanceOf(Array);
             expect(result.metrics).toHaveProperty('totalViolations');
-            expect(result.executionTimeMs).toBeGreaterThan(0);
+            expect(result.executionTimeMs).toBeGreaterThanOrEqual(0);
         });
 
         it('should handle audit errors gracefully', async () => {

@@ -188,7 +188,7 @@ audit:
 
 ## Getting Help
 
-- **[GitHub Issues](https://github.com/signaler/signaler/issues)** - Bug reports and feature requests
+- **[GitHub Issues](https://github.com/Dendro-X0/ApexAuditor/issues)** - Bug reports and feature requests
 - **[Troubleshooting Guide](troubleshooting.md)** - Common issues and solutions
 - **[API Reference](api-reference.md)** - Complete API documentation
 - **[Examples](examples/)** - Practical usage examples

@@ -568,7 +568,7 @@ signaler audit --log-level verbose > debug.log 2>&1
 
 ### Common Support Channels
 
-1. **GitHub Issues:** https://github.com/signaler/signaler/issues
+1. **GitHub Issues:** https://github.com/Dendro-X0/ApexAuditor/issues
 2. **Documentation:** https://signaler.dev/docs
 3. **Examples:** https://github.com/signaler/examples
 

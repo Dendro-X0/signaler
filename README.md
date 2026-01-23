@@ -1,7 +1,7 @@
 # Signaler CLI
 
-[![Build Status](https://github.com/signaler/signaler/workflows/CI/badge.svg)](https://github.com/signaler/signaler/actions)
-[![Test Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](https://github.com/signaler/signaler/actions)
+[![Build Status](https://github.com/Dendro-X0/ApexAuditor/workflows/CI/badge.svg)](https://github.com/Dendro-X0/ApexAuditor/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](https://github.com/Dendro-X0/ApexAuditor/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![JSR Score](https://img.shields.io/badge/JSR%20Score-80%25+-brightgreen.svg)](https://jsr.io/@signaler/cli)

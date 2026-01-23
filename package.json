@@ -34,11 +34,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/signaler/signaler.git"
+    "url": "https://github.com/Dendro-X0/ApexAuditor.git"
   },
   "homepage": "https://signaler.dev",
   "bugs": {
-    "url": "https://github.com/signaler/signaler/issues"
+    "url": "https://github.com/Dendro-X0/ApexAuditor/issues"
   },
   "funding": {
     "type": "github",
