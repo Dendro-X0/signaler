@@ -52,7 +52,7 @@ docs/
 
 1. **Install Signaler:**
    ```bash
-   npm install -g @signaler/cli
+   npx jsr add @signaler/cli
    ```
 
 2. **Initialize your project:**

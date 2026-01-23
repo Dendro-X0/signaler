@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [

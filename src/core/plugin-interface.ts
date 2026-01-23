@@ -36,8 +36,8 @@ export interface AuditPlugin {
   /** Audit type this plugin handles */
   readonly type: AuditType;
 
-  /** Implementation phase (1, 2, or 3) */
-  readonly phase: 1 | 2 | 3;
+  /** Implementation phase (1, 2, 3, or 4) */
+  readonly phase: 1 | 2 | 3 | 4;
 
   /** Plugin dependencies (other plugin names that must run first) */
   readonly dependencies: readonly string[];
@@ -238,7 +238,7 @@ export interface PluginRegistry {
    * @param phase Phase number to filter by
    * @returns Array of plugins for the specified phase
    */
-  getByPhase(phase: 1 | 2 | 3): readonly AuditPlugin[];
+  getByPhase(phase: 1 | 2 | 3 | 4): readonly AuditPlugin[];
 
   /**
    * Unregister a plugin
@@ -267,7 +267,7 @@ export interface PluginInfo {
   readonly type: AuditType;
 
   /** Implementation phase */
-  readonly phase: 1 | 2 | 3;
+  readonly phase: 1 | 2 | 3 | 4;
 
   /** Plugin description */
   readonly description: string;

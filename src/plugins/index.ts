@@ -5,6 +5,8 @@ import { BundleAnalysisPlugin } from './code-quality/bundle-analysis-plugin.js';
 import { FontPerformancePlugin } from './performance/font-performance-plugin.js';
 import { SEODeepPlugin } from './seo/seo-deep-plugin.js';
 import { PWAEnhancedPlugin } from './pwa/pwa-enhanced-plugin.js';
+import { MobileUXPlugin } from './ux/mobile-ux-plugin.js';
+import { ThirdPartyPlugin } from './performance/third-party-plugin.js';
 import type { AuditPlugin } from '../core/plugin-interface.js';
 
 /**
@@ -34,6 +36,7 @@ export function getAllPlugins(): AuditPlugin[] {
         ...getPhase1Plugins(),
         ...getPhase2Plugins(),
         ...getPhase3Plugins(),
+        ...getPhase4Plugins(),
     ];
 }
 
@@ -48,7 +51,17 @@ export function getPluginByName(name: string): AuditPlugin | undefined {
 }
 
 // ...
-export { EnhancedAccessibilityPlugin, SecurityHeadersPlugin, ImageOptimizationPlugin, BundleAnalysisPlugin, FontPerformancePlugin, SEODeepPlugin, PWAEnhancedPlugin };
+export {
+    EnhancedAccessibilityPlugin,
+    SecurityHeadersPlugin,
+    ImageOptimizationPlugin,
+    BundleAnalysisPlugin,
+    FontPerformancePlugin,
+    SEODeepPlugin,
+    PWAEnhancedPlugin,
+    MobileUXPlugin,
+    ThirdPartyPlugin
+};
 
 /**
  * Get all available plugins for Phase 2
@@ -70,6 +83,17 @@ export function getPhase3Plugins(): AuditPlugin[] {
     return [
         new SEODeepPlugin(),
         new PWAEnhancedPlugin(),
+    ];
+}
+
+/**
+ * Get all available plugins for Phase 4
+ * @returns Array of plugin instances
+ */
+export function getPhase4Plugins(): AuditPlugin[] {
+    return [
+        new MobileUXPlugin(),
+        new ThirdPartyPlugin(),
     ];
 }
 

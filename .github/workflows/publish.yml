@@ -1,3 +1,7 @@
+# DISABLED: JSR publish workflow - package is published manually via local npx jsr publish
+# This workflow requires GitHub repository to be linked in JSR settings
+# To re-enable: remove the 'if: false' condition below
+
 name: Publish to JSR
 
 on:
@@ -65,12 +69,13 @@ jobs:
 
       - name: Verify documentation
         run: |
-          echo "Verifying v2.4 documentation exists..."
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Verifying v$VERSION documentation exists..."
           ls -la docs/
           test -f docs/FEATURES.md
           test -f docs/MIGRATION.md
-          test -f docs/RELEASE-NOTES-v2.4.md
-          echo "✅ All v2.4 documentation verified"
+          test -f docs/RELEASE-NOTES-v$VERSION.md
+          echo "✅ All v$VERSION documentation verified"
 
       - name: Check if version already exists
         id: version_check

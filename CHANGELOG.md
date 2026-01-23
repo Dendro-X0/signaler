@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.5.0 - 2026-01-22
+
+### 🚀 Phase 4: Mobile & UX Optimization
+
+**Feature release focusing on mobile user experience and third-party script analysis.**
+
+#### New Features
+- **Mobile UX Plugin**:
+  - Touch target sizing validation (min 48x48px) to prevent mis-taps.
+  - Viewport configuration analysis for proper mobile scaling.
+  - Responsive design detection via CSS media query analysis.
+  - Mobile navigation pattern identification (hamburger menus).
+- **Third-Party Script Audit**:
+  - Comprehensive breakdown of external resources by domain.
+  - Performance cost attribution (transfer size and execution duration).
+  - Render-blocking script detection for third-party assets.
+  - Automated categorization of known services (Analytics, Ads, Social).
+
+#### Improvements
+- Added `viewport` and `thirdPartyDomains` metadata to audit results.
+- Enhanced UX scoring with `touchTargetScore` and `smallTouchTargets` metrics.
+
+---
+
 ## 2.4.0 - 2026-01-22
 
 ### 🚀 Phase 3: SEO & Content Quality
