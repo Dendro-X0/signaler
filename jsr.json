@@ -21,7 +21,7 @@
     "reporting"
   ],
   "license": "MIT",
-  "repository": "https://github.com/Dendro-X0/ApexAuditor",
+  "repository": "https://github.com/Dendro-X0/signaler",
   "homepage": "https://signaler.dev",
   "readme": "README.md",
   "exports": {
