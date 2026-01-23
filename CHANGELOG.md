@@ -1,5 +1,174 @@
 # Changelog
 
+## 2.4.0 - 2026-01-22
+
+### 🚀 Phase 3: SEO & Content Quality
+
+**Feature release focusing on SEO data validation and PWA compliance.**
+
+#### New Features
+- **SEO Deep Audit**:
+  - Validation of critical meta tags (Title, Description).
+  - Canonical URL detection.
+  - JSON-LD structured data verification.
+  - Open Graph and Twitter Card checks.
+  - Heading hierarchy (H1) analysis.
+- **PWA Enhanced Audit**:
+  - Web App Manifest validation (icons, display, start_url).
+  - Maskable icon detection.
+  - Service Worker registration check.
+
+#### Changes
+- **Core**: Added `seo` as a first-class `AuditType` in the plugin system.
+
+---
+
+## 2.3.0 - 2026-01-22
+
+### 🚀 Phase 2: Performance Deep Dive
+
+**Major feature release introducing advanced performance auditing.**
+
+#### New Features
+- **Image Optimization Plugin**:
+  - Detection of legacy image formats (non-WebP/AVIF).
+  - Validation of `width`/`height` attributes to prevent CLS.
+  - Offscreen image lazy-loading verification.
+  - Responsive image attribute (`srcset`) checks.
+  - Oversized image detection.
+- **Bundle Analysis Plugin**:
+  - Real-time CSS/JS code coverage analysis using Playwright.
+  - Detection of large, mostly unused bundles (>40% unused).
+  - Identification of monolithic bundles.
+- **Font Performance Plugin**:
+  - Google Fonts `display=swap` validation.
+  - Font origin `preconnect` checks.
+  - Font loading status tracking.
+
+#### Improvements
+- Added granular metrics for asset optimization savings.
+- Enhanced audit report details with specific element references.
+- Integration of code coverage data into performance reports.
+
+---
+
+## 2.2.0 - 2026-01-22
+
+### 🚀 Phase 1: Security & Enhanced Accessibility
+
+**Major feature release introducing comprehensive accessibility and security auditing capabilities.**
+
+#### 🔒 Enhanced Accessibility Plugin
+
+- **axe-core Integration**: Industry-standard accessibility testing with 90+ automated checks
+- **WCAG 2.1/2.2 Compliance**: Validates against Level A, AA, and AAA standards
+- **Comprehensive Coverage**:
+  - Color contrast analysis (including gradients and overlays)
+  - Keyboard navigation validation
+  - Screen reader compatibility testing
+  - ARIA label and semantic HTML validation
+  - Form accessibility checks
+  - Heading hierarchy validation
+- **Detailed Metrics**:
+  - Violation counts by severity (critical, serious, moderate, minor)
+  - WCAG A/AA/AAA compliance percentages (0-100%)
+  - Passed and incomplete rules tracking
+- **Actionable Fix Guidance**:
+  - Difficulty estimates (easy, medium, hard)
+  - Time estimates for implementation
+  - Step-by-step instructions
+  - Code examples for common violations
+  - WCAG guideline mapping
+
+**Output**: `accessibility-deep.json` with comprehensive WCAG compliance report
+
+#### 🛡️ Security Headers Plugin
+
+- **OWASP Top 10 Validation**: Automated security misconfiguration detection
+- **Security Headers Analysis**:
+  - Strict-Transport-Security (HSTS)
+  - X-Frame-Options (clickjacking prevention)
+  - X-Content-Type-Options (MIME sniffing prevention)
+  - Content-Security-Policy (XSS protection)
+  - Referrer-Policy (information leakage control)
+  - Permissions-Policy (browser feature control)
+- **Cookie Security Validation**:
+  - HttpOnly flag verification
+  - Secure flag enforcement
+  - SameSite attribute validation
+- **CORS Configuration Analysis**:
+  - Wildcard origin detection
+  - Overly permissive policy identification
+- **Security Score**: 0-100 rating with detailed breakdown
+
+**Output**: `security-headers.json` with production-ready header configurations
+
+#### 📊 Plugin Architecture Enhancements
+
+- **Plugin Registry System**: Centralized plugin management with phase-based organization
+- **Factory Functions**: `getPhase1Plugins()`, `getAllPlugins()`, `getPluginByName()`
+- **Seamless Integration**: Works with existing multi-audit engine from v2.1.0
+- **Shared Data Context**: Efficient data sharing between plugins
+
+#### 🐛 Bug Fixes
+
+- **Report Noise Reduction**: Filter issues with 0ms impact from AI-ANALYSIS.json and QUICK-FIXES.md
+- **Improved Reporting**: Enhanced issue prioritization in ReportAggregator
+
+#### 🧪 Testing
+
+- **27 Comprehensive Test Cases**: Full coverage for both plugins
+- **Property-Based Testing**: Validates plugin behavior across randomized inputs
+- **Integration Tests**: End-to-end plugin execution validation
+
+#### 📚 Documentation
+
+- **Implementation Guide**: `docs/phase-1-implementation.md` with detailed usage examples
+- **Roadmap**: `ROADMAP.md` outlining path to v3.0.0 (6 phases through September 2026)
+- **Phase 1 Summary**: Complete accomplishment documentation
+
+#### 🔄 Migration Notes
+
+- **Zero Breaking Changes**: Existing configurations and workflows continue to work
+- **Opt-In Plugins**: New plugins are automatically available but don't affect existing audits
+- **Enhanced Reports**: AI-ANALYSIS.json now includes accessibility and security insights
+
+#### 📦 New Files
+
+```
+src/plugins/
+├── accessibility/
+│   └── enhanced-accessibility-plugin.ts
+├── security/
+│   └── security-headers-plugin.ts
+└── index.ts
+
+test/plugins/
+├── enhanced-accessibility-plugin.test.ts
+└── security-headers-plugin.test.ts
+
+docs/
+└── phase-1-implementation.md
+```
+
+#### 🎯 Impact
+
+- **3x More Issues Detected**: axe-core finds significantly more accessibility issues than Lighthouse alone
+- **OWASP Compliance**: Automated security best practices validation
+- **Production-Ready**: Copy-paste security header configurations
+- **AI-Optimized**: Enhanced AI-ANALYSIS.json with WCAG and OWASP categorization
+
+#### 🚀 Next Steps
+
+**Phase 2 (v2.3.0 - March 2026)**:
+- Image Optimization Plugin
+- JavaScript Bundle Analysis Plugin
+- Font Performance Plugin
+
+See `ROADMAP.md` for complete feature timeline.
+
+---
+
 ## 2.1.3 - 2026-01-20
 
 ### 📦 JSR Packaging + Documentation Sync

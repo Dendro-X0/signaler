@@ -241,7 +241,7 @@ async function runParallelInProcesses(
   let totalFailures = 0;
   let totalAttempts = 0;
   let currentEffectiveParallel = effectiveParallel;
-  
+
   const runOnWorker = async (workerIndex: number, taskIndex: number): Promise<void> => {
     const worker = workers[workerIndex];
     if (signal?.aborted) {
@@ -253,7 +253,7 @@ async function runParallelInProcesses(
     }
     const task: AuditTask = tasks[next.taskIndex];
     const id: string = `${workerIndex}-${next.taskIndex}-${next.runIndex}-${Date.now()}`;
-    
+
     totalAttempts++;
     const workerTask: WorkerTask = {
       url: task.url,
@@ -332,14 +332,14 @@ async function runParallelInProcesses(
         pending.unshift(retryItem);
       }
       consecutiveRetries += 1;
-      
+
       // Check if we should reduce parallelism due to high failure rate
       const failureRate = totalFailures / totalAttempts;
       if (consecutiveRetries >= 3 && currentEffectiveParallel > 1) {
         const newParallel = Math.max(1, Math.floor(currentEffectiveParallel / 2));
         logLinePreservingProgress(`⚠️  High failure rate detected (${Math.round(failureRate * 100)}%). Reducing parallelism from ${currentEffectiveParallel} to ${newParallel} workers.`);
         currentEffectiveParallel = newParallel;
-        
+
         // Kill excess workers
         for (let i = newParallel; i < workers.length; i++) {
           try {
@@ -349,7 +349,7 @@ async function runParallelInProcesses(
           }
         }
       }
-      
+
       try {
         worker.child.kill();
       } catch {
@@ -394,10 +394,10 @@ async function runParallelInProcesses(
       try {
         // Try graceful shutdown first
         worker.child.kill('SIGTERM');
-        
+
         // Wait briefly for graceful shutdown
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Force kill if still running
         if (!worker.child.killed) {
           worker.child.kill('SIGKILL');
@@ -407,7 +407,7 @@ async function runParallelInProcesses(
         logLinePreservingProgress(`Warning: Worker ${index} cleanup error: ${error instanceof Error ? error.message : String(error)}`);
       }
     });
-    
+
     await Promise.allSettled(cleanupPromises);
   }
   return results;
@@ -500,15 +500,15 @@ type WorkerRequestMessage = {
 
 type WorkerResponseMessage =
   | {
-      readonly type: "result";
-      readonly id: string;
-      readonly result: PageDeviceSummary;
-    }
+    readonly type: "result";
+    readonly id: string;
+    readonly result: PageDeviceSummary;
+  }
   | {
-      readonly type: "error";
-      readonly id: string;
-      readonly errorMessage: string;
-    };
+    readonly type: "error";
+    readonly id: string;
+    readonly errorMessage: string;
+  };
 
 async function createChromeSession(chromePort?: number): Promise<ChromeSession> {
   if (typeof chromePort === "number") {
@@ -611,10 +611,10 @@ async function performWarmUp(config: ApexConfig, signal?: AbortSignal): Promise<
     uniqueUrls.add(url);
   }
   const urls: readonly string[] = Array.from(uniqueUrls);
-  
+
   const spinner = new Spinner(`Warming up ${uniqueUrls.size} pages...`);
   spinner.start();
-  
+
   try {
     const warmUpConcurrency: number = Math.max(1, Math.min(4, config.parallel ?? 4));
     const warmUpNextIndex = { value: 0 };
@@ -626,9 +626,9 @@ async function performWarmUp(config: ApexConfig, signal?: AbortSignal): Promise<
         const index: number = warmUpNextIndex.value;
         warmUpNextIndex.value += 1;
         const url: string = urls[index];
-        
+
         spinner.updateMessage(`Warming up ${index + 1}/${urls.length} pages...`);
-        
+
         try {
           await fetchUrl(url, signal);
         } catch {
@@ -959,7 +959,7 @@ async function runParallel(
   // Create a pool of Chrome sessions
   const sessions: { session: ChromeSession }[] = [];
   const effectiveParallel: number = Math.min(parallelCount, tasks.length);
-  
+
   for (let i = 0; i < effectiveParallel; i += 1) {
     if (i > 0) {
       await delayMs(200 * i);
@@ -975,7 +975,7 @@ async function runParallel(
       const currentIndex = taskIndex;
       taskIndex += 1;
       const task = tasks[currentIndex];
-      
+
       const summaries: PageDeviceSummary[] = [];
       for (let run = 0; run < task.runs; run += 1) {
         const outcome: AuditOutcome = await runSingleAuditWithRetry({
@@ -1337,35 +1337,35 @@ function resolveParallelCount({
   if (chromePort !== undefined) {
     return 1;
   }
-  
+
   // Explicitly requested: use that value (with bounds)
   if (requested !== undefined) {
     return Math.max(1, Math.min(10, requested));
   }
-  
+
   // Auto-tune based on CPU and memory
   const logicalCpus: number = cpus().length;
   const cpuBased: number = Math.max(1, Math.min(10, Math.floor(logicalCpus * 0.75)));
-  
+
   // Each worker needs ~1.5GB memory
   const freeMemoryBytes: number = freemem();
   const freeMemoryGB: number = freeMemoryBytes / 1_000_000_000;
   const memoryBased: number = Math.max(1, Math.min(10, Math.floor(freeMemoryGB / 1.5)));
-  
+
   // Take minimum of CPU and memory constraints
   const suggested: number = Math.max(1, Math.min(cpuBased, memoryBased));
-  
+
   // Cap at 4 by default for stability
   const cappedSuggested: number = Math.min(4, suggested || 1);
-  
+
   // Don't use more workers than tasks
   const final: number = Math.max(1, Math.min(10, Math.min(taskCount, cappedSuggested)));
-  
+
   // Warn if memory-constrained
   if (memoryBased < cpuBased && final < cpuBased) {
     logLinePreservingProgress(`⚠️  Limited to ${final} workers due to available memory (${Math.round(freeMemoryGB * 1000)}MB free)`);
   }
-  
+
   return final;
 }
 

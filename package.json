@@ -1,8 +1,8 @@
 {
   "name": "@signaler/cli",
-  "version": "2.1.4",
+  "version": "2.4.0",
   "private": false,
-  "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
+  "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
     "performance",
     "monitoring",

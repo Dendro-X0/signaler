@@ -3,8 +3,13 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
-    "types": ["node"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -13,21 +18,51 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "./webhooks.js": ["./src/webhooks.ts"],
-      "./quick-cli.js": ["./src/quick-cli.ts"],
-      "@signaler/core": ["./src/core/index.ts"],
-      "@signaler/core/*": ["./src/core/*"],
-      "@signaler/cli": ["./src/cli/index.ts"],
-      "@signaler/cli/*": ["./src/cli/*"],
-      "@signaler/runners": ["./src/runners/index.ts"],
-      "@signaler/runners/*": ["./src/runners/*"],
-      "@signaler/reporting": ["./src/reporting/index.ts"],
-      "@signaler/reporting/*": ["./src/reporting/*"],
-      "@signaler/infrastructure": ["./src/infrastructure/index.ts"],
-      "@signaler/infrastructure/*": ["./src/infrastructure/*"],
-      "@signaler/ui": ["./src/ui/index.ts"],
-      "@signaler/ui/*": ["./src/ui/*"]
+      "./webhooks.js": [
+        "./src/webhooks.ts"
+      ],
+      "./quick-cli.js": [
+        "./src/quick-cli.ts"
+      ],
+      "@signaler/core": [
+        "./src/core/index.ts"
+      ],
+      "@signaler/core/*": [
+        "./src/core/*"
+      ],
+      "@signaler/cli": [
+        "./src/cli/index.ts"
+      ],
+      "@signaler/cli/*": [
+        "./src/cli/*"
+      ],
+      "@signaler/runners": [
+        "./src/runners/index.ts"
+      ],
+      "@signaler/runners/*": [
+        "./src/runners/*"
+      ],
+      "@signaler/reporting": [
+        "./src/reporting/index.ts"
+      ],
+      "@signaler/reporting/*": [
+        "./src/reporting/*"
+      ],
+      "@signaler/infrastructure": [
+        "./src/infrastructure/index.ts"
+      ],
+      "@signaler/infrastructure/*": [
+        "./src/infrastructure/*"
+      ],
+      "@signaler/ui": [
+        "./src/ui/index.ts"
+      ],
+      "@signaler/ui/*": [
+        "./src/ui/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

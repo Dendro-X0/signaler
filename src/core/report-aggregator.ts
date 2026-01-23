@@ -35,8 +35,10 @@ type AggregateIssuesReturn = {
 export class ReportAggregator {
   public aggregateIssues(params: AggregateIssuesParams): AggregateIssuesReturn {
     const { issues } = params;
-    const prioritized: readonly PrioritizedIssue[] = this.prioritizeIssues({ issues });
-    const crossCutting: readonly CrossCuttingIssue[] = this.identifyCrossCuttingIssues({ issues });
+    // Filter out issues with no impact to prevent report noise (e.g. 0ms savings)
+    const validIssues = issues.filter(issue => issue.impact > 0);
+    const prioritized: readonly PrioritizedIssue[] = this.prioritizeIssues({ issues: validIssues });
+    const crossCutting: readonly CrossCuttingIssue[] = this.identifyCrossCuttingIssues({ issues: validIssues });
     return { prioritized, crossCutting };
   }
 
