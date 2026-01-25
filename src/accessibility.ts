@@ -170,7 +170,7 @@ async function runAxeForPage(params: {
  * ```typescript
  * const summary = await runAccessibilityAudit({
  *   config: apexConfig,
- *   configPath: './apex.config.json',
+ *   configPath: './signaler.config.json',
  *   parallelOverride: 2,
  *   timeoutMs: 30000,
  *   artifactsDir: './.signaler'

@@ -108,7 +108,7 @@ function parseArgs(argv: readonly string[]): HealthArgs {
     }
   }
   return {
-    configPath: configPath ?? "apex.config.json",
+    configPath: configPath ?? "signaler.config.json",
     parallelOverride,
     timeoutMs,
     jsonOutput,

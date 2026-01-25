@@ -153,13 +153,13 @@ const pageQuestions: readonly PromptObject[] = [
 const addFirstPageQuestion: PromptObject = {
   type: "confirm",
   name: "value",
-  message: "No pages were auto-detected. Add a page to audit now? (You can always edit apex.config.json later)",
+  message: "No pages were auto-detected. Add a page to audit now? (You can always edit signaler.config.json later)",
   initial: true,
 };
 const addMorePagesQuestion: PromptObject = {
   type: "confirm",
   name: "value",
-  message: "Add another page to audit? (Optional — you can edit apex.config.json later)",
+  message: "Add another page to audit? (Optional — you can edit signaler.config.json later)",
   initial: false,
 };
 const projectRootQuestion: PromptObject = {
@@ -325,7 +325,7 @@ function parseArgs(argv: readonly string[]): WizardArgs {
       index += 1;
     }
   }
-  return { configPath: configPath ?? "apex.config.json" };
+  return { configPath: configPath ?? "signaler.config.json" };
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -542,7 +542,7 @@ async function collectSinglePage(): Promise<ApexPageConfig> {
 async function collectPages(initialPages: readonly ApexPageConfig[]): Promise<ApexPageConfig[]> {
   const pages: ApexPageConfig[] = [...initialPages];
   if (pages.length > 0) {
-    console.log("Tip: You can add/remove pages later by editing apex.config.json or re-running init.");
+    console.log("Tip: You can add/remove pages later by editing signaler.config.json or re-running init.");
     return pages;
   }
   while (true) {

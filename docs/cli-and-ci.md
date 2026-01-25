@@ -80,7 +80,7 @@ Notes:
 Run Lighthouse audits from a config file:
 
 ```bash
-signaler audit --config apex.config.json
+signaler audit --config signaler.config.json
 ```
 
 Notes:
@@ -139,7 +139,7 @@ Exit codes:
 
 For large suites, prefer a two-phase workflow:
 
-1. Broad sweep (fast feedback): set `throttlingMethod: simulate` in `apex.config.json` and run the full suite.
+1. Broad sweep (fast feedback): set `throttlingMethod: simulate` in `signaler.config.json` and run the full suite.
 2. Focused rerun (high-signal): re-run only the worst combos from the previous run using `--focus-worst <n>`. For this focused rerun, you can switch to `throttlingMethod: devtools` for a more DevTools-like rerun.
 
 When you care about token efficiency and disk output size:
@@ -160,7 +160,7 @@ When you care about token efficiency and disk output size:
 Run fast CDP-based metrics:
 
 ```bash
-signaler measure --config apex.config.json
+signaler measure --config signaler.config.json
 ```
 
 Note: `measure` is an engine command; when using the launcher, run the engine directly (this will be simplified in a future release).
@@ -193,10 +193,10 @@ Output:
 
 ### `health`
 
-Fast HTTP checks for routes from `apex.config.json`.
+Fast HTTP checks for routes from `signaler.config.json`.
 
 ```bash
-signaler health --config apex.config.json
+signaler health --config signaler.config.json
 ```
 
 Key flags:
@@ -215,7 +215,7 @@ Output:
 Sitemap + HTML link extraction to find broken internal links.
 
 ```bash
-signaler links --config apex.config.json
+signaler links --config signaler.config.json
 ```
 
 Key flags:
@@ -236,7 +236,7 @@ Output:
 Security headers presence check per configured route.
 
 ```bash
-signaler headers --config apex.config.json
+signaler headers --config signaler.config.json
 ```
 
 Key flags:
@@ -255,7 +255,7 @@ Output:
 Headless Chrome pass that captures console errors and uncaught exceptions.
 
 ```bash
-signaler console --config apex.config.json
+signaler console --config signaler.config.json
 ```
 
 Key flags:
@@ -272,7 +272,7 @@ Output:
 
 ## 2. CI mode and budgets
 
-Budgets are configured in `apex.config.json` under `budgets`.
+Budgets are configured in `signaler.config.json` under `budgets`.
 
 Run in CI:
 

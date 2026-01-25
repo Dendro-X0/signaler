@@ -165,7 +165,7 @@ function parseArgs(argv: readonly string[]): ConsoleArgs {
     }
   }
   return {
-    configPath: configPath ?? "apex.config.json",
+    configPath: configPath ?? "signaler.config.json",
     parallelOverride,
     timeoutMs,
     maxEventsPerTarget,

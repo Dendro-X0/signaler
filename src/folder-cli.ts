@@ -197,7 +197,7 @@ export async function runFolderCli(argv: readonly string[]): Promise<void> {
       cpuSlowdownMultiplier: 4,
     };
 
-    const configPath: string = resolve(outputDir, "folder.apex.config.json");
+    const configPath: string = resolve(outputDir, "folder.signaler.config.json");
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 
     const folderRun = {

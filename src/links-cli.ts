@@ -122,7 +122,7 @@ function parseArgs(argv: readonly string[]): LinksArgs {
     }
   }
   return {
-    configPath: configPath ?? "apex.config.json",
+    configPath: configPath ?? "signaler.config.json",
     sitemapUrl,
     parallelOverride,
     timeoutMs,

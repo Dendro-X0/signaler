@@ -110,7 +110,7 @@ function parseArgs(argv: readonly string[]): HeadersArgs {
     }
   }
   return {
-    configPath: configPath ?? "apex.config.json",
+    configPath: configPath ?? "signaler.config.json",
     parallelOverride,
     timeoutMs,
     jsonOutput,

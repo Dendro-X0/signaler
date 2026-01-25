@@ -2,7 +2,7 @@
 
 > Comprehensive web quality platform with AI-powered insights, accessibility, security, and performance audits.
 
-![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.5.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -59,7 +59,18 @@ signaler audit --focus-worst 10
 signaler audit --ci --fail-on-budget
 ```
 
+### Demos
+
+![Init and Audit Workflow](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif)
+*Initializing a project and running an audit in interactive mode*
+
 ### Output Files
+
+![File Tree Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/file_tree_report.gif)
+*Comprehensive file tree generation*
+
+![HTML Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/HTML_report.gif)
+*Interactive HTML report with AI insights*
 
 Signaler generates comprehensive reports in `.signaler/`:
 
@@ -94,7 +105,7 @@ For complete API documentation, see [API Reference](./docs/api-reference.md).
 
 ## Configuration
 
-Create an `apex.config.json` file in your project root:
+Create a `signaler.config.json` file in your project root:
 
 ```json
 {
@@ -167,7 +178,7 @@ More examples in [`/docs/examples`](./docs/examples).
 **Solution**: Reduce `parallel` workers or enable incremental mode with `incremental: true` in config.
 
 **Issue**: Missing routes
-**Solution**: Use `signaler wizard` to auto-detect routes, or manually add them to `apex.config.json`.
+**Solution**: Use `signaler wizard` to auto-detect routes, or manually add them to `signaler.config.json`.
 
 For more solutions, see [Troubleshooting Guide](./docs/troubleshooting.md).
 

@@ -37,7 +37,7 @@ type UninstallReport = {
 
 function parseArgs(argv: readonly string[]): UninstallArgs {
   let projectRoot: string = process.cwd();
-  let configPath: string = "apex.config.json";
+  let configPath: string = "signaler.config.json";
   let dryRun: boolean = false;
   let yes: boolean = false;
   let jsonOutput: boolean = false;

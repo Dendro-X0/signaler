@@ -155,7 +155,7 @@ function parseArgs(argv: readonly string[]): MeasureArgs {
       jsonOutput = true;
     }
   }
-  return { configPath: configPath ?? "apex.config.json", deviceFilter, parallelOverride, timeoutMs, screenshots, jsonOutput };
+  return { configPath: configPath ?? "signaler.config.json", deviceFilter, parallelOverride, timeoutMs, screenshots, jsonOutput };
 }
 
 function formatMs(value: number | undefined): string {

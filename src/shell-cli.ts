@@ -45,7 +45,7 @@ interface ParsedShellCommand {
 
 const SESSION_DIR_NAME = ".signaler" as const;
 const SESSION_FILE_NAME = "session.json" as const;
-const DEFAULT_CONFIG_PATH = "apex.config.json" as const;
+const DEFAULT_CONFIG_PATH = "signaler.config.json" as const;
 const DEFAULT_PROMPT = "> " as const;
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
 
@@ -797,7 +797,7 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   lines.push(`${theme.cyan(padCmd("console"))}Console errors + runtime exceptions audit (headless Chrome)`);
   lines.push("");
   lines.push(theme.bold("Common commands"));
-  lines.push(`${theme.cyan(padCmd("init"))}Launch config wizard to create/edit apex.config.json`);
+  lines.push(`${theme.cyan(padCmd("init"))}Launch config wizard to create/edit signaler.config.json`);
   lines.push(`${theme.cyan(padCmd("config <path>"))}Change config file (current: ${session.configPath})`);
   lines.push(`${theme.cyan(padCmd("help"))}Show all commands`);
   lines.push("");

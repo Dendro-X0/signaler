@@ -54,7 +54,7 @@ function parsePositiveInt(value: string, flag: string): number {
 }
 
 function parseArgs(argv: readonly string[]): QuickArgs {
-  let configPath: string = "apex.config.json";
+  let configPath: string = "signaler.config.json";
   let projectRoot: string = process.cwd();
   let deviceFilter: QuickDeviceFilter;
   let measureParallel: number | undefined;

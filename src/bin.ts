@@ -145,7 +145,7 @@ function printHelp(topic?: string): void {
       [
         "Help topics:",
         "  budgets   Budget schema and CI behaviour",
-        "  configs   apex.config.json fields and defaults",
+        "  configs   signaler.config.json fields and defaults",
         "  ci        CI mode, exit codes, budgets",
         "  topics    This list",
         "Examples:",
@@ -162,7 +162,7 @@ function printHelp(topic?: string): void {
         "Budgets:",
         "  - categories: performance, accessibility, bestPractices, seo (0-100 scores)",
         "  - metrics: lcpMs, fcpMs, tbtMs, cls, inpMs (numeric thresholds)",
-        "Example apex.config.json budget:",
+        "Example signaler.config.json budget:",
         '  "budgets": {',
         '    "categories": { "performance": 80, "accessibility": 90 },',
         '    "metrics": { "lcpMs": 2500, "inpMs": 200 }',
@@ -178,7 +178,7 @@ function printHelp(topic?: string): void {
   if (topic === "configs") {
     console.log(
       [
-        "Config (apex.config.json):",
+        "Config (signaler.config.json):",
         "  baseUrl (required)     Base URL of your running site",
         "  query                  Query string appended to every path (e.g., ?lhci=1)",
         "  buildId                Build identifier used for incremental cache keys",
@@ -238,7 +238,7 @@ function printHelp(topic?: string): void {
       "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
       "    report     Generate global reports from existing .signaler/ artifacts (no Lighthouse run)",
-      "    audit      Run Lighthouse audits using apex.config.json",
+      "    audit      Run Lighthouse audits using signaler.config.json",
       "    folder     Audit a local folder by serving it with a static server",
       "    upgrade    Self-update the CLI from GitHub Releases",
       "    bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
@@ -249,7 +249,7 @@ function printHelp(topic?: string): void {
       "",
       "  Maintenance:",
       "    clean      Remove Signaler artifacts (reports/cache and optionally config)",
-      "    uninstall  One-click uninstall (removes .signaler/ and apex.config.json)",
+      "    uninstall  One-click uninstall (removes .signaler/ and signaler.config.json)",
       "    clear-screenshots  Remove .signaler/screenshots/",
       "",
       "  Configuration and Export:",
@@ -305,13 +305,13 @@ function printHelp(topic?: string): void {
       "  --json                 Print JSON report to stdout",
       "",
       "Options (health):",
-      "  --config <path>        Config path (default apex.config.json)",
+      "  --config <path>        Config path (default signaler.config.json)",
       "  --parallel <n>         Parallel requests (default auto)",
       "  --timeout-ms <ms>      Per-request timeout (default 20000)",
       "  --json                 Print JSON report to stdout",
       "",
       "Options (links):",
-      "  --config <path>        Config path (default apex.config.json)",
+      "  --config <path>        Config path (default signaler.config.json)",
       "  --sitemap <url>        Override sitemap URL (default <baseUrl>/sitemap.xml)",
       "  --parallel <n>         Parallel requests (default auto)",
       "  --timeout-ms <ms>      Per-request timeout (default 20000)",
@@ -319,13 +319,13 @@ function printHelp(topic?: string): void {
       "  --json                 Print JSON report to stdout",
       "",
       "Options (headers):",
-      "  --config <path>        Config path (default apex.config.json)",
+      "  --config <path>        Config path (default signaler.config.json)",
       "  --parallel <n>         Parallel requests (default auto)",
       "  --timeout-ms <ms>      Per-request timeout (default 20000)",
       "  --json                 Print JSON report to stdout",
       "",
       "Options (quick):",
-      "  --config <path>        Config path (default apex.config.json)",
+      "  --config <path>        Config path (default signaler.config.json)",
       "  --project-root <path>  Project root for bundle scan (default cwd)",
       "  --mobile-only          Restrict measure + accessibility to mobile combos",
       "  --desktop-only         Restrict measure + accessibility to desktop combos",
@@ -345,7 +345,7 @@ function printHelp(topic?: string): void {
       "  --dir <path>           Artifacts directory (default .signaler)",
       "",
       "Options (console):",
-      "  --config <path>        Config path (default apex.config.json)",
+      "  --config <path>        Config path (default signaler.config.json)",
       "  --parallel <n>         Parallel workers (default auto)",
       "  --timeout-ms <ms>      Per-navigation timeout (default 60000)",
       "  --max-events <n>       Cap captured events per combo (default 50)",
@@ -353,7 +353,7 @@ function printHelp(topic?: string): void {
       "",
       "Options (clean):",
       "  --project-root <path>  Project root (default cwd)",
-      "  --config-path <path>   Config file path relative to project root (default apex.config.json)",
+      "  --config-path <path>   Config file path relative to project root (default signaler.config.json)",
       "  --reports              Remove .signaler/ (default)",
       "  --no-reports           Keep .signaler/",
       "  --remove-config        Remove config file",
@@ -364,7 +364,7 @@ function printHelp(topic?: string): void {
       "",
       "Options (uninstall):",
       "  --project-root <path>  Project root (default cwd)",
-      "  --config-path <path>   Config file path relative to project root (default apex.config.json)",
+      "  --config-path <path>   Config file path relative to project root (default signaler.config.json)",
       "  --dry-run              Print planned removals without deleting",
       "  --yes, -y              Skip confirmation prompt",
       "  --json                 Print JSON report to stdout",
@@ -381,7 +381,7 @@ function printHelp(topic?: string): void {
       "",
       "Quick start:",
       "  pnpm dlx signaler@latest wizard      # guided setup",
-      "  pnpm dlx signaler@latest audit       # run with apex.config.json",
+      "  pnpm dlx signaler@latest audit       # run with signaler.config.json",
       "",
       "Defaults:",
       "  - Parallel auto-tunes from CPU/memory (up to 4 by default)",
@@ -563,7 +563,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     const message: string = error instanceof Error ? error.message : String(error);
     
     // Handle common error scenarios with helpful messages
-    if (message.includes("ENOENT") && message.includes("apex.config.json")) {
+    if (message.includes("ENOENT") && message.includes("signaler.config.json")) {
       console.error("\n❌ Config file not found");
       console.error("\nTo create a config file, run:");
       console.error("  signaler wizard");
@@ -577,7 +577,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       console.error("\n❌ Cannot connect to baseUrl");
       console.error("\nMake sure:");
       console.error("  • Your development server is running");
-      console.error("  • The baseUrl in apex.config.json is correct");
+      console.error("  • The baseUrl in signaler.config.json is correct");
       console.error("  • The server is accessible from this machine");
       process.exitCode = 1;
       return;

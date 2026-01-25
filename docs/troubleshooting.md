@@ -103,7 +103,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 1. **Validate JSON syntax:**
    ```bash
    # Use online JSON validator or
-   node -e "console.log(JSON.parse(require('fs').readFileSync('./apex.config.json', 'utf8')))"
+   node -e "console.log(JSON.parse(require('fs').readFileSync('./signaler.config.json', 'utf8')))"
    ```
 
 2. **Use wizard to regenerate:**

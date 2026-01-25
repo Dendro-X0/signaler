@@ -72,12 +72,12 @@ Inside the shell:
 > init
 ```
 
-The wizard creates or updates `apex.config.json`.
+The wizard creates or updates `signaler.config.json`.
 
 You can also point the shell at a different config file:
 
 ```text
-> config path/to/apex.config.json
+> config path/to/signaler.config.json
 ```
 
 ## 3. Measure (fast)

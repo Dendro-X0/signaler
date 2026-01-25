@@ -152,13 +152,13 @@ function buildOffenderComboRef(params: {
       params.artifacts === undefined
         ? undefined
         : {
-            diagnosticsLiteRelPath: params.artifacts.diagnosticsLiteRelPath,
-            diagnosticsLitePath: params.artifacts.diagnosticsLitePath,
-            diagnosticsRelPath: params.artifacts.diagnosticsRelPath,
-            diagnosticsPath: params.artifacts.diagnosticsPath,
-            lhrRelPath: params.artifacts.lhrRelPath,
-            lhrPath: params.artifacts.lhrPath,
-          },
+          diagnosticsLiteRelPath: params.artifacts.diagnosticsLiteRelPath,
+          diagnosticsLitePath: params.artifacts.diagnosticsLitePath,
+          diagnosticsRelPath: params.artifacts.diagnosticsRelPath,
+          diagnosticsPath: params.artifacts.diagnosticsPath,
+          lhrRelPath: params.artifacts.lhrRelPath,
+          lhrPath: params.artifacts.lhrPath,
+        },
     pointers: {
       issuesPointer: params.issuesPointer,
       diagnosticsLitePointer: params.diagnosticsLitePointer,
@@ -477,12 +477,12 @@ type IssuesIndex = {
   readonly topIssues: readonly { readonly id: string; readonly title: string; readonly count: number; readonly totalMs: number }[];
   readonly offenders: readonly {
     readonly issueId:
-      | "unused-javascript"
-      | "legacy-javascript"
-      | "render-blocking-resources"
-      | "lcp-phases"
-      | "largest-contentful-paint-element"
-      | "bf-cache";
+    | "unused-javascript"
+    | "legacy-javascript"
+    | "render-blocking-resources"
+    | "lcp-phases"
+    | "largest-contentful-paint-element"
+    | "bf-cache";
     readonly title: string;
     readonly offenderKey: string;
     readonly affectedCombos: number;
@@ -1578,13 +1578,13 @@ function buildWebhookPayload(params: {
       params.accessibility === undefined
         ? undefined
         : {
-            critical: params.accessibility.impactCounts.critical,
-            serious: params.accessibility.impactCounts.serious,
-            moderate: params.accessibility.impactCounts.moderate,
-            minor: params.accessibility.impactCounts.minor,
-            errored: params.accessibility.errored,
-            total: params.accessibility.total,
-          },
+          critical: params.accessibility.impactCounts.critical,
+          serious: params.accessibility.impactCounts.serious,
+          moderate: params.accessibility.impactCounts.moderate,
+          minor: params.accessibility.impactCounts.minor,
+          errored: params.accessibility.errored,
+          total: params.accessibility.total,
+        },
     links: {
       reportHtml: params.reportPath,
       exportJson: params.exportPath,
@@ -1784,15 +1784,15 @@ function buildSummaryPanel(params: SummaryPanelParams): string {
   const hasPrev: boolean = params.previousSummary !== undefined;
   const headers: readonly string[] = params.useColor
     ? [
-        theme.bold("Label"),
-        theme.bold("Path"),
-        theme.bold("Device"),
-        theme.green("P"),
-        hasPrev ? theme.cyan("ΔP") : "",
-        theme.cyan("A"),
-        theme.magenta("BP"),
-        theme.yellow("SEO"),
-      ].filter((h) => h !== "")
+      theme.bold("Label"),
+      theme.bold("Path"),
+      theme.bold("Device"),
+      theme.green("P"),
+      hasPrev ? theme.cyan("ΔP") : "",
+      theme.cyan("A"),
+      theme.magenta("BP"),
+      theme.yellow("SEO"),
+    ].filter((h) => h !== "")
     : ["Label", "Path", "Device", "P", ...(hasPrev ? ["ΔP"] : []), "A", "BP", "SEO"];
   const prevMap: Map<string, PageDeviceSummary> | undefined =
     params.previousSummary !== undefined
@@ -1800,12 +1800,12 @@ function buildSummaryPanel(params: SummaryPanelParams): string {
       : undefined;
   const filtered: readonly PageDeviceSummary[] = params.regressionsOnly && prevMap !== undefined
     ? params.results.filter((r) => {
-        const key: string = `${r.label}:::${r.path}:::${r.device}`;
-        const prev: PageDeviceSummary | undefined = prevMap.get(key);
-        const prevScore: number | undefined = prev?.scores.performance;
-        const currScore: number | undefined = r.scores.performance;
-        return prevScore !== undefined && currScore !== undefined && currScore < prevScore;
-      })
+      const key: string = `${r.label}:::${r.path}:::${r.device}`;
+      const prev: PageDeviceSummary | undefined = prevMap.get(key);
+      const prevScore: number | undefined = prev?.scores.performance;
+      const currScore: number | undefined = r.scores.performance;
+      return prevScore !== undefined && currScore !== undefined && currScore < prevScore;
+    })
     : params.results;
   const rows: readonly (readonly string[])[] = filtered.map((r) => {
     const scores = r.scores;
@@ -1918,14 +1918,14 @@ function buildShareableExport(params: {
     params.budgets === undefined
       ? []
       : collectBudgetViolations(params.current.results, params.budgets).map((v) => ({
-          pageLabel: v.pageLabel,
-          path: v.path,
-          device: v.device,
-          kind: v.kind,
-          id: v.id,
-          value: v.value,
-          limit: v.limit,
-        }));
+        pageLabel: v.pageLabel,
+        path: v.path,
+        device: v.device,
+        kind: v.kind,
+        id: v.id,
+        value: v.value,
+        limit: v.limit,
+      }));
   return {
     generatedAt: new Date().toISOString(),
     configFileName,
@@ -2375,7 +2375,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
       if (Number.isNaN(value) || value !== 1) {
         throw new Error(
           `Multi-run mode is no longer supported. Received --runs ${argv[i + 1]}. ` +
-            "Run the same command multiple times instead (more stable).",
+          "Run the same command multiple times instead (more stable).",
         );
       }
       runsOverride = value;
@@ -2410,7 +2410,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   if (lhr) {
     diagnostics = true;
   }
-  const finalConfigPath: string = configPath ?? "apex.config.json";
+  const finalConfigPath: string = configPath ?? "signaler.config.json";
   return {
     configPath: finalConfigPath,
     ci,
@@ -2488,7 +2488,7 @@ function printAuditFlags(): void {
     [
       "Options (audit):",
       "  --flags            Print this list and exit",
-      "  --config <path>    Config path (default apex.config.json)",
+      "  --config <path>    Config path (default signaler.config.json)",
       "  --ci               Enable CI mode with budgets and non-zero exit code on failure",
       "  --fail-on-budget   Exit non-zero if budgets fail even outside CI",
       "  --no-color         Disable ANSI colours in console output (default in CI mode)",
@@ -2877,7 +2877,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const finalIncremental: boolean = effectiveIncremental && effectiveBuildId !== undefined;
   if (effectiveIncremental && !finalIncremental) {
     // eslint-disable-next-line no-console
-    console.log("Incremental mode requested, but no buildId could be resolved. Running a full audit. Tip: pass --build-id or set buildId in apex.config.json");
+    console.log("Incremental mode requested, but no buildId could be resolved. Running a full audit. Tip: pass --build-id or set buildId in signaler.config.json");
   }
   const configRuns: number | undefined = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : undefined;
   const devtoolsRunsDefault: number | undefined = isDevtoolsAccuratePreset && configRuns === undefined ? 3 : undefined;
@@ -3184,7 +3184,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   await writeFile(reportPath, html, "utf8");
   const budgetViolations: readonly BudgetViolation[] =
     effectiveConfig.budgets === undefined ? [] : collectBudgetViolations(summary.results, effectiveConfig.budgets);
-  
+
   // Enhanced performance budget evaluation
   let budgetResult: BudgetResult | undefined;
   let budgetManager: PerformanceBudgetManager | undefined;
@@ -3193,36 +3193,36 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       PerformanceBudgetManager.fromApexBudgets(effectiveConfig.budgets)
     );
     budgetResult = budgetManager.evaluateBudgets(summary.results);
-    
+
     // Write budget report to output directory
     const budgetReportPath = resolve(outputDir, "performance-budget.json");
     await writeFile(budgetReportPath, generateCIBudgetReport(budgetResult, "json"), "utf8");
-    
+
     // Write console format for CI/CD integration
     const budgetConsoleReportPath = resolve(outputDir, "performance-budget.txt");
     await writeFile(budgetConsoleReportPath, generateCIBudgetReport(budgetResult, "console"), "utf8");
-    
+
     // Write JUnit format for CI/CD integration
     const budgetJUnitReportPath = resolve(outputDir, "performance-budget-junit.xml");
     await writeFile(budgetJUnitReportPath, generateCIBudgetReport(budgetResult, "junit"), "utf8");
-    
+
     // Generate CI/CD platform-specific reports
     if (args.ci || args.ciPlatform) {
       // GitHub Actions format
       const githubReportPath = resolve(outputDir, "performance-budget-github.txt");
       await writeFile(githubReportPath, generateGitHubActionsReport(budgetResult), "utf8");
-      
+
       // GitLab CI format
       const gitlabReportPath = resolve(outputDir, "performance-budget-gitlab.json");
       await writeFile(gitlabReportPath, generateGitLabCIReport(budgetResult), "utf8");
-      
+
       // Jenkins format
       const jenkinsReport = generateJenkinsReport(budgetResult);
       const jenkinsJUnitPath = resolve(outputDir, "performance-budget-jenkins.xml");
       const jenkinsPropsPath = resolve(outputDir, "performance-budget-jenkins.properties");
       await writeFile(jenkinsJUnitPath, jenkinsReport.junit, "utf8");
       await writeFile(jenkinsPropsPath, jenkinsReport.properties, "utf8");
-      
+
       // Platform-specific output to console
       if (args.ciPlatform === "github") {
         console.log("\n" + generateGitHubActionsReport(budgetResult));
@@ -3232,7 +3232,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
         console.log("\nJenkins reports written to performance-budget-jenkins.xml and performance-budget-jenkins.properties");
       }
     }
-    
+
     // Send budget webhook if configured
     if (args.budgetWebhookUrl) {
       try {
@@ -3241,7 +3241,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
           buildId: effectiveConfig.buildId,
           projectName: configPath.split(/[/\\]/).slice(-2, -1)[0] || 'unknown'
         });
-        
+
         await sendBudgetWebhook(budgetResult, {
           url: args.budgetWebhookUrl,
           retries: args.budgetWebhookRetries,
@@ -3294,7 +3294,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     includeExport: !args.noExport,
   });
   await writeFile(triagePath, triage, "utf8");
-  
+
   // Generate AI-optimized reports
   await writeAiOptimizedReports({
     outputDir,
@@ -3358,9 +3358,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const exportArtifacts: readonly AuditOutputArtifact[] = args.noExport
     ? []
     : [
-        { kind: "file", relativePath: "export.json" },
-        { kind: "file", relativePath: "export-bundle.json" },
-      ];
+      { kind: "file", relativePath: "export.json" },
+      { kind: "file", relativePath: "export-bundle.json" },
+    ];
   const artifacts: readonly AuditOutputArtifact[] = [...artifactsBase, ...exportArtifacts];
   await writeEngineRunIndex({
     outputDir,
@@ -3483,7 +3483,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     }
   }
   printCiSummary({ isCi: args.ci, failOnBudget: args.failOnBudget, violations: budgetViolations });
-  
+
   // Set exit code based on enhanced budget results
   if (budgetManager && budgetResult) {
     const exitCode = budgetManager.getExitCode(budgetResult, args.ci, args.failOnBudget);
@@ -3805,7 +3805,7 @@ function buildHtmlRow(result: PageDeviceSummary): string {
   const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs) + "ms" : "-";
   const clsVal: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
   const inpMs: string = metrics.inpMs !== undefined ? Math.round(metrics.inpMs) + "ms" : "-";
-  const issues: string = result.opportunities.slice(0, 3).map((o) => 
+  const issues: string = result.opportunities.slice(0, 3).map((o) =>
     `<div class="issue">${escapeHtml(o.title)}${o.estimatedSavingsMs ? ` (${Math.round(o.estimatedSavingsMs)}ms)` : ""}</div>`
   ).join("");
   return `    <div class="card">
@@ -4174,7 +4174,7 @@ function isRedScore(score: number | undefined): boolean {
 
 function printSummaryStats(results: readonly PageDeviceSummary[], useColor: boolean): void {
   if (results.length === 0) return;
-  
+
   const scores = {
     performance: results.map((r) => r.scores.performance).filter((s): s is number => s !== undefined),
     accessibility: results.map((r) => r.scores.accessibility).filter((s): s is number => s !== undefined),
@@ -4205,7 +4205,7 @@ function printSummaryStats(results: readonly PageDeviceSummary[], useColor: bool
 
   // eslint-disable-next-line no-console
   console.log(`\n📊 Summary: Avg P:${formatAvg(avgP)} A:${formatAvg(avgA)} BP:${formatAvg(avgBP)} SEO:${formatAvg(avgSEO)}`);
-  
+
   const greenText = useColor ? `${ANSI_GREEN}${greenCount}${ANSI_RESET}` : greenCount.toString();
   const yellowText = useColor ? `${ANSI_YELLOW}${yellowCount}${ANSI_RESET}` : yellowCount.toString();
   const redText = useColor ? `${ANSI_RED}${redCount}${ANSI_RESET}` : redCount.toString();
@@ -5093,14 +5093,14 @@ function mergeHints(params: { readonly fromLite?: ComboHints; readonly fromLhr?:
   };
   const hasAny: boolean = Boolean(
     merged.redirects ||
-      merged.unusedJavascript ||
-      merged.legacyJavascript ||
-      merged.renderBlockingResources ||
-      merged.criticalRequestChains ||
-      merged.lcpPhases ||
-      merged.lcpElement ||
-      merged.totalByteWeight ||
-      merged.bfCache,
+    merged.unusedJavascript ||
+    merged.legacyJavascript ||
+    merged.renderBlockingResources ||
+    merged.criticalRequestChains ||
+    merged.lcpPhases ||
+    merged.lcpElement ||
+    merged.totalByteWeight ||
+    merged.bfCache,
   );
   return hasAny ? merged : undefined;
 }
@@ -5284,15 +5284,15 @@ function buildIssuesIndex(params: {
         params.captureLevel === undefined
           ? undefined
           : {
-              screenshotsDir,
-              screenshotBaseName: baseName,
-              diagnosticsPath: resolve(diagnosticsDir, `${baseName}.json`),
-              diagnosticsRelPath: diagnosticsRel,
-              diagnosticsLitePath: resolve(diagnosticsLiteDir, `${baseName}.json`),
-              diagnosticsLiteRelPath: diagnosticsLiteRel,
-              lhrPath: params.captureLevel === "lhr" ? resolve(lhrDir, `${baseName}.json`) : undefined,
-              lhrRelPath: params.captureLevel === "lhr" ? lhrRel : undefined,
-            };
+            screenshotsDir,
+            screenshotBaseName: baseName,
+            diagnosticsPath: resolve(diagnosticsDir, `${baseName}.json`),
+            diagnosticsRelPath: diagnosticsRel,
+            diagnosticsLitePath: resolve(diagnosticsLiteDir, `${baseName}.json`),
+            diagnosticsLiteRelPath: diagnosticsLiteRel,
+            lhrPath: params.captureLevel === "lhr" ? resolve(lhrDir, `${baseName}.json`) : undefined,
+            lhrRelPath: params.captureLevel === "lhr" ? lhrRel : undefined,
+          };
       const hints: ComboHints | undefined = params.hintsByBaseName?.get(baseName)?.hints;
       if (hints !== undefined) {
         const unused = hints.unusedJavascript;
@@ -6027,8 +6027,8 @@ function buildTriageMarkdown(params: {
   } else {
     lines.push(`Target: ${params.targetScore}+`);
     lines.push("");
-    lines.push("| Label | Path | Device | P | A | BP | SEO | Runtime error | Artifacts |" );
-    lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- |" );
+    lines.push("| Label | Path | Device | P | A | BP | SEO | Runtime error | Artifacts |");
+    lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
     for (const r of failing.slice(0, 200)) {
       const baseName: string = buildArtifactBaseName({ label: r.label, path: r.path, device: r.device });
       const diagnosticsPath: string = resolve(diagnosticsDir, `${baseName}.json`);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.2 - 2026-01-24
+
+### 🔧 Configuration Refactoring
+
+- **Config Rename**: Renamed default configuration file from `apex.config.json` to `signaler.config.json` for better branding alignment.
+- **Improved UX**: Updated all CLI commands, help messages, and documentation to reflect the new configuration filename.
+- **Visual Enhancements**: Added operation demos and report previews to the main README.
+
 ## 2.5.1 - 2026-01-22
 
 ### 🚀 Phase 4: Mobile & UX Optimization

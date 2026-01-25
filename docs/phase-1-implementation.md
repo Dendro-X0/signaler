@@ -259,7 +259,7 @@ signaler audit --only-categories security
 
 ### Configuration
 
-Add to `apex.config.json`:
+Add to `signaler.config.json`:
 
 ```json
 {

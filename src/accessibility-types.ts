@@ -59,7 +59,7 @@ export type AxeResult = {
  * ```typescript
  * const summary: AxeSummary = {
  *   meta: {
- *     configPath: "./apex.config.json",
+ *     configPath: "./signaler.config.json",
  *     comboCount: 4,
  *     startedAt: "2024-01-01T00:00:00.000Z",
  *     completedAt: "2024-01-01T00:05:00.000Z",

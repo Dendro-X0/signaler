@@ -1,6 +1,6 @@
 # Configuration
 
-This document describes the `apex.config.json` format.
+This document describes the `signaler.config.json` format.
 
 ## 1. ApexConfig shape
 

@@ -170,6 +170,6 @@ export async function buildDevServerGuidanceLines(params: {
       lines.push(`  ${theme.cyan(cmd)}`);
     }
   }
-  lines.push("If the port is different, update apex.config.json: baseUrl.");
+  lines.push("If the port is different, update signaler.config.json: baseUrl.");
   return lines;
 }
