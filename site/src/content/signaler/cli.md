@@ -1,0 +1,315 @@
+# CLI Reference and CI Integration
+
+This document describes non-interactive CLI usage (for scripts/CI) and budget enforcement.
+
+## 1. Commands
+
+The CLI binary is `signaler`.
+
+The CLI binary is `signaler`.
+
+### Installation
+
+To install via JSR (recommended):
+
+```bash
+# npm
+npx jsr add -D @signaler/cli
+
+# pnpm
+pnpm dlx jsr add -D @signaler/cli
+
+# yarn
+yarn dlx jsr add -D @signaler/cli
+
+# bun
+bunx jsr add -d @signaler/cli
+```
+
+### Run without install
+
+```bash
+npx jsr run @signaler/cli <command>
+```
+
+### Upgrade
+
+```bash
+npx jsr add -D @signaler/cli@latest
+```
+
+### `shell`
+
+Interactive mode (recommended for local use):
+
+```bash
+signaler shell
+```
+
+Inside the shell:
+
+- `measure`
+- `audit`
+- `bundle`
+- `health`
+- `links`
+- `headers`
+- `console`
+- `open`
+- `open-triage`
+- `open-screenshots`
+- `open-diagnostics`
+- `open-lhr`
+- `open-artifacts`
+- `pages` / `routes`
+- `add-page`
+- `rm-page`
+- `clear-screenshots`
+- `init`
+- `config <path>`
+
+Notes:
+
+- `init` will attempt to detect your project type from `package.json`.
+- In monorepos, `init` can scan `apps/*` and `packages/*` and prompt you to choose which app/package to configure.
+- `init` can auto-discover routes from the filesystem and top-up from `robots.txt`/`sitemap.xml`.
+- You can optionally filter detected routes with include/exclude patterns and still add manual routes. For larger route sets, the wizard may default filtering to **Yes** and prefill common excludes (framework-specific).
+- Static HTML projects can be detected from HTML files under `dist/`, `build/`, `out/`, `public/`, and `src/`.
+- If you use a localhost base URL (e.g. `http://localhost:3000`), ensure the dev server port matches the project you are configuring to avoid overwrites/conflicts when multiple projects are running.
+- Confirmation prompts default to **Yes** on Enter (e.g. overwrite).
+
+### `audit`
+
+Run Lighthouse audits from a config file:
+
+```bash
+signaler audit --config signaler.config.json
+```
+
+Notes:
+
+- **Runs-per-combo is always 1**.
+- Accessibility is opt-in via `--accessibility-pass`.
+- Progress output includes page count + ETA.
+
+Key flags:
+
+- `--ci`
+- `--fail-on-budget`
+- `--no-color` / `--color`
+- `--log-level <silent|error|info|verbose>`
+- `--stable` (forces parallel=1)
+- `--mobile-only` / `--desktop-only`
+- `--parallel <n>`
+- `--audit-timeout-ms <ms>`
+- `--diagnostics` / `--lhr`
+- `--flags` (print audit flags/options and exit)
+- `--plan` / `--max-steps <n>` / `--max-combos <n>` / `--yes`
+- `--incremental --build-id <id>`
+- `--focus-worst <n>` (re-run only the worst N combos from the previous `.signaler/summary.json`)
+- `--ai-min-combos <n>` (limit `ai-fix.min.json` to the worst N combos; default 25)
+- `--no-ai-fix` (skip writing `ai-fix.json` and `ai-fix.min.json`)
+- `--no-export` (skip writing `export.json`)
+- `--open`
+- `--json`
+
+Outputs:
+
+- `.signaler/run.json`
+- `.signaler/summary.json`
+- `.signaler/summary-lite.json`
+- `.signaler/issues.json`
+- `.signaler/pwa.json`
+- `.signaler/triage.md`
+- `.signaler/red-issues.md`
+- `.signaler/ai-ledger.json`
+- `.signaler/ai-fix.json` (unless `--no-ai-fix`)
+- `.signaler/ai-fix.min.json` (unless `--no-ai-fix`)
+- `.signaler/export.json` (unless `--no-export`)
+- `.signaler/lighthouse-artifacts/diagnostics/` (when `--diagnostics` or `--lhr`)
+- `.signaler/lighthouse-artifacts/diagnostics-lite/` (when `--diagnostics` or `--lhr`)
+- `.signaler/lighthouse-artifacts/lhr/` (when `--lhr`)
+
+Note: large JSON artifacts may also be written as gzip copies (`*.json.gz`).
+
+Exit codes:
+
+- `0`: success
+- `1`: failure (runtime error or budgets)
+- `130`: cancelled (Ctrl+C). In shell mode, Esc-cancel returns you to the prompt.
+
+## 1.1 Recommended speed workflows
+
+For large suites, prefer a two-phase workflow:
+
+1. Broad sweep (fast feedback): set `throttlingMethod: simulate` in `signaler.config.json` and run the full suite.
+2. Focused rerun (high-signal): re-run only the worst combos from the previous run using `--focus-worst <n>`. For this focused rerun, you can switch to `throttlingMethod: devtools` for a more DevTools-like rerun.
+
+When you care about token efficiency and disk output size:
+
+- Use `--ai-min-combos <n>` to keep `ai-fix.min.json` small.
+- Use `--no-ai-fix` when you only need `issues.json` / `triage.md` and the HTML report.
+- Use `--no-export` when you do not need `export.json` links or share payloads.
+- Use `ai-ledger.json` as the one-run AI entry point; it includes per-combo `regressions`/`improvements` when a previous `.signaler/summary.json` exists, and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
+- Use `issues.json.offenders` to find repeated offenders (e.g. unused JS files) with route + artifact evidence pointers.
+- Use `pwa.json` to track PWA checks (HTTPS, service worker, offline signals) across routes.
+
+## Known issues
+
+- **Large-run Lighthouse stability**: very large audits (many page/device combinations) may show higher score variance than manual Lighthouse runs and can intermittently hit worker/Chrome disconnects. Workaround: reduce parallelism (`--stable`) and retry.
+
+### `measure`
+
+Run fast CDP-based metrics:
+
+```bash
+signaler measure --config signaler.config.json
+```
+
+Note: `measure` is an engine command; when using the launcher, run the engine directly (this will be simplified in a future release).
+
+Key flags:
+
+- `--mobile-only` / `--desktop-only`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--screenshots`
+- `--json`
+
+### `bundle`
+
+Scan build outputs to report total JS/CSS size and the largest files.
+
+```bash
+signaler bundle --project-root .
+```
+
+Key flags:
+
+- `--project-root <path>`
+- `--top <n>`
+- `--json`
+
+Output:
+
+- `.signaler/bundle-audit.json`
+
+### `health`
+
+Fast HTTP checks for routes from `signaler.config.json`.
+
+```bash
+signaler health --config signaler.config.json
+```
+
+Key flags:
+
+- `--config <path>`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--json`
+
+Output:
+
+- `.signaler/health.json`
+
+### `links`
+
+Sitemap + HTML link extraction to find broken internal links.
+
+```bash
+signaler links --config signaler.config.json
+```
+
+Key flags:
+
+- `--config <path>`
+- `--sitemap <url>`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--max-urls <n>`
+- `--json`
+
+Output:
+
+- `.signaler/links.json`
+
+### `headers`
+
+Security headers presence check per configured route.
+
+```bash
+signaler headers --config signaler.config.json
+```
+
+Key flags:
+
+- `--config <path>`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--json`
+
+Output:
+
+- `.signaler/headers.json`
+
+### `console`
+
+Headless Chrome pass that captures console errors and uncaught exceptions.
+
+```bash
+signaler console --config signaler.config.json
+```
+
+Key flags:
+
+- `--config <path>`
+- `--parallel <n>`
+- `--timeout-ms <ms>`
+- `--max-events <n>`
+- `--json`
+
+Output:
+
+- `.signaler/console.json`
+
+## 2. CI mode and budgets
+
+Budgets are configured in `signaler.config.json` under `budgets`.
+
+Run in CI:
+
+```bash
+signaler audit --ci --no-color
+```
+
+Behavior:
+
+- If budgets are configured, Signaler evaluates thresholds and exits non-zero on violations.
+- In CI mode, ANSI color is disabled by default unless you pass `--color`.
+
+## 3. GitHub Actions example
+
+Minimal example (start app, wait, run audit):
+
+```yaml
+name: Signaler
+
+on:
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: corepack enable
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm start &
+      - run: npx wait-on http://localhost:3000
+      - run: pnpm exec signaler audit --ci --no-color
+```
