@@ -43,6 +43,16 @@ A modern, high-performance documentation portal built with **Next.js**.
     *   `lucide-react`: For iconography.
 *   **Deployment**: Hosted on Netlify with automated builds (`pnpm build`).
 
+### 4. Cortex (AI Engine)
+The **AI integration layer** ("Signaler Cortex") enables intelligent analysis and remediation.
+
+*   **Location**: `src/cortex/`
+*   **Providers**:
+    *   **OpenAI**: GPT-4o, etc. (via `@ai-sdk/openai`)
+    *   **Anthropic**: Claude 3.5 Sonnet (via `@ai-sdk/anthropic`)
+    *   **Local**: Ollama or compatible endpoints (via generic adapter)
+*   **Configuration**: managed via `.signalerrc` or environment variables, loaded by `src/cortex/config.ts`.
+
 ## Development Workflow
 
 ### Prerequisites
@@ -118,6 +128,7 @@ signaler/
 │   └── netlify.toml        # Netlify deployment config
 ├── src/                    # Core Engine source code
 │   ├── audits/             # Individual audit implementations
+│   ├── cortex/             # AI Integration Layer (Providers, Config)
 │   ├── bin.ts              # CLI entry point
 │   └── index.ts            # Library exports
 ├── jsr.json                # JSR package configuration

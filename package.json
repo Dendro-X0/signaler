@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "2.5.2",
+  "version": "2.6.0",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
@@ -95,6 +95,10 @@
     "release": "node scripts/release.js"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.44",
+    "@ai-sdk/google": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.29",
+    "ai": "^6.0.86",
     "ansi-colors": "^4.1.3",
     "axe-core": "^4.10.2",
     "chrome-launcher": "^1.2.1",
@@ -103,7 +107,8 @@
     "open": "^10.1.0",
     "playwright": "^1.48.0",
     "prompts": "^2.4.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

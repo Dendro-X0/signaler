@@ -21,6 +21,7 @@ import { runAuditCli } from "./cli.js";
 import { runUpgradeCli } from "./upgrade-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
 import { runQuickstartCli } from "./quickstart-cli.js";
+import { runAiCli } from "./ai-cli.js";
 import { runShellCli } from "./shell-cli.js";
 import { runMeasureCli } from "./measure-cli.js";
 import { runBundleCli } from "./bundle-cli.js";
@@ -34,6 +35,7 @@ import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
 import { runFolderCli } from "./folder-cli.js";
+import { runCortexCli } from "./cortex-cli.js";
 import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
 import { readEngineVersion } from "./engine-version.js";
@@ -61,6 +63,8 @@ type ApexCommandId =
   | "init"
   | "config"
   | "export"
+  | "ai"
+  | "cortex"
   | "version";
 
 interface ParsedBinArgs {
@@ -103,7 +107,9 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "guide" ||
     rawCommand === "init" ||
     rawCommand === "config" ||
-    rawCommand === "export"
+    rawCommand === "export" ||
+    rawCommand === "ai" ||
+    rawCommand === "cortex"
   ) {
     const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
     return { command: rawCommand as ApexCommandId, argv: commandArgv };
@@ -115,7 +121,7 @@ async function printVersion(): Promise<void> {
   const version = await readEngineVersion();
   const nodeVersion = process.versions.node;
   const platform = `${process.platform} ${process.arch}`;
-  
+
   console.log(`
 ┌─────────────────────────────────────────────────┐
 │                 Signaler CLI                    │
@@ -410,11 +416,11 @@ async function cleanupChromeProcesses(): Promise<void> {
     const { exec } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const execAsync = promisify(exec);
-    
+
     if (process.platform === 'win32') {
-      await execAsync('taskkill /F /IM chrome.exe /T').catch(() => {});
+      await execAsync('taskkill /F /IM chrome.exe /T').catch(() => { });
     } else {
-      await execAsync('pkill -9 -f "chrome.*--headless"').catch(() => {});
+      await execAsync('pkill -9 -f "chrome.*--headless"').catch(() => { });
     }
   } catch {
     // Ignore cleanup errors
@@ -427,26 +433,26 @@ function setupGracefulShutdown(): void {
       return;
     }
     isShuttingDown = true;
-    
+
     console.error(`\n\n⚠️  Received ${signal}, shutting down gracefully...`);
     console.error("Cleaning up Chrome processes...");
-    
+
     await cleanupChromeProcesses();
-    
+
     console.error("Shutdown complete");
     process.exit(0);
   };
-  
+
   process.on("SIGINT", () => void shutdown("SIGINT (Ctrl+C)"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
-  
+
   // Cleanup on uncaught errors
   process.on("uncaughtException", async (error) => {
     console.error("\n❌ Uncaught exception:", error.message);
     await cleanupChromeProcesses();
     process.exit(1);
   });
-  
+
   process.on("unhandledRejection", async (reason) => {
     console.error("\n❌ Unhandled rejection:", reason);
     await cleanupChromeProcesses();
@@ -555,13 +561,21 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       await ExportCli.handle(exportOptions);
       return;
     }
+    if (parsed.command === "ai") {
+      await runAiCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "cortex") {
+      await runCortexCli(parsed.argv);
+      return;
+    }
   };
 
   try {
     await runOnce();
   } catch (error: unknown) {
     const message: string = error instanceof Error ? error.message : String(error);
-    
+
     // Handle common error scenarios with helpful messages
     if (message.includes("ENOENT") && message.includes("signaler.config.json")) {
       console.error("\n❌ Config file not found");
@@ -572,7 +586,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    
+
     if (message.includes("ECONNREFUSED") || message.includes("ENOTFOUND")) {
       console.error("\n❌ Cannot connect to baseUrl");
       console.error("\nMake sure:");
@@ -582,7 +596,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    
+
     if (message.includes("EACCES") || message.includes("permission denied")) {
       console.error("\n❌ Permission denied");
       console.error("\nTry:");
@@ -592,7 +606,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    
+
     // Re-throw unknown errors
     throw error;
   }
@@ -604,10 +618,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
 void runBin(process.argv).catch((error: unknown) => {
   console.error("\n❌ Signaler CLI failed\n");
-  
+
   if (error instanceof Error) {
     console.error("Error:", error.message);
-    
+
     // Show stack trace in verbose mode
     if (process.env.DEBUG || process.env.VERBOSE) {
       console.error("\nStack trace:");
@@ -618,11 +632,11 @@ void runBin(process.argv).catch((error: unknown) => {
   } else {
     console.error("Error:", String(error));
   }
-  
+
   console.error("\nNeed help? Check:");
   console.error("  • README.md for documentation");
   console.error("  • signaler help for command reference");
   console.error("  • GitHub issues for known problems");
-  
+
   process.exitCode = 1;
 });

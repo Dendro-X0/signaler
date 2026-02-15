@@ -57,7 +57,27 @@ signaler audit --focus-worst 10
 
 # CI mode with budget enforcement
 signaler audit --ci --fail-on-budget
+# CI mode with budget enforcement
+signaler audit --ci --fail-on-budget
+
+# Launch Cortex Dashboard (AI Engineer)
+signaler cortex
 ```
+
+### 🧠 Signaler Cortex (New in v2.6)
+
+Signaler Cortex is your automated performance engineer. It uses AI to:
+
+1.  **Diagnose**: Real-time analysis of your application with tech stack detection.
+2.  **Fix**: Interactive triage of audit issues with AI-suggested code patches.
+3.  **Test**: Auto-generation of Playwright tests to verify fixes.
+
+Supported AI Providers:
+- **Google**: Gemini 3 Pro, Gemini 3 Flash
+- **Anthropic**: Claude 3.5 Sonnet, Claude 4.5 Opus
+- **OpenAI**: GPT-4o, GPT-5.2
+- **Local**: Ollama, DeepSeek
+
 
 ### Demos
 

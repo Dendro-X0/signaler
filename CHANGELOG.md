@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.6.0 - 2026-02-14
+
+### 🧠 Signaler Cortex: Automated Remediation & Specialist Agents
+
+**Major feature release introducing the "Cortex" engine, turning Signaler from a diagnostic tool into an automated optimization engineer.**
+
+#### New Features
+- **Phase 2: The Context Engine**:
+    - **Tech Stack Detection**: Automatically detects Next.js, React, Vue, Nuxt, and SvelteKit.
+    - **Source Mapping**: Maps audit findings (DOM elements) back to source files (`.tsx`, `.vue`).
+    - **Intelligent Retrieval**: Extracts relevant code snippets for AI analysis without blowing token budgets.
+- **Phase 3: Specialist Agents**:
+    - **Performance Specialist**: dedicated agent for LCP/CLS optimization (image/font strategies).
+    - **Accessibility Specialist**: dedicated agent for WCAG compliance (ARIA, semantics).
+    - **Agent Dispatcher**: Automatically routes issues to the best domain expert.
+- **Phase 4: Automated Remediation**:
+    - **Git Patch Generation**: Safely generates unified diffs for AI-suggested fixes.
+    - **Automated Test Generation**: Creates Playwright tests to verify fixes and prevent regressions.
+- **Phase 5: Interactive Client (Cortex CLI)**:
+    - **Dashboard**: New `signaler cortex` command for interactive AI workflows.
+    - **Configuration Wizard**: Guided setup for AI providers and models.
+    - **Interactive Fix Mode**: Triage issues, view AI solutions, and apply patches in one flow.
+    - **Expanded Model Support**: Added Google Gemini (3 Pro/Flash), Claude 4.5, and GPT-5.2.
+
+#### Improvements
+- **Token Efficiency**: massive reduction in AI costs by sending only relevant snippets.
+- **Safety**: `PatchApplier` ensures original content matches before applying any AI changes.
+
+---
+
 ## 2.5.2 - 2026-01-24
 
 ### 🔧 Configuration Refactoring
