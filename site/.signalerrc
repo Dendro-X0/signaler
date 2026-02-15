@@ -1,0 +1,6 @@
+{
+  "ai": {
+    "provider": "anthropic",
+    "temperature": 0
+  }
+}

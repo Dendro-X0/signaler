@@ -5,6 +5,7 @@ import { AuditIssue } from '../agents/types.js';
 import { PatchGenerator } from '../remediation/patch-generator.js';
 import { PatchApplier } from '../remediation/patch-applier.js';
 import { AiProvider } from '../types.js';
+import { Spinner } from '../../utils/progress.js';
 
 /**
  * Handles the interactive remediation (Fix) flow.
@@ -36,39 +37,46 @@ export async function runFixFlow(provider: AiProvider, contextEngine: ContextEng
     if (!issueId || issueId === 'back') return;
 
     const issue = issues.find(i => i.id === issueId)!;
-    console.log(`\nAnalyzing issue: ${issue.title}...`);
 
-    const agent = dispatcher.getAgentForIssue(issue);
-    const result = await agent.analyze(issue);
+    const spinner = new Spinner(`Analyzing issue: ${issue.title}...`);
+    spinner.start();
 
-    console.log('\n--- AI Diagnosis ---');
-    console.log(result.diagnosis);
-    console.log('\n--- Proposed Fix ---');
-    console.log(result.fix);
+    try {
+        const agent = dispatcher.getAgentForIssue(issue);
+        const result = await agent.analyze(issue);
+        spinner.succeed('Analysis complete.');
 
-    const { confirm } = await prompts({
-        type: 'confirm',
-        name: 'confirm',
-        message: 'Apply this fix? (Generates a patch)',
-        initial: true
-    });
+        console.log('\n--- AI Diagnosis ---');
+        console.log(result.diagnosis);
+        console.log('\n--- Proposed Fix ---');
+        console.log(result.fix);
 
-    if (confirm) {
-        // Here we would actually use the patch applier
-        console.log('\nApplying patch...');
+        const { confirm } = await prompts({
+            type: 'confirm',
+            name: 'confirm',
+            message: 'Apply this fix? (Generates a patch)',
+            initial: true
+        });
 
-        // Demo patch generation
-        const patch = patchGenerator.createPatch(
-            'src/components/Hero.tsx', // Mocked path
-            '<img src="hero.jpg" />',
-            '<img src="hero.webp" loading="lazy" />'
-        );
+        if (confirm) {
+            const applySpinner = new Spinner('Applying patch...');
+            applySpinner.start();
 
-        const applyResult = await patchApplier.applyChanges([patch]);
-        if (applyResult.success) {
-            console.log('✅ Fix applied successfully!');
-        } else {
-            console.log(`❌ Failed to apply fix: ${applyResult.error}`);
+            // Demo patch generation
+            const patch = patchGenerator.createPatch(
+                'src/components/Hero.tsx', // Mocked path
+                '<img src="hero.jpg" />',
+                '<img src="hero.webp" loading="lazy" />'
+            );
+
+            const applyResult = await patchApplier.applyChanges([patch]);
+            if (applyResult.success) {
+                applySpinner.succeed('Fix applied successfully!');
+            } else {
+                applySpinner.fail(`Failed to apply fix: ${applyResult.error}`);
+            }
         }
+    } catch (err: any) {
+        spinner.fail(`Analysis failed: ${err.message}`);
     }
 }

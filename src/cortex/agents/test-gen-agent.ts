@@ -13,7 +13,7 @@ You specialize in:
 - Verifying fix effectiveness.
 
 When provided with a URL and code context, generate a complete Playwright test file.
-Output must be structured JSON with a 'testCode' field.
+Output must be structured JSON with a 'fix' field containing the test code.
 `;
     }
 
@@ -31,7 +31,7 @@ The test should:
 2. Verify the specific element or behavior mentioned in the issue.
 3. Assert that the issue is no longer present.
 
-Return JSON: { "testCode": "string" }
+Return JSON: { "fix": "string" }
 `;
     }
 }
