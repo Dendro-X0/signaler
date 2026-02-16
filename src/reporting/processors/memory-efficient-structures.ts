@@ -27,7 +27,7 @@ export interface CompactIssue {
   id: number;
   titleHash: number; // Hash of title for deduplication
   severity: 0 | 1 | 2 | 3; // critical=0, high=1, medium=2, low=3
-  category: 0 | 1 | 2 | 3 | 4; // javascript=0, css=1, images=2, caching=3, network=4
+  category: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7; // javascript=0, css=1, images=2, caching=3, network=4, accessibility=5, seo=6, best-practices=7
   estimatedSavingsMs: number;
   estimatedSavingsBytes: number;
 }
@@ -134,7 +134,7 @@ export class CompactAuditStorage {
 
     for (const issue of issues) {
       const titleHash = this.hashString(issue.title || '');
-      
+
       // Check if we already have this issue type
       let existingIssueId: number | undefined;
       for (const [id, compactIssue] of this.issues) {
@@ -175,7 +175,7 @@ export class CompactAuditStorage {
 
     for (const opportunity of opportunities) {
       const titleHash = this.hashString(opportunity.title || '');
-      
+
       // Check if we already have this opportunity type
       let existingOpportunityId: number | undefined;
       for (const [id, compactOpportunity] of this.opportunities) {
@@ -215,7 +215,7 @@ export class CompactAuditStorage {
     }
 
     const compactPage = this.pages[index];
-    
+
     return {
       label: compactPage.label,
       path: compactPage.path,
@@ -247,7 +247,7 @@ export class CompactAuditStorage {
       const compactIssue = this.issues.get(id);
       if (compactIssue) {
         const title = this.stringPool.get(compactIssue.titleHash) || '';
-        
+
         issues.push({
           id: `issue-${id}`,
           title,
@@ -274,7 +274,7 @@ export class CompactAuditStorage {
       const compactOpportunity = this.opportunities.get(id);
       if (compactOpportunity) {
         const title = this.stringPool.get(compactOpportunity.titleHash) || '';
-        
+
         opportunities.push({
           id: `opportunity-${id}`,
           title,
@@ -311,7 +311,7 @@ export class CompactAuditStorage {
   } {
     const memUsage = process.memoryUsage();
     const estimatedMemoryMB = memUsage.heapUsed / 1024 / 1024;
-    
+
     // Estimate uncompressed size
     const avgPageSize = 2000; // Estimated bytes per page in normal storage
     const uncompressedSize = this.pages.length * avgPageSize;
@@ -338,7 +338,7 @@ export class CompactAuditStorage {
     this.stringPool.clear();
     this.nextIssueId = 1;
     this.nextOpportunityId = 1;
-    
+
     // Force garbage collection
     this.memoryOptimizer.forceGarbageCollection();
   }
@@ -384,13 +384,16 @@ export class CompactAuditStorage {
   /**
    * Map category string to number
    */
-  private mapCategory(category: string): 0 | 1 | 2 | 3 | 4 {
+  private mapCategory(category: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 {
     switch (category) {
       case 'javascript': return 0;
       case 'css': return 1;
       case 'images': return 2;
       case 'caching': return 3;
       case 'network': return 4;
+      case 'accessibility': return 5;
+      case 'seo': return 6;
+      case 'best-practices': return 7;
       default: return 4;
     }
   }
@@ -398,13 +401,16 @@ export class CompactAuditStorage {
   /**
    * Unmap category number to string
    */
-  private unmapCategory(category: 0 | 1 | 2 | 3 | 4): string {
+  private unmapCategory(category: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7): string {
     switch (category) {
       case 0: return 'javascript';
       case 1: return 'css';
       case 2: return 'images';
       case 3: return 'caching';
       case 4: return 'network';
+      case 5: return 'accessibility';
+      case 6: return 'seo';
+      case 7: return 'best-practices';
     }
   }
 }
@@ -434,17 +440,17 @@ export class StreamingAuditProcessor {
     auditData: AsyncIterable<any>
   ): AsyncGenerator<any, void, unknown> {
     this.memoryOptimizer.startMonitoring();
-    
+
     try {
       let batch: any[] = [];
-      
+
       for await (const pageResult of auditData) {
         batch.push(pageResult);
-        
+
         if (batch.length >= this.batchSize) {
           yield* this.processBatch(batch);
           batch = [];
-          
+
           // Check memory and force GC if needed
           const metrics = this.memoryOptimizer.getCurrentMetrics();
           if (metrics.usagePercentage > 70) {
@@ -452,7 +458,7 @@ export class StreamingAuditProcessor {
           }
         }
       }
-      
+
       // Process remaining items
       if (batch.length > 0) {
         yield* this.processBatch(batch);
@@ -509,15 +515,15 @@ export class MemoryEfficientAggregator {
   ): Map<string, { count: number; totalSavings: number; affectedPages: string[] }> {
     const aggregation = new Map<string, { count: number; totalSavings: number; affectedPages: string[] }>();
     const memoryOptimizer = new MemoryOptimizer({ maxHeapSizeMB: memoryLimitMB });
-    
+
     memoryOptimizer.startMonitoring();
-    
+
     try {
       for (const page of pages) {
         for (const issue of page.issues || []) {
           const key = `${issue.id}-${issue.severity}`;
           const existing = aggregation.get(key);
-          
+
           if (existing) {
             existing.count++;
             existing.totalSavings += issue.estimatedSavings?.timeMs || 0;
@@ -530,7 +536,7 @@ export class MemoryEfficientAggregator {
             });
           }
         }
-        
+
         // Check memory periodically
         const metrics = memoryOptimizer.getCurrentMetrics();
         if (metrics.usagePercentage > 80) {
@@ -540,7 +546,7 @@ export class MemoryEfficientAggregator {
     } finally {
       memoryOptimizer.stopMonitoring();
     }
-    
+
     return aggregation;
   }
 
@@ -554,16 +560,30 @@ export class MemoryEfficientAggregator {
     totalPages: number;
     criticalIssuesCount: number;
     estimatedTotalSavings: number;
+    averageScores: {
+      performance?: number;
+      accessibility?: number;
+      bestPractices?: number;
+      seo?: number;
+    };
+    auditDuration: number;
+    disclaimer: string;
   }> {
     let totalScore = 0;
+    let totalA11y = 0;
+    let totalBP = 0;
+    let totalSEO = 0;
     let totalPages = 0;
     let criticalIssuesCount = 0;
     let estimatedTotalSavings = 0;
 
     for await (const page of pages) {
       totalScore += page.scores?.performance || 0;
+      totalA11y += page.scores?.accessibility || 0;
+      totalBP += page.scores?.bestPractices || 0;
+      totalSEO += page.scores?.seo || 0;
       totalPages++;
-      
+
       for (const issue of page.issues || []) {
         if (issue.severity === 'critical') {
           criticalIssuesCount++;
@@ -576,7 +596,15 @@ export class MemoryEfficientAggregator {
       averagePerformanceScore: totalPages > 0 ? Math.round(totalScore / totalPages) : 0,
       totalPages,
       criticalIssuesCount,
-      estimatedTotalSavings: Math.round(estimatedTotalSavings)
+      estimatedTotalSavings: Math.round(estimatedTotalSavings),
+      averageScores: {
+        performance: totalPages > 0 ? Math.round(totalScore / totalPages) : 0,
+        accessibility: totalPages > 0 ? Math.round(totalA11y / totalPages) : 0,
+        bestPractices: totalPages > 0 ? Math.round(totalBP / totalPages) : 0,
+        seo: totalPages > 0 ? Math.round(totalSEO / totalPages) : 0
+      },
+      auditDuration: 0,
+      disclaimer: 'Calculated from compact audit storage.'
     };
   }
 }

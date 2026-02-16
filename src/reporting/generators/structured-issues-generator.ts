@@ -33,7 +33,7 @@ export interface DetailedIssue {
   title: string;
   description: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
-  category: 'javascript' | 'css' | 'images' | 'caching' | 'network';
+  category: 'javascript' | 'css' | 'images' | 'caching' | 'network' | 'accessibility' | 'seo' | 'best-practices';
   affectedPages: AffectedPage[];
   totalEstimatedSavings: {
     timeMs: number;
@@ -250,7 +250,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
    */
   private extractAllIssues(data: ProcessedAuditData): Array<{ issue: Issue; page: PageAuditResult }> {
     const allIssues: Array<{ issue: Issue; page: PageAuditResult }> = [];
-    
+
     for (const page of data.pages) {
       for (const issue of page.issues) {
         allIssues.push({ issue, page });
@@ -288,7 +288,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
 
     // Convert to detailed issues
     const detailedIssues: DetailedIssue[] = [];
-    
+
     for (const [issueId, entry] of issueMap) {
       const detailedIssue = this.createDetailedIssue(issueId, entry);
       detailedIssues.push(detailedIssue);
@@ -562,7 +562,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
       for (const issue of page.issues) {
         for (const resource of issue.affectedResources) {
           const path = this.extractFilePath(resource.url);
-          
+
           if (!pathMap.has(path)) {
             pathMap.set(path, {
               issues: new Set(),
@@ -574,7 +574,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
           const entry = pathMap.get(path)!;
           entry.issues.add(issue.id);
           entry.totalImpact += issue.estimatedSavings.timeMs;
-          
+
           // Add optimization opportunities
           if (issue.category === 'javascript') {
             entry.opportunities.add('Code splitting');
@@ -594,7 +594,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
 
     // Convert to analysis results
     const analyses: FilePathAnalysis[] = [];
-    
+
     for (const [path, entry] of pathMap) {
       analyses.push({
         path,
@@ -715,7 +715,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
     for (const issue of issues.slice(0, 10)) { // Top 10 issues
       const automationLevel = this.determineAutomationLevel(issue.id);
       const commands = this.generateCommands(issue.id);
-      
+
       instructions.push({
         issueId: issue.id,
         automationLevel,
@@ -757,7 +757,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
     const timeScore = Math.min(savings.timeMs / 100, 50);
     const bytesScore = Math.min(savings.bytes / 10000, 30);
     const pageWeight = Math.min(pageCount / 5, 4);
-    
+
     return Math.round((timeScore + bytesScore) * severityWeight * pageWeight);
   }
 
@@ -790,7 +790,7 @@ export class StructuredIssuesTemplate implements ReportTemplate {
   private determineAutomationLevel(issueId: string): 'full' | 'partial' | 'manual' {
     const fullyAutomatable = ['unminified-css', 'unminified-javascript'];
     const partiallyAutomatable = ['unused-css-rules', 'unused-javascript'];
-    
+
     if (fullyAutomatable.includes(issueId)) return 'full';
     if (partiallyAutomatable.includes(issueId)) return 'partial';
     return 'manual';

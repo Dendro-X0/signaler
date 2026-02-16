@@ -128,6 +128,18 @@ export interface CategoryScores {
 export type ApexCategory = "performance" | "accessibility" | "best-practices" | "seo";
 
 /**
+ * Summary of a failed audit (score < 0.9).
+ */
+export interface FailedAuditSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly score: number;
+  readonly scoreDisplayMode: string;
+  readonly details?: any;
+}
+
+/**
  * Summary information for an opportunity.
  */
 export interface OpportunitySummary {
@@ -181,6 +193,7 @@ export interface PageDeviceSummary {
   readonly scores: CategoryScores;
   readonly metrics: MetricValues;
   readonly opportunities: readonly OpportunitySummary[];
+  readonly failedAudits: readonly FailedAuditSummary[];
   readonly runStats?: ComboRunStats;
   readonly runtimeErrorCode?: string;
   readonly runtimeErrorMessage?: string;

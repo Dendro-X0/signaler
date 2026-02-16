@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
-import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, MetricValues, OpportunitySummary, PageDeviceSummary } from "./core/types.js";
+import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, FailedAuditSummary, MetricValues, OpportunitySummary, PageDeviceSummary } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./runners/lighthouse/capture.js";
 
 type LighthouseLogLevel = "silent" | "error" | "info" | "verbose";
@@ -16,15 +16,15 @@ type WorkerRequestMessage = {
 
 type WorkerResponseMessage =
   | {
-      readonly type: "result";
-      readonly id: string;
-      readonly result: PageDeviceSummary;
-    }
+    readonly type: "result";
+    readonly id: string;
+    readonly result: PageDeviceSummary;
+  }
   | {
-      readonly type: "error";
-      readonly id: string;
-      readonly errorMessage: string;
-    };
+    readonly type: "error";
+    readonly id: string;
+    readonly errorMessage: string;
+  };
 
 type AuditTask = {
   readonly url: string;
@@ -62,6 +62,8 @@ type LighthouseAuditLike = {
   readonly scoreDisplayMode?: string;
   readonly numericValue?: number;
   readonly details?: LighthouseAuditDetailsLike;
+  readonly score?: number;
+  readonly description?: string;
 };
 
 type LighthouseResultLike = {
@@ -82,7 +84,7 @@ type LighthouseResultLike = {
 function isTransientLighthouseError(error: unknown): boolean {
   const message: string = error instanceof Error && typeof error.message === "string" ? error.message : "";
   const lowerMessage = message.toLowerCase();
-  
+
   return (
     // Lighthouse-specific errors
     message.includes("performance mark has not been set") ||
@@ -276,6 +278,8 @@ async function runSingleAudit(params: {
   const scores: CategoryScores = extractScores(lhr);
   const metrics: MetricValues = extractMetrics(lhr);
   const opportunities: readonly OpportunitySummary[] = extractTopOpportunities(lhr, 3);
+  const failedAudits: readonly FailedAuditSummary[] = extractFailedAudits(lhr);
+
   return {
     url: lhr.finalDisplayedUrl ?? params.url,
     path: params.path,
@@ -285,6 +289,7 @@ async function runSingleAudit(params: {
     scores,
     metrics,
     opportunities,
+    failedAudits,
     runtimeErrorCode: typeof lhr.runtimeError?.code === "string" ? lhr.runtimeError.code : undefined,
     runtimeErrorMessage: typeof lhr.runtimeError?.message === "string" ? lhr.runtimeError.message : undefined,
   };
@@ -347,6 +352,29 @@ function extractTopOpportunities(lhr: LighthouseResultLike, limit: number): read
     });
   candidates.sort((a, b) => (b.estimatedSavingsMs ?? 0) - (a.estimatedSavingsMs ?? 0));
   return candidates.slice(0, limit);
+}
+
+function extractFailedAudits(lhr: LighthouseResultLike): readonly FailedAuditSummary[] {
+  const audits: LighthouseAuditLike[] = Object.values(lhr.audits) as LighthouseAuditLike[];
+  return audits
+    .filter((audit) => {
+      // We want audits that failed (score < 0.9)
+      // scoreDisplayMode 'binary' means 0 or 1.
+      // scoreDisplayMode 'numeric' means 0 to 1.
+      // We also include informative/manual audits if they are relevant, but usually we stick to score.
+      if (audit.scoreDisplayMode === 'manual' || audit.scoreDisplayMode === 'informative') {
+        return false;
+      }
+      return typeof audit.score === 'number' && audit.score < 0.9;
+    })
+    .map((audit) => ({
+      id: audit.id ?? "unknown",
+      title: audit.title ?? (audit.id ?? "Unknown"),
+      description: audit.description ?? "",
+      score: audit.score ?? 0,
+      scoreDisplayMode: audit.scoreDisplayMode ?? "numeric",
+      details: audit.details,
+    }));
 }
 
 function send(message: WorkerResponseMessage): void {

@@ -71,7 +71,7 @@ export class EnhancedTriageGenerator {
   generate(data: ProcessedAuditData): string {
     const aggregatedIssues = this.aggregateIssues(data);
     const sortedIssues = this.prioritizeIssues(aggregatedIssues);
-    
+
     const header = this.generateHeader(data);
     const executiveSummary = this.generateExecutiveSummary(data, sortedIssues);
     const prioritizationMatrix = this.generatePrioritizationMatrix(sortedIssues);
@@ -165,7 +165,21 @@ export class EnhancedTriageGenerator {
       const severityDiff = severityWeight[b.severity] - severityWeight[a.severity];
       if (severityDiff !== 0) return severityDiff;
 
-      // Secondary sort: total time impact
+      // Secondary sort: Non-performance categories (A11y, SEO) are prioritized
+      const categoryWeight: Record<string, number> = {
+        'accessibility': 3,
+        'seo': 2,
+        'best-practices': 1,
+        'javascript': 0,
+        'css': 0,
+        'images': 0,
+        'caching': 0,
+        'network': 0
+      };
+      const catDiff = (categoryWeight[b.category] || 0) - (categoryWeight[a.category] || 0);
+      if (catDiff !== 0) return catDiff;
+
+      // Tertiary sort: total time impact
       const timeDiff = b.totalImpact.timeMs - a.totalImpact.timeMs;
       if (timeDiff !== 0) return timeDiff;
 
@@ -221,12 +235,12 @@ export class EnhancedTriageGenerator {
    */
   private generatePrioritizationMatrix(issues: AggregatedIssue[]): string {
     const top10Issues = issues.slice(0, 10);
-    
+
     const matrixRows = top10Issues.map((issue, index) => {
       const impact = this.calculateImpactScore(issue);
       const effort = this.estimateEffort(issue);
       const priority = this.calculatePriorityScore(impact, effort);
-      
+
       return `| ${index + 1} | ${this.truncateText(issue.title, 40)} | ${issue.severity.toUpperCase()} | ${issue.affectedPages.length} | ${Math.round(issue.totalImpact.timeMs / 1000)}s | ${impact} | ${effort} | ${priority} |`;
     });
 
@@ -250,7 +264,7 @@ export class EnhancedTriageGenerator {
    * Generate detailed issues section
    */
   private generateDetailedIssues(issues: AggregatedIssue[]): string {
-    const sections = issues.slice(0, 15).map((issue, index) => 
+    const sections = issues.slice(0, 15).map((issue, index) =>
       this.generateIssueDetail(issue, index + 1)
     );
 
@@ -280,7 +294,7 @@ export class EnhancedTriageGenerator {
       issue.description,
       '',
       '**Affected Pages:**',
-      ...issue.affectedPages.slice(0, 5).map(page => 
+      ...issue.affectedPages.slice(0, 5).map(page =>
         `- ${page.pageLabel} (${page.pagePath}) - ${Math.round(page.impactMs)}ms, Score: ${page.performanceScore}`
       ),
       issue.affectedPages.length > 5 ? `- *...and ${issue.affectedPages.length - 5} more pages*` : '',
@@ -302,7 +316,7 @@ export class EnhancedTriageGenerator {
    */
   private generateFrameworkGuidance(issues: AggregatedIssue[]): string {
     const frameworkMap = new Map<string, FrameworkRecommendation[]>();
-    
+
     // Group recommendations by framework
     for (const issue of issues) {
       for (const rec of issue.frameworkRecommendations) {
@@ -316,7 +330,7 @@ export class EnhancedTriageGenerator {
     const sections = Array.from(frameworkMap.entries()).map(([framework, recommendations]) => {
       const highPriority = recommendations.filter(r => r.priority === 'high');
       const mediumPriority = recommendations.filter(r => r.priority === 'medium');
-      
+
       return [
         `### ${this.getFrameworkDisplayName(framework)}`,
         '',
@@ -350,21 +364,21 @@ export class EnhancedTriageGenerator {
       '### Phase 1: Critical Issues (Week 1)',
       '> **Goal:** Address performance blockers and critical user experience issues',
       '',
-      ...criticalIssues.slice(0, 3).map(issue => 
+      ...criticalIssues.slice(0, 3).map(issue =>
         `- [ ] **${issue.title}** - ${issue.affectedPages.length} pages, ${Math.round(issue.totalImpact.timeMs / 1000)}s savings`
       ),
       '',
       '### Phase 2: High Impact Issues (Week 2-3)',
       '> **Goal:** Implement high-value optimizations with measurable performance gains',
       '',
-      ...highIssues.slice(0, 5).map(issue => 
+      ...highIssues.slice(0, 5).map(issue =>
         `- [ ] **${issue.title}** - ${issue.affectedPages.length} pages, ${Math.round(issue.totalImpact.timeMs / 1000)}s savings`
       ),
       '',
       '### Phase 3: Medium Priority Issues (Week 4-6)',
       '> **Goal:** Address remaining performance opportunities and technical debt',
       '',
-      ...mediumIssues.slice(0, 5).map(issue => 
+      ...mediumIssues.slice(0, 5).map(issue =>
         `- [ ] **${issue.title}** - ${issue.affectedPages.length} pages, ${Math.round(issue.totalImpact.timeMs / 1000)}s savings`
       ),
       '',
@@ -441,6 +455,30 @@ export class EnhancedTriageGenerator {
           priority: 'medium'
         });
         break;
+      case 'accessibility':
+        recommendations.push({
+          framework: 'generic',
+          recommendation: 'Fix accessibility violation: ' + issue.title,
+          implementation: 'Ensure elements have proper ARIA labels, sufficient contrast, and alt text.',
+          priority: 'high'
+        });
+        break;
+      case 'seo':
+        recommendations.push({
+          framework: 'generic',
+          recommendation: 'Improve SEO: ' + issue.title,
+          implementation: 'Add missing meta tags, improve content quality, or fix crawlability issues.',
+          priority: 'medium'
+        });
+        break;
+      case 'best-practices':
+        recommendations.push({
+          framework: 'generic',
+          recommendation: 'Follow best practice: ' + issue.title,
+          implementation: 'Update deprecated APIs and ensure modern web standards are met.',
+          priority: 'medium'
+        });
+        break;
     }
 
     // Add generic recommendations if no framework-specific ones exist
@@ -459,9 +497,9 @@ export class EnhancedTriageGenerator {
   private calculateImpactScore(issue: AggregatedIssue): string {
     const avgTimeMs = issue.averageImpact.timeMs;
     const pageCount = issue.affectedPages.length;
-    
+
     const score = (avgTimeMs / 1000) * Math.log(pageCount + 1);
-    
+
     if (score >= 3) return '🔥';
     if (score >= 1.5) return '🔸';
     return '🔹';
@@ -474,9 +512,12 @@ export class EnhancedTriageGenerator {
       'images': '🟡',
       'css': '🟡',
       'javascript': '🔴',
-      'network': '🟡'
+      'network': '🟡',
+      'accessibility': '🟡',
+      'seo': '🟢',
+      'best-practices': '🟢'
     };
-    
+
     return effortMap[issue.category] || '🟡';
   }
 
@@ -489,13 +530,13 @@ export class EnhancedTriageGenerator {
   private calculatePerformanceImpact(issue: AggregatedIssue): PerformanceImpactCalculation {
     const avgCurrentScore = issue.affectedPages.reduce((sum, page) => sum + page.performanceScore, 0) / issue.affectedPages.length;
     const avgImpactMs = issue.averageImpact.timeMs;
-    
+
     // Rough estimation: 100ms improvement ≈ 1-2 performance score points
     const projectedImprovement = Math.min(Math.round(avgImpactMs / 100), 15);
     const estimatedNewScore = Math.min(avgCurrentScore + projectedImprovement, 100);
-    
-    const confidenceLevel = issue.affectedPages.length >= 5 ? 'high' : 
-                           issue.affectedPages.length >= 2 ? 'medium' : 'low';
+
+    const confidenceLevel = issue.affectedPages.length >= 5 ? 'high' :
+      issue.affectedPages.length >= 2 ? 'medium' : 'low';
 
     return {
       currentAverageScore: Math.round(avgCurrentScore),
@@ -506,7 +547,7 @@ export class EnhancedTriageGenerator {
   }
 
   private formatFrameworkRecommendations(recommendations: FrameworkRecommendation[]): string[] {
-    return recommendations.map(rec => 
+    return recommendations.map(rec =>
       `- **${this.getFrameworkDisplayName(rec.framework)}**: ${rec.recommendation}`
     );
   }
@@ -527,7 +568,10 @@ export class EnhancedTriageGenerator {
       css: '🎨',
       images: '🖼️',
       caching: '💾',
-      network: '🌐'
+      network: '🌐',
+      accessibility: '♿',
+      seo: '🔍',
+      'best-practices': '⭐'
     };
     return emojiMap[category] || '🔧';
   }

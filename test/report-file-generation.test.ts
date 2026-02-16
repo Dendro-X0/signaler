@@ -29,7 +29,7 @@ describe("Report File Generation", () => {
             title: fc.string({ minLength: 1 }),
             description: fc.string(),
             severity: fc.constantFrom('critical', 'high', 'medium', 'low'),
-            category: fc.constantFrom('javascript', 'css', 'images', 'caching', 'network'),
+            category: fc.constantFrom('javascript', 'css', 'images', 'caching', 'network', 'accessibility', 'seo', 'best-practices'),
             affectedResources: fc.array(fc.record({
               url: fc.webUrl(),
               type: fc.string(),
@@ -94,7 +94,7 @@ describe("Report File Generation", () => {
 
         // Test developer reports generation
         const developerReports = await engine.generateDeveloperReports(processedData);
-        
+
         // Verify QUICK-FIXES.md is generated
         expect(developerReports.quickFixes).toBeDefined();
         expect(typeof developerReports.quickFixes).toBe('string');
@@ -112,12 +112,12 @@ describe("Report File Generation", () => {
 
         // Test AI reports generation
         const aiReports = await engine.generateAIReports(processedData);
-        
+
         // Verify AI-ANALYSIS.json is generated
         expect(aiReports.analysis).toBeDefined();
         expect(typeof aiReports.analysis).toBe('string');
         expect(aiReports.analysis.length).toBeGreaterThan(0);
-        
+
         // Verify it's valid JSON
         expect(() => JSON.parse(aiReports.analysis)).not.toThrow();
 
@@ -125,13 +125,13 @@ describe("Report File Generation", () => {
         expect(aiReports.structuredIssues).toBeDefined();
         expect(typeof aiReports.structuredIssues).toBe('string');
         expect(aiReports.structuredIssues.length).toBeGreaterThan(0);
-        
+
         // Verify it's valid JSON
         expect(() => JSON.parse(aiReports.structuredIssues)).not.toThrow();
 
         // Test executive reports generation
         const executiveReports = await engine.generateExecutiveReports(processedData);
-        
+
         // Verify DASHBOARD.md is generated
         expect(executiveReports.dashboard).toBeDefined();
         expect(typeof executiveReports.dashboard).toBe('string');
@@ -141,7 +141,7 @@ describe("Report File Generation", () => {
         expect(executiveReports.performanceSummary).toBeDefined();
         expect(typeof executiveReports.performanceSummary).toBe('string');
         expect(executiveReports.performanceSummary.length).toBeGreaterThan(0);
-        
+
         // Verify it's valid JSON
         expect(() => JSON.parse(executiveReports.performanceSummary)).not.toThrow();
       }
@@ -151,7 +151,7 @@ describe("Report File Generation", () => {
   // Feature: signaler-reporting-improvements, Property 4: Report File Generation
   it("should generate reports with consistent structure across different data sizes", () => {
     fc.assert(fc.asyncProperty(
-      fc.integer({ min: 1, max: 50 }).chain(pageCount => 
+      fc.integer({ min: 1, max: 50 }).chain(pageCount =>
         fc.record({
           pageCount: fc.constant(pageCount),
           pages: fc.array(fc.record({
@@ -175,7 +175,7 @@ describe("Report File Generation", () => {
               title: fc.string({ minLength: 1 }),
               description: fc.string(),
               severity: fc.constantFrom('critical', 'high', 'medium', 'low'),
-              category: fc.constantFrom('javascript', 'css', 'images', 'caching', 'network'),
+              category: fc.constantFrom('javascript', 'css', 'images', 'caching', 'network', 'accessibility', 'seo', 'best-practices'),
               affectedResources: fc.array(fc.record({
                 url: fc.webUrl(),
                 type: fc.string(),
@@ -256,7 +256,7 @@ describe("Report File Generation", () => {
         // Verify reports contain data proportional to input size
         const parsedAI = JSON.parse(aiReports.analysis);
         const parsedSummary = JSON.parse(executiveReports.performanceSummary);
-        
+
         // The reports should reflect the actual page count
         expect(parsedSummary.metadata.totalPages).toBe(data.pageCount);
       }

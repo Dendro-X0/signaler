@@ -32,7 +32,7 @@ export interface IssuePattern {
     bytes: number;
   };
   fixComplexity: 'easy' | 'medium' | 'hard';
-  category: 'javascript' | 'css' | 'images' | 'caching' | 'network';
+  category: 'javascript' | 'css' | 'images' | 'caching' | 'network' | 'accessibility' | 'seo' | 'best-practices';
   description: string;
   impact: number; // 0-100 score for prioritization
 }
@@ -79,12 +79,12 @@ export class AIAnalysisTemplate implements ReportTemplate {
 
   async generate(data: ProcessedAuditData): Promise<string> {
     const report = this.createAIAnalysisReport(data);
-    
+
     // Compress data for large audits
     if (data.pages.length > 50) {
       return this.compressReport(report);
     }
-    
+
     return JSON.stringify(report, null, 2);
   }
 
@@ -144,11 +144,11 @@ export class AIAnalysisTemplate implements ReportTemplate {
 
     // Convert to patterns and calculate impact scores
     const patterns: IssuePattern[] = [];
-    
+
     for (const [issueId, entry] of issueMap) {
       const firstIssue = entry.issues[0];
       const impact = this.calculateImpactScore(entry.totalSavings, entry.pages.length, firstIssue.severity);
-      
+
       patterns.push({
         type: issueId,
         affectedPages: [...new Set(entry.pages)], // Remove duplicates
@@ -170,10 +170,10 @@ export class AIAnalysisTemplate implements ReportTemplate {
    */
   private createPrioritizedFixes(patterns: IssuePattern[], data: ProcessedAuditData): PrioritizedFix[] {
     const fixes: PrioritizedFix[] = [];
-    
+
     // Take top 10 patterns for prioritized fixes
     const topPatterns = patterns.slice(0, 10);
-    
+
     for (let i = 0; i < topPatterns.length; i++) {
       const pattern = topPatterns[i];
       const fix = this.createFixFromPattern(pattern, i + 1);
@@ -189,7 +189,7 @@ export class AIAnalysisTemplate implements ReportTemplate {
   private createFixFromPattern(pattern: IssuePattern, rank: number): PrioritizedFix {
     const implementation = this.getImplementationGuidance(pattern.type);
     const framework = this.detectFramework(pattern.type);
-    
+
     return {
       rank,
       issueType: pattern.type,
@@ -286,10 +286,10 @@ export class AIAnalysisTemplate implements ReportTemplate {
    */
   private generateGlobalRecommendations(data: ProcessedAuditData): GlobalRecommendation[] {
     const recommendations: GlobalRecommendation[] = [];
-    
+
     // Analyze overall performance patterns
     const avgScore = data.performanceMetrics.averagePerformanceScore;
-    
+
     if (avgScore < 50) {
       recommendations.push({
         category: 'Critical Performance',
@@ -299,7 +299,7 @@ export class AIAnalysisTemplate implements ReportTemplate {
         applicableFrameworks: ['nextjs', 'react', 'vue', 'angular']
       });
     }
-    
+
     if (avgScore < 70) {
       recommendations.push({
         category: 'Performance Optimization',
@@ -311,10 +311,10 @@ export class AIAnalysisTemplate implements ReportTemplate {
     }
 
     // Check for common patterns
-    const hasJSIssues = data.pages.some(page => 
+    const hasJSIssues = data.pages.some(page =>
       page.issues.some(issue => issue.category === 'javascript')
     );
-    
+
     if (hasJSIssues) {
       recommendations.push({
         category: 'JavaScript Optimization',
@@ -392,7 +392,7 @@ export class AIAnalysisTemplate implements ReportTemplate {
     const timeScore = Math.min(savings.timeMs / 100, 50); // Cap at 50
     const bytesScore = Math.min(savings.bytes / 10000, 30); // Cap at 30
     const pageMultiplier = Math.min(pageCount / 5, 4); // Cap at 4x
-    
+
     return Math.round((timeScore + bytesScore) * severityMultiplier * pageMultiplier);
   }
 
@@ -406,7 +406,7 @@ export class AIAnalysisTemplate implements ReportTemplate {
   private determineComplexity(issueId: string, pageCount: number): 'easy' | 'medium' | 'hard' {
     const complexIssues = ['render-blocking-resources', 'unused-javascript', 'third-party-summary'];
     const easyIssues = ['unused-css-rules', 'unminified-css', 'unminified-javascript'];
-    
+
     if (complexIssues.includes(issueId) || pageCount > 20) return 'hard';
     if (easyIssues.includes(issueId) && pageCount < 5) return 'easy';
     return 'medium';
@@ -420,7 +420,7 @@ export class AIAnalysisTemplate implements ReportTemplate {
       'unminified-css': `Unminified CSS on ${pageCount} pages. Enable CSS minification in build process.`,
       'unminified-javascript': `Unminified JavaScript on ${pageCount} pages. Enable JS minification in build process.`
     };
-    
+
     return descriptions[issueId] || `Performance issue "${issueId}" affects ${pageCount} pages.`;
   }
 

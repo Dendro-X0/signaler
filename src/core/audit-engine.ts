@@ -110,6 +110,8 @@ export interface AuditMetadata {
   elapsedMs: number;
   totalPages: number;
   totalRunners: number;
+  throttlingMethod: string;
+  cpuSlowdownMultiplier: number;
 }
 
 /**
@@ -189,6 +191,8 @@ export class DefaultAuditEngine implements AuditEngine {
         elapsedMs: endTime - startTime,
         totalPages: validatedConfig.pages.length,
         totalRunners: validatedConfig.runners.length,
+        throttlingMethod: 'simulate',
+        cpuSlowdownMultiplier: 4,
       },
       results,
     };

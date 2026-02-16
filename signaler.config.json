@@ -1,0 +1,16 @@
+{
+    "baseUrl": "https://example.com",
+    "pages": [
+        {
+            "path": "/",
+            "label": "Example Home",
+            "devices": [
+                "desktop"
+            ]
+        }
+    ],
+    "throttlingMethod": "simulate",
+    "cpuSlowdownMultiplier": 1,
+    "runs": 1,
+    "logLevel": "verbose"
+}

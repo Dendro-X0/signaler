@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.6.1 - 2026-02-15
+
+### 🐛 Bug Fixes & Improvements
+
+- **Enhanced Triage Reporting**: Integrated `EnhancedTriageGenerator` into the main reporting pipeline to ensure `triage.md` accurately reflects all issue types.
+- **Issue Categorization**: Added comprehensive categorization for Accessibility, SEO, and Best Practices to ensure non-performance issues are properly prioritized.
+- **Type Safety**: Updated `PerformanceMetrics` and `AuditMetadata` interfaces to resolve type mismatches and improve codebase stability.
+- **Initialization Fixes**: Added default values for `throttlingMethod` and `cpuSlowdownMultiplier` in `DefaultAuditEngine` to prevent runtime errors.
+
 ## 2.6.0 - 2026-02-14
 
 ### 🧠 Signaler Cortex: Automated Remediation & Specialist Agents

@@ -19,6 +19,7 @@ import type {
   NumericStats,
   OpportunitySummary,
   PageDeviceSummary,
+  FailedAuditSummary,
   RunSummary,
 } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
@@ -70,6 +71,7 @@ function buildFailureSummary(task: AuditTask, errorMessage: string): PageDeviceS
     scores: {},
     metrics: {},
     opportunities: [],
+    failedAudits: [],
     runtimeErrorMessage: errorMessage,
   };
 }
@@ -429,6 +431,8 @@ interface LighthouseAuditLike {
   readonly scoreDisplayMode?: string;
   readonly numericValue?: number;
   readonly details?: LighthouseAuditDetailsLike;
+  readonly score?: number;
+  readonly description?: string;
 }
 
 interface LighthouseResultLike {
@@ -1147,6 +1151,7 @@ async function runSingleAudit(params: RunAuditParams): Promise<AuditOutcome> {
   const scores: CategoryScores = extractScores(lhr);
   const metrics: MetricValues = extractMetrics(lhr);
   const opportunities: readonly OpportunitySummary[] = extractTopOpportunities(lhr, 3);
+  const failedAudits: readonly FailedAuditSummary[] = extractFailedAudits(lhr);
   const summary: PageDeviceSummary = {
     url: lhr.finalDisplayedUrl ?? params.url,
     path: params.path,
@@ -1156,6 +1161,7 @@ async function runSingleAudit(params: RunAuditParams): Promise<AuditOutcome> {
     scores,
     metrics,
     opportunities,
+    failedAudits,
     runtimeErrorCode: typeof lhr.runtimeError?.code === "string" ? lhr.runtimeError.code : undefined,
     runtimeErrorMessage: typeof lhr.runtimeError?.message === "string" ? lhr.runtimeError.message : undefined,
   };
@@ -1221,6 +1227,25 @@ function extractTopOpportunities(lhr: LighthouseResultLike, limit: number): read
   return candidates.slice(0, limit);
 }
 
+function extractFailedAudits(lhr: LighthouseResultLike): readonly FailedAuditSummary[] {
+  const audits: LighthouseAuditLike[] = Object.values(lhr.audits) as LighthouseAuditLike[];
+  return audits
+    .filter((audit) => {
+      if (audit.scoreDisplayMode === 'manual' || audit.scoreDisplayMode === 'informative') {
+        return false;
+      }
+      return typeof audit.score === 'number' && audit.score < 0.9;
+    })
+    .map((audit) => ({
+      id: audit.id ?? "unknown",
+      title: audit.title ?? (audit.id ?? "Unknown"),
+      description: audit.description ?? "",
+      score: audit.score ?? 0,
+      scoreDisplayMode: audit.scoreDisplayMode ?? "numeric",
+      details: audit.details,
+    }));
+}
+
 function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
   if (summaries.length === 1) {
     return summaries[0];
@@ -1255,6 +1280,7 @@ function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
     },
   };
   const opportunities: readonly OpportunitySummary[] = summaries[0].opportunities;
+  const failedAudits: readonly FailedAuditSummary[] = summaries[0].failedAudits;
   return {
     url: base.url,
     path: base.path,
@@ -1263,6 +1289,7 @@ function aggregateSummaries(summaries: PageDeviceSummary[]): PageDeviceSummary {
     scores: aggregateScores,
     metrics: aggregateMetrics,
     opportunities,
+    failedAudits,
     runStats,
     runtimeErrorCode: base.runtimeErrorCode,
     runtimeErrorMessage: base.runtimeErrorMessage,

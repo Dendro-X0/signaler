@@ -6,6 +6,7 @@
  */
 
 import type { AuditResult, AuditMetadata } from '../../core/audit-engine.js';
+import type { RunSummary, PageDeviceSummary, ApexDevice } from '../../core/types.js';
 import type { ReportGenerator, Report, OutputFormat } from '../index.js';
 import { StreamingJSONProcessor, shouldUseStreaming, estimateObjectSize } from '../processors/streaming-json-processor.js';
 import { ProgressIndicator, MultiStageProgress, createProgressCallback } from '../processors/progress-indicator.js';
@@ -168,7 +169,7 @@ export interface Issue {
   /**
    * Category of the issue (e.g. JavaScript, CSS, images, caching, network).
    */
-  category: 'javascript' | 'css' | 'images' | 'caching' | 'network';
+  category: 'javascript' | 'css' | 'images' | 'caching' | 'network' | 'accessibility' | 'seo' | 'best-practices';
   /**
    * List of resources affected by the issue.
    */
@@ -318,6 +319,23 @@ export interface PerformanceMetrics {
    * Estimated total savings from fixing all issues.
    */
   estimatedTotalSavings: number;
+  /**
+   * Average scores per category (aligned with raw-results-processor)
+   */
+  averageScores: {
+    performance?: number;
+    accessibility?: number;
+    bestPractices?: number;
+    seo?: number;
+  };
+  /**
+   * Total audit duration
+   */
+  auditDuration: number;
+  /**
+   * Performance score disclaimer
+   */
+  disclaimer: string;
 }
 
 /**
@@ -414,7 +432,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
   constructor(config: ReportGeneratorConfig) {
     this.config = config;
     this.templates = new Map();
-    
+
     // Initialize memory optimizer
     this.memoryOptimizer = new MemoryOptimizer({
       maxHeapSizeMB: config.maxMemoryMB || 512,
@@ -425,16 +443,16 @@ export class ReportGeneratorEngine implements ReportGenerator {
 
     // Initialize compact storage for memory efficiency
     this.compactStorage = new CompactAuditStorage();
-    
+
     // Initialize streaming audit processor
     this.streamingAuditProcessor = new StreamingAuditProcessor(50);
-    
+
     // Initialize streaming processor
     this.streamingProcessor = new StreamingJSONProcessor({
       chunkSize: 50,
       maxMemoryMB: config.maxMemoryMB || 512,
       enableCompression: config.compressionEnabled || false,
-      progressCallback: config.enableProgressIndicators 
+      progressCallback: config.enableProgressIndicators
         ? (processed, total) => this.progressIndicator?.update({ current: processed, total })
         : undefined
     });
@@ -449,7 +467,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
 
     // Set up memory monitoring
     this.setupMemoryMonitoring();
-    
+
     this.initializeTemplates();
   }
 
@@ -460,14 +478,14 @@ export class ReportGeneratorEngine implements ReportGenerator {
     // Check memory availability before starting
     const estimatedMemoryNeeded = estimateObjectSize(data) / 1024 / 1024; // MB
     const memoryCheck = checkMemoryAvailability(estimatedMemoryNeeded);
-    
+
     if (!memoryCheck.available) {
       console.warn(`Warning: ${memoryCheck.recommendation}`);
     }
 
     return withMemoryMonitoring(async (monitor) => {
       const startTime = Date.now();
-      
+
       // Initialize progress indicator if enabled
       if (this.config.enableProgressIndicators) {
         this.progressIndicator = new ProgressIndicator({
@@ -482,13 +500,13 @@ export class ReportGeneratorEngine implements ReportGenerator {
         // Process raw audit data with memory optimization
         this.progressIndicator?.update({ current: 10, stage: 'Processing audit data' });
         const processedData = await this.processAuditDataWithMemoryOptimization(data);
-        
+
         // Determine if streaming should be used
         const dataSize = estimateObjectSize(processedData);
         const shouldStream = shouldUseStreaming(dataSize, processedData.pages.length, this.config.maxMemoryMB);
-        
+
         this.progressIndicator?.update({ current: 30, stage: 'Generating content' });
-        
+
         let content: string;
         if (shouldStream) {
           content = await this.generateWithStreaming(processedData, format);
@@ -497,9 +515,9 @@ export class ReportGeneratorEngine implements ReportGenerator {
         }
 
         const generationTime = Date.now() - startTime;
-        
+
         this.progressIndicator?.complete('Report generated successfully');
-        
+
         return {
           format,
           content,
@@ -523,6 +541,84 @@ export class ReportGeneratorEngine implements ReportGenerator {
   }
 
   /**
+   * Map RunSummary to ProcessedAuditData
+   */
+  public mapRunSummaryToProcessedData(summary: RunSummary): ProcessedAuditData {
+    const pages: PageAuditResult[] = summary.results.map(r => ({
+      label: r.label,
+      path: r.path,
+      device: r.device as 'desktop' | 'mobile',
+      scores: {
+        performance: r.scores.performance || 0,
+        accessibility: r.scores.accessibility || 0,
+        bestPractices: r.scores.bestPractices || 0,
+        seo: r.scores.seo || 0
+      },
+      metrics: {
+        lcpMs: r.metrics.lcpMs || 0,
+        fcpMs: r.metrics.fcpMs || 0,
+        tbtMs: r.metrics.tbtMs || 0,
+        cls: r.metrics.cls || 0
+      },
+      issues: [
+        ...(r.opportunities || []).map(o => ({
+          id: o.id,
+          title: o.title,
+          description: '',
+          severity: this.classifySeverity(o.estimatedSavingsMs || 0),
+          category: this.categorizeIssue(o.id),
+          affectedResources: [],
+          estimatedSavings: {
+            timeMs: o.estimatedSavingsMs || 0,
+            bytes: o.estimatedSavingsBytes || 0
+          },
+          fixRecommendations: []
+        })),
+        ...(r.failedAudits || []).map(f => ({
+          id: f.id,
+          title: f.title,
+          description: f.description,
+          severity: this.classifyAuditSeverity(f.score, f.id),
+          category: this.categorizeIssue(f.id),
+          affectedResources: [],
+          estimatedSavings: {
+            timeMs: 0,
+            bytes: 0
+          },
+          fixRecommendations: []
+        }))
+      ],
+      opportunities: (r.opportunities || []).map(o => ({
+        id: o.id,
+        title: o.title,
+        description: '',
+        estimatedSavings: {
+          timeMs: o.estimatedSavingsMs || 0,
+          bytes: o.estimatedSavingsBytes || 0
+        }
+      }))
+    }));
+
+    const performanceMetrics = this.calculatePerformanceMetrics(pages);
+
+    return {
+      pages,
+      globalIssues: [],
+      performanceMetrics,
+      auditMetadata: {
+        configPath: summary.meta.configPath,
+        startedAt: summary.meta.startedAt,
+        completedAt: summary.meta.completedAt,
+        elapsedMs: summary.meta.elapsedMs,
+        totalPages: summary.meta.comboCount,
+        totalRunners: 1,
+        throttlingMethod: summary.meta.throttlingMethod,
+        cpuSlowdownMultiplier: summary.meta.cpuSlowdownMultiplier
+      }
+    };
+  }
+
+  /**
    * Get supported output formats
    */
   getSupportedFormats(): OutputFormat[] {
@@ -534,7 +630,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   async generateDeveloperReports(data: ProcessedAuditData): Promise<DeveloperReports> {
     const multiStage = new MultiStageProgress();
-    
+
     // Add stages for each report type
     multiStage.addStage('quick-fixes', 1);
     multiStage.addStage('triage', 1);
@@ -633,17 +729,17 @@ export class ReportGeneratorEngine implements ReportGenerator {
   private async processAuditDataWithMemoryOptimization(data: AuditResult): Promise<ProcessedAuditData> {
     const pages: PageAuditResult[] = [];
     const globalIssues: GlobalIssue[] = [];
-    
+
     // Use compact storage for large datasets
     if (data.results.length > this.config.streamingThreshold) {
       return this.processLargeDatasetWithCompactStorage(data);
     }
-    
+
     // Process each page result with memory monitoring
     for (const pageResult of data.results) {
       const processedPage = await this.processPageResult(pageResult);
       pages.push(processedPage);
-      
+
       // Check memory usage periodically
       const memUsage = process.memoryUsage();
       if (memUsage.heapUsed > this.config.maxMemoryMB * 1024 * 1024 * 0.8) {
@@ -659,10 +755,10 @@ export class ReportGeneratorEngine implements ReportGenerator {
         }
       })()
     );
-    
+
     // Identify global issues with memory optimization
     const issueAggregation = MemoryEfficientAggregator.aggregateIssues(pages, this.config.maxMemoryMB);
-    
+
     // Convert aggregation to global issues
     for (const [issueKey, aggregation] of issueAggregation) {
       if (aggregation.count > 1) {
@@ -685,7 +781,9 @@ export class ReportGeneratorEngine implements ReportGenerator {
         completedAt: data.meta.completedAt,
         elapsedMs: data.meta.elapsedMs,
         totalPages: data.meta.totalPages,
-        totalRunners: data.meta.totalRunners
+        totalRunners: data.meta.totalRunners,
+        throttlingMethod: 'simulate',
+        cpuSlowdownMultiplier: 4
       }
     };
   }
@@ -696,10 +794,10 @@ export class ReportGeneratorEngine implements ReportGenerator {
   private async processLargeDatasetWithCompactStorage(data: AuditResult): Promise<ProcessedAuditData> {
     // Clear any existing data
     this.compactStorage.clear();
-    
+
     // Process results in streaming fashion
     const processedPages: PageAuditResult[] = [];
-    
+
     for await (const processedPage of this.streamingAuditProcessor.processAuditStream(
       (async function* () {
         for (const pageResult of data.results) {
@@ -730,7 +828,9 @@ export class ReportGeneratorEngine implements ReportGenerator {
         completedAt: data.meta.completedAt,
         elapsedMs: data.meta.elapsedMs,
         totalPages: data.meta.totalPages,
-        totalRunners: data.meta.totalRunners
+        totalRunners: data.meta.totalRunners,
+        throttlingMethod: 'simulate',
+        cpuSlowdownMultiplier: 4
       }
     };
   }
@@ -766,7 +866,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
   private async processPageResult(pageResult: any): Promise<PageAuditResult> {
     // Extract Lighthouse data if available
     const lighthouseResult = pageResult.runnerResults?.lighthouse;
-    
+
     if (!lighthouseResult || !lighthouseResult.success) {
       // Return minimal data for failed audits
       return {
@@ -821,7 +921,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   private extractIssues(audits: any): Issue[] {
     const issues: Issue[] = [];
-    
+
     // Common performance issues to extract
     const issueAudits = [
       'unused-javascript',
@@ -840,7 +940,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
           id: auditId,
           title: audit.title || auditId,
           description: audit.description || '',
-          severity: this.calculateSeverity(audit.score, audit.numericValue),
+          severity: this.classifyAuditSeverity(audit.score, auditId),
           category: this.categorizeIssue(auditId),
           affectedResources: this.extractResources(audit),
           estimatedSavings: {
@@ -860,7 +960,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   private extractOpportunities(audits: any): Opportunity[] {
     const opportunities: Opportunity[] = [];
-    
+
     const opportunityAudits = [
       'modern-image-formats',
       'uses-optimized-images',
@@ -892,10 +992,14 @@ export class ReportGeneratorEngine implements ReportGenerator {
   private calculatePerformanceMetrics(pages: PageAuditResult[]): PerformanceMetrics {
     const totalPages = pages.length;
     const averagePerformanceScore = pages.reduce((sum, page) => sum + page.scores.performance, 0) / totalPages;
-    const criticalIssuesCount = pages.reduce((sum, page) => 
+    const averageA11yScore = pages.reduce((sum, page) => sum + (page.scores.accessibility || 0), 0) / totalPages;
+    const averageBestPracticesScore = pages.reduce((sum, page) => sum + (page.scores.bestPractices || 0), 0) / totalPages;
+    const averageSEOScore = pages.reduce((sum, page) => sum + (page.scores.seo || 0), 0) / totalPages;
+
+    const criticalIssuesCount = pages.reduce((sum, page) =>
       sum + page.issues.filter(issue => issue.severity === 'critical').length, 0
     );
-    const estimatedTotalSavings = pages.reduce((sum, page) => 
+    const estimatedTotalSavings = pages.reduce((sum, page) =>
       sum + page.issues.reduce((issueSum, issue) => issueSum + issue.estimatedSavings.timeMs, 0), 0
     );
 
@@ -903,7 +1007,15 @@ export class ReportGeneratorEngine implements ReportGenerator {
       averagePerformanceScore: Math.round(averagePerformanceScore),
       totalPages,
       criticalIssuesCount,
-      estimatedTotalSavings: Math.round(estimatedTotalSavings)
+      estimatedTotalSavings: Math.round(estimatedTotalSavings),
+      averageScores: {
+        performance: Math.round(averagePerformanceScore),
+        accessibility: Math.round(averageA11yScore),
+        bestPractices: Math.round(averageBestPracticesScore),
+        seo: Math.round(averageSEOScore)
+      },
+      auditDuration: 0, // Should be passed from somewhere, but setting default for now
+      disclaimer: 'Performance metrics calculated across all audited pages.'
     };
   }
 
@@ -912,7 +1024,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   private identifyGlobalIssues(pages: PageAuditResult[]): GlobalIssue[] {
     const issueMap = new Map<string, string[]>();
-    
+
     // Group issues by type across pages
     for (const page of pages) {
       for (const issue of page.issues) {
@@ -924,14 +1036,14 @@ export class ReportGeneratorEngine implements ReportGenerator {
     }
 
     const globalIssues: GlobalIssue[] = [];
-    
+
     // Identify issues affecting multiple pages
     for (const [issueId, affectedPages] of issueMap) {
       if (affectedPages.length > 1) {
         const firstIssue = pages
           .flatMap(page => page.issues)
           .find(issue => issue.id === issueId);
-        
+
         if (firstIssue) {
           globalIssues.push({
             type: issueId,
@@ -951,13 +1063,13 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   private async generateWithStreaming(data: ProcessedAuditData, format: OutputFormat): Promise<string> {
     this.progressIndicator?.update({ current: 40, stage: 'Using streaming processing' });
-    
+
     const template = this.templates.get(`streaming-${format}`);
     if (!template) {
       // Fallback to standard generation with memory monitoring
       return this.generateWithMemoryOptimization(data, format);
     }
-    
+
     this.progressIndicator?.update({ current: 80, stage: 'Streaming content generation' });
     return template.generate(data);
   }
@@ -985,12 +1097,12 @@ export class ReportGeneratorEngine implements ReportGenerator {
    */
   private async generateStandard(data: ProcessedAuditData, format: OutputFormat): Promise<string> {
     this.progressIndicator?.update({ current: 60, stage: 'Standard processing' });
-    
+
     const template = this.templates.get(`standard-${format}`);
     if (!template) {
       throw new Error(`Template not found for format: ${format}`);
     }
-    
+
     this.progressIndicator?.update({ current: 90, stage: 'Finalizing content' });
     return template.generate(data);
   }
@@ -1009,7 +1121,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
     }));
 
     const result = await this.fileIO.batchWrite(writeOperations);
-    
+
     if (result.errorCount > 0) {
       const errorMessages = result.errors.map(e => `${e.path}: ${e.error}`).join(', ');
       throw new Error(`Failed to write ${result.errorCount} files: ${errorMessages}`);
@@ -1058,6 +1170,59 @@ export class ReportGeneratorEngine implements ReportGenerator {
   }
 
   /**
+   * Categorize issue based on ID
+   */
+  private categorizeIssue(issueId: string): 'javascript' | 'css' | 'images' | 'caching' | 'network' | 'accessibility' | 'seo' | 'best-practices' {
+    // A11y group
+    const a11yKeywords = ['aria-', 'label', 'alt-', 'contrast', 'color-contrast', 'html-has-lang', 'image-alt'];
+    if (a11yKeywords.some(k => issueId.includes(k))) return 'accessibility';
+
+    // SEO group
+    const seoKeywords = ['meta-description', 'http-status-code', 'font-size', 'link-text', 'crawlable'];
+    if (seoKeywords.some(k => issueId.includes(k))) return 'seo';
+
+    // Best Practices group
+    const bpKeywords = ['doctype', 'charset', 'image-aspect-ratio', 'deprecated-apis'];
+    if (bpKeywords.some(k => issueId.includes(k))) return 'best-practices';
+
+    if (issueId.includes('unused-javascript') || issueId.includes('unminified-javascript')) {
+      return 'javascript';
+    }
+    if (issueId.includes('unused-css') || issueId.includes('unminified-css')) {
+      return 'css';
+    }
+    if (issueId.includes('modern-image-formats') || issueId.includes('optimized-images')) {
+      return 'images';
+    }
+    if (issueId.includes('uses-long-cache-ttl') || issueId.includes('efficient-animated-content')) {
+      return 'caching';
+    }
+    return 'network';
+  }
+
+  /**
+   * Classify audit severity based on score
+   */
+  private classifyAuditSeverity(score: number, id: string): 'critical' | 'high' | 'medium' | 'low' {
+    const criticalAudits = ['interactive', 'largest-contentful-paint', 'total-blocking-time'];
+    if (criticalAudits.includes(id) && score < 0.5) return 'critical';
+
+    if (score < 0.5) return 'high';
+    if (score < 0.9) return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Classify severity based on savings
+   */
+  private classifySeverity(savingsMs: number): 'critical' | 'high' | 'medium' | 'low' {
+    if (savingsMs >= 2000) return 'critical';
+    if (savingsMs >= 1000) return 'high';
+    if (savingsMs >= 500) return 'medium';
+    return 'low';
+  }
+
+  /**
    * Initialize report templates
    */
   private initializeTemplates(): void {
@@ -1066,7 +1231,7 @@ export class ReportGeneratorEngine implements ReportGenerator {
     this.templates.set('standard-markdown', new MarkdownTemplate());
     this.templates.set('standard-html', new HTMLTemplate());
     this.templates.set('standard-csv', new CSVTemplate());
-    
+
     // Specialized templates
     this.templates.set('quick-fixes-md', new QuickFixesTemplate());
     this.templates.set('triage-md', new TriageTemplate());
@@ -1082,25 +1247,10 @@ export class ReportGeneratorEngine implements ReportGenerator {
   /**
    * Helper methods
    */
-  private calculateSeverity(score: number, numericValue: number): 'critical' | 'high' | 'medium' | 'low' {
-    if (score < 0.5 && numericValue > 1000) return 'critical';
-    if (score < 0.7 && numericValue > 500) return 'high';
-    if (score < 0.9) return 'medium';
-    return 'low';
-  }
-
-  private categorizeIssue(auditId: string): 'javascript' | 'css' | 'images' | 'caching' | 'network' {
-    if (auditId.includes('javascript')) return 'javascript';
-    if (auditId.includes('css')) return 'css';
-    if (auditId.includes('image')) return 'images';
-    if (auditId.includes('cache')) return 'caching';
-    return 'network';
-  }
-
   private extractResources(audit: any): Resource[] {
     const details = audit.details;
     if (!details || !details.items) return [];
-    
+
     return details.items.map((item: any) => ({
       url: item.url || '',
       type: item.resourceType || 'unknown',
@@ -1111,8 +1261,8 @@ export class ReportGeneratorEngine implements ReportGenerator {
   private extractBytesSavings(audit: any): number {
     const details = audit.details;
     if (!details || !details.items) return 0;
-    
-    return details.items.reduce((sum: number, item: any) => 
+
+    return details.items.reduce((sum: number, item: any) =>
       sum + (item.wastedBytes || item.totalBytes || 0), 0
     );
   }
@@ -1182,20 +1332,20 @@ class HTMLTemplate implements ReportTemplate {
     const { HTMLReportGenerator } = await import('./html-report-generator.js');
     const { VisualPerformanceDashboard } = await import('./visual-performance-dashboard.js');
     const { IssueVisualization } = await import('./issue-visualization.js');
-    
+
     const htmlGenerator = new HTMLReportGenerator();
     const dashboardGenerator = new VisualPerformanceDashboard();
     const issueVisualizer = new IssueVisualization();
-    
+
     // Generate main HTML report
     const mainReport = await htmlGenerator.generateReport(data);
-    
+
     // Generate dashboard section
     const dashboard = await dashboardGenerator.generateDashboard(data);
-    
+
     // Generate issue explorer
     const issueExplorer = await issueVisualizer.generateIssueExplorer(data);
-    
+
     // Combine all sections into comprehensive HTML report
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1407,8 +1557,10 @@ class QuickFixesTemplate implements ReportTemplate {
 class TriageTemplate implements ReportTemplate {
   name = 'triage';
   format: OutputFormat = 'markdown';
+  private generator = new EnhancedTriageGenerator();
+
   async generate(data: ProcessedAuditData): Promise<string> {
-    return '# Triage Report\n\nPrioritized issues...';
+    return this.generator.generate(data);
   }
 }
 
@@ -1425,6 +1577,7 @@ import { AIAnalysisTemplate } from './ai-analysis-generator.js';
 import { StructuredIssuesTemplate } from './structured-issues-generator.js';
 import { DashboardGenerator } from './dashboard-generator.js';
 import { PerformanceSummaryGenerator } from './performance-summary-generator.js';
+import { EnhancedTriageGenerator } from './enhanced-triage-generator.js';
 
 class DashboardTemplate implements ReportTemplate {
   name = 'dashboard';

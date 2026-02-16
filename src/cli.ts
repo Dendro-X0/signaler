@@ -24,6 +24,7 @@ import type { EngineEventPayload } from "./engine-events-schema.js";
 import { emitEngineEvent } from "./engine-events.js";
 import { buildExportBundle } from "./build-export-bundle.js";
 import { writeAiOptimizedReports } from "./ai-reports.js";
+import { ReportGeneratorEngine } from "./reporting/generators/report-generator-engine.js";
 import type {
   ApexCategory,
   ApexBudgets,
@@ -3265,7 +3266,25 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     await writeJsonWithOptionalGzip(exportPath, shareable);
     await writeJsonWithOptionalGzip(resolve(outputDir, "export-bundle.json"), buildExportBundle(summary));
   }
+  const reportEngine = new ReportGeneratorEngine({
+    outputFormats: ["markdown"],
+    includeScreenshots: true,
+    maxIssuesPerReport: 50,
+    tokenOptimization: false,
+    streamingThreshold: 100,
+    enableProgressIndicators: false,
+    optimizeFileIO: true,
+    compressionEnabled: false,
+    maxMemoryMB: 512,
+  });
+
+  const processedDataForReporting = reportEngine.mapRunSummaryToProcessedData(summary);
+  const developerReports = await reportEngine.generateDeveloperReports(processedDataForReporting);
+
   const triagePath: string = resolve(outputDir, "triage.md");
+  await writeFile(triagePath, developerReports.triage, "utf8");
+
+  // Also replace overview if desired, but keeping legacy for now to be safe
   const overviewPath: string = resolve(outputDir, "overview.md");
   const overview: string = buildOverviewMarkdown({
     summary,
@@ -3282,18 +3301,6 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     includeExport: !args.noExport,
   });
   await writeFile(overviewPath, overview, "utf8");
-  const triage: string = buildTriageMarkdown({
-    summary,
-    reportPath,
-    exportPath,
-    outputDir,
-    captureLevel,
-    targetScore: DEFAULT_TARGET_SCORE,
-    issues,
-    includeAiFix: !args.noAiFix,
-    includeExport: !args.noExport,
-  });
-  await writeFile(triagePath, triage, "utf8");
 
   // Generate AI-optimized reports
   await writeAiOptimizedReports({

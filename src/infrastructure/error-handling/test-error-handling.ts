@@ -2,9 +2,9 @@
  * Test Error Handling - Simple test to verify error handling functionality
  */
 
-import { 
-  ErrorHandler, 
-  FileSystemError, 
+import {
+  ErrorHandler,
+  FileSystemError,
   DataProcessingError,
   ReportErrorRecovery
 } from './index.js';
@@ -52,7 +52,7 @@ export async function testErrorHandling(): Promise<void> {
   // Test 3: Report error recovery (minimal test)
   console.log('Test 3: Report Error Recovery');
   const reportRecovery = new ReportErrorRecovery(errorHandler);
-  
+
   const mockContext = {
     outputDirectory: './test-output',
     requestedFormats: ['json', 'markdown'],
@@ -73,7 +73,15 @@ export async function testErrorHandling(): Promise<void> {
         averagePerformanceScore: 85,
         totalPages: 1,
         criticalIssuesCount: 0,
-        estimatedTotalSavings: 0
+        estimatedTotalSavings: 0,
+        averageScores: {
+          performance: 85,
+          accessibility: 90,
+          bestPractices: 88,
+          seo: 92
+        },
+        auditDuration: 1000,
+        disclaimer: "Test disclaimer"
       },
       auditMetadata: {
         configPath: 'test.config.json',
@@ -81,7 +89,9 @@ export async function testErrorHandling(): Promise<void> {
         completedAt: new Date().toISOString(),
         elapsedMs: 1000,
         totalPages: 1,
-        totalRunners: 1
+        totalRunners: 1,
+        throttlingMethod: 'simulate',
+        cpuSlowdownMultiplier: 4
       }
     },
     config: {
@@ -106,7 +116,7 @@ export async function testErrorHandling(): Promise<void> {
 
     const result = await reportRecovery.generateMinimalReports(mockContext, testError);
     console.log('✅ Minimal report recovery test completed:', result.success ? 'Success' : 'Failed');
-    
+
     if (result.generatedFiles.length > 0) {
       console.log('   Generated files:', result.generatedFiles.length);
     }

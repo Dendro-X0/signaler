@@ -36,6 +36,9 @@ export interface CategorizedIssues {
   readonly images: Issue[];
   readonly caching: Issue[];
   readonly network: Issue[];
+  readonly accessibility: Issue[];
+  readonly seo: Issue[];
+  readonly 'best-practices': Issue[];
 }
 
 export interface ImpactAnalysis {
@@ -58,13 +61,13 @@ export class IssuePatternAnalyzer {
 
     // Analyze JavaScript patterns
     patterns.push(...this.analyzeJavaScriptPatterns(data.pages));
-    
+
     // Analyze caching patterns
     patterns.push(...this.analyzeCachingPatterns(data.pages));
-    
+
     // Analyze image optimization patterns
     patterns.push(...this.analyzeImagePatterns(data.pages));
-    
+
     // Analyze CSS patterns
     patterns.push(...this.analyzeCSSPatterns(data.pages));
 
@@ -81,6 +84,9 @@ export class IssuePatternAnalyzer {
       images: [],
       caching: [],
       network: [],
+      accessibility: [],
+      seo: [],
+      'best-practices': [],
     };
 
     for (const issue of issues) {
@@ -103,15 +109,15 @@ export class IssuePatternAnalyzer {
     for (const pattern of patterns) {
       totalEstimatedSavingsMs += pattern.estimatedSavings.timeMs;
       totalEstimatedSavingsBytes += pattern.estimatedSavings.bytes;
-      
+
       if (pattern.severity === 'critical') {
         criticalIssuesCount++;
       }
-      
+
       if (pattern.severity === 'critical' || pattern.severity === 'high') {
         highImpactPatternsCount++;
       }
-      
+
       if (pattern.type === 'code-splitting' || pattern.type === 'unused-javascript') {
         codeSplittingOpportunities++;
       }
@@ -133,7 +139,7 @@ export class IssuePatternAnalyzer {
     // Group JavaScript issues by resource/pattern
     for (const page of pages) {
       const jsIssues = page.issues.filter(issue => issue.category === 'javascript');
-      
+
       for (const issue of jsIssues) {
         const key = this.normalizeJavaScriptIssueKey(issue);
         if (jsIssueMap.has(key)) {
@@ -155,7 +161,7 @@ export class IssuePatternAnalyzer {
       if (data.pages.length > 1) {
         const patternType = this.determineJavaScriptPatternType(issueKey);
         const severity = this.calculateSeverityFromSavings(data.totalSavings.timeMs, data.pages.length);
-        
+
         patterns.push({
           type: patternType,
           affectedPages: [...new Set(data.pages)], // Remove duplicates
@@ -176,7 +182,7 @@ export class IssuePatternAnalyzer {
 
     for (const page of pages) {
       const cacheIssues = page.issues.filter(issue => issue.category === 'caching');
-      
+
       for (const issue of cacheIssues) {
         const key = issue.id;
         if (cachingIssues.has(key)) {
@@ -210,7 +216,7 @@ export class IssuePatternAnalyzer {
 
     for (const page of pages) {
       const imgIssues = page.issues.filter(issue => issue.category === 'images');
-      
+
       for (const issue of imgIssues) {
         const key = issue.id;
         if (imageIssues.has(key)) {
@@ -251,7 +257,7 @@ export class IssuePatternAnalyzer {
 
     for (const page of pages) {
       const cssProblems = page.issues.filter(issue => issue.category === 'css');
-      
+
       for (const issue of cssProblems) {
         const key = issue.id;
         if (cssIssues.has(key)) {
@@ -339,7 +345,7 @@ export class IssuePatternAnalyzer {
 
   private calculatePatternPriority(pattern: IssuePattern): number {
     let priority = 0;
-    
+
     // Severity weight
     switch (pattern.severity) {
       case 'critical': priority += 1000; break;
@@ -347,13 +353,13 @@ export class IssuePatternAnalyzer {
       case 'medium': priority += 200; break;
       case 'low': priority += 50; break;
     }
-    
+
     // Pages affected weight
     priority += pattern.affectedPages.length * 10;
-    
+
     // Estimated savings weight
     priority += Math.floor(pattern.estimatedSavings.timeMs / 100);
-    
+
     return priority;
   }
 
