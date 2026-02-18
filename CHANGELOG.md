@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.2 - 2026-02-18
+
+### 🧠 Cortex Stability & Efficiency
+
+- **Agent Caching**: Implemented a robust file-based caching system (`.signaler/cortex-cache.json`) to persist AI analysis results. This significantly reduces API costs and improves speed for repeated audits.
+- **Resilient Retry Logic**: Added intelligent retry mechanisms with JSON recovery to handle malformed LLM responses gracefully.
+- **Performance Optimization**: Optimized `ContextEngine` initialization to make it idempotent, preventing redundant file system operations during high-concurrency audits.
+
 ## 2.6.1 - 2026-02-15
 
 ### 🐛 Bug Fixes & Improvements

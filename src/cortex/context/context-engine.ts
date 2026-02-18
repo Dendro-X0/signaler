@@ -20,6 +20,10 @@ export class ContextEngine {
      * Initializes the engine by detecting the tech stack.
      */
     public async init(): Promise<TechStack> {
+        if (this.techStack && this.sourceMapper && this.snippetExtractor) {
+            return this.techStack;
+        }
+
         const detector = new TechStackDetector(this.cwd);
         this.techStack = await detector.detect();
         this.sourceMapper = new SourceMapper(this.techStack, this.cwd);
