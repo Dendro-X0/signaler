@@ -67,10 +67,15 @@ describe("Report File Generation", () => {
           description: fc.string()
         })),
         performanceMetrics: fc.record({
-          averagePerformanceScore: fc.integer({ min: 0, max: 100 }),
+          averageScores: fc.record({
+            performance: fc.integer({ min: 0, max: 100 }),
+            accessibility: fc.integer({ min: 0, max: 100 }),
+            bestPractices: fc.integer({ min: 0, max: 100 }),
+            seo: fc.integer({ min: 0, max: 100 })
+          }),
           totalPages: fc.integer({ min: 1, max: 100 }),
-          criticalIssuesCount: fc.integer({ min: 0, max: 50 }),
-          estimatedTotalSavings: fc.integer({ min: 0, max: 100000 })
+          auditDuration: fc.integer({ min: 1000, max: 300000 }),
+          disclaimer: fc.string()
         }),
         auditMetadata: fc.record({
           configPath: fc.string(),
@@ -78,7 +83,9 @@ describe("Report File Generation", () => {
           completedAt: fc.integer({ min: 1577836800000, max: Date.now() }).map(ts => new Date(ts).toISOString()),
           elapsedMs: fc.integer({ min: 1000, max: 300000 }),
           totalPages: fc.integer({ min: 1, max: 100 }),
-          totalRunners: fc.integer({ min: 1, max: 10 })
+          totalRunners: fc.integer({ min: 1, max: 10 }),
+          throttlingMethod: fc.constantFrom('simulate', 'devtools', 'provided'),
+          cpuSlowdownMultiplier: fc.integer({ min: 1, max: 10 })
         })
       }),
       async (processedData) => {
@@ -213,10 +220,15 @@ describe("Report File Generation", () => {
             description: fc.string()
           })),
           performanceMetrics: fc.record({
-            averagePerformanceScore: fc.integer({ min: 0, max: 100 }),
+            averageScores: fc.record({
+              performance: fc.integer({ min: 0, max: 100 }),
+              accessibility: fc.integer({ min: 0, max: 100 }),
+              bestPractices: fc.integer({ min: 0, max: 100 }),
+              seo: fc.integer({ min: 0, max: 100 })
+            }),
             totalPages: fc.constant(pageCount),
-            criticalIssuesCount: fc.integer({ min: 0, max: 50 }),
-            estimatedTotalSavings: fc.integer({ min: 0, max: 100000 })
+            auditDuration: fc.integer({ min: 1000, max: 300000 }),
+            disclaimer: fc.string()
           }),
           auditMetadata: fc.record({
             configPath: fc.string(),
@@ -224,7 +236,9 @@ describe("Report File Generation", () => {
             completedAt: fc.integer({ min: 1577836800000, max: Date.now() }).map(ts => new Date(ts).toISOString()),
             elapsedMs: fc.integer({ min: 1000, max: 300000 }),
             totalPages: fc.constant(pageCount),
-            totalRunners: fc.integer({ min: 1, max: 10 })
+            totalRunners: fc.integer({ min: 1, max: 10 }),
+            throttlingMethod: fc.constantFrom('simulate', 'devtools', 'provided'),
+            cpuSlowdownMultiplier: fc.integer({ min: 1, max: 10 })
           })
         })
       ),
@@ -288,10 +302,15 @@ describe("Report File Generation", () => {
         }), { minLength: 1, maxLength: 3 }),
         globalIssues: fc.constant([]), // Empty global issues
         performanceMetrics: fc.record({
-          averagePerformanceScore: fc.integer({ min: 0, max: 100 }),
+          averageScores: fc.record({
+            performance: fc.integer({ min: 0, max: 100 }),
+            accessibility: fc.integer({ min: 0, max: 100 }),
+            bestPractices: fc.integer({ min: 0, max: 100 }),
+            seo: fc.integer({ min: 0, max: 100 })
+          }),
           totalPages: fc.integer({ min: 1, max: 3 }),
-          criticalIssuesCount: fc.constant(0), // No critical issues
-          estimatedTotalSavings: fc.constant(0) // No savings
+          auditDuration: fc.integer({ min: 1000, max: 300000 }),
+          disclaimer: fc.string()
         }),
         auditMetadata: fc.record({
           configPath: fc.string(),
@@ -299,7 +318,9 @@ describe("Report File Generation", () => {
           completedAt: fc.integer({ min: 1577836800000, max: Date.now() }).map(ts => new Date(ts).toISOString()),
           elapsedMs: fc.integer({ min: 1000, max: 300000 }),
           totalPages: fc.integer({ min: 1, max: 3 }),
-          totalRunners: fc.integer({ min: 1, max: 10 })
+          totalRunners: fc.integer({ min: 1, max: 10 }),
+          throttlingMethod: fc.constantFrom('simulate', 'devtools', 'provided'),
+          cpuSlowdownMultiplier: fc.integer({ min: 1, max: 10 })
         })
       }),
       async (minimalData) => {
