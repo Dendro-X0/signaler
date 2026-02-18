@@ -1,7 +1,0 @@
-src/infrastructure/error-handling/test-error-handling.ts(107,64): error TS2345: Argument of type '{ outputDirectory: string; requestedFormats: string[]; originalData: { pages: { label: string; path: string; device: "desktop"; scores: { performance: number; accessibility: number; bestPractices: number; seo: number; }; metrics: { ...; }; issues: never[]; opportunities: never[]; }[]; globalIssues: never[]; performa...' is not assignable to parameter of type 'ReportRecoveryContext'.
-  The types of 'originalData.performanceMetrics' are incompatible between these types.
-    Type '{ averagePerformanceScore: number; totalPages: number; criticalIssuesCount: number; estimatedTotalSavings: number; }' is missing the following properties from type 'PerformanceMetrics': averageScores, auditDuration, disclaimer
-src/reporting/generators/ai-analysis-generator.ts(158,9): error TS2322: Type '"accessibility" | "best-practices" | "seo" | "network" | "javascript" | "css" | "images" | "caching"' is not assignable to type '"network" | "javascript" | "css" | "images" | "caching"'.
-  Type '"accessibility"' is not assignable to type '"network" | "javascript" | "css" | "images" | "caching"'.
-src/reporting/generators/structured-issues-generator.ts(331,7): error TS2322: Type '"accessibility" | "best-practices" | "seo" | "network" | "javascript" | "css" | "images" | "caching"' is not assignable to type '"network" | "javascript" | "css" | "images" | "caching"'.
-  Type '"accessibility"' is not assignable to type '"network" | "javascript" | "css" | "images" | "caching"'.
