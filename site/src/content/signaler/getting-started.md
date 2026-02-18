@@ -31,44 +31,26 @@ Optional audits:
 
 ## 1. Install / run
 
-Signaler is published to JSR. You can run it directly using `npx`, or install it as a dev dependency.
+Registry-free installation (recommended):
 
-### Run immediately (no install)
+Install the latest tagged GitHub Release in a single command:
 
-```bash
-npx jsr run @signaler/cli wizard
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-### Install as dev dependency (recommended)
-
-To use Signaler in your scripts or CI/CD pipelines:
+macOS/Linux:
 
 ```bash
-# npm
-npx jsr add -D @signaler/cli
-
-# pnpm
-pnpm dlx jsr add -D @signaler/cli
-
-# yarn
-yarn dlx jsr add -D @signaler/cli
-
-# bun
-bunx jsr add -d @signaler/cli
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-Then run commands with `npx` or your package manager:
+Upgrade later (no registry):
 
 ```bash
-npx signaler wizard
-```
-
-### Upgrade
-
-To upgrade to the latest version, simply run the add command again:
-
-```bash
-npx jsr add -D @signaler/cli@latest
+signaler upgrade
 ```
 
 Prerequisites:

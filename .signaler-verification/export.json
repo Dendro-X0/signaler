@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-02-15T18:14:18.804Z",
+  "configFileName": "signaler-local.json",
+  "regressions": [],
+  "topIssues": [
+    {
+      "title": "Reduce unused JavaScript",
+      "count": 1,
+      "totalMs": 1350
+    },
+    {
+      "title": "Initial server response time was short",
+      "count": 1,
+      "totalMs": 192
+    },
+    {
+      "title": "Avoid multiple page redirects",
+      "count": 1,
+      "totalMs": 0
+    }
+  ],
+  "deepAuditTargets": [
+    {
+      "label": "Google",
+      "path": "/",
+      "device": "mobile",
+      "score": 69
+    }
+  ],
+  "suggestedCommands": [
+    "pnpm tsx src/bin.ts --config signaler-local.json --mobile-only --open-report # focus on /"
+  ],
+  "budgetViolations": [],
+  "budgetPassed": true
+}

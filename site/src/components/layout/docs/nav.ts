@@ -26,6 +26,8 @@ export const navigationItems: ReadonlyArray<NavItem> = [
       { title: "Configuration", url: "/docs/signaler/configuration" },
       { title: "Folder Mode", url: "/docs/signaler/folder-mode" },
       { title: "Artifacts", url: "/docs/signaler/artifacts" },
+      { title: "AI Reports", url: "/docs/signaler/AI-OPTIMIZED-REPORTS" },
+      { title: "Migration", url: "/docs/signaler/MIGRATION" },
     ],
   },
 ] as const

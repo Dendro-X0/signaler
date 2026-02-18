@@ -1,0 +1,11 @@
+{
+    "baseUrl": "https://www.google.com",
+    "pages": [
+        {
+            "path": "/",
+            "label": "Google"
+        }
+    ],
+    "parallel": 1,
+    "runs": 1
+}

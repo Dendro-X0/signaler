@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signaler Report</title>
+  <style>
+    :root {
+      --green: #0cce6b;
+      --yellow: #ffa400;
+      --red: #ff4e42;
+      --bg: #0f172a;
+      --panel: #0b1224;
+      --card: #111a33;
+      --border: #27324d;
+      --text: #e8edf7;
+      --muted: #93a4c3;
+      --accent: #7c3aed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Inter", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #122042, #0a1020 45%), #0a0f1f;
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    h1 { margin-bottom: 0.5rem; letter-spacing: 0.02em; }
+    .meta { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .meta-card {
+      background: linear-gradient(135deg, var(--panel), #0f1a33);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+    .meta-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta-value { font-size: 1.05rem; font-weight: 650; color: var(--text); }
+    .cards { display: grid; gap: 1.5rem; }
+    .card {
+      background: linear-gradient(180deg, var(--card), #0e1a31);
+      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    .card-title { font-size: 1.1rem; font-weight: 650; }
+    .card-title span { color: var(--muted); font-weight: 500; }
+    .device-badge {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      background: #1f2937;
+      border: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .device-badge.mobile { background: linear-gradient(135deg, #0ea5e9, #0891b2); color: #e6f6ff; border-color: #0ea5e9; }
+    .device-badge.desktop { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #f5efff; border-color: #8b5cf6; }
+    .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+    .score-item { text-align: center; }
+    .score-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 auto 0.35rem;
+      border: 2px solid var(--border);
+      background: #0c152a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .score-circle.green { border-color: var(--green); color: var(--green); box-shadow: 0 0 0 1px rgba(12, 206, 107, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-circle.yellow { border-color: var(--yellow); color: var(--yellow); box-shadow: 0 0 0 1px rgba(255, 164, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-circle.red { border-color: var(--red); color: var(--red); box-shadow: 0 0 0 1px rgba(255, 78, 66, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+    .score-label { font-size: 0.78rem; color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
+    .metric {
+      background: #0c152a;
+      padding: 0.85rem;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .metric-value { font-size: 1.05rem; font-weight: 650; }
+    .metric-value.green { color: var(--green); }
+    .metric-value.yellow { color: var(--yellow); }
+    .metric-value.red { color: var(--red); }
+    .metric-label { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; letter-spacing: 0.04em; }
+    .issues {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0c152a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .issues-title { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .issue {
+      font-size: 0.88rem;
+      color: var(--text);
+      padding: 0.35rem 0.25rem;
+      border-bottom: 1px dashed var(--border);
+    }
+    .issue:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <h1>Signaler Report</h1>
+  <p class="meta">Generated: 2026-02-15T18:14:18.803Z</p>
+  <div class="meta-grid">
+    <div class="meta-card"><div class="meta-label">Build ID</div><div class="meta-value">-</div></div>
+    <div class="meta-card"><div class="meta-label">Incremental</div><div class="meta-value">No</div></div>
+    <div class="meta-card"><div class="meta-label">Cache</div><div class="meta-value">disabled</div></div>
+    <div class="meta-card"><div class="meta-label">Resolved parallel</div><div class="meta-value">1</div></div>
+    <div class="meta-card"><div class="meta-label">Elapsed</div><div class="meta-value">14s</div></div>
+    <div class="meta-card"><div class="meta-label">Avg / step</div><div class="meta-value">14s</div></div>
+    <div class="meta-card"><div class="meta-label">Combos</div><div class="meta-value">1</div></div>
+    <div class="meta-card"><div class="meta-label">Runs per combo</div><div class="meta-value">1</div></div>
+    <div class="meta-card"><div class="meta-label">Throttling</div><div class="meta-value">simulate</div></div>
+    <div class="meta-card"><div class="meta-label">CPU slowdown</div><div class="meta-value">4</div></div>
+    <div class="meta-card"><div class="meta-label">Warm-up</div><div class="meta-value">Yes</div></div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Google <span style="color:#888">/</span></div>
+        <span class="device-badge mobile">mobile</span>
+      </div>
+      <div class="scores">
+        <div class="score-item"><div class="score-circle yellow">69</div><div class="score-label">P</div></div>
+        <div class="score-item"><div class="score-circle yellow">82</div><div class="score-label">A</div></div>
+        <div class="score-item"><div class="score-circle green">96</div><div class="score-label">BP</div></div>
+        <div class="score-item"><div class="score-circle green">91</div><div class="score-label">SEO</div></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-value red">5.6s</div><div class="metric-label">LCP</div></div>
+        <div class="metric"><div class="metric-value green">1.3s</div><div class="metric-label">FCP</div></div>
+        <div class="metric"><div class="metric-value yellow">383ms</div><div class="metric-label">TBT</div></div>
+        <div class="metric"><div class="metric-value green">0.000</div><div class="metric-label">CLS</div></div>
+        <div class="metric"><div class="metric-value ">-</div><div class="metric-label">INP</div></div>
+      </div>
+      <div class="issues"><div class="issues-title">Top Issues</div><div class="issue">Reduce unused JavaScript (1350ms)</div><div class="issue">Initial server response time was short (192ms)</div><div class="issue">Avoid multiple page redirects</div></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -27,7 +27,6 @@ const effectiveBasePath = isDev ? '' : basePath
 // Resolve CLI version for site version display
 const repoRoot = resolve(__dirname, "..")
 const cliPkgCandidates = [
-  join(repoRoot, "signaler", "package.json"),
   join(repoRoot, "package.json"),
 ]
 let derivedVersion = process.env.NEXT_PUBLIC_SIGNALER_VERSION || ""

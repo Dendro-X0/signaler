@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "disclaimer": "Scores are relative indicators for batch analysis, not absolute measurements",
+    "auditSummary": {
+      "totalPages": 1,
+      "elapsedTime": "0m 13s",
+      "targetScore": 95,
+      "belowTarget": 1
+    }
+  },
+  "criticalIssues": [
+    {
+      "id": "unused-javascript",
+      "title": "Reduce unused JavaScript",
+      "severity": "critical",
+      "totalImpact": "1350ms across 1 pages",
+      "avgImpactPerPage": "1350ms",
+      "affectedPages": 1,
+      "topOffenders": [
+        {
+          "path": "/",
+          "impact": "1350ms",
+          "device": "mobile"
+        }
+      ],
+      "fixGuidance": {
+        "difficulty": "medium",
+        "estimatedTime": "4-8 hours",
+        "implementation": "Implement code splitting and remove unused dependencies",
+        "codeExample": "Use dynamic imports: const AdminPanel = lazy(() => import('./AdminPanel'))"
+      }
+    },
+    {
+      "id": "server-response-time",
+      "title": "Initial server response time was short",
+      "severity": "high",
+      "totalImpact": "192ms across 1 pages",
+      "avgImpactPerPage": "192ms",
+      "affectedPages": 1,
+      "topOffenders": [
+        {
+          "path": "/",
+          "impact": "192ms",
+          "device": "mobile"
+        }
+      ],
+      "fixGuidance": {
+        "difficulty": "hard",
+        "estimatedTime": "8-16 hours",
+        "implementation": "Optimize server performance and caching",
+        "codeExample": "Add Redis caching, optimize database queries, use CDN"
+      }
+    },
+    {
+      "id": "redirects",
+      "title": "Avoid multiple page redirects",
+      "severity": "medium",
+      "totalImpact": "0ms across 1 pages",
+      "avgImpactPerPage": "0ms",
+      "affectedPages": 1,
+      "topOffenders": [
+        {
+          "path": "/",
+          "impact": "0ms",
+          "device": "mobile"
+        }
+      ],
+      "fixGuidance": {
+        "difficulty": "medium",
+        "estimatedTime": "2-4 hours",
+        "implementation": "Review routing configuration, eliminate unnecessary redirects",
+        "codeExample": "Check middleware.ts and next.config.ts for redirect chains"
+      }
+    }
+  ],
+  "quickWins": [
+    {
+      "issue": "unused-javascript",
+      "impact": "1350ms total",
+      "effort": "low",
+      "files": [
+        "bundle.js",
+        "admin.js",
+        "vendor.js"
+      ]
+    }
+  ],
+  "worstPerformers": [
+    {
+      "path": "/",
+      "device": "mobile",
+      "score": 69,
+      "primaryIssues": [
+        "unused-javascript",
+        "server-response-time"
+      ]
+    }
+  ],
+  "patterns": {}
+}

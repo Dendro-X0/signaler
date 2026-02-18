@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "red-issues",
+  "generatedAt": "2026-02-15T18:14:18.799Z",
+  "meta": {
+    "outputDir": "E:/Web Project/experimental-workspace/apex-auditor-workspace/signaler/.signaler-verification",
+    "sourceGeneratedAt": "2026-02-15T18:14:18.797Z",
+    "targetScore": 95,
+    "totals": {
+      "combos": 1,
+      "redCombos": 0,
+      "yellowCombos": 1,
+      "greenCombos": 0,
+      "runtimeErrors": 0
+    }
+  },
+  "redIssues": [],
+  "fixPlan": []
+}

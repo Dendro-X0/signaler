@@ -1,0 +1,1074 @@
+{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\signaler-local.json",
+    "incremental": false,
+    "resolvedParallel": 1,
+    "totalSteps": 1,
+    "comboCount": 1,
+    "executedCombos": 1,
+    "cachedCombos": 0,
+    "runsPerCombo": 1,
+    "executedSteps": 1,
+    "cachedSteps": 0,
+    "warmUp": true,
+    "throttlingMethod": "simulate",
+    "cpuSlowdownMultiplier": 4,
+    "startedAt": "2026-02-15T18:14:05.261Z",
+    "completedAt": "2026-02-15T18:14:18.794Z",
+    "elapsedMs": 13533,
+    "averageStepMs": 13533
+  },
+  "results": [
+    {
+      "url": "https://www.google.com/",
+      "path": "/",
+      "label": "Google",
+      "device": "mobile",
+      "scores": {
+        "performance": 69,
+        "accessibility": 82,
+        "bestPractices": 96,
+        "seo": 91
+      },
+      "metrics": {
+        "lcpMs": 5585.2188,
+        "fcpMs": 1289.2188,
+        "tbtMs": 383,
+        "cls": 0
+      },
+      "opportunities": [
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "estimatedSavingsMs": 1350,
+          "estimatedSavingsBytes": 322581
+        },
+        {
+          "id": "server-response-time",
+          "title": "Initial server response time was short",
+          "estimatedSavingsMs": 192
+        },
+        {
+          "id": "redirects",
+          "title": "Avoid multiple page redirects",
+          "estimatedSavingsMs": 0
+        }
+      ],
+      "failedAudits": [
+        {
+          "id": "largest-contentful-paint",
+          "title": "Largest Contentful Paint",
+          "description": "Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more about the Largest Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/)",
+          "score": 0.18,
+          "scoreDisplayMode": "numeric"
+        },
+        {
+          "id": "speed-index",
+          "title": "Speed Index",
+          "description": "Speed Index shows how quickly the contents of a page are visibly populated. [Learn more about the Speed Index metric](https://developer.chrome.com/docs/lighthouse/performance/speed-index/).",
+          "score": 0.85,
+          "scoreDisplayMode": "numeric"
+        },
+        {
+          "id": "total-blocking-time",
+          "title": "Total Blocking Time",
+          "description": "Sum of all time periods between FCP and Time to Interactive, when task length exceeded 50ms, expressed in milliseconds. [Learn more about the Total Blocking Time metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/).",
+          "score": 0.69,
+          "scoreDisplayMode": "numeric"
+        },
+        {
+          "id": "max-potential-fid",
+          "title": "Max Potential First Input Delay",
+          "description": "The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more about the Maximum Potential First Input Delay metric](https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/).",
+          "score": 0.51,
+          "scoreDisplayMode": "numeric"
+        },
+        {
+          "id": "errors-in-console",
+          "title": "Browser errors were logged to the console",
+          "description": "Errors logged to the console indicate unresolved problems. They can come from network request failures and other browser concerns. [Learn more about this errors in console diagnostic audit](https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/)",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "sourceLocation",
+                "valueType": "source-location",
+                "label": "Source"
+              },
+              {
+                "key": "description",
+                "valueType": "code",
+                "label": "Description"
+              }
+            ],
+            "items": [
+              {
+                "source": "console.error",
+                "description": "TypeError: Cannot read properties of null (reading 'sendMessage')\n    at MF.sendMessage (https://www.gstatic.com/og/_/js/k=og.qtm.en_US.546V2x6agfI.2019.O/rt=j/m=qabr,q_d,qcwid,qapid,qads,q_dg/exm=qaaw,qadd,qaid,qein,qhaw,qhba,qhbr,qhch,qhga,qhid,qhin/d=1/ed=1/rs=AA2YrTt_V1awXfdwDtm_Jc8gl6ccvk7o6A:550:459)\n    at MF.Eb (https://www.gstatic.com/og/_/js/k=og.qtm.en_US.546V2x6agfI.2019.O/rt=j/m=qabr,q_d,qcwid,qapid,qads,q_dg/exm=qaaw,qadd,qaid,qein,qhaw,qhba,qhbr,qhch,qhga,qhid,qhin/d=1/ed=1/rs=AA2YrTt_V1awXfdwDtm_Jc8gl6ccvk7o6A:560:215)\n    at es.D (https://www.gstatic.com/og/_/js/k=og.qtm.en_US.546V2x6agfI.2019.O/rt=j/m=qabr,q_d,qcwid,qapid,qads,q_dg/exm=qaaw,qadd,qaid,qein,qhaw,qhba,qhbr,qhch,qhga,qhid,qhin/d=1/ed=1/rs=AA2YrTt_V1awXfdwDtm_Jc8gl6ccvk7o6A:598:117)\n    at https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/ck=xjs.hm.1gbF6T_sgzc.L.B1.O/am=AEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAIAAAIAIAACggAAAAAAAMQABgFAAAgAAAAAAEAACACEQAABAQAAAAAAAAAMAAQAAAAQAAAAAAMAAwAAAQQAgBAAEYFAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAwJAMAAuABgAAQCADEAACYIQQBAgCAYBAAAIAAAAAAAACAAQAAAAACAAgEAgAAAgAAAAACABAIAARag4GAAAAwBAAEBgIAAIAAAAEAAAAAMAFAIQAAMAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=0/dg=0/br=1/ujg=1/rs=ACT90oHM1XBFR9lwFXhctX3m8xNoo53X0Q/m=U9EYge,sy1r8,loL8vb,sy1r9,sy1r4,sy1ac,syew,syzo,sycg,sych,sycc,syzu,syzb,syze,syzd,syfu,syza,syzc,syz3,syz6,syzs,syft,syzr,syzv,syzt,syzw,syz9,syzg,syz1,syzn,syzi,syzk,syzj,syup,syuo,syzh,syz2,syys,syvp,syvo,syz4,ms4mZb,sy1or,HoZvlf,sy1ps,eT8Xz,syer,syeq,mI3LFb,syex,lazG7b,sysw,xRxDld,syff,Wq6lxf,sytc,sytb,syt9,syp2,syjp,sykm,syjq,syjt,syjf,syjg,sygv,sygw,syhm,syhd,syp3,OZLguc,sy1a6,sytd,syrc,syop,syrd,Mbif2,ipWLfe,sy1a8,QVaUhf,sy8d,sy8c,sygd,syg9,syg8,sygj,sygh,syg7,sycf,sybs,sybf,sybr,sybk,sybn,sybj,syb8,sybh,sybp,sybg,syb3,sycd,syc7,syc2,syc0,syc6,syc3,syba,sybb,sybc,sybd,syb9,sybe,sycl,syb4,syaf,sycj,syat,syak,syap,syaz,syb7,syc4,syg2,syg6,sy8t,sy8q,sy8s,syg4,syg3,syg1,syfy,syfw,sy8x,uxMpU,syfm,syco,syc8,sycr,sybx,sycn,syci,sy9g,sy9d,sy9c,sy9b,sy9a,sy99,Mlhmy,QGR0gd,PoEs9b,Pjplud,OTA3Ae,sy96,A1yn5d,YIZmRd,sy8n,sy8l,sy8k,sy8j,sy8h,byfTOb,lsjVmc,LEikZe,sy8f,kWgXee,ovKuLd,sgY6Zb,qafBPd,ebZ3mb,dowIGb,sy1ab,sy1aa,sy1a9,SJpD2c,sy1pw,L3vX2d,sy1pv,KWMuje,sy1py,syxg,sy1px,syxh,sy1n2,syxs,syxd,syxt,syxl,syxf,syxm,V23Ql,sy1pz,OPwjEf,sy121,lllQlf,sy127,WlNQGd,sytu,syts,sytr,DPreE?xjs=s3:860:320\n    at https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/ck=xjs.hm.1gbF6T_sgzc.L.B1.O/am=AEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAIAAAIAIAACggAAAAAAAMQABgFAAAgAAAAAAEAACACEQAABAQAAAAAAAAAMAAQAAAAQAAAAAAMAAwAAAQQAgBAAEYFAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAwJAMAAuABgAAQCADEAACYIQQBAgCAYBAAAIAAAAAAAACAAQAAAAACAAgEAgAAAgAAAAACABAIAARag4GAAAAwBAAEBgIAAIAAAAEAAAAAMAFAIQAAMAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=0/dg=0/br=1/ujg=1/rs=ACT90oHM1XBFR9lwFXhctX3m8xNoo53X0Q/m=U9EYge,sy1r8,loL8vb,sy1r9,sy1r4,sy1ac,syew,syzo,sycg,sych,sycc,syzu,syzb,syze,syzd,syfu,syza,syzc,syz3,syz6,syzs,syft,syzr,syzv,syzt,syzw,syz9,syzg,syz1,syzn,syzi,syzk,syzj,syup,syuo,syzh,syz2,syys,syvp,syvo,syz4,ms4mZb,sy1or,HoZvlf,sy1ps,eT8Xz,syer,syeq,mI3LFb,syex,lazG7b,sysw,xRxDld,syff,Wq6lxf,sytc,sytb,syt9,syp2,syjp,sykm,syjq,syjt,syjf,syjg,sygv,sygw,syhm,syhd,syp3,OZLguc,sy1a6,sytd,syrc,syop,syrd,Mbif2,ipWLfe,sy1a8,QVaUhf,sy8d,sy8c,sygd,syg9,syg8,sygj,sygh,syg7,sycf,sybs,sybf,sybr,sybk,sybn,sybj,syb8,sybh,sybp,sybg,syb3,sycd,syc7,syc2,syc0,syc6,syc3,syba,sybb,sybc,sybd,syb9,sybe,sycl,syb4,syaf,sycj,syat,syak,syap,syaz,syb7,syc4,syg2,syg6,sy8t,sy8q,sy8s,syg4,syg3,syg1,syfy,syfw,sy8x,uxMpU,syfm,syco,syc8,sycr,sybx,sycn,syci,sy9g,sy9d,sy9c,sy9b,sy9a,sy99,Mlhmy,QGR0gd,PoEs9b,Pjplud,OTA3Ae,sy96,A1yn5d,YIZmRd,sy8n,sy8l,sy8k,sy8j,sy8h,byfTOb,lsjVmc,LEikZe,sy8f,kWgXee,ovKuLd,sgY6Zb,qafBPd,ebZ3mb,dowIGb,sy1ab,sy1aa,sy1a9,SJpD2c,sy1pw,L3vX2d,sy1pv,KWMuje,sy1py,syxg,sy1px,syxh,sy1n2,syxs,syxd,syxt,syxl,syxf,syxm,V23Ql,sy1pz,OPwjEf,sy121,lllQlf,sy127,WlNQGd,sytu,syts,sytr,DPreE?xjs=s3:26:1384\n    at _.id.v (https://www.google.com/:50:2556)\n    at Array.forEach (<anonymous>)\n    at _.fc (https://www.google.com/:47:1260)\n    at gd (https://www.google.com/:50:2232)\n    at _.id.resolve (https://www.google.com/:50:2452)",
+                "sourceLocation": {
+                  "type": "source-location",
+                  "url": "https://www.google.com/",
+                  "urlProvider": "network",
+                  "line": 49,
+                  "column": 2258
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "interactive",
+          "title": "Time to Interactive",
+          "description": "Time to Interactive is the amount of time it takes for the page to become fully interactive. [Learn more about the Time to Interactive metric](https://developer.chrome.com/docs/lighthouse/performance/interactive/).",
+          "score": 0.55,
+          "scoreDisplayMode": "numeric"
+        },
+        {
+          "id": "valid-source-maps",
+          "title": "Missing source maps for large first-party JavaScript",
+          "description": "Source maps translate minified code to the original source code. This helps developers debug in production. In addition, Lighthouse is able to provide further insights. Consider deploying source maps to take advantage of these benefits. [Learn more about source maps](https://developer.chrome.com/docs/devtools/javascript/source-maps/).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "scriptUrl",
+                "valueType": "url",
+                "subItemsHeading": {
+                  "key": "error"
+                },
+                "label": "URL"
+              },
+              {
+                "key": "sourceMapUrl",
+                "valueType": "url",
+                "label": "Map URL"
+              }
+            ],
+            "items": [
+              {
+                "scriptUrl": "https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/am=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAIAAAggAAAAAAAAQABAAAAAAAAAAAAAAACACEQAABAAAAAAAAAAAMAAQAAAAQAAAAAAMAAQAAAQQAgBAAEYBAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAAJAAAAuABgAAQCAAAAAAAIAAAAACAIAAAAAAAAAAAAACAAAAAAAACAAgEAAAAAgAAAAACAAAAAAAAAAAAAAAABAAABgIAAAAAAAAAAAAAMABAIQAAAAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=1/ed=1/dg=4/br=1/rs=ACT90oE65Ba9ssOafr5UF8B_j_5zw2p9EA/ee=ALeJib:B8gLwd;AfeaP:TkrAjf;BMxAGc:E5bFse;BgS6mb:fidj5d;BjwMce:cXX2Wb;CIZTGb:Kqhykb;CxXAWb:YyRLvc;DQEued:Fevhcf;DULqB:RKfG5c;Dkk6ge:JZmW9e;DpcR3d:zL72xf;Du7NI:C6zLgf;EABSZ:MXZt9d;EVNhjf:pw70Gc;EjXHpb:pSHqh;EmZ2Bf:zr1jrb;EnlcNd:WeHg4;F9mqte:rlHKFc;FSxmUe:fiZR8b;Fkukfc:i8H2c;Fmv9Nc:O1Tzwc;G0KhTb:LIaoZ;GEkGdd:e1RzQd;GleZL:J1A7Od;HMDDWe:G8QUdb;HgsCtf:jLgnvd;IBADCc:RYquRb;IoGlCf:b5lhvb;JXJSm:ii1RGf;JXS8fb:k0T3Ub;JqSq7d:y9ePhe;JsbNhc:Xd8iUd;K5nYTd:ZDZcre;KOxcK:OZqGte;KQzWid:ZMKkN;KcokUb:KiuZBf;KpRAue:Tia57b;LBgRLc:SdcwHb,XVMNvd;LBn8Cf:bJ9L0c;LEikZe:byfTOb,lsjVmc;LXA8b:q7OdKd;LsNahb:ucGLNb;NJ1rfe:qTnoBf;NPKaK:SdcwHb;NSEoX:lazG7b;Np8Qkd:Dpx6qc;Nyt6ic:jn2sGd;OIfWUb:qfOYcd;OgagBe:cNTe0;OiqE2c:TFpEK;OoK5v:Sp69O;OohIYe:mpEAQb;Pjplud:PoEs9b;PpTLXd:pJYjx;Q1Ow7b:x5CSu;QFOGlf:PQ2Aoe;QGR0gd:Mlhmy;QYLF2b:pAQYUd;Qw8Feb:jpavUe;R4IIIb:QWfeKf;R9Ulx:CR7Ufe;RCF5Sd:X1kBmd;SLtqO:Kh1xYe;SMDL4c:fTfGO;SNUn3:ZwDk9d,xD8Kp;ScI3Yc:e7Hzgb,e7Hzgb;ShpF6e:N0pvGc;SwCqAd:fXbCZc;SzQQ3e:dNhofb;TIUVQd:M8uRWb;TroZ1d:vVVzjb;U96pRd:FsR04;UBKJZ:LGDJGb;UDrY1c:N0F29d,W50NVd,eps46d,rw5jGd,wciyUe;UVmjEd:EesRsb;UVzb9c:IvPZ6d;UYRIEb:HzTAQc;UyG7Kb:wQd0G;V2HTTe:RolTY;VGRfx:VFqbr;VN6jIc:ddQyuf;VOcgDe:YquhTb;VhA7bd:vAmQFf;VsAqSb:PGf2Re;WCEKNd:I46Hvd;WDGyFe:jcVOxd;Wfmdue:g3MJlb;Y3c5sd:FGbfLe;YIZmRd:A1yn5d;YV5bee:IvPZ6d;YnHUBf:sNsSob;ZSH6tc:QAvyLe;ZWEUA:afR4Cf;ZlOOMb:P0I0Ec;a56pNe:JEfCwb;aAJE9c:WHW6Ef;aCJ9tf:qKftvc;aVZq3e:EMeVIb;aZ61od:arTwJ;aci7y:Z5Tr6c;bDXwRe:UsyOtc;bUIkwb:WMwEHe;bcPXSc:gSZLJb;cEt90b:ws9Tlc;cFTWae:gT8qnd;dIoSBb:ZgGg9b;dLlj2:Qqt3Gf;dowIGb:ebZ3mb,ebZ3mb;dtl0hd:lLQWFe;eBAeSb:Ck63tb;eBZ5Nd:audvde;eHDfl:ofjVkb;eJKchc:ATg1be;eO3lse:UefOmb;euOXY:OZjbQ;g8nkx:U4MzKc;gaub4:TN6bMe;gtVSi:ekUOYd;h3MYod:ws9Tlc;hK67qb:QWEO5b;hVic1b:Kqhykb;heHB1:sFczq;hjRo6e:F62sG;hlqGX:FWz1ic;hsLsYc:Vl118;hwoVHd:zw4U8c;iFQyKf:QIhFr;iySzae:a6xXfd;jJj2G:kF2o2b;k1O0rf:pnOULd;k2Qxcb:XY51pe;kbAm9d:MkHyGd;lOO0Vd:OTA3Ae;lbfkyf:MqGdUd;liAz7d:kF2o2b;lkq0A:JyBE3e;mWzs9c:fz5ukf;nBZnZe:CvErjb;nJw4Gd:dPFZH;nrDcw:SuEoDe;oGtAuc:sOXFj;oSUNyd:fTfGO,fTfGO;oUlnpc:BO43gd;okUaUd:wItadb;pKJiXd:VCenhc;pNsl2d:j9Yuyc;pXdRYb:JKoKVe;pj82le:ww04Df;qGV2uc:HHi04c;qQEoOc:KUM7Z,d7YSfd;qZx2Fc:j0xrE;qaS3gd:yiLg6e;qafBPd:sgY6Zb;qavrXe:zQzcXe;qddgKe:d7YSfd,x4FYXe;rmWaj:PMS6Sd;ropkZ:UT1DG;s7Jihe:Fo4iVe;sTsDMc:kHVSUb;sZmdvc:rdGEfc;slIQ5d:pnOULd;tH4IIe:Ymry6;teSRSb:BMLai;tosKvd:ZCqP3;trZL0b:qY8PFe;uuQkY:u2V3ud;vEYCNb:FaqsVd;vRlMvf:Iw9Xo;vfVwPd:lcrkwe;w3bZCb:ZPGaIb;w4rSdf:XKiZ9;w9w86d:dt4g2b;wQlYve:aLUfP;wR5FRb:O1Gjze,TtcOte;wV5Pjc:L8KGxe;x9N9ie:KH4Qof;xANRY:SZnbDc;xBbsrc:NEW1Qc;ysNiMc:CpIBjd;yxTchf:KUM7Z;z97YGf:oug9te;zOsCQe:Ko78Df;zaIgPb:Sl0pxd/m=bct,cdos,hsm,jsa,qim,rr4R9e,cEt90b,SNUn3,qddgKe,sTsDMc,dtl0hd,eHDfl,YV5bee,d,csi",
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "error": "Large JavaScript file is missing a source map"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "aria-input-field-name",
+          "title": "ARIA input fields do not have accessible names",
+          "description": "When an input field doesn't have an accessible name, screen readers announce it with a generic name, making it unusable for users who rely on screen readers. [Learn more about input field labels](https://dequeuniversity.com/rules/axe/4.11/aria-input-field-name).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "node",
+                "valueType": "node",
+                "subItemsHeading": {
+                  "key": "relatedNode",
+                  "valueType": "node"
+                },
+                "label": "Failing Elements"
+              }
+            ],
+            "items": [
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-7-DIV",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,3,DIV,1,FORM,0,DIV,0,DIV,2,DIV,2,DIV",
+                  "selector": "div > div.A7Yvie > div.zGVn2e > div.a4bIc",
+                  "boundingRect": {
+                    "top": 181,
+                    "bottom": 229,
+                    "left": 64,
+                    "right": 252,
+                    "width": 188,
+                    "height": 48
+                  },
+                  "snippet": "<div jscontroller=\"V6oqv\" jsname=\"gLFyf\" class=\"a4bIc\" aria-expanded=\"false\" aria-haspopup=\"listbox\" role=\"combobox\" jsaction=\"focus:Jt1EX;input:Lg5SV;paste:V64iSc;touchstart:ADZYmd\">",
+                  "nodeLabel": "Google Search",
+                  "explanation": "Fix any of the following:\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+                }
+              }
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "impact": "serious",
+              "tags": [
+                "cat.aria",
+                "wcag2a",
+                "wcag412",
+                "TTv5",
+                "TT5.c",
+                "EN-301-549",
+                "EN-9.4.1.2",
+                "ACT",
+                "RGAAv4",
+                "RGAA-11.1.1"
+              ]
+            }
+          }
+        },
+        {
+          "id": "button-name",
+          "title": "Buttons do not have an accessible name",
+          "description": "When a button doesn't have an accessible name, screen readers announce it as \"button\", making it unusable for users who rely on screen readers. [Learn how to make buttons more accessible](https://dequeuniversity.com/rules/axe/4.11/button-name).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "node",
+                "valueType": "node",
+                "subItemsHeading": {
+                  "key": "relatedNode",
+                  "valueType": "node"
+                },
+                "label": "Failing Elements"
+              }
+            ],
+            "items": [
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-8-BUTTON",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,3,DIV,1,FORM,0,DIV,0,DIV,2,DIV,3,DIV,3,BUTTON",
+                  "selector": "div.A7Yvie > div.zGVn2e > div.dRYYxd > button.xOchs",
+                  "boundingRect": {
+                    "top": 181,
+                    "bottom": 229,
+                    "left": 252,
+                    "right": 300,
+                    "width": 48,
+                    "height": 48
+                  },
+                  "snippet": "<button class=\"xOchs\" jsaction=\"zmZZbb\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQvuQRCBE\">",
+                  "nodeLabel": "div.A7Yvie > div.zGVn2e > div.dRYYxd > button.xOchs",
+                  "explanation": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+                }
+              }
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "impact": "critical",
+              "tags": [
+                "cat.name-role-value",
+                "wcag2a",
+                "wcag412",
+                "section508",
+                "section508.22.a",
+                "TTv5",
+                "TT6.a",
+                "EN-301-549",
+                "EN-9.4.1.2",
+                "ACT",
+                "RGAAv4",
+                "RGAA-11.9.1"
+              ]
+            }
+          }
+        },
+        {
+          "id": "landmark-one-main",
+          "title": "Document does not have a main landmark.",
+          "description": "One main landmark helps screen reader users navigate a web page. [Learn more about landmarks](https://dequeuniversity.com/rules/axe/4.11/landmark-one-main).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "node",
+                "valueType": "node",
+                "subItemsHeading": {
+                  "key": "relatedNode",
+                  "valueType": "node"
+                },
+                "label": "Failing Elements"
+              }
+            ],
+            "items": [
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-9-HTML",
+                  "path": "1,HTML",
+                  "selector": "html",
+                  "boundingRect": {
+                    "top": 0,
+                    "bottom": 823,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 823
+                  },
+                  "snippet": "<html lang=\"en\">",
+                  "nodeLabel": "html",
+                  "explanation": "Fix all of the following:\n  Document does not have a main landmark"
+                }
+              }
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "impact": "moderate",
+              "tags": [
+                "cat.semantics",
+                "best-practice"
+              ]
+            }
+          }
+        },
+        {
+          "id": "list",
+          "title": "Lists do not contain only `<li>` elements and script supporting elements (`<script>` and `<template>`).",
+          "description": "Screen readers have a specific way of announcing lists. Ensuring proper list structure aids screen reader output. [Learn more about proper list structure](https://dequeuniversity.com/rules/axe/4.11/list).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "node",
+                "valueType": "node",
+                "subItemsHeading": {
+                  "key": "relatedNode",
+                  "valueType": "node"
+                },
+                "label": "Failing Elements"
+              }
+            ],
+            "items": [
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-10-UL",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL",
+                  "selector": "div#main > div.JwzvB > div.bLgP0e > ul.o5j3Ue",
+                  "boundingRect": {
+                    "top": 295,
+                    "bottom": 666,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 371
+                  },
+                  "snippet": "<ul jsname=\"rn6yge\" class=\"o5j3Ue\" data-num_pips_row=\"7\">",
+                  "nodeLabel": "usps mail blackout\nlottery powerball winning numbers\nmanchester orchestra drumm…",
+                  "explanation": "Fix all of the following:\n  List element has direct children that are not allowed: [role=link]"
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-0-LI",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,0,LI",
+                        "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                        "boundingRect": {
+                          "top": 295,
+                          "bottom": 348,
+                          "left": 0,
+                          "right": 412,
+                          "width": 412,
+                          "height": 53
+                        },
+                        "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                        "nodeLabel": "usps mail blackout"
+                      }
+                    },
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-1-LI",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,1,LI",
+                        "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                        "boundingRect": {
+                          "top": 348,
+                          "bottom": 401,
+                          "left": 0,
+                          "right": 412,
+                          "width": 412,
+                          "height": 53
+                        },
+                        "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                        "nodeLabel": "lottery powerball winning numbers"
+                      }
+                    },
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-2-LI",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,2,LI",
+                        "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                        "boundingRect": {
+                          "top": 401,
+                          "bottom": 454,
+                          "left": 0,
+                          "right": 412,
+                          "width": 412,
+                          "height": 53
+                        },
+                        "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                        "nodeLabel": "manchester orchestra drummer death"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "impact": "serious",
+              "tags": [
+                "cat.structure",
+                "wcag2a",
+                "wcag131",
+                "EN-301-549",
+                "EN-9.1.3.1",
+                "RGAAv4",
+                "RGAA-9.3.1"
+              ]
+            }
+          }
+        },
+        {
+          "id": "target-size",
+          "title": "Touch targets do not have sufficient size or spacing.",
+          "description": "Touch targets with sufficient size and spacing help users who may have difficulty targeting small controls to activate the targets. [Learn more about touch targets](https://dequeuniversity.com/rules/axe/4.11/target-size).",
+          "score": 0,
+          "scoreDisplayMode": "binary",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "node",
+                "valueType": "node",
+                "subItemsHeading": {
+                  "key": "relatedNode",
+                  "valueType": "node"
+                },
+                "label": "Failing Elements"
+              }
+            ],
+            "items": [
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-0-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,0,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 295,
+                    "bottom": 348,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "usps mail blackout",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-11-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,0,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 295,
+                          "bottom": 348,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=usps%20mail%20blackout&amp;oq&amp;ved=0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ4…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "usps mail blackout"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-1-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,1,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 348,
+                    "bottom": 401,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "lottery powerball winning numbers",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-12-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,1,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 348,
+                          "bottom": 401,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=lottery%20powerball%20winning%20numbers&amp;oq&amp;ved=0ahUKEwj1t6vCjNyS…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "lottery powerball winning numbers"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-2-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,2,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 401,
+                    "bottom": 454,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "manchester orchestra drummer death",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-13-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,2,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 401,
+                          "bottom": 454,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=manchester%20orchestra%20drummer%20death&amp;oq&amp;ved=0ahUKEwj1t6vCjNy…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "manchester orchestra drummer death"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-3-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,3,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 454,
+                    "bottom": 507,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "winter storm warning weather",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-14-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,3,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 454,
+                          "bottom": 507,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=winter%20storm%20warning%20weather&amp;oq&amp;ved=0ahUKEwj1t6vCjNySAxUZN…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "winter storm warning weather"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-4-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,4,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 507,
+                    "bottom": 560,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "playstation plus extra games",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-15-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,4,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 507,
+                          "bottom": 560,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=playstation%20plus%20extra%20games&amp;oq&amp;ved=0ahUKEwj1t6vCjNySAxUZN…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "playstation plus extra games"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-5-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,5,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 560,
+                    "bottom": 613,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "nasa mars",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-16-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,5,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 560,
+                          "bottom": 613,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=nasa%20mars&amp;oq&amp;ved=0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI&amp;scli…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "nasa mars"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "node": {
+                  "type": "node",
+                  "lhId": "1-6-LI",
+                  "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,6,LI",
+                  "selector": "div.JwzvB > div.bLgP0e > ul.o5j3Ue > li",
+                  "boundingRect": {
+                    "top": 613,
+                    "bottom": 666,
+                    "left": 0,
+                    "right": 412,
+                    "width": 412,
+                    "height": 53
+                  },
+                  "snippet": "<li role=\"link\" tabindex=\"0\" jsaction=\"click:.CLIENT\" style=\"opacity: 1;\">",
+                  "nodeLabel": "nascar daytona 500 start time",
+                  "explanation": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 16px by 53px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 0px instead of at least 24px."
+                },
+                "subItems": {
+                  "type": "subitems",
+                  "items": [
+                    {
+                      "relatedNode": {
+                        "type": "node",
+                        "lhId": "1-17-A",
+                        "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,6,LI,0,A",
+                        "selector": "div.bLgP0e > ul.o5j3Ue > li > a.jh86Nb",
+                        "boundingRect": {
+                          "top": 613,
+                          "bottom": 666,
+                          "left": 16,
+                          "right": 396,
+                          "width": 380,
+                          "height": 53
+                        },
+                        "snippet": "<a class=\"jh86Nb\" href=\"/search?q=nascar%20daytona%20500%20start%20time&amp;oq&amp;ved=0ahUKEwj1t6vCjNySAx…\" data-ved=\"0ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQ470GCCI\">",
+                        "nodeLabel": "nascar daytona 500 start time"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "impact": "serious",
+              "tags": [
+                "cat.sensory-and-visual-cues",
+                "wcag22aa",
+                "wcag258"
+              ]
+            }
+          }
+        },
+        {
+          "id": "unused-css-rules",
+          "title": "Reduce unused CSS",
+          "description": "Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to decrease bytes consumed by network activity. [Learn how to reduce unused CSS](https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/).",
+          "score": 0.5,
+          "scoreDisplayMode": "metricSavings",
+          "details": {
+            "type": "opportunity",
+            "headings": [
+              {
+                "key": "url",
+                "valueType": "url",
+                "label": "URL"
+              },
+              {
+                "key": "totalBytes",
+                "valueType": "bytes",
+                "label": "Transfer Size"
+              },
+              {
+                "key": "wastedBytes",
+                "valueType": "bytes",
+                "label": "Est Savings"
+              }
+            ],
+            "items": [
+              {
+                "url": ":root{--COEmY:#e8e8e8;--xhUGwc:#1f1f1f} …",
+                "wastedBytes": 10734,
+                "wastedPercent": 97.1161934805468,
+                "totalBytes": 11053
+              }
+            ],
+            "overallSavingsMs": 0,
+            "overallSavingsBytes": 10734,
+            "sortedBy": [
+              "wastedBytes"
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "metricSavings": {
+                "FCP": 0,
+                "LCP": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "description": "Reduce unused JavaScript and defer loading scripts until they are required to decrease bytes consumed by network activity. [Learn how to reduce unused JavaScript](https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/).",
+          "score": 0,
+          "scoreDisplayMode": "metricSavings",
+          "details": {
+            "type": "opportunity",
+            "headings": [
+              {
+                "key": "url",
+                "valueType": "url",
+                "subItemsHeading": {
+                  "key": "source",
+                  "valueType": "code"
+                },
+                "label": "URL"
+              },
+              {
+                "key": "totalBytes",
+                "valueType": "bytes",
+                "subItemsHeading": {
+                  "key": "sourceBytes"
+                },
+                "label": "Transfer Size"
+              },
+              {
+                "key": "wastedBytes",
+                "valueType": "bytes",
+                "subItemsHeading": {
+                  "key": "sourceWastedBytes"
+                },
+                "label": "Est Savings"
+              }
+            ],
+            "items": [
+              {
+                "url": "https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/am=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAIAAAggAAAAAAAAQABAAAAAAAAAAAAAAACACEQAABAAAAAAAAAAAMAAQAAAAQAAAAAAMAAQAAAQQAgBAAEYBAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAAJAAAAuABgAAQCAAAAAAAIAAAAACAIAAAAAAAAAAAAACAAAAAAAACAAgEAAAAAgAAAAACAAAAAAAAAAAAAAAABAAABgIAAAAAAAAAAAAAMABAIQAAAAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=1/ed=1/dg=4/br=1/rs=ACT90oE65Ba9ssOafr5UF8B_j_5zw2p9EA/ee=ALeJib:B8gLwd;AfeaP:TkrAjf;BMxAGc:E5bFse;BgS6mb:fidj5d;BjwMce:cXX2Wb;CIZTGb:Kqhykb;CxXAWb:YyRLvc;DQEued:Fevhcf;DULqB:RKfG5c;Dkk6ge:JZmW9e;DpcR3d:zL72xf;Du7NI:C6zLgf;EABSZ:MXZt9d;EVNhjf:pw70Gc;EjXHpb:pSHqh;EmZ2Bf:zr1jrb;EnlcNd:WeHg4;F9mqte:rlHKFc;FSxmUe:fiZR8b;Fkukfc:i8H2c;Fmv9Nc:O1Tzwc;G0KhTb:LIaoZ;GEkGdd:e1RzQd;GleZL:J1A7Od;HMDDWe:G8QUdb;HgsCtf:jLgnvd;IBADCc:RYquRb;IoGlCf:b5lhvb;JXJSm:ii1RGf;JXS8fb:k0T3Ub;JqSq7d:y9ePhe;JsbNhc:Xd8iUd;K5nYTd:ZDZcre;KOxcK:OZqGte;KQzWid:ZMKkN;KcokUb:KiuZBf;KpRAue:Tia57b;LBgRLc:SdcwHb,XVMNvd;LBn8Cf:bJ9L0c;LEikZe:byfTOb,lsjVmc;LXA8b:q7OdKd;LsNahb:ucGLNb;NJ1rfe:qTnoBf;NPKaK:SdcwHb;NSEoX:lazG7b;Np8Qkd:Dpx6qc;Nyt6ic:jn2sGd;OIfWUb:qfOYcd;OgagBe:cNTe0;OiqE2c:TFpEK;OoK5v:Sp69O;OohIYe:mpEAQb;Pjplud:PoEs9b;PpTLXd:pJYjx;Q1Ow7b:x5CSu;QFOGlf:PQ2Aoe;QGR0gd:Mlhmy;QYLF2b:pAQYUd;Qw8Feb:jpavUe;R4IIIb:QWfeKf;R9Ulx:CR7Ufe;RCF5Sd:X1kBmd;SLtqO:Kh1xYe;SMDL4c:fTfGO;SNUn3:ZwDk9d,xD8Kp;ScI3Yc:e7Hzgb,e7Hzgb;ShpF6e:N0pvGc;SwCqAd:fXbCZc;SzQQ3e:dNhofb;TIUVQd:M8uRWb;TroZ1d:vVVzjb;U96pRd:FsR04;UBKJZ:LGDJGb;UDrY1c:N0F29d,W50NVd,eps46d,rw5jGd,wciyUe;UVmjEd:EesRsb;UVzb9c:IvPZ6d;UYRIEb:HzTAQc;UyG7Kb:wQd0G;V2HTTe:RolTY;VGRfx:VFqbr;VN6jIc:ddQyuf;VOcgDe:YquhTb;VhA7bd:vAmQFf;VsAqSb:PGf2Re;WCEKNd:I46Hvd;WDGyFe:jcVOxd;Wfmdue:g3MJlb;Y3c5sd:FGbfLe;YIZmRd:A1yn5d;YV5bee:IvPZ6d;YnHUBf:sNsSob;ZSH6tc:QAvyLe;ZWEUA:afR4Cf;ZlOOMb:P0I0Ec;a56pNe:JEfCwb;aAJE9c:WHW6Ef;aCJ9tf:qKftvc;aVZq3e:EMeVIb;aZ61od:arTwJ;aci7y:Z5Tr6c;bDXwRe:UsyOtc;bUIkwb:WMwEHe;bcPXSc:gSZLJb;cEt90b:ws9Tlc;cFTWae:gT8qnd;dIoSBb:ZgGg9b;dLlj2:Qqt3Gf;dowIGb:ebZ3mb,ebZ3mb;dtl0hd:lLQWFe;eBAeSb:Ck63tb;eBZ5Nd:audvde;eHDfl:ofjVkb;eJKchc:ATg1be;eO3lse:UefOmb;euOXY:OZjbQ;g8nkx:U4MzKc;gaub4:TN6bMe;gtVSi:ekUOYd;h3MYod:ws9Tlc;hK67qb:QWEO5b;hVic1b:Kqhykb;heHB1:sFczq;hjRo6e:F62sG;hlqGX:FWz1ic;hsLsYc:Vl118;hwoVHd:zw4U8c;iFQyKf:QIhFr;iySzae:a6xXfd;jJj2G:kF2o2b;k1O0rf:pnOULd;k2Qxcb:XY51pe;kbAm9d:MkHyGd;lOO0Vd:OTA3Ae;lbfkyf:MqGdUd;liAz7d:kF2o2b;lkq0A:JyBE3e;mWzs9c:fz5ukf;nBZnZe:CvErjb;nJw4Gd:dPFZH;nrDcw:SuEoDe;oGtAuc:sOXFj;oSUNyd:fTfGO,fTfGO;oUlnpc:BO43gd;okUaUd:wItadb;pKJiXd:VCenhc;pNsl2d:j9Yuyc;pXdRYb:JKoKVe;pj82le:ww04Df;qGV2uc:HHi04c;qQEoOc:KUM7Z,d7YSfd;qZx2Fc:j0xrE;qaS3gd:yiLg6e;qafBPd:sgY6Zb;qavrXe:zQzcXe;qddgKe:d7YSfd,x4FYXe;rmWaj:PMS6Sd;ropkZ:UT1DG;s7Jihe:Fo4iVe;sTsDMc:kHVSUb;sZmdvc:rdGEfc;slIQ5d:pnOULd;tH4IIe:Ymry6;teSRSb:BMLai;tosKvd:ZCqP3;trZL0b:qY8PFe;uuQkY:u2V3ud;vEYCNb:FaqsVd;vRlMvf:Iw9Xo;vfVwPd:lcrkwe;w3bZCb:ZPGaIb;w4rSdf:XKiZ9;w9w86d:dt4g2b;wQlYve:aLUfP;wR5FRb:O1Gjze,TtcOte;wV5Pjc:L8KGxe;x9N9ie:KH4Qof;xANRY:SZnbDc;xBbsrc:NEW1Qc;ysNiMc:CpIBjd;yxTchf:KUM7Z;z97YGf:oug9te;zOsCQe:Ko78Df;zaIgPb:Sl0pxd/m=bct,cdos,hsm,jsa,qim,rr4R9e,cEt90b,SNUn3,qddgKe,sTsDMc,dtl0hd,eHDfl,YV5bee,d,csi",
+                "totalBytes": 346372,
+                "wastedBytes": 173280,
+                "wastedPercent": 50.027111773617705
+              },
+              {
+                "url": "https://www.gstatic.com/og/_/js/k=og.qtm.en_US.546V2x6agfI.2019.O/rt=j/m=qabr,q_d,qcwid,qapid,qads,q_dg/exm=qaaw,qadd,qaid,qein,qhaw,qhba,qhbr,qhch,qhga,qhid,qhin/d=1/ed=1/rs=AA2YrTt_V1awXfdwDtm_Jc8gl6ccvk7o6A",
+                "totalBytes": 84069,
+                "wastedBytes": 54242,
+                "wastedPercent": 64.52028224592851
+              },
+              {
+                "url": "https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/am=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAIAAAggAAAAAAAAQABAAAAAAAAAAAAAAACACEAAABAAAAAAAAAAAMAAQAAAAQAAAAAAMAAQAAAQQAABAAEYAAAAAAAAAAAAAAAAAAIhEIBAAIB_AIwAAAAAAJAAAAuABgAAQCAAAAAAAIAAAAAAAIAAAAAAAAAAAAACAAAAAAAACAAgEAAAAAgAAAAACAAAAAAAAAAAAAAAAAAAABgIAAAAAAAAAAAAAMABAIQAAAAAcAAhAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=0/dg=0/br=1/rs=ACT90oFGjDdfmd7t7OVj0aPcaLiWUJ5iVw/m=SMquOb,syy6,syy2,syec,d5EhJe,sy10b,sy1mh,sy1mg,sy1mf,sy1me,syv8,sy112,sy111,syyg,syyh,syvr,syvl,T1HOxc,sy161,fCxEDd,syye,syyb,syyc,syy9,syoc,zx30Y,sy1mj,sy1mi,sy193,syyn,Wo3n8,sy173,EbPKJf,sy125,sy123,sykx,syp9,CnSW2d,sy176,sy175,pFsdhd,sy1q0,aBr2Mc,sy1q4,sy1q3,sy1q1,syvn,syre,syr0,syph,sys6,syvq,sy1q2,EkevXb,bIMMof,sy12b,sy12a,KbYvUc,sy1oq,sy11z,sy105,sy103,sygl,sy10a,sy104,sy10d,sy1op,KHourd,sy18v,oSkgIf?xjs=s4",
+                "totalBytes": 50129,
+                "wastedBytes": 36918,
+                "wastedPercent": 73.64624549165212
+              },
+              {
+                "url": "https://www.google.com/xjs/_/js/k=xjs.hm.en.f-CwewBLKZE.2019.O/ck=xjs.hm.1gbF6T_sgzc.L.B1.O/am=AEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAIAAAIAIAACggAAAAAAAMQABgFAAAgAAAAAAEAACACEQAABAQAAAAAAAAAMAAQAAAAQAAAAAAMAAwAAAQQAgBAAEYFAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAwJAMAAuABgAAQCADEAACYIQQBAgCAYBAAAIAAAAAAAACAAQAAAAACAAgEAgAAAgAAAAACABAIAARag4GAAAAwBAAEBgIAAIAAAAEAAAAAMAFAIQAAMAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d=0/dg=0/br=1/ujg=1/rs=ACT90oHM1XBFR9lwFXhctX3m8xNoo53X0Q/m=U9EYge,sy1r8,loL8vb,sy1r9,sy1r4,sy1ac,syew,syzo,sycg,sych,sycc,syzu,syzb,syze,syzd,syfu,syza,syzc,syz3,syz6,syzs,syft,syzr,syzv,syzt,syzw,syz9,syzg,syz1,syzn,syzi,syzk,syzj,syup,syuo,syzh,syz2,syys,syvp,syvo,syz4,ms4mZb,sy1or,HoZvlf,sy1ps,eT8Xz,syer,syeq,mI3LFb,syex,lazG7b,sysw,xRxDld,syff,Wq6lxf,sytc,sytb,syt9,syp2,syjp,sykm,syjq,syjt,syjf,syjg,sygv,sygw,syhm,syhd,syp3,OZLguc,sy1a6,sytd,syrc,syop,syrd,Mbif2,ipWLfe,sy1a8,QVaUhf,sy8d,sy8c,sygd,syg9,syg8,sygj,sygh,syg7,sycf,sybs,sybf,sybr,sybk,sybn,sybj,syb8,sybh,sybp,sybg,syb3,sycd,syc7,syc2,syc0,syc6,syc3,syba,sybb,sybc,sybd,syb9,sybe,sycl,syb4,syaf,sycj,syat,syak,syap,syaz,syb7,syc4,syg2,syg6,sy8t,sy8q,sy8s,syg4,syg3,syg1,syfy,syfw,sy8x,uxMpU,syfm,syco,syc8,sycr,sybx,sycn,syci,sy9g,sy9d,sy9c,sy9b,sy9a,sy99,Mlhmy,QGR0gd,PoEs9b,Pjplud,OTA3Ae,sy96,A1yn5d,YIZmRd,sy8n,sy8l,sy8k,sy8j,sy8h,byfTOb,lsjVmc,LEikZe,sy8f,kWgXee,ovKuLd,sgY6Zb,qafBPd,ebZ3mb,dowIGb,sy1ab,sy1aa,sy1a9,SJpD2c,sy1pw,L3vX2d,sy1pv,KWMuje,sy1py,syxg,sy1px,syxh,sy1n2,syxs,syxd,syxt,syxl,syxf,syxm,V23Ql,sy1pz,OPwjEf,sy121,lllQlf,sy127,WlNQGd,sytu,syts,sytr,DPreE?xjs=s3",
+                "totalBytes": 69642,
+                "wastedBytes": 34074,
+                "wastedPercent": 48.926980919125285
+              },
+              {
+                "url": "https://apis.google.com/_/scs/abc-static/_/js/k=gapi.gapi.en.AKdz2vhcyW0.O/m=gapi_iframes,googleapis_client/rt=j/sv=1/d=1/ed=1/rs=AHpOoo_GPfyZPmTuYcbMXzJr0yr8Akk4Tw/cb=gapi.loaded_0",
+                "totalBytes": 38044,
+                "wastedBytes": 24067,
+                "wastedPercent": 63.26223379962449
+              }
+            ],
+            "overallSavingsMs": 1350,
+            "overallSavingsBytes": 322581,
+            "sortedBy": [
+              "wastedBytes"
+            ],
+            "debugData": {
+              "type": "debugdata",
+              "metricSavings": {
+                "FCP": 0,
+                "LCP": 1350
+              }
+            }
+          }
+        },
+        {
+          "id": "meta-description",
+          "title": "Document does not have a meta description",
+          "description": "Meta descriptions may be included in search results to concisely summarize page content. [Learn more about the meta description](https://developer.chrome.com/docs/lighthouse/seo/meta-description/).",
+          "score": 0,
+          "scoreDisplayMode": "binary"
+        },
+        {
+          "id": "lcp-breakdown-insight",
+          "title": "LCP breakdown",
+          "description": "Each [subpart has specific improvement strategies](https://developer.chrome.com/docs/performance/insights/lcp-breakdown). Ideally, most of the LCP time should be spent on loading the resources, not within delays.",
+          "score": 0,
+          "scoreDisplayMode": "numeric",
+          "details": {
+            "type": "list",
+            "items": [
+              {
+                "type": "table",
+                "headings": [
+                  {
+                    "key": "label",
+                    "valueType": "text",
+                    "label": "Subpart"
+                  },
+                  {
+                    "key": "duration",
+                    "valueType": "ms",
+                    "label": "Duration"
+                  }
+                ],
+                "items": [
+                  {
+                    "subpart": "timeToFirstByte",
+                    "label": "Time to first byte",
+                    "duration": 295.384
+                  },
+                  {
+                    "subpart": "elementRenderDelay",
+                    "label": "Element render delay",
+                    "duration": 2598.87
+                  }
+                ]
+              },
+              {
+                "type": "node",
+                "lhId": "page-0-SPAN",
+                "path": "1,HTML,1,BODY,5,DIV,2,DIV,1,DIV,5,DIV,1,DIV,2,UL,2,LI,0,A,1,DIV,0,SPAN",
+                "selector": "li > a.jh86Nb > div.MWnfue > span.h5AwLb",
+                "boundingRect": {
+                  "top": 417,
+                  "bottom": 437,
+                  "left": 71,
+                  "right": 396,
+                  "width": 325,
+                  "height": 20
+                },
+                "snippet": "<span class=\"h5AwLb\">",
+                "nodeLabel": "manchester orchestra drummer death"
+              }
+            ]
+          }
+        },
+        {
+          "id": "network-dependency-tree-insight",
+          "title": "Network dependency tree",
+          "description": "[Avoid chaining critical requests](https://developer.chrome.com/docs/performance/insights/network-dependency-tree) by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.",
+          "score": 0,
+          "scoreDisplayMode": "numeric",
+          "details": {
+            "type": "list",
+            "items": [
+              {
+                "type": "list-section",
+                "value": {
+                  "type": "network-tree",
+                  "chains": {
+                    "B99664EBE52644C248F1499F9AB5B887": {
+                      "url": "https://www.google.com/",
+                      "navStartToEndTime": 722,
+                      "transferSize": 59199,
+                      "isLongest": true,
+                      "children": {
+                        "15220.8": {
+                          "url": "https://www.gstatic.com/og/_/ss/k=og.qtm.1Ixi47SUPK0.L.W.O/m=qcwid,d_b_gm3,d_wi_gm3,d_lo_gm3/excm=qaaw,qadd,qaid,qein,qhaw,qhba,qhbr,qhch,qhga,qhid,qhin/d=1/ed=1/ct=zgms/rs=AA2YrTvDx8XynccyWcqIqc5FOV5g6ME1iw",
+                          "navStartToEndTime": 1882,
+                          "transferSize": 3379,
+                          "isLongest": true,
+                          "children": {}
+                        },
+                        "15220.2": {
+                          "url": "https://fonts.gstatic.com/s/googlesans/v29/4UaRrENHsxJlGDuGo1OIlJfC6mGS6vhAK1YobMu2vgCIhM907w.woff2",
+                          "navStartToEndTime": 1859,
+                          "transferSize": 25038,
+                          "children": {}
+                        },
+                        "15220.6": {
+                          "url": "https://www.google.com/async/hpba?yv=3&cs=1&ei=kQySabWrLZnukPIPxZfWwAE&async=_basejs:/xjs/_/js/k%3Dxjs.hm.en.f-CwewBLKZE.2019.O/am%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAIAAAggAAAAAAAAQABAAAAAAAAAAAAAAACACEAAABAAAAAAAAAAAMAAQAAAAQAAAAAAMAAQAAAQQAABAAEYAAAAAAAAAAAAAAAAAAIhEIBAAIB_AIwAAAAAAJAAAAuABgAAQCAAAAAAAIAAAAAAAIAAAAAAAAAAAAACAAAAAAAACAAgEAAAAAgAAAAACAAAAAAAAAAAAAAAAAAAABgIAAAAAAAAAAAAAMABAIQAAAAAcAAhAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/dg%3D0/br%3D1/rs%3DACT90oFGjDdfmd7t7OVj0aPcaLiWUJ5iVw,_basecss:/xjs/_/ss/k%3Dxjs.hm.1gbF6T_sgzc.L.B1.O/am%3DAEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAIAAAACAAAAAAAAAMAABgFAAAgAAAAAAEAAAAAAQAABAQAAAAAAAAAIAAQAAAAAAAAAAAAAAwAAAQQAgAAAAAFAAAAAAAAAAAAAAAAAIiEIAAAAAAAAAAAAAAwAAMAAAAAAAAAAADEAACYIQQBAgCAQBAAAIAAAAAAAAAAAQAAAAAAAAgAAgAAAgAAAAAAABAIAARag4GAAAAwBAAEBAIAAIAAAAEAAAAAMAEAAAAAMAAcB4hAgAAAAAAAAAQAAAAAAAg/br%3D1/rs%3DACT90oH92Mdy3qbV7FJGz8hjSz4ZW9KMmg,_basecomb:/xjs/_/js/k%3Dxjs.hm.en.f-CwewBLKZE.2019.O/ck%3Dxjs.hm.1gbF6T_sgzc.L.B1.O/am%3DAEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAIAAAIAIAACggAAAAAAAMQABgFAAAgAAAAAAEAACACEQAABAQAAAAAAAAAMAAQAAAAQAAAAAAMAAwAAAQQAgBAAEYFAAAAAAAAAAAAAAAAAIjEIBAAIB_AIwAAAAAwJAMAAuABgAAQCADEAACYIQQBAgCAYBAAAIAAAAAAAACAAQAAAAACAAgEAgAAAgAAAAACABAIAARag4GAAAAwBAAEBgIAAIAAAAEAAAAAMAFAIQAAMAAcB4hAgAAAQAAAAA0AHggMERwAAAAAAAAAAAAAAAAAAAAAAAcwADOIIAACAAAAAAAAAAAAAAAAAAAAAAAAABQCLo0EA/d%3D1/ed%3D1/dg%3D0/br%3D1/ujg%3D1/rs%3DACT90oHM1XBFR9lwFXhctX3m8xNoo53X0Q,_fmt:prog,_id:_kQySabWrLZnukPIPxZfWwAE_8&sp_imghp=false&sp_hpep=2&sp_hpte=0&vet=10ahUKEwj1t6vCjNySAxUZN0QIHcWLFRgQj-0KCBs..i",
+                          "navStartToEndTime": 961,
+                          "transferSize": 611,
+                          "children": {}
+                        },
+                        "15220.10": {
+                          "url": "https://www.google.com/xjs/_/ss/k=xjs.hm.1gbF6T_sgzc.L.B1.O/am=AEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAIAAAACAAAAAAAAAMAABgFAAAgAAAAAAEAAAAAAQAABAQAAAAAAAAAIAAQAAAAAAAAAAAAAAwAAAQQAgAAAAAFAAAAAAAAAAAAAAAAAIiEIAAAAAAAAAAAAAAwAAMAAAAAAAAAAADEAACYIQQBAgCAQBAAAIAAAAAAAAAAAQAAAAAAAAgAAgAAAgAAAAAAABAIAARag4GAAAAwBAAEBAIAAIAAAAEAAAAAMAEAAAAAMAAcB4hAgAAAAAAAAAQAAAAAAAg/d=1/ed=1/br=1/rs=ACT90oH92Mdy3qbV7FJGz8hjSz4ZW9KMmg/m=bct,cdos,hsm,jsa,qim,rr4R9e,cEt90b,SNUn3,qddgKe,sTsDMc,dtl0hd,eHDfl,YV5bee,d,csi",
+                          "navStartToEndTime": 927,
+                          "transferSize": 343,
+                          "children": {}
+                        }
+                      }
+                    }
+                  },
+                  "longestChain": {
+                    "duration": 1882
+                  }
+                }
+              },
+              {
+                "type": "list-section",
+                "title": "Preconnected origins",
+                "description": "[preconnect](https://developer.chrome.com/docs/lighthouse/performance/uses-rel-preconnect/) hints help the browser establish a connection earlier in the page load, saving time when the first request for that origin is made. The following are the origins that the page preconnected to.",
+                "value": {
+                  "type": "text",
+                  "value": "no origins were preconnected"
+                }
+              },
+              {
+                "type": "list-section",
+                "title": "Preconnect candidates",
+                "description": "Add [preconnect](https://developer.chrome.com/docs/lighthouse/performance/uses-rel-preconnect/) hints to your most important origins, but try to use no more than 4.",
+                "value": {
+                  "type": "text",
+                  "value": "No additional origins are good candidates for preconnecting"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "render-blocking-insight",
+          "title": "Render blocking requests",
+          "description": "Requests are blocking the page's initial render, which may delay LCP. [Deferring or inlining](https://developer.chrome.com/docs/performance/insights/render-blocking) can move these network requests out of the critical path.",
+          "score": 0.5,
+          "scoreDisplayMode": "metricSavings",
+          "details": {
+            "type": "table",
+            "headings": [
+              {
+                "key": "url",
+                "valueType": "url",
+                "label": "URL"
+              },
+              {
+                "key": "totalBytes",
+                "valueType": "bytes",
+                "label": "Transfer Size"
+              },
+              {
+                "key": "wastedMs",
+                "valueType": "timespanMs",
+                "label": "Duration"
+              }
+            ],
+            "items": [
+              {
+                "url": "https://www.google.com/xjs/_/ss/k=xjs.hm.1gbF6T_sgzc.L.B1.O/am=AEAAAQAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAIAAAACAAAAAAAAAMAABgFAAAgAAAAAAEAAAAAAQAABAQAAAAAAAAAIAAQAAAAAAAAAAAAAAwAAAQQAgAAAAAFAAAAAAAAAAAAAAAAAIiEIAAAAAAAAAAAAAAwAAMAAAAAAAAAAADEAACYIQQBAgCAQBAAAIAAAAAAAAAAAQAAAAAAAAgAAgAAAgAAAAAAABAIAARag4GAAAAwBAAEBAIAAIAAAAEAAAAAMAEAAAAAMAAcB4hAgAAAAAAAAAQAAAAAAAg/d=1/ed=1/br=1/rs=ACT90oH92Mdy3qbV7FJGz8hjSz4ZW9KMmg/m=bct,cdos,hsm,jsa,qim,rr4R9e,cEt90b,SNUn3,qddgKe,sTsDMc,dtl0hd,eHDfl,YV5bee,d,csi",
+                "totalBytes": 343
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

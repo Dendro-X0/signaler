@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-02-15T18:14:18.796Z",
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\signaler-local.json",
+    "incremental": false,
+    "resolvedParallel": 1,
+    "totalSteps": 1,
+    "comboCount": 1,
+    "executedCombos": 1,
+    "cachedCombos": 0,
+    "runsPerCombo": 1,
+    "executedSteps": 1,
+    "cachedSteps": 0,
+    "warmUp": true,
+    "throttlingMethod": "simulate",
+    "cpuSlowdownMultiplier": 4,
+    "startedAt": "2026-02-15T18:14:05.261Z",
+    "completedAt": "2026-02-15T18:14:18.794Z",
+    "elapsedMs": 13533,
+    "averageStepMs": 13533
+  },
+  "results": [
+    {
+      "label": "Google",
+      "path": "/",
+      "device": "mobile",
+      "scores": {
+        "performance": 69,
+        "accessibility": 82,
+        "bestPractices": 96,
+        "seo": 91
+      },
+      "metrics": {
+        "lcpMs": 5585.2188,
+        "fcpMs": 1289.2188,
+        "tbtMs": 383,
+        "cls": 0
+      },
+      "topOpportunities": [
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "estimatedSavingsMs": 1350,
+          "estimatedSavingsBytes": 322581
+        },
+        {
+          "id": "server-response-time",
+          "title": "Initial server response time was short",
+          "estimatedSavingsMs": 192
+        },
+        {
+          "id": "redirects",
+          "title": "Avoid multiple page redirects",
+          "estimatedSavingsMs": 0
+        }
+      ],
+      "artifactBaseName": "Google__item__mobile"
+    }
+  ]
+}

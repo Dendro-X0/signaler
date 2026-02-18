@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": "2.6.0",
+  "startedAt": "2026-02-15T18:14:05.261Z",
+  "completedAt": "2026-02-15T18:14:18.794Z",
+  "outputDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\.signaler-verification",
+  "mode": "audit",
+  "artifacts": [
+    {
+      "kind": "file",
+      "relativePath": "run.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "summary.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "summary-lite.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "issues.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "ai-ledger.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "red-issues.md"
+    },
+    {
+      "kind": "file",
+      "relativePath": "pwa.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "summary.md"
+    },
+    {
+      "kind": "file",
+      "relativePath": "report.html"
+    },
+    {
+      "kind": "file",
+      "relativePath": "triage.md"
+    },
+    {
+      "kind": "file",
+      "relativePath": "overview.md"
+    },
+    {
+      "kind": "file",
+      "relativePath": "AI-ANALYSIS.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "AI-SUMMARY.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "QUICK-FIXES.md"
+    },
+    {
+      "kind": "file",
+      "relativePath": "export.json"
+    },
+    {
+      "kind": "file",
+      "relativePath": "export-bundle.json"
+    }
+  ]
+}

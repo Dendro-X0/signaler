@@ -1,0 +1,188 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.14 [39m[90mE:/Web Project/experimental-workspace/apex-auditor-workspace/signaler[39m
+
+ [31m❯[39m test/enhanced-triage-generator.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 12[2mms[22m[39m
+[31m     [31m×[31m should correctly categorize and report non-performance issues[39m[32m 11[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/enhanced-triage-generator.test.ts[2m > [22mEnhancedTriageGenerator[2m > [22mshould correctly categorize and report non-performance issues
+[31m[1mAssertionError[22m: expected '# 📋 Enhanced Triage Report\n\n> **Pe…' to contain 'Accessibility Issues'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- Accessibility Issues[39m
+[31m+ # 📋 Enhanced Triage Report[39m
+[31m+[39m
+[31m+ > **Performance Analysis & Prioritization Guide**[39m
+[31m+ > [39m
+[31m+ > Test disclaimer[39m
+[31m+ > [39m
+[31m+ > This report provides detailed issue aggregation, framework-specific recommendations,[39m
+[31m+ > and performance impact calculations to guide your optimization efforts.[39m
+[31m+[39m
+[31m+ ## 📊 Executive Summary[39m
+[31m+[39m
+[31m+ ### Performance Overview[39m
+[31m+ - **1 pages audited** in 0 minutes[39m
+[31m+ - **50 average performance score** across all pages[39m
+[31m+ - **3 unique issues** identified across multiple pages[39m
+[31m+ - **0s total potential savings** if all issues resolved[39m
+[31m+[39m
+[31m+ ### Issue Breakdown[39m
+[31m+ - 🚨 **1 Critical Issues** - Immediate attention required[39m
+[31m+ - ⚠️ **1 High Priority Issues** - Address within this sprint[39m
+[31m+ - ⚡ **1 Medium Issues** - Plan for next iteration[39m
+[31m+ - ℹ️ **0 Low Priority Issues** - Technical debt cleanup[39m
+[31m+[39m
+[31m+ ## 🎯 Prioritization Matrix[39m
+[31m+[39m
+[31m+ > **Impact vs Effort Analysis** - Focus on high-impact, low-effort wins first[39m
+[31m+[39m
+[31m+ | Rank | Issue | Severity | Pages | Savings | Impact | Effort | Priority |[39m
+[31m+ |------|-------|----------|-------|---------|--------|--------|----------|[39m
+[31m+ | 1 | ARIA attributes must be allowed for a... | CRITICAL | 1 | 0s | 🔹 | 🟡 | ⭐ |[39m
+[31m+ | 2 | Document does not have a meta descrip... | HIGH | 1 | 0s | 🔹 | 🟢 | ⭐ |[39m
+[31m+ | 3 | Page lacks the HTML doctype | MEDIUM | 1 | 0s | 🔹 | 🟢 | ⭐ |[39m
+[31m+[39m
+[31m+ **Legend:**[39m
+[31m+ - **Impact**: 🔥 High, 🔸 Medium, 🔹 Low[39m
+[31m+ - **Effort**: 🟢 Easy, 🟡 Medium, 🔴 Hard[39m
+[31m+ - **Priority**: ⭐⭐⭐ Must Do, ⭐⭐ Should Do, ⭐ Could Do[39m
+[31m+[39m
+[31m+ ## 🔍 Detailed Issue Analysis[39m
+[31m+[39m
+[31m+ ### 1. 🚨 ARIA attributes must be allowed for an element's role ♿[39m
+[31m+[39m
+[31m+ **Category:** accessibility | **Severity:** critical | **Pages Affected:** 1[39m
+[31m+[39m
+[31m+ **Total Impact:** 0s potential savings, 0KB reduction[39m
+[31m+ **Average Impact:** 0ms per page, 0KB per page[39m
+[31m+[39m
+[31m+ Elements must have allowed ARIA attributes[39m
+[31m+[39m
+[31m+ **Affected Pages:**[39m
+[31m+ - Test Page (/test) - 0ms, Score: 50[39m
+[31m+[39m
+[31m+[39m
+[31m+ **Performance Impact Projection:**[39m
+[31m+ - Current average score: 50[39m
+[31m+ - Projected improvement: +0 points[39m
+[31m+ - Estimated new score: 50[39m
+[31m+ - Confidence level: low[39m
+[31m+[39m
+[31m+ **Framework-Specific Recommendations:**[39m
+[31m+ - **General**: Fix accessibility violation: ARIA attributes must be allowed for an element's role[39m
+[31m+[39m
+[31m+ ### 2. ⚠️ Document does not have a meta description 🔍[39m
+[31m+[39m
+[31m+ **Category:** seo | **Severity:** high | **Pages Affected:** 1[39m
+[31m+[39m
+[31m+ **Total Impact:** 0s potential savings, 0KB reduction[39m
+[31m+ **Average Impact:** 0ms per page, 0KB per page[39m
+[31m+[39m
+[31m+ Meta descriptions are important for SEO[39m
+[31m+[39m
+[31m+ **Affected Pages:**[39m
+[31m+ - Test Page (/test) - 0ms, Score: 50[39m
+[31m+[39m
+[31m+[39m
+[31m+ **Performance Impact Projection:**[39m
+[31m+ - Current average score: 50[39m
+[31m+ - Projected improvement: +0 points[39m
+[31m+ - Estimated new score: 50[39m
+[31m+ - Confidence level: low[39m
+[31m+[39m
+[31m+ **Framework-Specific Recommendations:**[39m
+[31m+ - **General**: Improve SEO: Document does not have a meta description[39m
+[31m+[39m
+[31m+ ### 3. ⚡ Page lacks the HTML doctype ⭐[39m
+[31m+[39m
+[31m+ **Category:** best-practices | **Severity:** medium | **Pages Affected:** 1[39m
+[31m+[39m
+[31m+ **Total Impact:** 0s potential savings, 0KB reduction[39m
+[31m+ **Average Impact:** 0ms per page, 0KB per page[39m
+[31m+[39m
+[31m+ Best practices require a doctype[39m
+[31m+[39m
+[31m+ **Affected Pages:**[39m
+[31m+ - Test Page (/test) - 0ms, Score: 50[39m
+[31m+[39m
+[31m+[39m
+[31m+ **Performance Impact Projection:**[39m
+[31m+ - Current average score: 50[39m
+[31m+ - Projected improvement: +0 points[39m
+[31m+ - Estimated new score: 50[39m
+[31m+ - Confidence level: low[39m
+[31m+[39m
+[31m+ **Framework-Specific Recommendations:**[39m
+[31m+ - **General**: Follow best practice: Page lacks the HTML doctype[39m
+[31m+[39m
+[31m+[39m
+[31m+ ## 🛠️ Framework-Specific Guidance[39m
+[31m+[39m
+[31m+ ### General[39m
+[31m+ **High Priority:**[39m
+[31m+ - Fix accessibility violation: ARIA attributes must be allowed for an element's role[39m
+[31m+ **Medium Priority:**[39m
+[31m+ - Improve SEO: Document does not have a meta description[39m
+[31m+ - Follow best practice: Page lacks the HTML doctype[39m
+[31m+[39m
+[31m+ ## 🗺️ Implementation Roadmap[39m
+[31m+[39m
+[31m+ ### Phase 1: Critical Issues (Week 1)[39m
+[31m+ > **Goal:** Address performance blockers and critical user experience issues[39m
+[31m+[39m
+[31m+ - [ ] **ARIA attributes must be allowed for an element's role** - 1 pages, 0s savings[39m
+[31m+[39m
+[31m+ ### Phase 2: High Impact Issues (Week 2-3)[39m
+[31m+ > **Goal:** Implement high-value optimizations with measurable performance gains[39m
+[31m+[39m
+[31m+ - [ ] **Document does not have a meta description** - 1 pages, 0s savings[39m
+[31m+[39m
+[31m+ ### Phase 3: Medium Priority Issues (Week 4-6)[39m
+[31m+ > **Goal:** Address remaining performance opportunities and technical debt[39m
+[31m+[39m
+[31m+ - [ ] **Page lacks the HTML doctype** - 1 pages, 0s savings[39m
+[31m+[39m
+[31m+ ### Success Metrics[39m
+[31m+ - [ ] Average performance score improvement of 10+ points[39m
+[31m+ - [ ] Critical issues reduced to zero[39m
+[31m+ - [ ] Page load time improvement of 2+ seconds[39m
+[31m+ - [ ] User experience metrics (CLS, LCP, FID) in "Good" range[39m
+[31m+[39m
+[31m+ ---[39m
+[31m+[39m
+[31m+ ## 📈 Next Steps[39m
+[31m+[39m
+[31m+ 1. **Review Prioritization Matrix** - Focus on high-impact, low-effort wins[39m
+[31m+ 2. **Assign Issues to Team Members** - Distribute work based on expertise[39m
+[31m+ 3. **Set Performance Budgets** - Prevent future regressions[39m
+[31m+ 4. **Schedule Regular Audits** - Monitor progress and catch new issues[39m
+[31m+ 5. **Measure Impact** - Re-run audits after each phase to validate improvements[39m
+[31m+[39m
+[31m+ ## 📚 Additional Resources[39m
+[31m+[39m
+[31m+ - [Web.dev Performance Guide](https://web.dev/performance/)[39m
+[31m+ - [Lighthouse Performance Scoring](https://web.dev/performance-scoring/)[39m
+[31m+ - [Core Web Vitals](https://web.dev/vitals/)[39m
+[31m+[39m
+[31m+ *Enhanced triage report generated by Signaler • 2026-02-16T05:06:55.075Z • 1 pages analyzed*[39m
+
+[36m [2m❯[22m test/enhanced-triage-generator.test.ts:[2m86:24[22m[39m
+    [90m 84| [39m
+    [90m 85| [39m        [90m// Check for category headers/sections[39m
+    [90m 86| [39m        [34mexpect[39m(report)[33m.[39m[34mtoContain[39m([32m"Accessibility Issues"[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 87| [39m        [34mexpect[39m(report)[33m.[39m[34mtoContain[39m([32m"SEO Issues"[39m)[33m;[39m
+    [90m 88| [39m        [34mexpect[39m(report)[33m.[39m[34mtoContain[39m([32m"Best Practice Issues"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m   Start at [22m 17:06:54
+[2m   Duration [22m 263ms[2m (transform 52ms, setup 0ms, import 68ms, tests 12ms, environment 0ms)[22m
+

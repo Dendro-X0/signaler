@@ -4,7 +4,8 @@ import { constants as fsConstants } from 'node:fs'
 
 const root = resolve(process.cwd())
 // In this workspace, signaler is a sibling of docs
-const monorepoCliDocs = resolve(root, '..', 'signaler', 'docs')
+// In this workspace, signaler is the root, site is a child
+const monorepoCliDocs = resolve(root, '..', 'docs')
 const envCliDocs = process.env.CLI_DOCS_DIR ? resolve(process.env.CLI_DOCS_DIR) : null
 const outDir = join(root, 'src', 'content', 'signaler')
 const versionOutFile = join(root, 'src', 'lib', 'version.generated.json')
@@ -16,7 +17,18 @@ async function pathExists(p) {
 async function main() {
   await mkdir(outDir, { recursive: true })
   // Files available in signaler/docs
-  const files = ['overview.md', 'getting-started.md', 'cli-and-ci.md', 'configuration-and-routes.md', 'troubleshooting.md']
+  const files = [
+    'README.md',
+    'getting-started.md',
+    'cli-and-ci.md',
+    'configuration-and-routes.md',
+    'troubleshooting.md',
+    'api-reference.md',
+    'testing.md',
+    'MIGRATION.md',
+    'AI-OPTIMIZED-REPORTS.md',
+    'FEATURES.md'
+  ]
 
   const candidates = [envCliDocs, monorepoCliDocs].filter(Boolean)
   let cliDocs = candidates[0]
@@ -30,6 +42,7 @@ async function main() {
       const src = join(cliDocs, f)
       // Map some files to standard doc names if needed
       let dstName = f
+      if (f === 'README.md') dstName = 'overview.md'
       if (f === 'cli-and-ci.md') dstName = 'cli.md'
       if (f === 'configuration-and-routes.md') dstName = 'configuration.md'
 
@@ -58,7 +71,7 @@ async function main() {
   // Write generated version file for the docs site from the signaler package.json.
   try {
     const cliPkgJsonPaths = [
-      join(root, '..', 'signaler', 'package.json'),
+      join(root, '..', 'package.json'),
       join(root, 'package.json'),
     ]
     let version = process.env.NEXT_PUBLIC_SIGNALER_VERSION || ''

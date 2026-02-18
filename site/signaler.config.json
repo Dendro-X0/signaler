@@ -1,0 +1,15 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "query": "",
+  "runs": 1,
+  "pages": [
+    {
+      "path": "/",
+      "label": "home",
+      "devices": [
+        "mobile",
+        "desktop"
+      ]
+    }
+  ]
+}

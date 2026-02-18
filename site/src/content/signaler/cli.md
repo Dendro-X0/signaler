@@ -6,36 +6,33 @@ This document describes non-interactive CLI usage (for scripts/CI) and budget en
 
 The CLI binary is `signaler`.
 
-The CLI binary is `signaler`.
+Install from GitHub Releases:
 
-### Installation
-
-To install via JSR (recommended):
+1. Download the `signaler-<version>.tgz` asset from the GitHub Release.
+2. Install it in your project:
 
 ```bash
-# npm
-npx jsr add -D @signaler/cli
-
-# pnpm
-pnpm dlx jsr add -D @signaler/cli
-
-# yarn
-yarn dlx jsr add -D @signaler/cli
-
-# bun
-bunx jsr add -d @signaler/cli
+pnpm add -D ./signaler-<version>.tgz
 ```
 
-### Run without install
+Or install system-wide (no registries) using the portable zip installer:
 
-```bash
-npx jsr run @signaler/cli <command>
+- Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-### Upgrade
+- macOS/Linux:
 
 ```bash
-npx jsr add -D @signaler/cli@latest
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Upgrade later:
+
+```bash
+signaler upgrade
 ```
 
 ### `shell`

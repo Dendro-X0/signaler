@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-02-15T18:14:18.797Z",
+  "targetScore": 95,
+  "totals": {
+    "combos": 1,
+    "redCombos": 0,
+    "yellowCombos": 1,
+    "greenCombos": 0,
+    "runtimeErrors": 0
+  },
+  "topIssues": [
+    {
+      "id": "unused-javascript",
+      "title": "Reduce unused JavaScript",
+      "count": 1,
+      "totalMs": 1350
+    },
+    {
+      "id": "server-response-time",
+      "title": "Initial server response time was short",
+      "count": 1,
+      "totalMs": 192
+    },
+    {
+      "id": "redirects",
+      "title": "Avoid multiple page redirects",
+      "count": 1,
+      "totalMs": 0
+    }
+  ],
+  "offenders": [],
+  "failing": [
+    {
+      "label": "Google",
+      "path": "/",
+      "device": "mobile",
+      "performance": 69,
+      "accessibility": 82,
+      "bestPractices": 96,
+      "seo": 91,
+      "artifactBaseName": "Google__item__mobile",
+      "topOpportunities": [
+        {
+          "id": "unused-javascript",
+          "title": "Reduce unused JavaScript",
+          "estimatedSavingsMs": 1350,
+          "estimatedSavingsBytes": 322581
+        },
+        {
+          "id": "server-response-time",
+          "title": "Initial server response time was short",
+          "estimatedSavingsMs": 192
+        },
+        {
+          "id": "redirects",
+          "title": "Avoid multiple page redirects",
+          "estimatedSavingsMs": 0
+        }
+      ]
+    }
+  ]
+}

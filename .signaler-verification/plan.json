@@ -1,0 +1,169 @@
+{
+  "generatedAt": "2026-02-15T18:14:18.801Z",
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\signaler-local.json",
+    "incremental": false,
+    "resolvedParallel": 1,
+    "totalSteps": 1,
+    "comboCount": 1,
+    "executedCombos": 1,
+    "cachedCombos": 0,
+    "runsPerCombo": 1,
+    "executedSteps": 1,
+    "cachedSteps": 0,
+    "warmUp": true,
+    "throttlingMethod": "simulate",
+    "cpuSlowdownMultiplier": 4,
+    "startedAt": "2026-02-15T18:14:05.261Z",
+    "completedAt": "2026-02-15T18:14:18.794Z",
+    "elapsedMs": 13533,
+    "averageStepMs": 13533
+  },
+  "targetScore": 95,
+  "totals": {
+    "combos": 1,
+    "redCombos": 0,
+    "yellowCombos": 1,
+    "greenCombos": 0,
+    "runtimeErrors": 0
+  },
+  "topIssues": [
+    {
+      "id": "unused-javascript",
+      "title": "Reduce unused JavaScript",
+      "count": 1,
+      "totalMs": 1350
+    },
+    {
+      "id": "server-response-time",
+      "title": "Initial server response time was short",
+      "count": 1,
+      "totalMs": 192
+    },
+    {
+      "id": "redirects",
+      "title": "Avoid multiple page redirects",
+      "count": 1,
+      "totalMs": 0
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "performance-top-opportunities",
+      "category": "performance",
+      "title": "Performance: attack the top Lighthouse opportunities",
+      "rationale": "Most performance wins come from fixing the highest-frequency / highest-savings Lighthouse opportunities across failing pages.",
+      "affectedCombos": [
+        {
+          "label": "Google",
+          "path": "/",
+          "device": "mobile",
+          "artifactBaseName": "Google__item__mobile",
+          "scores": {
+            "performance": 69,
+            "accessibility": 82,
+            "bestPractices": 96,
+            "seo": 91
+          },
+          "metrics": {
+            "lcpMs": 5585.2188,
+            "tbtMs": 383,
+            "cls": 0
+          }
+        }
+      ],
+      "expectedImpact": {
+        "scoreUplift": "high",
+        "primarySignals": [
+          "performance score",
+          "LCP",
+          "TBT",
+          "INP",
+          "CLS"
+        ]
+      },
+      "nextCommands": [
+        "signaler audit --diagnostics --stable",
+        "signaler audit --diagnostics --throttling devtools --stable"
+      ],
+      "acceptanceCriteria": [
+        "The worst combos reach 95+ performance score (or show a clear upward trend).",
+        "Top offending opportunities shrink in frequency and estimated savings."
+      ]
+    },
+    {
+      "id": "accessibility-fix-below-target",
+      "category": "accessibility",
+      "title": "Accessibility: raise below-target pages",
+      "rationale": "Accessibility issues tend to be systematic and repeat across pages; fixing a few components can lift many routes.",
+      "affectedCombos": [
+        {
+          "label": "Google",
+          "path": "/",
+          "device": "mobile",
+          "artifactBaseName": "Google__item__mobile",
+          "scores": {
+            "performance": 69,
+            "accessibility": 82,
+            "bestPractices": 96,
+            "seo": 91
+          },
+          "metrics": {
+            "lcpMs": 5585.2188,
+            "tbtMs": 383,
+            "cls": 0
+          }
+        }
+      ],
+      "expectedImpact": {
+        "scoreUplift": "medium",
+        "primarySignals": [
+          "accessibility score"
+        ]
+      },
+      "nextCommands": [
+        "signaler audit --stable"
+      ],
+      "acceptanceCriteria": [
+        "All combos reach 95+ accessibility score."
+      ]
+    },
+    {
+      "id": "seo-fix-below-target",
+      "category": "seo",
+      "title": "SEO: raise below-target pages",
+      "rationale": "SEO score gaps are commonly caused by missing meta tags or indexing/canonical issues; fixing templates often resolves many pages.",
+      "affectedCombos": [
+        {
+          "label": "Google",
+          "path": "/",
+          "device": "mobile",
+          "artifactBaseName": "Google__item__mobile",
+          "scores": {
+            "performance": 69,
+            "accessibility": 82,
+            "bestPractices": 96,
+            "seo": 91
+          },
+          "metrics": {
+            "lcpMs": 5585.2188,
+            "tbtMs": 383,
+            "cls": 0
+          }
+        }
+      ],
+      "expectedImpact": {
+        "scoreUplift": "low",
+        "primarySignals": [
+          "seo score"
+        ]
+      },
+      "nextCommands": [
+        "signaler audit --stable"
+      ],
+      "acceptanceCriteria": [
+        "All combos reach 95+ SEO score."
+      ]
+    }
+  ]
+}

@@ -17,6 +17,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.29
         version: 3.0.29(zod@4.3.6)
+      '@signaler/cli':
+        specifier: jsr:^2.6.0
+        version: '@jsr/signaler__cli@2.6.0'
       ai:
         specifier: ^6.0.86
         version: 6.0.86(zod@4.3.6)
@@ -376,6 +379,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@jsr/signaler__cli@2.6.0':
+    resolution: {integrity: sha512-WPKkTdnxPe+MDLWfNKMPGdEMqAEoqMGImcEsMJeTAdgm5LobRcD5wm7FwzpbDelW1jOGqefy6GfhWax28CCUHg==, tarball: https://npm.jsr.io/~/11/@jsr/signaler__cli/2.6.0.tgz}
 
   '@opentelemetry/api-logs@0.57.2':
     resolution: {integrity: sha512-uIX52NnTM0iBh84MShlpouI7UKqkZ7MrUszTmaypHBu4r7NofznSnQRfJ+uUeDtQDj6w8eFGg5KBLDAwAPz1+A==}
@@ -2019,6 +2025,28 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@jsr/signaler__cli@2.6.0':
+    dependencies:
+      '@ai-sdk/anthropic': 3.0.44(zod@4.3.6)
+      '@ai-sdk/google': 3.0.29(zod@4.3.6)
+      '@ai-sdk/openai': 3.0.29(zod@4.3.6)
+      '@types/prompts': 2.4.9
+      '@types/ws': 8.18.1
+      ai: 6.0.86(zod@4.3.6)
+      ansi-colors: 4.1.3
+      chrome-launcher: 1.2.1
+      lighthouse: 13.0.1
+      prompts: 2.4.2
+      ws: 8.18.3
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - react-native-b4a
+      - supports-color
+      - utf-8-validate
 
   '@opentelemetry/api-logs@0.57.2':
     dependencies:

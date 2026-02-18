@@ -1,0 +1,36 @@
+{
+  "status": "needs_optimization",
+  "disclaimer": "Batch audit scores are relative indicators only",
+  "topIssues": [
+    {
+      "type": "unused-javascript",
+      "impact": "1.4s",
+      "pages": 1,
+      "priority": 1
+    },
+    {
+      "type": "server-response-time",
+      "impact": "0.2s",
+      "pages": 1,
+      "priority": 2
+    },
+    {
+      "type": "redirects",
+      "impact": "0.0s",
+      "pages": 1,
+      "priority": 3
+    }
+  ],
+  "worstPages": [
+    {
+      "path": "/",
+      "score": 69,
+      "device": "mobile"
+    }
+  ],
+  "quickWins": [
+    "fix_redirects",
+    "code_splitting"
+  ],
+  "estimatedFixTime": "1-2 hours for 80% improvement"
+}
