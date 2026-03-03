@@ -1,6 +1,8 @@
 import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import type { Dirent } from "node:fs";
 import { join, resolve } from "node:path";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import prompts, { type PromptObject } from "prompts";
 import { detectRoutes, type DetectedRoute, type RouteDetectorId } from "./route-detectors.js";
 import { discoverRuntimeRoutes } from "./sitemap-discovery.js";
@@ -10,6 +12,8 @@ import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
 
 interface WizardArgs {
   readonly configPath: string;
+  readonly mode: "quick" | "advanced";
+  readonly runAfterInit: boolean;
 }
 
 class WizardAbortError extends Error {
@@ -93,6 +97,7 @@ const PROFILE_TO_DETECTOR: Record<ProjectProfileId, RouteDetectorId | undefined>
 
 const DEFAULT_BASE_URL = "http://localhost:3000" as const;
 const DEFAULT_PROJECT_ROOT = "." as const;
+const QUICK_STARTER_MAX_ROUTES = 12;
 const DEFAULT_PRESELECT_COUNT = 5;
 const DEFAULT_ROUTE_CAP = 50;
 const DEFAULT_DEVICES: readonly ApexDevice[] = ["mobile", "desktop"] as const;
@@ -111,21 +116,6 @@ const overwriteQuestion: PromptObject = {
   message: "Found existing config. Overwrite?",
   initial: true,
 };
-const baseQuestions: readonly PromptObject[] = [
-  {
-    type: "text",
-    name: "baseUrl",
-    message: "Base URL of the running app",
-    initial: DEFAULT_BASE_URL,
-    validate: (value: string) => (value.startsWith("http") ? true : "Enter a full http(s) URL."),
-  },
-  {
-    type: "text",
-    name: "query",
-    message: "Query string appended to every route (optional)",
-    initial: "",
-  },
-];
 const pageQuestions: readonly PromptObject[] = [
   {
     type: "text",
@@ -250,12 +240,25 @@ async function ask<T extends object>(question: PromptObject | readonly PromptObj
   return answers as T;
 }
 
-async function collectBaseAnswers(): Promise<BaseAnswers> {
-  const answers = await ask<BaseAnswers>(baseQuestions);
-  return {
-    baseUrl: answers.baseUrl,
-    query: answers.query,
-  };
+function buildBaseQuestions(initialBaseUrl: string, includeQuery: boolean): readonly PromptObject[] {
+  const questions: PromptObject[] = [
+    {
+      type: "text",
+      name: "baseUrl",
+      message: "Base URL of the running app",
+      initial: initialBaseUrl,
+      validate: (value: string) => (value.startsWith("http") ? true : "Enter a full http(s) URL."),
+    },
+  ];
+  if (includeQuery) {
+    questions.push({
+      type: "text",
+      name: "query",
+      message: "Query string appended to every route (optional)",
+      initial: "",
+    });
+  }
+  return questions;
 }
 
 function tryParseLocalDevServer(baseUrl: string): LocalDevServerInfo | undefined {
@@ -276,9 +279,9 @@ function tryParseLocalDevServer(baseUrl: string): LocalDevServerInfo | undefined
   return { host, port };
 }
 
-async function collectBaseAnswersWithSafety(): Promise<BaseAnswers> {
+async function collectBaseAnswersWithSafety(params: { readonly initialBaseUrl: string; readonly includeQuery: boolean }): Promise<BaseAnswers> {
   while (true) {
-    const answers: BaseAnswers = await collectBaseAnswers();
+    const answers: BaseAnswers = await ask<BaseAnswers>(buildBaseQuestions(params.initialBaseUrl, params.includeQuery));
     const info: LocalDevServerInfo | undefined = tryParseLocalDevServer(answers.baseUrl);
     if (!info) {
       return answers;
@@ -293,6 +296,51 @@ async function collectBaseAnswersWithSafety(): Promise<BaseAnswers> {
       return answers;
     }
   }
+}
+
+async function isUrlReachable(url: string): Promise<boolean> {
+  const parsed = new URL(url);
+  const client = parsed.protocol === "https:" ? httpsRequest : httpRequest;
+  return await new Promise<boolean>((resolvePromise) => {
+    const request = client(
+      {
+        hostname: parsed.hostname,
+        port: parsed.port ? Number(parsed.port) : parsed.protocol === "https:" ? 443 : 80,
+        path: "/",
+        method: "GET",
+        timeout: 1200,
+      },
+      (response) => {
+        response.resume();
+        resolvePromise((response.statusCode ?? 0) > 0);
+      },
+    );
+    request.on("timeout", () => {
+      request.destroy();
+      resolvePromise(false);
+    });
+    request.on("error", () => resolvePromise(false));
+    request.end();
+  });
+}
+
+async function detectLikelyBaseUrl(): Promise<string> {
+  const candidates: readonly string[] = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+  ];
+  for (const candidate of candidates) {
+    if (await isUrlReachable(candidate)) {
+      return candidate;
+    }
+  }
+  return DEFAULT_BASE_URL;
 }
 
 function profileDisplayName(profile: ProjectProfileId): string {
@@ -318,14 +366,39 @@ function profileDisplayName(profile: ProjectProfileId): string {
 
 function parseArgs(argv: readonly string[]): WizardArgs {
   let configPath: string | undefined;
+  let mode: "quick" | "advanced" = "quick";
+  let runAfterInit = false;
   for (let index = 2; index < argv.length; index += 1) {
     const arg: string = argv[index];
     if ((arg === "--config" || arg === "-c") && index + 1 < argv.length) {
       configPath = argv[index + 1];
       index += 1;
+    } else if (arg === "--quick") {
+      mode = "quick";
+    } else if (arg === "--advanced") {
+      mode = "advanced";
+    } else if (arg === "--run") {
+      runAfterInit = true;
     }
   }
-  return { configPath: configPath ?? "signaler.config.json" };
+  return { configPath: configPath ?? "signaler.config.json", mode, runAfterInit };
+}
+
+async function resolveProjectRootForWizard(mode: "quick" | "advanced"): Promise<string> {
+  const cwdRoot: string = resolve(DEFAULT_PROJECT_ROOT);
+  if (mode === "quick") {
+    const useCwd = await ask<{ readonly value: boolean }>({
+      type: "confirm",
+      name: "value",
+      message: `Use current directory as project root? ${cwdRoot}`,
+      initial: true,
+    });
+    if (useCwd.value) {
+      return cwdRoot;
+    }
+  }
+  const projectRootAnswer = await ask<ProjectRootAnswer>(projectRootQuestion);
+  return resolve(projectRootAnswer.projectRoot);
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -558,7 +631,46 @@ async function collectPages(initialPages: readonly ApexPageConfig[]): Promise<Ap
   }
 }
 
-async function maybeDetectPages(params: { readonly profile: ProjectProfileId; readonly baseUrl: string; readonly repoRoot: string }): Promise<ApexPageConfig[]> {
+function isLikelyPublicStarterRoute(path: string): boolean {
+  const lowered = path.toLowerCase();
+  if (lowered.includes("/api")) return false;
+  if (lowered.includes("/_next")) return false;
+  if (lowered.includes("/__nuxt")) return false;
+  if (lowered.includes("/__data")) return false;
+  if (lowered.includes("/admin")) return false;
+  if (lowered.includes("/auth")) return false;
+  if (path.includes(":") || path.includes("[") || path.includes("]")) return false;
+  return true;
+}
+
+function buildQuickStarterRoutes(routes: readonly DetectedRoute[]): readonly DetectedRoute[] {
+  const unique = new Map<string, DetectedRoute>();
+  for (const route of routes) {
+    if (!unique.has(route.path)) {
+      unique.set(route.path, route);
+    }
+  }
+  const all: DetectedRoute[] = Array.from(unique.values());
+  const home: DetectedRoute[] = all.filter((r) => r.path === "/");
+  const publicStatic: DetectedRoute[] = all.filter((r) => r.path !== "/" && isLikelyPublicStarterRoute(r.path));
+  const fallback: DetectedRoute[] = all.filter((r) => r.path !== "/" && !isLikelyPublicStarterRoute(r.path));
+  return [...home, ...publicStatic, ...fallback].slice(0, QUICK_STARTER_MAX_ROUTES);
+}
+
+function printQuickPlan(pages: readonly ApexPageConfig[]): void {
+  const combos: number = pages.reduce((sum, page) => sum + page.devices.length, 0);
+  const lowMinutes: number = Math.max(1, Math.ceil((combos * 3) / 60));
+  const highMinutes: number = Math.max(lowMinutes, Math.ceil((combos * 8) / 60));
+  console.log("");
+  console.log("Quick plan:");
+  console.log(`  - Pages: ${pages.length}`);
+  console.log(`  - Combos: ${combos} (mobile + desktop)`);
+  console.log("  - Mode: throughput (recommended first run)");
+  console.log(`  - Estimated runtime: ${lowMinutes}-${highMinutes} min`);
+  console.log("  - Artifacts: .signaler/run.json, .signaler/results.json, .signaler/agent-index.json");
+}
+
+async function maybeDetectPages(params: { readonly profile: ProjectProfileId; readonly baseUrl: string; readonly repoRoot: string; readonly mode: "quick" | "advanced" }): Promise<ApexPageConfig[]> {
   const preferredDetector = await selectDetector(params.profile);
   const repoRoot: string = params.repoRoot;
   if (!(await pathExists(repoRoot))) {
@@ -582,6 +694,21 @@ async function maybeDetectPages(params: { readonly profile: ProjectProfileId; re
     return [];
   }
   console.log(`Detected ${combined.length} route(s) using auto-discovery.`);
+  if (params.mode === "quick") {
+    const quickStarter: readonly DetectedRoute[] = buildQuickStarterRoutes(combined);
+    if (quickStarter.length === 0) {
+      console.log("No starter routes selected automatically. Add pages manually.");
+      return [];
+    }
+    const useStarter = await ask<{ readonly value: boolean }>({
+      type: "confirm",
+      name: "value",
+      message: `Use a quick starter set of ${quickStarter.length} route(s)?`,
+      initial: true,
+    });
+    const picked: readonly DetectedRoute[] = useStarter.value ? quickStarter : combined;
+    return picked.map(convertRouteToPage);
+  }
   const suggestedExclude: readonly string[] = buildSuggestedExcludePatterns(params.profile);
   const initialFilter: boolean = combined.length >= ROUTE_FILTER_DEFAULT_ON_THRESHOLD || suggestedExclude.length > 0;
   const confirmQuestion: PromptObject = { ...routeFilterConfirmQuestion, initial: initialFilter };
@@ -724,24 +851,42 @@ function convertRouteToPage(route: DetectedRoute): ApexPageConfig {
   };
 }
 
-async function buildConfig(): Promise<ApexConfig> {
-  const baseAnswers = await collectBaseAnswersWithSafety();
-  const projectRootAnswer = await ask<ProjectRootAnswer>(projectRootQuestion);
-  const initialRepoRoot: string = resolve(projectRootAnswer.projectRoot);
+async function buildConfigForMode(mode: "quick" | "advanced"): Promise<ApexConfig> {
+  const suggestedBaseUrl: string = await detectLikelyBaseUrl();
+  let baseAnswers: BaseAnswers;
+  if (mode === "quick") {
+    const useSuggested = await ask<{ readonly value: boolean }>({
+      type: "confirm",
+      name: "value",
+      message: `Use detected base URL ${suggestedBaseUrl}?`,
+      initial: true,
+    });
+    baseAnswers = useSuggested.value
+      ? { baseUrl: suggestedBaseUrl, query: undefined }
+      : await collectBaseAnswersWithSafety({ initialBaseUrl: suggestedBaseUrl, includeQuery: false });
+  } else {
+    baseAnswers = await collectBaseAnswersWithSafety({ initialBaseUrl: suggestedBaseUrl, includeQuery: true });
+  }
+  const initialRepoRoot: string = await resolveProjectRootForWizard(mode);
   const resolved = await resolveWizardProjectRoot(initialRepoRoot);
   const repoRoot: string = resolved.repoRoot;
   const detectedProfile: ProjectProfileId | undefined = resolved.detectedProfile;
   if (detectedProfile) {
-    const detectedAnswer = await ask<{ readonly value: boolean }>({
-      type: "confirm",
-      name: "value",
-      message: `Detected ${profileDisplayName(detectedProfile)} from package.json. Use this?`,
-      initial: true,
-    });
-    if (detectedAnswer.value) {
+    const useDetectedProfile: boolean = mode === "quick"
+      ? true
+      : (await ask<{ readonly value: boolean }>({
+        type: "confirm",
+        name: "value",
+        message: `Detected ${profileDisplayName(detectedProfile)} from package.json. Use this?`,
+        initial: true,
+      })).value;
+    if (useDetectedProfile) {
       console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
-      const detectedPages = await maybeDetectPages({ profile: detectedProfile, baseUrl: baseAnswers.baseUrl, repoRoot });
+      const detectedPages = await maybeDetectPages({ profile: detectedProfile, baseUrl: baseAnswers.baseUrl, repoRoot, mode });
       const pages = await collectPages(detectedPages);
+      if (mode === "quick") {
+        printQuickPlan(pages);
+      }
       return {
         baseUrl: baseAnswers.baseUrl,
         query: baseAnswers.query,
@@ -752,8 +897,11 @@ async function buildConfig(): Promise<ApexConfig> {
   }
   const profileAnswer = await ask<ProjectProfileAnswer>(buildProfileQuestion({ detectedProfile }));
   console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
-  const detectedPages = await maybeDetectPages({ profile: profileAnswer.profile, baseUrl: baseAnswers.baseUrl, repoRoot });
+  const detectedPages = await maybeDetectPages({ profile: profileAnswer.profile, baseUrl: baseAnswers.baseUrl, repoRoot, mode });
   const pages = await collectPages(detectedPages);
+  if (mode === "quick") {
+    printQuickPlan(pages);
+  }
   return {
     baseUrl: baseAnswers.baseUrl,
     query: baseAnswers.query,
@@ -770,9 +918,23 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
     const args = parseArgs(argv);
     const absolutePath = resolve(args.configPath);
     await ensureWritable(absolutePath);
-    const config = await buildConfig();
+    const config = await buildConfigForMode(args.mode);
     await writeFile(absolutePath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
     console.log(`Saved Signaler config to ${absolutePath}`);
+    const runNow: boolean = args.runAfterInit
+      ? true
+      : (await ask<{ readonly value: boolean }>({
+        type: "confirm",
+        name: "value",
+        message: "Run first audit now with canonical defaults? (run --contract v3 --mode throughput)",
+        initial: true,
+      })).value;
+    if (runNow) {
+      const { runAuditCli } = await import("./cli.js");
+      await runAuditCli(["node", "signaler", "run", "--config", absolutePath, "--contract", "v3", "--mode", "throughput", "--yes"]);
+    } else {
+      console.log(`Next step: signaler run --config "${absolutePath}" --contract v3 --mode throughput`);
+    }
   } catch (error: unknown) {
     if (error instanceof WizardAbortError) {
       return;

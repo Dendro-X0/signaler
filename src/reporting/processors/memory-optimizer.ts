@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { totalmem, freemem } from 'node:os';
 
 /**
  * Configuration options for memory monitoring and optimization.
@@ -491,8 +492,8 @@ export function checkMemoryAvailability(requiredMB: number): {
 } {
   const memUsage = process.memoryUsage();
   const currentUsageMB = memUsage.heapUsed / 1024 / 1024;
-  const totalMemoryMB = require('os').totalmem() / 1024 / 1024;
-  const freeMemoryMB = require('os').freemem() / 1024 / 1024;
+  const totalMemoryMB = totalmem() / 1024 / 1024;
+  const freeMemoryMB = freemem() / 1024 / 1024;
   
   const available = freeMemoryMB >= requiredMB;
   

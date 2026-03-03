@@ -705,6 +705,7 @@ export async function runAuditsForConfig({
   readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
 }): Promise<RunSummary> {
   const runs: number = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : 1;
+  const sessionIsolation: "shared" | "per-audit" = config.sessionIsolation ?? "shared";
   const firstPage = config.pages[0];
   const healthCheckUrl: string = buildUrl({ baseUrl: config.baseUrl, path: firstPage.path, query: config.query });
   if (signal?.aborted) {
@@ -812,21 +813,18 @@ export async function runAuditsForConfig({
 
   if (tasksToRun.length === 0) {
     resultsFromRunner = [];
-  } else if (parallelCount <= 1 || config.chromePort !== undefined) {
+  } else if (sessionIsolation === "per-audit" || parallelCount <= 1 || config.chromePort !== undefined) {
     // Sequential execution (original behavior) or using external Chrome
-    if (captureLevel !== undefined && config.chromePort === undefined) {
-      resultsFromRunner = await runParallelInProcesses(tasksToRun, 1, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir);
-    } else {
-      resultsFromRunner = await runSequential({
-        tasks: tasksToRun,
-        chromePort: config.chromePort,
-        auditTimeoutMs,
-        signal,
-        updateProgress,
-        captureLevel,
-        outputDir,
-      });
-    }
+    resultsFromRunner = await runSequential({
+      tasks: tasksToRun,
+      chromePort: config.chromePort,
+      auditTimeoutMs,
+      signal,
+      updateProgress,
+      captureLevel,
+      outputDir,
+      sessionIsolation,
+    });
   } else {
     resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir);
   }
@@ -892,15 +890,23 @@ async function runSequential(params: {
   readonly updateProgress: (path: string, device: ApexDevice) => void;
   readonly captureLevel: "diagnostics" | "lhr" | undefined;
   readonly outputDir: string;
+  readonly sessionIsolation: "shared" | "per-audit";
 }): Promise<PageDeviceSummary[]> {
   const results: PageDeviceSummary[] = [];
   const sessionRef: { session: ChromeSession } = { session: await createChromeSession(params.chromePort) };
+  const isolatePerAudit: boolean = params.sessionIsolation === "per-audit" && params.chromePort === undefined;
   try {
     for (const task of params.tasks) {
       const summaries: PageDeviceSummary[] = [];
       for (let index = 0; index < task.runs; index += 1) {
         if (params.signal?.aborted) {
           throw new Error("Aborted");
+        }
+        if (isolatePerAudit) {
+          if (sessionRef.session.close) {
+            await sessionRef.session.close();
+          }
+          sessionRef.session = await createChromeSession(params.chromePort);
         }
         const attemptAudit = async (): Promise<{
           readonly summary: PageDeviceSummary;
@@ -942,6 +948,9 @@ async function runSequential(params: {
         }
         summaries.push(outcome.summary);
         params.updateProgress(task.path, task.device);
+        if (isolatePerAudit && sessionRef.session.close) {
+          await sessionRef.session.close();
+        }
       }
       results.push(aggregateSummaries(summaries));
     }

@@ -124,6 +124,7 @@ type RunProtocolV3 = {
   readonly profile: RunnerProfile;
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
+  readonly sessionIsolation: "shared" | "per-audit";
   readonly warmUp: boolean;
   readonly headless: boolean;
   readonly runsPerCombo: number;
@@ -137,7 +138,9 @@ type V3ModeDefaults = {
   readonly profile: RunnerProfile;
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
+  readonly sessionIsolation: "shared" | "per-audit";
   readonly warmUp: boolean;
+  readonly runsPerCombo: number;
 };
 
 function colorScore(score: number | undefined, theme: UiTheme): string {
@@ -2525,7 +2528,9 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
       profile: "fidelity-devtools-stable",
       throttlingMethod: "devtools",
       parallel: 1,
+      sessionIsolation: "per-audit",
       warmUp: true,
+      runsPerCombo: 3,
     };
   }
   return {
@@ -2533,7 +2538,9 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
     profile: "throughput-balanced",
     throttlingMethod: "simulate",
     parallel: 4,
+    sessionIsolation: "shared",
     warmUp: true,
+    runsPerCombo: 1,
   };
 }
 
@@ -2542,6 +2549,7 @@ function buildComparabilityHash(params: {
   readonly profile: RunnerProfile;
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
+  readonly sessionIsolation: "shared" | "per-audit";
   readonly warmUp: boolean;
   readonly headless: boolean;
   readonly runsPerCombo: number;
@@ -2553,6 +2561,7 @@ function buildComparabilityHash(params: {
     profile: params.profile,
     throttlingMethod: params.throttlingMethod,
     parallel: params.parallel,
+    sessionIsolation: params.sessionIsolation,
     warmUp: params.warmUp,
     headless: params.headless,
     runsPerCombo: params.runsPerCombo,
@@ -2990,7 +2999,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   const configRuns: number | undefined = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : undefined;
   const devtoolsRunsDefault: number | undefined = isDevtoolsAccuratePreset && configRuns === undefined ? 3 : undefined;
-  const effectiveRuns: number = args.fast ? 1 : (configRuns ?? devtoolsRunsDefault ?? 1);
+  const modeRunsDefault: number = modeDefaults.runsPerCombo;
+  const effectiveRuns: number = args.fast ? 1 : (configRuns ?? devtoolsRunsDefault ?? modeRunsDefault);
+  const effectiveSessionIsolation: "shared" | "per-audit" = config.sessionIsolation ?? modeDefaults.sessionIsolation;
   const onlyCategories: readonly ApexCategory[] | undefined = args.fast ? ["performance"] : undefined;
   const resolvedMode: RunnerMode = modeDefaults.mode;
   const resolvedProfile: RunnerProfile = modeDefaults.profile;
@@ -3002,6 +3013,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     profile: resolvedProfile,
     throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
     parallel: effectiveParallel ?? DEFAULT_PARALLEL,
+    sessionIsolation: effectiveSessionIsolation,
     warmUp: effectiveWarmUp,
     headless: true,
     runsPerCombo: effectiveRuns,
@@ -3011,6 +3023,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       profile: resolvedProfile,
       throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
       parallel: effectiveParallel ?? DEFAULT_PARALLEL,
+      sessionIsolation: effectiveSessionIsolation,
       warmUp: effectiveWarmUp,
       headless: true,
       runsPerCombo: effectiveRuns,
@@ -3060,6 +3073,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     throttlingMethod: effectiveThrottling,
     cpuSlowdownMultiplier: effectiveCpuSlowdown,
     parallel: effectiveParallel,
+    sessionIsolation: effectiveSessionIsolation,
     auditTimeoutMs: effectiveAuditTimeoutMs,
     warmUp: effectiveWarmUp,
     incremental: finalIncremental,

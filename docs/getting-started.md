@@ -75,6 +75,22 @@ Inside the shell:
 
 The wizard creates or updates `signaler.config.json`.
 
+Init modes:
+
+- `signaler init` (default quick onboarding)
+- `signaler init --quick` (explicit quick mode)
+- `signaler init --advanced` (full prompt flow)
+- `signaler init --run` (save config and run first audit automatically)
+
+Quick mode behavior:
+
+- auto-detects a likely local base URL (`localhost` common ports)
+- prefers current directory as project root
+- auto-detects framework from `package.json`
+- proposes a starter route set for fast first run
+- shows a short run plan preview before handoff
+- asks whether to run the first canonical audit immediately
+
 You can also point the shell at a different config file:
 
 ```text

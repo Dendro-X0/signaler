@@ -156,6 +156,12 @@ export interface ApexConfig {
    */
   readonly parallel?: number;
   /**
+   * Browser session isolation strategy for Lighthouse audits.
+   * - "shared" (default): reuse a Chrome session for speed.
+   * - "per-audit": create a fresh Chrome session per audit for better reproducibility.
+   */
+  readonly sessionIsolation?: "shared" | "per-audit";
+  /**
    * Whether to perform a warm-up request before auditing.
    * Helps avoid cold start penalties on the first audit.
    */

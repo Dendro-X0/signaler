@@ -430,19 +430,10 @@ function isInteractiveTty(): boolean {
 let isShuttingDown = false;
 
 async function cleanupChromeProcesses(): Promise<void> {
-  try {
-    const { exec } = await import('node:child_process');
-    const { promisify } = await import('node:util');
-    const execAsync = promisify(exec);
-
-    if (process.platform === 'win32') {
-      await execAsync('taskkill /F /IM chrome.exe /T').catch(() => { });
-    } else {
-      await execAsync('pkill -9 -f "chrome.*--headless"').catch(() => { });
-    }
-  } catch {
-    // Ignore cleanup errors
-  }
+  // Intentionally non-destructive.
+  // Runner-level Chrome sessions are already closed by their own lifecycle hooks.
+  // Global taskkill/pkill can terminate user-launched Chrome sessions.
+  await Promise.resolve();
 }
 
 function setupGracefulShutdown(): void {
@@ -642,9 +633,6 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     throw error;
   }
 
-  if (isInteractiveTty()) {
-    await runShellCli(["node", "signaler"]);
-  }
 }
 
 void runBin(process.argv).catch((error: unknown) => {

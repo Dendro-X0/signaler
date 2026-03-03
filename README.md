@@ -2,7 +2,7 @@
 
 > Comprehensive web quality platform with AI-powered insights, accessibility, security, and performance audits.
 
-![Version](http://img.shields.io/badge/version-2.6.3-blue.svg)
+![Version](http://img.shields.io/badge/version-2.6.4-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -21,11 +21,14 @@ npx jsr run @signaler/cli run --mode throughput
 
 ## Quick Start
 
-Get up and running in seconds with the interactive wizard. The wizard automatically detects your framework, scans for routes, and creates an optimized configuration file. No manual setup required!
+Get up and running in minutes with the interactive init wizard. It supports a fast `--quick` path (default) and a full `--advanced` path.
 
 ```bash
-# Initialize your project
+# Initialize your project (quick path, default)
 npx signaler init
+
+# Advanced setup (full prompts)
+npx signaler init --advanced
 
 # Run your first canonical audit
 npx signaler run --mode throughput
@@ -37,7 +40,7 @@ npx signaler review
 npx signaler --help
 ```
 
-The wizard will automatically detect your framework (Next.js, Nuxt, Remix, SvelteKit, Astro) and configure optimal settings including parallel workers, throttling method, and performance budgets.
+The wizard auto-detects your framework/project root, suggests a local base URL, proposes starter routes, and can run your first canonical audit immediately after saving config.
 
 ## Usage
 

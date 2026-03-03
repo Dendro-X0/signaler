@@ -10,6 +10,7 @@ import { createGzip, createGunzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import { join, dirname } from 'node:path';
 import { Transform, Writable } from 'node:stream';
+import { totalmem, freemem } from 'node:os';
 
 /**
  * Configuration for optimized batched file writing.
@@ -501,8 +502,8 @@ export class TempFileManager {
  * Utility function to estimate optimal buffer size based on system memory
  */
 export function calculateOptimalBufferSize(): number {
-  const totalMemory = require('os').totalmem();
-  const freeMemory = require('os').freemem();
+  const totalMemory = totalmem();
+  const freeMemory = freemem();
   
   // Use 1% of free memory or 1MB, whichever is smaller
   const optimalSize = Math.min(

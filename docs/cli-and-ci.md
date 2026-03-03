@@ -71,12 +71,14 @@ Inside the shell:
 Notes:
 
 - `init` will attempt to detect your project type from `package.json`.
+- `init` defaults to a quick onboarding flow; use `init --advanced` for full manual prompts.
 - In monorepos, `init` can scan `apps/*` and `packages/*` and prompt you to choose which app/package to configure.
 - `init` can auto-discover routes from the filesystem and top-up from `robots.txt`/`sitemap.xml`.
-- You can optionally filter detected routes with include/exclude patterns and still add manual routes. For larger route sets, the wizard may default filtering to **Yes** and prefill common excludes (framework-specific).
+- Quick mode proposes a starter route set; advanced mode supports include/exclude filtering and manual route control.
 - Static HTML projects can be detected from HTML files under `dist/`, `build/`, `out/`, `public/`, and `src/`.
 - If you use a localhost base URL (e.g. `http://localhost:3000`), ensure the dev server port matches the project you are configuring to avoid overwrites/conflicts when multiple projects are running.
 - Confirmation prompts default to **Yes** on Enter (e.g. overwrite).
+- `init --run` saves config and immediately executes a canonical first run (`run --contract v3 --mode throughput`).
 
 ### `run` (canonical)
 
@@ -88,7 +90,7 @@ signaler run --config signaler.config.json --contract v3 --mode throughput
 
 Notes:
 
-- **Runs-per-combo is always 1**.
+- Throughput mode is optimized for broad coverage; fidelity mode targets reproducibility-oriented runs.
 - Accessibility is opt-in via `--accessibility-pass`.
 - Progress output includes page count + ETA.
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.6.4 - 2026-03-03
+
+### Wizard Onboarding, Runtime Stability, and Fidelity Improvements
+
+- **Init Wizard Redesign**:
+  - Added mode-aware setup: `init --quick` (default) and `init --advanced`.
+  - Added local dev URL auto-detection (common localhost ports) for faster first-run setup.
+  - Added quick starter route selection for new users (public/static-first route set).
+  - Added onboarding plan preview (page/device combos, runtime estimate, output artifacts).
+  - Added post-init handoff prompt to run the first canonical audit immediately.
+- **Runtime Stability**:
+  - Fixed ESM runtime crash in reporting processors (`require is not defined`) by using Node ESM imports.
+  - Disabled destructive global Chrome cleanup paths that could terminate user-managed Chrome sessions.
+  - Fixed command completion behavior so non-shell commands do not drop into shell unexpectedly.
+- **Runner Accuracy Controls**:
+  - Added `sessionIsolation` support (`shared` or `per-audit`) in config/runtime types.
+  - Updated fidelity defaults for reproducibility-oriented runs:
+    - `throttlingMethod=devtools`
+    - `parallel=1`
+    - `sessionIsolation=per-audit`
+    - `runsPerCombo=3` (mode default)
+  - Included `sessionIsolation` in `comparabilityHash` to prevent invalid cross-run comparisons.
+- **Docs Sync**:
+  - Updated quickstart and CLI docs for new init flow and first-run behavior.
+
 ## 2.6.3 - 2026-03-02
 
 ### Docs, UX Narrative, and Workflow Alignment

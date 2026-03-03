@@ -83,6 +83,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly throttlingMethod?: unknown;
     readonly cpuSlowdownMultiplier?: unknown;
     readonly parallel?: unknown;
+    readonly sessionIsolation?: unknown;
     readonly warmUp?: unknown;
     readonly incremental?: unknown;
     readonly budgets?: unknown;
@@ -129,6 +130,11 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     typeof rawParallel === "number" && Number.isInteger(rawParallel) && rawParallel >= 1 && rawParallel <= 10
       ? rawParallel
       : undefined;
+  const rawSessionIsolation: unknown = maybeConfig.sessionIsolation;
+  const sessionIsolation: "shared" | "per-audit" | undefined =
+    rawSessionIsolation === "shared" || rawSessionIsolation === "per-audit"
+      ? rawSessionIsolation
+      : undefined;
   const warmUp: boolean | undefined =
     typeof maybeConfig.warmUp === "boolean" ? maybeConfig.warmUp : undefined;
   const incremental: boolean | undefined =
@@ -146,6 +152,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     throttlingMethod,
     cpuSlowdownMultiplier,
     parallel,
+    sessionIsolation,
     warmUp,
     incremental,
     pages,
