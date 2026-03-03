@@ -10,6 +10,7 @@ import { writeFile, mkdir, rm, access } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 
 describe("Integration Tests", () => {
   let tempDir: string;
@@ -24,7 +25,7 @@ describe("Integration Tests", () => {
 
     // Setup mock webhook server
     webhookRequests = [];
-    serverPort = 3000 + Math.floor(Math.random() * 1000);
+    serverPort = 0;
     
     mockWebhookServer = createServer((req, res) => {
       let body = '';
@@ -33,9 +34,17 @@ describe("Integration Tests", () => {
       });
       
       req.on('end', () => {
+        let parsedPayload: unknown = {};
+        if (body) {
+          try {
+            parsedPayload = JSON.parse(body);
+          } catch {
+            parsedPayload = body;
+          }
+        }
         webhookRequests.push({
           url: req.url || '',
-          payload: body ? JSON.parse(body) : {},
+          payload: parsedPayload,
           headers: req.headers
         });
         
@@ -54,7 +63,11 @@ describe("Integration Tests", () => {
     });
 
     await new Promise<void>((resolve) => {
-      mockWebhookServer.listen(serverPort, resolve);
+      mockWebhookServer.listen(0, '127.0.0.1', () => {
+        const address = mockWebhookServer.address() as AddressInfo | null;
+        serverPort = address?.port ?? 0;
+        resolve();
+      });
     });
   });
 
@@ -510,11 +523,12 @@ describe("Integration Tests", () => {
           }
           
           // Verify all retry attempts were made (allow for some variance in edge cases)
-          expect(webhookRequests.length).toBeGreaterThanOrEqual(0); // Allow for no requests in edge cases
-          expect(webhookRequests.length).toBeLessThanOrEqual(maxRetries + 1);
+          const failRequests = webhookRequests.filter((request) => request.url.includes('/fail'));
+          expect(failRequests.length).toBeGreaterThanOrEqual(0); // Allow for no requests in edge cases
+          expect(failRequests.length).toBeLessThanOrEqual(maxRetries + 1);
           
-          // All requests should have the same payload (if any requests were made)
-          for (const request of webhookRequests) {
+          // All fail-endpoint requests should have the same payload (if any requests were made)
+          for (const request of failRequests) {
             expect(request.payload).toEqual(payload);
           }
         }
