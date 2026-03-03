@@ -57,3 +57,48 @@ Key files are written under `.signaler/`:
 - `issues.json`
 - `triage.md`
 - `report.html`
+
+## Performance-Focused Configuration
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "throttlingMethod": "devtools",
+  "parallel": 1,
+  "warmUp": true,
+  "pages": [{ "path": "/", "label": "Home", "devices": ["mobile", "desktop"] }]
+}
+```
+
+## CI/CD Optimized Configuration
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "throttlingMethod": "simulate",
+  "parallel": 2,
+  "pages": [{ "path": "/", "label": "Home", "devices": ["mobile"] }],
+  "budgets": { "categories": { "performance": 80 } }
+}
+```
+
+## Large Site Configuration
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "parallel": 1,
+  "warmUp": true,
+  "pages": [
+    { "path": "/", "label": "Home", "devices": ["mobile"] },
+    { "path": "/blog", "label": "Blog", "devices": ["mobile"] },
+    { "path": "/docs", "label": "Docs", "devices": ["mobile"] }
+  ]
+}
+```
+
+## Debug Configuration
+
+```bash
+signaler run --log-level verbose --diagnostics --lhr
+```

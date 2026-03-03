@@ -38,6 +38,24 @@ signaler wizard
 signaler audit
 ```
 
+## Astro
+
+```bash
+pnpm build
+pnpm preview
+signaler init
+signaler run --mode throughput
+```
+
+## Express
+
+```bash
+pnpm start
+signaler init
+signaler run --mode throughput
+signaler review
+```
+
 ## Static Site
 
 ```bash
