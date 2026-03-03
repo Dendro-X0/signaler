@@ -31,6 +31,7 @@ This folder contains practical docs for the current `@signaler/cli` codebase.
 - [Release Notes v2.4](RELEASE-NOTES-v2.4.md)
 - [Release Notes v2.5.1](RELEASE-NOTES-v2.5.1.md)
 - [Release Notes v2.5.2](RELEASE-NOTES-v2.5.2.md)
+- [Release Notes v2.6.4](RELEASE-NOTES-v2.6.4.md)
 
 ## Quick Install
 
