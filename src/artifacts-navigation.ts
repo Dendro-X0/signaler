@@ -43,7 +43,9 @@ function buildMarkdown(params: { readonly generatedAt: string; readonly entries:
   lines.push("## Quick start");
   lines.push("");
   lines.push("- For a human summary: open `overview.md` then `triage.md`.");
-  lines.push("- For a machine/AI plan: open `ai-ledger.json` and follow `fixPlan`.");
+  lines.push("- For a machine/AI plan (v3): open `agent-index.json` first.");
+  lines.push("- Canonical v3 machine contract: `run.json`, `results.json`, `suggestions.json`, `agent-index.json`.");
+  lines.push("- Legacy AI index (compat mode): `ai-ledger.json`.");
   lines.push("- For structured issues: open `issues.json`.");
   lines.push("- For PWA-specific signals: open `pwa.json`.");
   lines.push("- For a compact suite summary: open `summary-lite.json`.");
@@ -54,6 +56,9 @@ function buildMarkdown(params: { readonly generatedAt: string; readonly entries:
   lines.push("- `triage.md`: the fastest human triage view; links to the exact per-page artifacts.");
   lines.push("- `report.html`: full Lighthouse HTML report for the suite.");
   lines.push("- `summary.json`: full suite summary with all combos and metrics.");
+  lines.push("- `results.json`: normalized per-combo metrics + opportunities (v3 canonical).");
+  lines.push("- `suggestions.json`: ranked optimization suggestions with evidence pointers (v3 canonical).");
+  lines.push("- `agent-index.json`: token-budget AI entrypoint for agent workflows (v3 canonical).");
   lines.push("- `summary-lite.json`: smaller summary for quick parsing.");
   lines.push("- `issues.json`: normalized issues across all combos (opportunities, hints, evidence).");
   lines.push("- `ai-ledger.json`: AI-first index: issueIndex + fixPlan + offenders + evidence pointers.");

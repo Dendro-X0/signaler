@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
@@ -101,6 +101,7 @@
     "ai": "^6.0.86",
     "ansi-colors": "^4.1.3",
     "axe-core": "^4.10.2",
+    "blessed": "^0.1.81",
     "chrome-launcher": "^1.2.1",
     "enquirer": "^2.4.1",
     "lighthouse": "^13.0.1",

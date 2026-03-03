@@ -26,6 +26,9 @@ importers:
       axe-core:
         specifier: ^4.10.2
         version: 4.11.0
+      blessed:
+        specifier: ^0.1.81
+        version: 0.1.81
       chrome-launcher:
         specifier: ^1.2.1
         version: 1.2.1
@@ -925,6 +928,11 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
+
+  blessed@0.1.81:
+    resolution: {integrity: sha512-LoF5gae+hlmfORcG1M5+5XZi4LBmvlXTzwJWzUlPryN/SJdSflZvROM2TwkT0GMpq7oqT48NRd4GS7BiVBc5OQ==}
+    engines: {node: '>= 0.8.0'}
+    hasBin: true
 
   brace-expansion@2.0.2:
     resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
@@ -2642,6 +2650,8 @@ snapshots:
   baseline-browser-mapping@2.9.16: {}
 
   basic-ftp@5.0.5: {}
+
+  blessed@0.1.81: {}
 
   brace-expansion@2.0.2:
     dependencies:

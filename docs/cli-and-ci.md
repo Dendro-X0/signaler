@@ -45,8 +45,11 @@ signaler shell
 
 Inside the shell:
 
+- `run`
+- `review`
 - `measure`
-- `audit`
+- `audit` (legacy alias)
+- `report` (legacy alias)
 - `bundle`
 - `health`
 - `links`
@@ -75,12 +78,12 @@ Notes:
 - If you use a localhost base URL (e.g. `http://localhost:3000`), ensure the dev server port matches the project you are configuring to avoid overwrites/conflicts when multiple projects are running.
 - Confirmation prompts default to **Yes** on Enter (e.g. overwrite).
 
-### `audit`
+### `run` (canonical)
 
 Run Lighthouse audits from a config file:
 
 ```bash
-signaler audit --config signaler.config.json
+signaler run --config signaler.config.json --contract v3 --mode throughput
 ```
 
 Notes:
@@ -110,9 +113,15 @@ Key flags:
 - `--open`
 - `--json`
 
-Outputs:
+Canonical outputs (v3):
 
 - `.signaler/run.json`
+- `.signaler/results.json`
+- `.signaler/suggestions.json`
+- `.signaler/agent-index.json`
+
+Legacy compatibility outputs:
+
 - `.signaler/summary.json`
 - `.signaler/summary-lite.json`
 - `.signaler/issues.json`
@@ -128,6 +137,8 @@ Outputs:
 - `.signaler/lighthouse-artifacts/lhr/` (when `--lhr`)
 
 Note: large JSON artifacts may also be written as gzip copies (`*.json.gz`).
+
+Legacy alias: `audit` remains supported and maps to the same runner.
 
 Exit codes:
 
@@ -147,13 +158,23 @@ When you care about token efficiency and disk output size:
 - Use `--ai-min-combos <n>` to keep `ai-fix.min.json` small.
 - Use `--no-ai-fix` when you only need `issues.json` / `triage.md` and the HTML report.
 - Use `--no-export` when you do not need `export.json` links or share payloads.
-- Use `ai-ledger.json` as the one-run AI entry point; it includes per-combo `regressions`/`improvements` when a previous `.signaler/summary.json` exists, and evidence pointers into `issues.json` and `lighthouse-artifacts/diagnostics-lite/`.
+- Use `agent-index.json` as the canonical one-run AI entry point (v3 contract). Use `ai-ledger.json` only in legacy compatibility workflows.
 - Use `issues.json.offenders` to find repeated offenders (e.g. unused JS files) with route + artifact evidence pointers.
 - Use `pwa.json` to track PWA checks (HTTPS, service worker, offline signals) across routes.
 
 ## Known issues
 
 - **Large-run Lighthouse stability**: very large audits (many page/device combinations) may show higher score variance than manual Lighthouse runs and can intermittently hit worker/Chrome disconnects. Workaround: reduce parallelism (`--stable`) and retry.
+
+### `review` (canonical)
+
+Regenerate review/report outputs from existing `.signaler` artifacts (no new Lighthouse run):
+
+```bash
+signaler review
+```
+
+Legacy alias: `report` remains supported.
 
 ### `measure`
 
@@ -277,7 +298,7 @@ Budgets are configured in `signaler.config.json` under `budgets`.
 Run in CI:
 
 ```bash
-signaler audit --ci --no-color
+signaler run --contract v3 --mode throughput --ci --no-color
 ```
 
 Behavior:

@@ -11,4 +11,18 @@ export type EngineRunIndex = {
   readonly outputDir: string;
   readonly mode: "audit" | "measure" | "report" | "folder";
   readonly artifacts: readonly EngineRunIndexArtifact[];
+  readonly contractVersion?: "legacy" | "v3";
+  readonly workflow?: "init-run-review";
+  readonly protocol?: {
+    readonly mode: "fidelity" | "throughput";
+    readonly profile: "fidelity-devtools-stable" | "throughput-balanced";
+    readonly throttlingMethod: "simulate" | "devtools";
+    readonly parallel: number;
+    readonly warmUp: boolean;
+    readonly headless: boolean;
+    readonly runsPerCombo: number;
+    readonly captureLevel: "diagnostics" | "lhr" | "none";
+    readonly comparabilityHash: string;
+    readonly disclaimer: string;
+  };
 };

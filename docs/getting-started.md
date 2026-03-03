@@ -1,18 +1,19 @@
 # Getting Started
 
-Signaler (formerly ApexAuditor) is a **measure-first** performance + metrics assistant.
+Signaler is a **reliable web lab runner** with an agent-first artifact contract.
 
 This remastered release is designed to be installed and run as a CLI (`signaler`).
 
-Typical workflow:
+Canonical workflow:
 
-1. Run the interactive shell.
-2. Use `measure` for fast feedback.
-3. Use `audit` for deep Lighthouse analysis.
-4. **NEW in v2.0.1**: Review AI-optimized reports for quick insights.
-5. Use `bundle` to quickly sanity-check build output sizes.
-6. Use `health` to validate routes are up and reasonably fast.
-7. Type `open` to review the latest HTML report.
+1. `init`
+2. `run --mode throughput|fidelity`
+3. `review`
+
+Legacy aliases remain supported:
+
+- `audit` (legacy alias of `run`)
+- `report` (legacy alias of `review`)
 
 Helpful navigation shortcuts:
 
@@ -61,7 +62,7 @@ Prerequisites:
 Recommended first run:
 
 ```bash
-signaler wizard
+signaler init
 ```
 
 ## 2. Create a config
@@ -93,26 +94,32 @@ Outputs:
 - `.signaler/measure-summary.json`
 - `.signaler/measure/` (screenshots and artifacts)
 
-## 4. Audit (Lighthouse)
+## 4. Run (Lighthouse)
 
 ```text
-> audit
+> run --contract v3 --mode throughput
 ```
 
 Optional capture flags:
 
-- `audit --diagnostics`: capture DevTools-like Lighthouse tables and save screenshots.
-- `audit --lhr`: also save the full Lighthouse result JSON per page/device (implies `--diagnostics`).
+- `run --diagnostics`: capture DevTools-like Lighthouse tables and save screenshots.
+- `run --lhr`: also save the full Lighthouse result JSON per page/device (implies `--diagnostics`).
 
-During an audit:
+During a run:
 
 - A warm-up step may run first (if enabled).
-- You will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
+- You will see a runtime progress line like `page X/Y - /path [device] | ETA ...`.
 - Press **Esc** to cancel and return to the shell prompt.
 
-Outputs:
+Canonical outputs (v3):
 
-- `.signaler/run.json` (stable run index)
+- `.signaler/run.json`
+- `.signaler/results.json`
+- `.signaler/suggestions.json`
+- `.signaler/agent-index.json`
+
+Legacy compatibility outputs (still available):
+
 - `.signaler/summary.json`
 - `.signaler/summary-lite.json`
 - `.signaler/summary.md`
@@ -175,15 +182,25 @@ All reports now include clear disclaimers about performance score accuracy:
 Notes:
 
 - Start with `triage.md` and `issues.json` when the suite is large.
+- For AI/agent ingestion, use `agent-index.json` first.
 - For PWA-specific checks (HTTPS, service worker, offline signals), use `pwa.json`.
 - Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
 
 Speed and output controls:
 
-- `audit --focus-worst <n>` re-runs only the worst N combos from the previous run.
-- `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
-- `audit --no-ai-fix` and `audit --no-export` can skip writing large artifacts.
-- If parallel mode flakes (Chrome disconnects / Lighthouse target errors), retry with `audit --stable` (forces parallel=1).
+- `run --focus-worst <n>` re-runs only the worst N combos from the previous run.
+- `run --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
+- `run --no-ai-fix` and `run --no-export` can skip writing large artifacts.
+- If parallel mode flakes (Chrome disconnects / Lighthouse target errors), retry with `run --stable` (forces parallel=1).
+
+## 4.2 Review (Report Regeneration)
+
+```text
+> review
+```
+
+Use `review` to regenerate report outputs from existing `.signaler` artifacts without running Lighthouse again.
+Legacy alias: `report`.
 
 ## 5. Bundle (build output sizes)
 

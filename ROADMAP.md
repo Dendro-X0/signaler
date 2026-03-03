@@ -1,5 +1,8 @@
 # Signaler Cortex Roadmap
 
+> Before executing this Cortex roadmap, review the current product gaps:
+> [docs/CURRENT-SHORTCOMINGS.md](./docs/CURRENT-SHORTCOMINGS.md)
+
 **Signaler Cortex** turns the CLI into an automated optimization engineer. This roadmap outlines the evolution from a diagnostic tool to an intelligent remediation platform.
 
 ## 🧠 Phase 1: The Foundation (Completed)

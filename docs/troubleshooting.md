@@ -2,6 +2,14 @@
 
 This guide helps resolve common issues when using Signaler for web performance auditing.
 
+Canonical commands:
+
+- `init` (setup)
+- `run` (primary Lighthouse runner)
+- `review` (report regeneration from artifacts)
+
+Legacy aliases remain supported: `wizard`, `audit`, `report`.
+
 ## Installation Issues
 
 ### Command Not Found After Installation
@@ -106,9 +114,9 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
    node -e "console.log(JSON.parse(require('fs').readFileSync('./signaler.config.json', 'utf8')))"
    ```
 
-2. **Use wizard to regenerate:**
+2. **Use init to regenerate config:**
    ```bash
-   signaler wizard --force
+   signaler init
    ```
 
 3. **Check required fields:**
@@ -168,15 +176,15 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
    ```json
    {
      "pages": [
-       { "path": "/products/shoes", "label": "Shoes" },      // ✅ Good
-       { "path": "/products/[slug]", "label": "Product" }    // ❌ Bad
+       { "path": "/products/shoes", "label": "Shoes" },      // âœ… Good
+       { "path": "/products/[slug]", "label": "Product" }    // âŒ Bad
      ]
    }
    ```
 
-2. **Use wizard for automatic detection:**
+2. **Use init for automatic detection:**
    ```bash
-   signaler wizard  # Automatically resolves dynamic routes
+   signaler init  # Automatically resolves dynamic routes
    ```
 
 3. **Manual route discovery:**
@@ -196,7 +204,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 1. **Use stable mode:**
    ```bash
-   signaler audit --stable  # Forces single-worker mode
+   signaler run --stable  # Forces single-worker mode
    ```
 
 2. **Reduce parallelism:**
@@ -237,13 +245,13 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 2. **Audit in batches:**
    ```bash
    # Split large page sets into smaller batches
-   signaler audit --focus-worst 10  # Audit worst 10 pages only
+   signaler run --focus-worst 10  # Audit worst 10 pages only
    ```
 
 3. **Increase Node.js memory:**
    ```bash
    export NODE_OPTIONS="--max-old-space-size=4096"
-   signaler audit
+   signaler run
    ```
 
 4. **Use measure instead of audit:**
@@ -296,11 +304,9 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
    }
    ```
 
-2. **Increase runs:**
-   ```json
-   {
-     "runs": 3,  // Multiple runs for averaging (default: 1)
-   }
+2. **Re-run targeted combos:**
+   ```bash
+   signaler run --focus-worst 10
    ```
 
 3. **Use consistent environment:**
@@ -370,7 +376,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 3. **Audit fewer pages:**
    ```bash
-   signaler audit --focus-worst 5  # Focus on problem pages
+   signaler run --focus-worst 5  # Focus on problem pages
    ```
 
 4. **Use CI-optimized settings:**
@@ -408,7 +414,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 4. **Use explicit output options:**
    ```bash
-   signaler audit --no-ai-fix --no-export  # Disable optional outputs
+   signaler run --no-ai-fix --no-export  # Disable optional outputs
    ```
 
 ### Corrupted HTML Reports
@@ -419,7 +425,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 1. **Regenerate report:**
    ```bash
-   signaler report  # Regenerate from existing data
+   signaler review  # Regenerate from existing data (legacy alias: signaler report)
    ```
 
 2. **Check file size:**
@@ -448,17 +454,17 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 1. **Use budget enforcement:**
    ```bash
-   signaler audit --fail-on-budget  # Exit 1 if budgets fail
+   signaler run --fail-on-budget  # Exit 1 if budgets fail
    ```
 
 2. **Check exit codes:**
    ```bash
-   signaler audit; echo "Exit code: $?"
+   signaler run; echo "Exit code: $?"
    ```
 
 3. **Use CI mode:**
    ```bash
-   signaler audit --ci --no-color  # CI-optimized output
+   signaler run --ci --no-color  # CI-optimized output
    ```
 
 ### GitHub Actions Issues
@@ -483,7 +489,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 
 3. **Use headless mode:**
    ```yaml
-   - run: signaler audit --ci
+   - run: signaler run --ci --contract v3 --mode throughput
      env:
        CHROME_PATH: /usr/bin/chromium-browser
    ```
@@ -499,13 +505,13 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 1. **Use correct build directory:**
    ```bash
    npm run build  # Ensure .next directory exists
-   signaler wizard  # Auto-detects Next.js structure
+   signaler init  # Auto-detects Next.js structure
    ```
 
 2. **Handle dynamic routes:**
    ```bash
    # Wizard automatically resolves [slug] patterns
-   signaler wizard --force
+   signaler init
    ```
 
 ### Nuxt Issues
@@ -517,11 +523,11 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 1. **Ensure build exists:**
    ```bash
    npm run build  # Creates .nuxt directory
-   signaler wizard
+   signaler init
    ```
 
 2. **Check route patterns:**
-   - `_id.vue` becomes `/[id]` (auto-resolved by wizard)
+   - `_id.vue` becomes `/[id]` (auto-resolved by init wizard)
    - `index.vue` becomes `/`
 
 ### SvelteKit Issues
@@ -533,13 +539,13 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 1. **Check route structure:**
    ```bash
    find src/routes -name "*.svelte"  # Should find route files
-   signaler wizard  # Auto-detects structure
+   signaler init  # Auto-detects structure
    ```
 
 2. **Ensure dev server is running:**
    ```bash
    npm run dev  # Start SvelteKit dev server
-   signaler audit  # In separate terminal
+   signaler run  # In separate terminal
    ```
 
 ## Getting Help
@@ -547,7 +553,7 @@ bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts
 ### Enable Verbose Logging
 
 ```bash
-signaler audit --log-level verbose  # Maximum logging
+signaler run --log-level verbose  # Maximum logging
 ```
 
 ### Check System Information
@@ -563,12 +569,12 @@ chrome --version  # or chromium --version
 
 ```bash
 # Create debug report
-signaler audit --log-level verbose > debug.log 2>&1
+signaler run --log-level verbose > debug.log 2>&1
 ```
 
 ### Common Support Channels
 
-1. **GitHub Issues:** https://github.com/Dendro-X0/ApexAuditor/issues
+1. **GitHub Issues:** https://github.com/Dendro-X0/signaler/issues
 2. **Documentation:** https://signaler.dev/docs
 3. **Examples:** https://github.com/signaler/examples
 
@@ -591,7 +597,7 @@ signaler audit --log-level verbose > debug.log 2>&1
 
 3. **Test with stable mode:**
    ```bash
-   signaler audit --stable --log-level verbose
+   signaler run --stable --log-level verbose
    ```
 
 4. **Include system information:**

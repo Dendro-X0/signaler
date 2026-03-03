@@ -2,8 +2,8 @@
 
 > Comprehensive web quality platform with AI-powered insights, accessibility, security, and performance audits.
 
-![Version](https://img.shields.io/badge/version-2.5.2-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Version](http://img.shields.io/badge/version-2.6.3-blue.svg)
+![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
 
@@ -14,7 +14,7 @@ Signaler is distributed via JSR (JavaScript Registry), the modern package regist
 npx jsr add @signaler/cli
 
 # Or run directly without installation
-npx jsr run @signaler/cli audit
+npx jsr run @signaler/cli run --mode throughput
 ```
 
 **Requirements**: Node.js 18.x or higher. Compatible with npm, pnpm, yarn, and Deno package managers.
@@ -24,11 +24,14 @@ npx jsr run @signaler/cli audit
 Get up and running in seconds with the interactive wizard. The wizard automatically detects your framework, scans for routes, and creates an optimized configuration file. No manual setup required!
 
 ```bash
-# Initialize your project with the wizard
-npx signaler wizard
+# Initialize your project
+npx signaler init
 
-# Run your first audit
-npx signaler audit
+# Run your first canonical audit
+npx signaler run --mode throughput
+
+# Generate review outputs
+npx signaler review
 
 # View all available commands
 npx signaler --help
@@ -43,25 +46,32 @@ Signaler provides a comprehensive CLI for auditing web applications. Run audits 
 ### Basic Commands
 
 ```bash
-# Interactive setup wizard
-signaler wizard
+# Canonical v3 workflow
+signaler init
+signaler run --mode throughput
+signaler review
 
-# Run full audit suite
+# Legacy-compatible commands (still supported)
 signaler audit
+signaler report
+
+# Legacy setup alias
+signaler wizard
 
 # Quick performance check
 signaler measure
 
 # Focus on worst-performing pages
-signaler audit --focus-worst 10
+signaler run --focus-worst 10
 
 # CI mode with budget enforcement
 signaler audit --ci --fail-on-budget
-# CI mode with budget enforcement
-signaler audit --ci --fail-on-budget
 
-# Launch Cortex Dashboard (AI Engineer)
+# Launch Cortex Dashboard (optional assistant surface)
 signaler cortex
+
+# Launch fullscreen interactive dashboard
+signaler tui
 ```
 
 ### 🧠 Signaler Cortex (New in v2.6)
@@ -94,20 +104,21 @@ Supported AI Providers:
 
 Signaler generates comprehensive reports in `.signaler/`:
 
+- `run.json` - Run identity + protocol + comparability metadata
+- `results.json` - Normalized per-combo metrics/opportunities
+- `suggestions.json` - Ranked actions with confidence + evidence pointers
+- `agent-index.json` - Token-conscious AI entrypoint (v3 canonical)
 - `report.html` - Interactive visual report
-- `triage.md` - Prioritized fix guide
-- `AI-ANALYSIS.json` - AI-optimized structured report (75% token reduction)
-- `AI-SUMMARY.json` - Ultra-condensed report (95% token reduction)
-- `summary.json` - Complete audit results
+- `summary.json`, `issues.json`, `triage.md` - Legacy compatibility artifacts
 
 ## API
 
 Use Signaler programmatically in your Node.js applications:
 
 ```typescript
-import { SignalerAPI } from '@signaler/cli/api';
+import { createSignalerAPI } from '@signaler/cli/api';
 
-const signaler = new SignalerAPI();
+const signaler = createSignalerAPI();
 
 const config = signaler.createConfig({
   baseUrl: 'http://localhost:3000',
@@ -165,7 +176,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: npx jsr add @signaler/cli
-      - run: npx signaler audit --ci --fail-on-budget
+      - run: npx signaler run --contract v3 --mode throughput --ci --fail-on-budget
 ```
 
 ### Framework-Specific Usage
@@ -217,7 +228,11 @@ For more solutions, see [Troubleshooting Guide](./docs/troubleshooting.md).
 
 Comprehensive guides available in [`/docs`](./docs):
 
+- [Current Shortcomings (Reality Check)](./docs/CURRENT-SHORTCOMINGS.md)
 - [Getting Started](./docs/getting-started.md)
+- [Accuracy Spec](./docs/accuracy-spec.md)
+- [V3 Contract](./docs/v3-contract.md)
+- [Migration V3](./docs/migration-v3.md)
 - [CLI & CI Usage](./docs/cli-and-ci.md)
 - [Configuration Reference](./docs/configuration-and-routes.md)
 - [API Documentation](./docs/api-reference.md)

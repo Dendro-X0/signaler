@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.6.3 - 2026-03-02
+
+### Docs, UX Narrative, and Workflow Alignment
+
+- Promoted the canonical workflow across docs and CLI surfaces: `init -> run -> review`.
+- Clarified compatibility policy: `audit` and `report` remain supported as legacy aliases.
+- Updated shell/TUI guidance to prioritize v3 artifacts and agent-first ingestion.
+- Standardized artifact documentation around:
+  - `.signaler/run.json`
+  - `.signaler/results.json`
+  - `.signaler/suggestions.json`
+  - `.signaler/agent-index.json`
+- Refreshed `README.md`, docs index, getting-started, CLI/CI reference, features, troubleshooting, and shortcomings notes to match current behavior.
+
 ## 2.6.2 - 2026-02-18
 
 ### 🧠 Cortex Stability & Efficiency

@@ -14,6 +14,7 @@ import { runMeasureCli } from "./measure-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
+import { runReportCli } from "./report-cli.js";
 import { loadConfig } from "./core/config.js";
 import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { pathExists } from "./infrastructure/filesystem/utils.js";
@@ -45,6 +46,7 @@ interface ParsedShellCommand {
 
 const SESSION_DIR_NAME = ".signaler" as const;
 const SESSION_FILE_NAME = "session.json" as const;
+const MIGRATION_HINT_FILE_NAME = "v3-shell-hint.seen" as const;
 const DEFAULT_CONFIG_PATH = "signaler.config.json" as const;
 const DEFAULT_PROMPT = "> " as const;
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
@@ -527,6 +529,33 @@ function buildAuditArgv(session: ShellSessionState, passthroughArgs: readonly st
   return [...baseArgv, ...passthroughArgs];
 }
 
+function hasFlag(args: readonly string[], longFlag: string): boolean {
+  return args.some((arg) => arg === longFlag || arg.startsWith(`${longFlag}=`));
+}
+
+function hasModeFlag(args: readonly string[]): boolean {
+  if (hasFlag(args, "--mode")) {
+    return true;
+  }
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === "--mode" && typeof args[i + 1] === "string" && args[i + 1].length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function applyCanonicalRunDefaults(args: readonly string[]): readonly string[] {
+  const nextArgs: string[] = [...args];
+  if (!hasFlag(nextArgs, "--contract")) {
+    nextArgs.push("--contract", "v3");
+  }
+  if (!hasModeFlag(nextArgs)) {
+    nextArgs.push("--mode", "throughput");
+  }
+  return nextArgs;
+}
+
 function resolvePresetFromArgs(args: readonly string[]): PresetId | undefined {
   const preset: string | undefined = args[0];
   if (
@@ -568,15 +597,21 @@ function resolveBuildIdStrategy(args: readonly string[]): { readonly strategy: B
   return undefined;
 }
 
-type HelpTopic = "audit" | "other" | "hidden" | "all";
+type HelpTopic = "core" | "audit" | "other" | "hidden" | "all";
 
 type HelpLine = {
   readonly command: string;
   readonly description: string;
 };
 
+const HELP_CORE_COMMANDS: readonly HelpLine[] = [
+  { command: "init", description: "Create/update signaler.config.json via wizard" },
+  { command: "run [flags]", description: "Canonical runner (defaults: --contract v3 --mode throughput)" },
+  { command: "review [flags]", description: "Canonical review from existing .signaler artifacts" },
+] as const;
+
 const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
-  { command: "audit", description: "Deep Lighthouse audit (slower)" },
+  { command: "audit", description: "Legacy alias for run (still supported)" },
   { command: "measure", description: "Fast batch metrics (CDP, non-Lighthouse)" },
   { command: "bundle", description: "Bundle size audit (Next.js .next or dist)" },
   { command: "health", description: "HTTP status + latency checks" },
@@ -584,7 +619,7 @@ const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
   { command: "headers", description: "Security headers audit" },
   { command: "console", description: "Console errors + runtime exceptions audit" },
   { command: "quick", description: "Run the quick pack (measure+headers+links+bundle+accessibility)" },
-  { command: "report", description: "Generate report-only outputs from existing artifacts" },
+  { command: "report", description: "Legacy alias for review (still supported)" },
 ] as const;
 
 const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
@@ -595,10 +630,10 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "clean", description: "Remove Signaler artifacts (reports/cache and optionally config)" },
   { command: "uninstall", description: "Remove .signaler and the current config file" },
   { command: "clear-screenshots", description: "Remove .signaler/screenshots/" },
-  { command: "open", description: "Open the last HTML report (or .signaler/report.html)" },
-  { command: "open-triage", description: "Open triage markdown (.signaler/triage.md)" },
+  { command: "open", description: "Open .signaler/report.html from the latest run/review" },
+  { command: "open-triage", description: "Open legacy triage markdown (.signaler/triage.md)" },
   { command: "open-screenshots", description: "Open the screenshots output directory (.signaler/screenshots/)" },
-  { command: "open-artifacts", description: "Open the Lighthouse artifacts directory (.signaler/lighthouse-artifacts/)" },
+  { command: "open-artifacts", description: "Open canonical AI entrypoint (.signaler/agent-index.json)" },
   { command: "open-diagnostics", description: "Open diagnostics JSON directory (.signaler/lighthouse-artifacts/diagnostics/)" },
   { command: "open-lhr", description: "Open full Lighthouse JSON directory (.signaler/lighthouse-artifacts/lhr/)" },
   { command: "diff", description: "Compare last run vs previous run (from this shell session)" },
@@ -607,7 +642,7 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "build-id auto", description: "Use auto buildId detection" },
   { command: "build-id manual <id>", description: "Use a fixed buildId" },
   { command: "config <path>", description: "Set config path used by audit" },
-  { command: "help [audit|other|hidden|all]", description: "Show help (use categories to expand)" },
+  { command: "help [core|audit|other|hidden|all]", description: "Show help (use categories to expand)" },
   { command: "exit", description: "Exit the shell" },
 ] as const;
 const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
@@ -615,10 +650,10 @@ const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
   { command: "quit", description: "Alias for exit" },
 ] as const;
 
-const HELP_TOPICS: readonly HelpTopic[] = ["audit", "other", "hidden", "all"] as const;
+const HELP_TOPICS: readonly HelpTopic[] = ["core", "audit", "other", "hidden", "all"] as const;
 
 function parseHelpTopic(raw: string | undefined): HelpTopic | undefined {
-  if (raw === "audit" || raw === "other" || raw === "hidden" || raw === "all") {
+  if (raw === "core" || raw === "audit" || raw === "other" || raw === "hidden" || raw === "all") {
     return raw;
   }
   return undefined;
@@ -640,7 +675,7 @@ function filterHelpLinesByQuery(query: string): readonly HelpLine[] {
   if (q.length === 0) {
     return [];
   }
-  const all: readonly HelpLine[] = [...HELP_AUDIT_COMMANDS, ...HELP_OTHER_COMMANDS, ...HELP_HIDDEN_COMMANDS] as const;
+  const all: readonly HelpLine[] = [...HELP_CORE_COMMANDS, ...HELP_AUDIT_COMMANDS, ...HELP_OTHER_COMMANDS, ...HELP_HIDDEN_COMMANDS] as const;
   return all.filter((line) => {
     const hay: string = `${line.command} ${line.description}`;
     return toLower(hay).includes(q);
@@ -656,11 +691,12 @@ async function runGuidedHelp(rl: readline.Interface): Promise<void> {
     theme.bold("Help wizard"),
     "",
     "Choose an option:",
-    `  1) ${theme.cyan("Audit commands")}`,
-    `  2) ${theme.cyan("Other commands")}`,
-    `  3) ${theme.cyan("Hidden commands")}`,
-    `  4) ${theme.cyan("Search")} (type keywords)`,
-    `  5) ${theme.cyan("Show all")}`,
+    `  1) ${theme.cyan("Core workflow")}`,
+    `  2) ${theme.cyan("Audit commands")}`,
+    `  3) ${theme.cyan("Other commands")}`,
+    `  4) ${theme.cyan("Hidden commands")}`,
+    `  5) ${theme.cyan("Search")} (type keywords)`,
+    `  6) ${theme.cyan("Show all")}`,
     `  0) ${theme.cyan("Exit help")}`,
     "",
   ];
@@ -692,22 +728,26 @@ async function runGuidedHelp(rl: readline.Interface): Promise<void> {
       break;
     }
     if (choice === "1") {
-      printHelp("audit");
+      printHelp("core");
       continue;
     }
     if (choice === "2") {
-      printHelp("other");
+      printHelp("audit");
       continue;
     }
     if (choice === "3") {
-      printHelp("hidden");
+      printHelp("other");
       continue;
     }
     if (choice === "4") {
-      await renderSearch();
+      printHelp("hidden");
       continue;
     }
     if (choice === "5") {
+      await renderSearch();
+      continue;
+    }
+    if (choice === "6") {
       printHelp("all");
       continue;
     }
@@ -736,6 +776,7 @@ function printHelp(rawTopic?: string): void {
     lines.push(theme.dim("Use `help <topic>` to expand a category."));
     lines.push("");
     lines.push(theme.bold("Topics"));
+    lines.push(`${theme.cyan("help core")} Show canonical init -> run -> review commands`);
     lines.push(`${theme.cyan("help audit")} Show audit commands`);
     lines.push(`${theme.cyan("help other")} Show other commands`);
     lines.push(`${theme.cyan("help hidden")} Show hidden/alias commands`);
@@ -746,13 +787,17 @@ function printHelp(rawTopic?: string): void {
     console.log(renderPanel({ title: theme.bold("Help"), lines }));
     return;
   }
-  if (topic === "audit") {
+  if (topic === "core") {
+    pushHelpLines(lines, "Core workflow", HELP_CORE_COMMANDS);
+  } else if (topic === "audit") {
     pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
   } else if (topic === "other") {
     pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
   } else if (topic === "hidden") {
     pushHelpLines(lines, "Hidden commands", HELP_HIDDEN_COMMANDS);
   } else {
+    pushHelpLines(lines, "Core workflow", HELP_CORE_COMMANDS);
+    lines.push("");
     pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
     lines.push("");
     pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
@@ -785,11 +830,17 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   const { version, session } = params;
   const padCmd = (cmd: string): string => cmd.padEnd(14, " ");
   const lines: string[] = [];
-  lines.push(theme.dim("A comprehensive web performance auditing tool for batch Lighthouse audits with automatic route detection and intelligent reporting"));
+  lines.push(theme.dim("Reliable web lab runner with agent-first artifacts."));
   lines.push("");
-  lines.push(theme.bold("Audit commands"));
+  lines.push(theme.bold("Canonical workflow"));
+  lines.push(`${theme.cyan(padCmd("init"))}Create or update signaler.config.json`);
+  lines.push(`${theme.cyan(padCmd("run"))}Run canonical audits (defaults to --contract v3 --mode throughput)`);
+  lines.push(`${theme.cyan(padCmd("review"))}Regenerate review outputs from .signaler artifacts`);
+  lines.push("");
+  lines.push(theme.bold("Additional checks"));
   lines.push(`${theme.cyan(padCmd("measure"))}Fast batch metrics (LCP/CLS/INP + screenshot + console errors)`);
-  lines.push(`${theme.cyan(padCmd("audit"))}Deep Lighthouse audit (slower)`);
+  lines.push(`${theme.cyan(padCmd("audit"))}Legacy alias for run`);
+  lines.push(`${theme.cyan(padCmd("report"))}Legacy alias for review`);
   lines.push(`${theme.cyan(padCmd("bundle"))}Bundle size audit (Next.js .next/ or dist/ build output)`);
   lines.push(`${theme.cyan(padCmd("health"))}HTTP health + latency checks for configured routes`);
   lines.push(`${theme.cyan(padCmd("links"))}Broken links audit (sitemap + HTML link extraction)`);
@@ -797,9 +848,10 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   lines.push(`${theme.cyan(padCmd("console"))}Console errors + runtime exceptions audit (headless Chrome)`);
   lines.push("");
   lines.push(theme.bold("Common commands"));
-  lines.push(`${theme.cyan(padCmd("init"))}Launch config wizard to create/edit signaler.config.json`);
   lines.push(`${theme.cyan(padCmd("config <path>"))}Change config file (current: ${session.configPath})`);
   lines.push(`${theme.cyan(padCmd("help"))}Show all commands`);
+  lines.push(`${theme.cyan(padCmd("open"))}Open .signaler/report.html`);
+  lines.push(`${theme.cyan(padCmd("open-artifacts"))}Open .signaler/agent-index.json`);
   lines.push("");
   lines.push(theme.bold("Tips"));
   lines.push(theme.dim("- Press Tab for auto-completion"));
@@ -810,7 +862,10 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
 
 function createCompleter(): (line: string) => readonly [readonly string[], string] {
   const commands: readonly string[] = [
+    "run",
+    "review",
     "audit",
+    "report",
     "measure",
     "bundle",
     "health",
@@ -834,6 +889,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "preset",
     "incremental",
     "build-id",
+    "init",
     "config",
     "help",
     "exit",
@@ -843,6 +899,20 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
   const presets: readonly PresetId[] = ["default", "overview", "quick", "accurate", "devtools-accurate", "fast"] as const;
   const onOff: readonly string[] = ["on", "off"] as const;
   const buildIdModes: readonly BuildIdStrategy[] = ["auto", "manual"] as const;
+  const runFlags: readonly string[] = [
+    "--config",
+    "-c",
+    "--mode",
+    "--contract",
+    "--legacy-artifacts",
+    "--baseline",
+    "--yes",
+    "--stable",
+    "--focus-worst",
+    "--flags",
+    "--json",
+  ] as const;
+  const reviewFlags: readonly string[] = ["--dir", "--output-dir", "--json", "--md"] as const;
   const measureFlags: readonly string[] = ["--desktop-only", "--mobile-only", "--parallel", "--timeout-ms", "--screenshots", "--json"] as const;
   const bundleFlags: readonly string[] = ["--project-root", "--root", "--top", "--json"] as const;
   const healthFlags: readonly string[] = ["--config", "-c", "--parallel", "--timeout-ms", "--json"] as const;
@@ -890,6 +960,12 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     }
     if (command === "measure") {
       return [filterStartsWith(measureFlags, fragment), rawLine] as const;
+    }
+    if (command === "run" || command === "audit") {
+      return [filterStartsWith(runFlags, fragment), rawLine] as const;
+    }
+    if (command === "review" || command === "report") {
+      return [filterStartsWith(reviewFlags, fragment), rawLine] as const;
     }
     if (command === "bundle") {
       return [filterStartsWith(bundleFlags, fragment), rawLine] as const;
@@ -1071,7 +1147,9 @@ async function runAuditFromShell(projectRoot: string, session: ShellSessionState
     }
     const reportPath: string = resolve(projectRoot, SESSION_DIR_NAME, "report.html");
     // eslint-disable-next-line no-console
-    console.log(`Tip: type ${theme.cyan("open")} to view the latest HTML report.`);
+    console.log(`Tip: type ${theme.cyan("review")} to rebuild review outputs, then ${theme.cyan("open")} for HTML.`);
+    // eslint-disable-next-line no-console
+    console.log(`AI entrypoint: ${theme.cyan(".signaler/agent-index.json")}`);
     const updated: ShellSessionState = { ...session, lastReportPath: reportPath };
     await saveSession(projectRoot, updated);
     return updated;
@@ -1086,6 +1164,48 @@ async function runAuditFromShell(projectRoot: string, session: ShellSessionState
     }
     throw error;
   }
+}
+
+async function runReviewFromShell(projectRoot: string, args: readonly string[]): Promise<string | undefined> {
+  const argv: string[] = ["node", "signaler", ...args];
+  const escResult = await runWithEscAbort(async () => {
+    startSpinner("Rebuilding review artifacts");
+    try {
+      await runReportCli(argv);
+    } finally {
+      stopSpinner();
+    }
+  });
+  if (escResult === "aborted") {
+    // eslint-disable-next-line no-console
+    console.log("Review cancelled via Esc. Back to shell.");
+    process.exitCode = 0;
+    return undefined;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`Tip: type ${theme.cyan("open")} to view .signaler/report.html`);
+  // eslint-disable-next-line no-console
+  console.log(`AI entrypoint: ${theme.cyan(".signaler/agent-index.json")}`);
+  return resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+}
+
+async function maybePrintV3MigrationHint(projectRoot: string): Promise<void> {
+  const sessionDir = resolve(projectRoot, SESSION_DIR_NAME);
+  const hintFile = resolve(sessionDir, MIGRATION_HINT_FILE_NAME);
+  if (await pathExists(hintFile)) {
+    return;
+  }
+  const lines: string[] = [
+    theme.bold("V3 Canonical Flow"),
+    `${theme.cyan("init")} -> ${theme.cyan("run")} -> ${theme.cyan("review")}`,
+    "",
+    `${theme.dim("run")} defaults to ${theme.cyan("--contract v3 --mode throughput")} in shell mode.`,
+    `${theme.dim("audit")} and ${theme.dim("report")} remain available as legacy aliases.`,
+  ];
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: theme.bold("Migration Hint"), lines }));
+  await mkdir(sessionDir, { recursive: true });
+  await writeFile(hintFile, `${new Date().toISOString()}\n`, "utf8");
 }
 
 async function handleShellCommand(projectRoot: string, session: ShellSessionState, command: ParsedShellCommand): Promise<{ readonly session: ShellSessionState; readonly shouldExit: boolean }> {
@@ -1107,9 +1227,34 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     await printConfiguredPages(session);
     return { session, shouldExit: false };
   }
+  if (command.id === "run") {
+    const effectiveArgs = applyCanonicalRunDefaults(command.args);
+    const nextSession: ShellSessionState = await runAuditFromShell(projectRoot, session, effectiveArgs);
+    return { session: nextSession, shouldExit: false };
+  }
   if (command.id === "audit") {
+    // eslint-disable-next-line no-console
+    console.log(theme.dim("Legacy alias: 'audit' maps to the canonical 'run' workflow."));
     const nextSession: ShellSessionState = await runAuditFromShell(projectRoot, session, command.args);
     return { session: nextSession, shouldExit: false };
+  }
+  if (command.id === "review") {
+    const reportPath = await runReviewFromShell(projectRoot, command.args);
+    const updated: ShellSessionState = reportPath ? { ...session, lastReportPath: reportPath } : session;
+    if (reportPath) {
+      await saveSession(projectRoot, updated);
+    }
+    return { session: updated, shouldExit: false };
+  }
+  if (command.id === "report") {
+    // eslint-disable-next-line no-console
+    console.log(theme.dim("Legacy alias: 'report' maps to the canonical 'review' workflow."));
+    const reportPath = await runReviewFromShell(projectRoot, command.args);
+    const updated: ShellSessionState = reportPath ? { ...session, lastReportPath: reportPath } : session;
+    if (reportPath) {
+      await saveSession(projectRoot, updated);
+    }
+    return { session: updated, shouldExit: false };
   }
   if (command.id === "measure") {
     await runMeasureFromShell(session, command.args);
@@ -1155,7 +1300,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     console.log("Starting config wizard...");
     await runWizardCli(["node", "signaler"]);
     // eslint-disable-next-line no-console
-    console.log(`Ready. Next: ${theme.cyan("measure")} or ${theme.cyan("audit")}.`);
+    console.log(`Ready. Next: ${theme.cyan("run")} and then ${theme.cyan("review")}.`);
     return { session, shouldExit: false };
   }
   if (command.id === "open") {
@@ -1174,7 +1319,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session, shouldExit: false };
   }
   if (command.id === "open-artifacts") {
-    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "lighthouse-artifacts");
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "agent-index.json");
     openInBrowser(path);
     return { session, shouldExit: false };
   }
@@ -1266,6 +1411,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
     if (!printedHome) {
       const version: string = await readCliVersion();
       printHomeScreen({ version, session });
+      await maybePrintV3MigrationHint(projectRoot);
       printedHome = true;
     }
     rl.setPrompt(buildPrompt(session));
@@ -1335,7 +1481,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         }
         command = { ...command, args: [...command.args, "--yes"] };
       }
-      if (command.id === "audit" && process.stdin.isTTY) {
+      if ((command.id === "audit" || command.id === "run") && process.stdin.isTTY) {
         const exists: boolean = await pathExists(session.configPath);
         if (!exists) {
           suppressInput = true;
@@ -1354,7 +1500,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
             try {
               await runWizardInShell();
               // eslint-disable-next-line no-console
-              console.log(`Ready. Next: ${theme.cyan("audit")}.`);
+              console.log(`Ready. Next: ${theme.cyan(command.id)}.`);
             } finally {
               // no-op
             }
@@ -1391,7 +1537,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         console.log("Starting config wizard...");
         await runWizardInShell();
         // eslint-disable-next-line no-console
-        console.log(`Ready. Next: ${theme.cyan("measure")} or ${theme.cyan("audit")}.`);
+        console.log(`Ready. Next: ${theme.cyan("run")} and then ${theme.cyan("review")}.`);
         // Force readline recreation by closing current instance - this ensures
         // the shell stays alive after the wizard completes even if prompts closed stdin
         rl.close();

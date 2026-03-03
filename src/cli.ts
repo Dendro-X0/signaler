@@ -39,6 +39,10 @@ import type {
   RunSummary,
 } from "./core/types.js";
 import { PerformanceBudgetManager, generateCIBudgetReport, generateGitHubActionsReport, generateGitLabCIReport, generateJenkinsReport, sendBudgetWebhook, validateWebhookUrl, createMonitoringPayload, type BudgetResult } from "./performance-budget.js";
+import type { AgentIndexV3, AgentIndexSuggestionRefV3 } from "./contracts/v3/agent-index-v3.js";
+import type { ResultsV3, ResultsV3Line } from "./contracts/v3/results-v3.js";
+import type { SuggestionV3, SuggestionsV3 } from "./contracts/v3/suggestions-v3.js";
+import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./contracts/v3/validators.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -103,7 +107,38 @@ interface CliArgs {
   readonly ciPlatform: "github" | "gitlab" | "jenkins" | undefined;
   readonly budgetWebhookUrl: string | undefined;
   readonly budgetWebhookRetries: number | undefined;
+  readonly mode: "fidelity" | "throughput" | undefined;
+  readonly contractVersion: "legacy" | "v3";
+  readonly legacyArtifacts: boolean;
+  readonly baselinePath: string | undefined;
 }
+
+type RunnerMode = "fidelity" | "throughput";
+
+type RunnerProfile = "fidelity-devtools-stable" | "throughput-balanced";
+
+type RunProtocolV3 = {
+  readonly contractVersion: "v3";
+  readonly workflow: "init-run-review";
+  readonly mode: RunnerMode;
+  readonly profile: RunnerProfile;
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly parallel: number;
+  readonly warmUp: boolean;
+  readonly headless: boolean;
+  readonly runsPerCombo: number;
+  readonly captureLevel: "diagnostics" | "lhr" | "none";
+  readonly comparabilityHash: string;
+  readonly disclaimer: string;
+};
+
+type V3ModeDefaults = {
+  readonly mode: RunnerMode;
+  readonly profile: RunnerProfile;
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly parallel: number;
+  readonly warmUp: boolean;
+};
 
 function colorScore(score: number | undefined, theme: UiTheme): string {
   if (score === undefined) {
@@ -2219,6 +2254,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let ciPlatform: "github" | "gitlab" | "jenkins" | undefined;
   let budgetWebhookUrl: string | undefined;
   let budgetWebhookRetries: number | undefined;
+  let mode: RunnerMode | undefined;
+  let contractVersion: "legacy" | "v3" = "legacy";
+  let legacyArtifacts = false;
+  let baselinePath: string | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2402,6 +2441,21 @@ function parseArgs(argv: readonly string[]): CliArgs {
       fast = true;
     } else if (arg === "--overview") {
       overview = true;
+    } else if (arg === "--mode" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "fidelity" || value === "throughput") mode = value;
+      else throw new Error(`Invalid --mode value: ${value}. Expected "fidelity" or "throughput".`);
+      i += 1;
+    } else if (arg === "--contract" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "legacy" || value === "v3") contractVersion = value;
+      else throw new Error(`Invalid --contract value: ${value}. Expected "legacy" or "v3".`);
+      i += 1;
+    } else if (arg === "--legacy-artifacts") {
+      legacyArtifacts = true;
+    } else if (arg === "--baseline" && i + 1 < argv.length) {
+      baselinePath = argv[i + 1];
+      i += 1;
     }
   }
   const presetCount: number = [fast, quick, accurate, devtoolsAccurate, overview].filter((flag) => flag).length;
@@ -2457,7 +2511,55 @@ function parseArgs(argv: readonly string[]): CliArgs {
     ciPlatform,
     budgetWebhookUrl,
     budgetWebhookRetries,
+    mode,
+    contractVersion,
+    legacyArtifacts,
+    baselinePath,
   };
+}
+
+function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
+  if (mode === "fidelity") {
+    return {
+      mode: "fidelity",
+      profile: "fidelity-devtools-stable",
+      throttlingMethod: "devtools",
+      parallel: 1,
+      warmUp: true,
+    };
+  }
+  return {
+    mode: "throughput",
+    profile: "throughput-balanced",
+    throttlingMethod: "simulate",
+    parallel: 4,
+    warmUp: true,
+  };
+}
+
+function buildComparabilityHash(params: {
+  readonly mode: RunnerMode;
+  readonly profile: RunnerProfile;
+  readonly throttlingMethod: ApexThrottlingMethod;
+  readonly parallel: number;
+  readonly warmUp: boolean;
+  readonly headless: boolean;
+  readonly runsPerCombo: number;
+  readonly captureLevel: "diagnostics" | "lhr" | "none";
+  readonly cpuSlowdownMultiplier?: number;
+}): string {
+  const payload = {
+    mode: params.mode,
+    profile: params.profile,
+    throttlingMethod: params.throttlingMethod,
+    parallel: params.parallel,
+    warmUp: params.warmUp,
+    headless: params.headless,
+    runsPerCombo: params.runsPerCombo,
+    captureLevel: params.captureLevel,
+    cpuSlowdownMultiplier: params.cpuSlowdownMultiplier ?? null,
+  };
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 async function ensureSignalerGitIgnore(projectRoot: string): Promise<void> {
@@ -2527,6 +2629,10 @@ function printAuditFlags(): void {
       "  --accurate         Preset: devtools throttling + warm-up + stability-first",
       "  --devtools-accurate Preset: devtools throttling + warm-up + higher parallelism by default",
       "  --open             Open the HTML report after the run.",
+      "  --mode <m>         Run mode profile: fidelity | throughput (default throughput)",
+      "  --contract <c>     Artifact contract: legacy | v3 (default legacy)",
+      "  --legacy-artifacts Keep legacy artifacts when --contract v3 is enabled",
+      "  --baseline <path>  Baseline run.json path to compare compat hash against",
     ].join("\n"),
   );
 }
@@ -2848,6 +2954,8 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     await ensureSignalerGitIgnore(dirname(configPath));
   }
   const previousSummary: RunSummary | undefined = await loadPreviousSummary({ outputDir: resolvedOutput.outputDir });
+  let comparisonSummary: RunSummary | undefined = previousSummary;
+  const modeDefaults: V3ModeDefaults = resolveV3ModeDefaults(args.mode);
 
   const DEFAULT_PARALLEL: number = 4;
   const DEFAULT_WARM_UP: boolean = true;
@@ -2859,11 +2967,11 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const presetParallel: number | undefined = args.accurate ? 1 : args.devtoolsAccurate ? DEVTOOLS_ACCURATE_DEFAULT_PARALLEL : undefined;
 
   const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
-  const effectiveThrottling: ApexThrottlingMethod | undefined = args.fast ? "simulate" : args.throttlingMethodOverride ?? presetThrottling ?? config.throttlingMethod;
+  const effectiveThrottling: ApexThrottlingMethod | undefined = args.fast ? "simulate" : args.throttlingMethodOverride ?? presetThrottling ?? config.throttlingMethod ?? modeDefaults.throttlingMethod;
   const effectiveCpuSlowdown: number | undefined = args.cpuSlowdownOverride ?? config.cpuSlowdownMultiplier;
-  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel ?? DEFAULT_PARALLEL;
+  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel ?? modeDefaults.parallel ?? DEFAULT_PARALLEL;
   const effectiveAuditTimeoutMs: number | undefined = args.auditTimeoutMsOverride ?? config.auditTimeoutMs;
-  const warmUpDefaulted: boolean = presetWarmUp ?? config.warmUp ?? DEFAULT_WARM_UP;
+  const warmUpDefaulted: boolean = presetWarmUp ?? config.warmUp ?? modeDefaults.warmUp ?? DEFAULT_WARM_UP;
   const effectiveWarmUp: boolean = args.warmUp ? true : warmUpDefaulted;
   const effectiveIncremental: boolean = args.incremental;
   if (!effectiveIncremental && config.incremental === true) {
@@ -2884,6 +2992,67 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const devtoolsRunsDefault: number | undefined = isDevtoolsAccuratePreset && configRuns === undefined ? 3 : undefined;
   const effectiveRuns: number = args.fast ? 1 : (configRuns ?? devtoolsRunsDefault ?? 1);
   const onlyCategories: readonly ApexCategory[] | undefined = args.fast ? ["performance"] : undefined;
+  const resolvedMode: RunnerMode = modeDefaults.mode;
+  const resolvedProfile: RunnerProfile = modeDefaults.profile;
+  const resolvedCaptureLevel: "diagnostics" | "lhr" | "none" = args.lhr ? "lhr" : args.diagnostics ? "diagnostics" : "none";
+  const protocol: RunProtocolV3 = {
+    contractVersion: "v3",
+    workflow: "init-run-review",
+    mode: resolvedMode,
+    profile: resolvedProfile,
+    throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
+    parallel: effectiveParallel ?? DEFAULT_PARALLEL,
+    warmUp: effectiveWarmUp,
+    headless: true,
+    runsPerCombo: effectiveRuns,
+    captureLevel: resolvedCaptureLevel,
+    comparabilityHash: buildComparabilityHash({
+      mode: resolvedMode,
+      profile: resolvedProfile,
+      throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
+      parallel: effectiveParallel ?? DEFAULT_PARALLEL,
+      warmUp: effectiveWarmUp,
+      headless: true,
+      runsPerCombo: effectiveRuns,
+      captureLevel: resolvedCaptureLevel,
+      cpuSlowdownMultiplier: effectiveCpuSlowdown,
+    }),
+    disclaimer: resolvedMode === "fidelity"
+      ? "Fidelity mode targets DevTools-like reproducibility; compare only with matching comparabilityHash."
+      : "Throughput mode prioritizes coverage and consistency over direct DevTools parity.",
+  };
+  if (args.baselinePath) {
+    const baseline = await readBaselineCompat({ baselinePath: args.baselinePath });
+    if (!baseline) {
+      // eslint-disable-next-line no-console
+      console.error(`Baseline is invalid or missing comparabilityHash: ${args.baselinePath}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (baseline.comparabilityHash !== protocol.comparabilityHash) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Baseline comparabilityHash mismatch.\nCurrent:  ${protocol.comparabilityHash}\nBaseline: ${baseline.comparabilityHash}\nRefusing compare to prevent invalid conclusions.`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const baselineSummary: RunSummary | undefined = await loadPreviousSummary({ outputDir: dirname(baseline.baselinePath) });
+    if (baselineSummary === undefined) {
+      // eslint-disable-next-line no-console
+      console.error(`Baseline summary.json not found beside baseline run.json: ${baseline.baselinePath}`);
+      process.exitCode = 1;
+      return;
+    }
+    comparisonSummary = baselineSummary;
+  } else if (comparisonSummary !== undefined) {
+    const prevHash = await readRunComparabilityHash({ runIndexPath: resolve(resolvedOutput.outputDir, "run.json") });
+    if (typeof prevHash === "string" && prevHash !== protocol.comparabilityHash) {
+      comparisonSummary = undefined;
+      // eslint-disable-next-line no-console
+      console.log("Previous run contract is not comparable with current mode/profile; skipping delta comparison.");
+    }
+  }
   let effectiveConfig: ApexConfig = {
     ...config,
     buildId: effectiveBuildId,
@@ -3033,7 +3202,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   process.once("SIGINT", onSigInt);
   let spinnerStarted = false;
   let lastProgressLine: string | undefined;
-  const captureLevel: "diagnostics" | "lhr" | undefined = args.lhr ? "lhr" : args.diagnostics ? "diagnostics" : undefined;
+  const captureLevel: "diagnostics" | "lhr" | undefined = resolvedCaptureLevel === "none" ? undefined : resolvedCaptureLevel;
   if (!args.fast && isDevtoolsAccuratePreset && effectiveThrottling === "devtools" && effectiveCpuSlowdown !== undefined) {
     // eslint-disable-next-line no-console
     console.log("Note: devtools throttling ignores cpuSlowdownMultiplier. Remove --cpu-slowdown / cpuSlowdownMultiplier to avoid confusion.");
@@ -3119,6 +3288,8 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     stopSpinner();
   }
   const outputDir: string = resolvedOutput.outputDir;
+  const useV3Contract: boolean = args.contractVersion === "v3";
+  const writeFullLegacyArtifacts: boolean = !useV3Contract || args.legacyArtifacts;
   await mkdir(outputDir, { recursive: true });
   if (captureLevel !== undefined && isTty && !args.ci && !args.jsonOutput) {
     // eslint-disable-next-line no-console
@@ -3126,7 +3297,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   await writeJsonWithOptionalGzip(resolve(outputDir, "summary.json"), summary);
   const summaryLite: SummaryLite = buildSummaryLite(summary);
-  await writeJsonWithOptionalGzip(resolve(outputDir, "summary-lite.json"), summaryLite);
+  if (writeFullLegacyArtifacts) {
+    await writeJsonWithOptionalGzip(resolve(outputDir, "summary-lite.json"), summaryLite);
+  }
   const worstFirstForHints: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly baseName: string }[] =
     [...summary.results]
       .sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101))
@@ -3159,23 +3332,27 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const runtime: RuntimeMeta = buildRuntimeMeta({ config: resolvedConfigForRun, captureLevel, chromePort: resolvedConfigForRun.chromePort });
   const aiLedger: AiLedger = buildAiLedger({
     summary,
-    previousSummary,
+    previousSummary: comparisonSummary,
     issues,
     runtime,
     outputDir,
     targetScore: DEFAULT_TARGET_SCORE,
   });
-  await writeJsonWithOptionalGzip(resolve(outputDir, "ai-ledger.json"), aiLedger, { pretty: false });
+  if (writeFullLegacyArtifacts) {
+    await writeJsonWithOptionalGzip(resolve(outputDir, "ai-ledger.json"), aiLedger, { pretty: false });
+  }
   await writeRedIssuesReport({ outputDir, issues, ledger: aiLedger });
-  if (!args.noAiFix) {
+  if (!args.noAiFix && writeFullLegacyArtifacts) {
     const aiFix: AiFixPacket = buildAiFixPacket({ summary, issues, targetScore: DEFAULT_TARGET_SCORE, runtime });
     await writeJsonWithOptionalGzip(resolve(outputDir, "ai-fix.json"), aiFix, { pretty: false });
     const limit: number = args.aiMinCombos ?? DEFAULT_AI_MIN_COMBOS;
     const aiFixMin: AiFixMinPacket = buildAiFixMinPacket({ aiFix, limit });
     await writeJsonWithOptionalGzip(resolve(outputDir, "ai-fix.min.json"), aiFixMin, { pretty: false });
   }
-  const plan: AuditPlan = buildPlanJson({ summary, issues, targetScore: DEFAULT_TARGET_SCORE });
-  await writeJsonWithOptionalGzip(resolve(outputDir, "plan.json"), plan);
+  if (writeFullLegacyArtifacts) {
+    const plan: AuditPlan = buildPlanJson({ summary, issues, targetScore: DEFAULT_TARGET_SCORE });
+    await writeJsonWithOptionalGzip(resolve(outputDir, "plan.json"), plan);
+  }
   const pwa: PwaReport = await buildPwaReport({ summary, outputDir, captureLevel });
   await writeJsonWithOptionalGzip(resolve(outputDir, "pwa.json"), pwa);
   const markdown: string = buildMarkdown(summary);
@@ -3258,7 +3435,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const exportPath: string = resolve(outputDir, "export.json");
   const shareable: ShareableExport = buildShareableExport({
     configPath,
-    previousSummary,
+    previousSummary: comparisonSummary,
     current: summary,
     budgets: effectiveConfig.budgets,
   });
@@ -3288,7 +3465,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const overviewPath: string = resolve(outputDir, "overview.md");
   const overview: string = buildOverviewMarkdown({
     summary,
-    previousSummary,
+    previousSummary: comparisonSummary,
     issues,
     outputDir,
     reportPath,
@@ -3302,13 +3479,31 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   });
   await writeFile(overviewPath, overview, "utf8");
 
-  // Generate AI-optimized reports
-  await writeAiOptimizedReports({
-    outputDir,
-    summary,
-    issues,
-    targetScore: DEFAULT_TARGET_SCORE,
-  });
+  if (writeFullLegacyArtifacts) {
+    // Generate AI-optimized reports
+    await writeAiOptimizedReports({
+      outputDir,
+      summary,
+      issues,
+      targetScore: DEFAULT_TARGET_SCORE,
+    });
+  }
+
+  const resultsV3: ResultsV3 = buildResultsV3({ summary, outputDir, protocol });
+  if (!isResultsV3(resultsV3)) {
+    throw new Error("Internal contract error: results.json failed validation.");
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "results.json"), resultsV3);
+  const suggestionsV3: SuggestionsV3 = buildSuggestionsV3({ issues, protocol });
+  if (!isSuggestionsV3(suggestionsV3)) {
+    throw new Error("Internal contract error: suggestions.json failed validation.");
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "suggestions.json"), suggestionsV3, { pretty: false });
+  const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({ protocol, suggestions: suggestionsV3, tokenBudget: 8000 });
+  if (!isAgentIndexV3(agentIndexV3)) {
+    throw new Error("Internal contract error: agent-index.json failed validation.");
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "agent-index.json"), agentIndexV3, { pretty: false });
   let accessibilitySummary: AxeSummary | undefined;
   let accessibilitySummaryPath: string | undefined;
   let accessibilityAggregated: AccessibilitySummary | undefined;
@@ -3346,22 +3541,30 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   await writeArtifactsNavigation({ outputDir });
 
   const engineVersion: string = await readEngineVersion();
-  const artifactsBase: readonly AuditOutputArtifact[] = [
+  const artifactsBase: AuditOutputArtifact[] = [
     { kind: "file", relativePath: "run.json" },
     { kind: "file", relativePath: "summary.json" },
-    { kind: "file", relativePath: "summary-lite.json" },
     { kind: "file", relativePath: "issues.json" },
-    { kind: "file", relativePath: "ai-ledger.json" },
     { kind: "file", relativePath: "red-issues.md" },
     { kind: "file", relativePath: "pwa.json" },
     { kind: "file", relativePath: "summary.md" },
     { kind: "file", relativePath: "report.html" },
     { kind: "file", relativePath: "triage.md" },
     { kind: "file", relativePath: "overview.md" },
-    { kind: "file", relativePath: "AI-ANALYSIS.json" },
-    { kind: "file", relativePath: "AI-SUMMARY.json" },
-    { kind: "file", relativePath: "QUICK-FIXES.md" },
+    { kind: "file", relativePath: "results.json" },
+    { kind: "file", relativePath: "suggestions.json" },
+    { kind: "file", relativePath: "agent-index.json" },
   ];
+  if (writeFullLegacyArtifacts) {
+    artifactsBase.push(
+      { kind: "file", relativePath: "summary-lite.json" },
+      { kind: "file", relativePath: "ai-ledger.json" },
+      { kind: "file", relativePath: "AI-ANALYSIS.json" },
+      { kind: "file", relativePath: "AI-SUMMARY.json" },
+      { kind: "file", relativePath: "QUICK-FIXES.md" },
+      { kind: "file", relativePath: "plan.json" },
+    );
+  }
   const exportArtifacts: readonly AuditOutputArtifact[] = args.noExport
     ? []
     : [
@@ -3379,6 +3582,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       outputDir,
       mode: "audit",
       artifacts,
+      contractVersion: useV3Contract ? "v3" : "legacy",
+      workflow: "init-run-review",
+      protocol,
     },
   });
   if (engineJson.enabled) {
@@ -3411,6 +3617,18 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     return;
   }
   printReportLink(reportPath);
+  if (useV3Contract) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `V3 contract enabled (${protocol.mode}/${protocol.profile}) • comparabilityHash ${protocol.comparabilityHash.slice(0, 12)}…`,
+    );
+    // eslint-disable-next-line no-console
+    console.log("Primary machine artifacts: run.json, results.json, suggestions.json, agent-index.json");
+    if (!writeFullLegacyArtifacts) {
+      // eslint-disable-next-line no-console
+      console.log("Legacy heavy artifacts suppressed. Use --legacy-artifacts to emit full legacy AI/report payloads.");
+    }
+  }
   if (isTty && !args.ci) {
     await printArtifactsSummary({ outputDir, reportPath, exportPath, captureLevel });
   }
@@ -3426,11 +3644,11 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   console.log(buildMetaPanel(summary.meta, useColor));
   // eslint-disable-next-line no-console
   console.log(buildStatsPanel(summary.results, useColor));
-  if (previousSummary !== undefined) {
+  if (comparisonSummary !== undefined) {
     printSectionHeader("Changes", useColor);
     printDivider();
     // eslint-disable-next-line no-console
-    console.log(buildChangesBox(previousSummary, summary, useColor));
+    console.log(buildChangesBox(comparisonSummary, summary, useColor));
     printDivider();
   }
   printSectionHeader("Summary", useColor);
@@ -3440,7 +3658,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       results: summary.results,
       useColor,
       regressionsOnly: args.regressionsOnly,
-      previousSummary,
+      previousSummary: comparisonSummary,
     }),
   );
   printSectionHeader("Issues", useColor);
@@ -3467,11 +3685,11 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     console.log(buildAccessibilityIssuesPanel(accessibilitySummary.results, useColor));
   }
   if (args.webhookUrl) {
-    const regressions: readonly RegressionLine[] = collectRegressions(previousSummary, summary);
+    const regressions: readonly RegressionLine[] = collectRegressions(comparisonSummary, summary);
     if (args.webhookAlways || shouldSendWebhook(regressions, budgetViolations)) {
       const payload: WebhookPayload = buildWebhookPayload({
         current: summary,
-        previous: previousSummary,
+        previous: comparisonSummary,
         budgetViolations,
         accessibility: accessibilityAggregated,
         reportPath,
@@ -5220,6 +5438,199 @@ function buildSummaryLite(summary: RunSummary): SummaryLite {
     };
   });
   return { generatedAt, meta: summary.meta, results };
+}
+
+function toResultsV3Line(r: PageDeviceSummary): ResultsV3Line {
+  return {
+    label: r.label,
+    path: r.path,
+    url: r.url,
+    device: r.device,
+    pageScope: r.pageScope,
+    scores: {
+      performance: r.scores.performance,
+      accessibility: r.scores.accessibility,
+      bestPractices: r.scores.bestPractices,
+      seo: r.scores.seo,
+    },
+    metrics: {
+      lcpMs: r.metrics.lcpMs,
+      fcpMs: r.metrics.fcpMs,
+      tbtMs: r.metrics.tbtMs,
+      cls: r.metrics.cls,
+      inpMs: r.metrics.inpMs,
+    },
+    runtimeErrorCode: r.runtimeErrorCode,
+    runtimeErrorMessage: r.runtimeErrorMessage,
+    opportunities: r.opportunities.map((o) => ({
+      id: o.id,
+      title: o.title,
+      estimatedSavingsMs: o.estimatedSavingsMs,
+      estimatedSavingsBytes: o.estimatedSavingsBytes,
+    })),
+    failedAudits: r.failedAudits.map((f) => ({
+      id: f.id,
+      title: f.title,
+      score: f.score,
+      scoreDisplayMode: f.scoreDisplayMode,
+      description: f.description,
+    })),
+  };
+}
+
+function buildResultsV3(params: {
+  readonly summary: RunSummary;
+  readonly outputDir: string;
+  readonly protocol: RunProtocolV3;
+}): ResultsV3 {
+  return {
+    generatedAt: new Date().toISOString(),
+    outputDir: params.outputDir,
+    protocol: params.protocol,
+    meta: params.summary.meta,
+    results: params.summary.results.map(toResultsV3Line),
+  };
+}
+
+function classifySuggestionConfidence(params: {
+  readonly issueId: string;
+  readonly totalMs: number;
+  readonly count: number;
+}): "high" | "medium" | "low" {
+  if (params.totalMs > 0 && params.count >= 3) return "high";
+  if (params.totalMs > 0 || params.count >= 2) return "medium";
+  return "low";
+}
+
+function guessActionForIssue(issueId: string): { readonly summary: string; readonly steps: readonly string[]; readonly effort: "low" | "medium" | "high" } {
+  if (issueId === "redirects") {
+    return {
+      summary: "Eliminate redirect chains on high-traffic routes.",
+      steps: ["Check middleware and route config for chained redirects.", "Normalize canonical/trailing slash rules.", "Re-run in fidelity mode on affected routes."],
+      effort: "medium",
+    };
+  }
+  if (issueId === "unused-javascript") {
+    return {
+      summary: "Reduce unused JavaScript with route-level code splitting.",
+      steps: ["Identify largest wasted bundles from diagnostics artifacts.", "Apply dynamic imports to route-specific modules.", "Verify TBT/LCP improvements in throughput mode."],
+      effort: "medium",
+    };
+  }
+  if (issueId === "unused-css-rules" || issueId === "unminified-css") {
+    return {
+      summary: "Reduce CSS payload and enforce minification.",
+      steps: ["Enable or validate CSS minification in build pipeline.", "Remove unused styles with tooling or manual pruning.", "Verify bytes and render metrics after rerun."],
+      effort: "low",
+    };
+  }
+  return {
+    summary: "Investigate and address this issue with targeted fixes.",
+    steps: ["Inspect linked evidence pointers.", "Apply fix on highest-impact routes first.", "Re-run and compare against baseline."],
+    effort: "medium",
+  };
+}
+
+function buildSuggestionsV3(params: {
+  readonly issues: IssuesIndex;
+  readonly protocol: RunProtocolV3;
+}): SuggestionsV3 {
+  const suggestions: SuggestionV3[] = params.issues.topIssues
+    .filter((issue) => (issue.totalMs ?? 0) > 0)
+    .map((issue, index): SuggestionV3 => {
+      const priorityScore = Math.round((issue.totalMs ?? 0) + issue.count * 80 - index * 10);
+      const confidence = classifySuggestionConfidence({ issueId: issue.id, totalMs: issue.totalMs ?? 0, count: issue.count });
+      const action = guessActionForIssue(issue.id);
+      return {
+        id: `sugg-${issue.id}-${index + 1}`,
+        title: issue.title,
+        category: "performance",
+        priorityScore,
+        confidence,
+        estimatedImpact: {
+          timeMs: issue.totalMs,
+          affectedCombos: issue.count,
+        },
+        evidence: [
+          {
+            sourceRelPath: "issues.json",
+            pointer: `/topIssues/${index}`,
+          },
+        ],
+        action: {
+          summary: action.summary,
+          steps: [...action.steps],
+          effort: action.effort,
+        },
+        modeApplicability: ["fidelity", "throughput"] as const,
+      };
+    })
+    .sort((a, b) => b.priorityScore - a.priorityScore);
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: params.protocol.mode,
+    comparabilityHash: params.protocol.comparabilityHash,
+    suggestions,
+  };
+}
+
+function buildAgentIndexV3(params: {
+  readonly protocol: RunProtocolV3;
+  readonly suggestions: SuggestionsV3;
+  readonly tokenBudget: number;
+}): AgentIndexV3 {
+  const refs: AgentIndexSuggestionRefV3[] = params.suggestions.suggestions.slice(0, 12).map((s) => ({
+    id: s.id,
+    title: s.title,
+    priorityScore: s.priorityScore,
+    confidence: s.confidence,
+    pointer: `suggestions[?(@.id==\"${s.id}\")]`,
+  }));
+  return {
+    generatedAt: new Date().toISOString(),
+    contractVersion: "v3",
+    mode: params.protocol.mode,
+    profile: params.protocol.profile,
+    comparabilityHash: params.protocol.comparabilityHash,
+    tokenBudget: params.tokenBudget,
+    entrypoints: {
+      run: "run.json",
+      results: "results.json",
+      suggestions: "suggestions.json",
+    },
+    topSuggestions: refs,
+  };
+}
+
+type BaselineCompatCheck = {
+  readonly baselinePath: string;
+  readonly comparabilityHash: string;
+};
+
+async function readBaselineCompat(params: { readonly baselinePath: string }): Promise<BaselineCompatCheck | undefined> {
+  try {
+    const raw: string = await readFile(resolve(params.baselinePath), "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return undefined;
+    const root = parsed as { readonly protocol?: { readonly comparabilityHash?: string } };
+    const hash = root.protocol?.comparabilityHash;
+    if (typeof hash !== "string" || hash.length === 0) return undefined;
+    return { baselinePath: resolve(params.baselinePath), comparabilityHash: hash };
+  } catch {
+    return undefined;
+  }
+}
+
+async function readRunComparabilityHash(params: { readonly runIndexPath: string }): Promise<string | undefined> {
+  try {
+    const raw: string = await readFile(params.runIndexPath, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return undefined;
+    const root = parsed as { readonly protocol?: { readonly comparabilityHash?: string } };
+    return typeof root.protocol?.comparabilityHash === "string" ? root.protocol.comparabilityHash : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function buildIssuesIndex(params: {

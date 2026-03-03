@@ -1,14 +1,16 @@
+> Historical release notes: this file documents v2.0-era behavior and may include legacy package names or commands that differ from current CLI docs.
+
 # Signaler v2.0 Release Notes
 
 **Release Date**: January 17, 2026  
 **Version**: 2.0.0  
 **Codename**: "Intelligence & Scale"
 
-## 🎉 Major Release Highlights
+## Ã°Å¸Å½â€° Major Release Highlights
 
 Signaler v2.0 represents a complete transformation of web performance monitoring, introducing AI-powered insights, enterprise-grade performance optimizations, and comprehensive reporting capabilities. This release delivers on our vision of making performance optimization accessible, actionable, and scalable for teams of all sizes.
 
-### 🧠 AI-Powered Performance Intelligence
+### Ã°Å¸Â§Â  AI-Powered Performance Intelligence
 
 **Revolutionary AI Integration**: Signaler now leverages machine learning to provide intelligent performance analysis that goes beyond traditional metrics.
 
@@ -17,7 +19,7 @@ Signaler v2.0 represents a complete transformation of web performance monitoring
 - **Actionable Guidance System**: Every issue comes with specific, step-by-step implementation instructions
 - **Intelligent Prioritization**: AI ranks performance issues by impact and implementation difficulty
 
-### ⚡ Enterprise Performance Optimizations
+### Ã¢Å¡Â¡ Enterprise Performance Optimizations
 
 **10x Performance Improvement**: Complete architectural rewrite focused on memory efficiency and processing speed.
 
@@ -26,7 +28,7 @@ Signaler v2.0 represents a complete transformation of web performance monitoring
 - **Streaming JSON Processor**: Handle datasets of any size without memory exhaustion
 - **Progress Indicators**: Real-time feedback during long-running operations
 
-### 📊 Advanced Reporting System
+### Ã°Å¸â€œÅ  Advanced Reporting System
 
 **Multi-Audience Reports**: Specialized reports designed for different stakeholders and use cases.
 
@@ -35,7 +37,7 @@ Signaler v2.0 represents a complete transformation of web performance monitoring
 - **AI-Friendly Outputs**: Token-efficient structured data for AI processing
 - **Multi-Format Export**: Enhanced support for JSON, HTML, Markdown, CSV, and PDF
 
-### 🚀 Enhanced CI/CD Integration
+### Ã°Å¸Å¡â‚¬ Enhanced CI/CD Integration
 
 **Enterprise-Grade DevOps**: Comprehensive integration with all major CI/CD platforms.
 
@@ -44,7 +46,7 @@ Signaler v2.0 represents a complete transformation of web performance monitoring
 - **Webhook Delivery System**: 99.9% delivery success rate with automatic retry and recovery
 - **Quality Gates**: Performance-based deployment pipeline controls
 
-## 🔥 What's New
+## Ã°Å¸â€Â¥ What's New
 
 ### Core Features
 
@@ -88,12 +90,12 @@ console.log('AI Insights:', aiReport.aiInsights);
 
 | Dataset Size | v1.0 Status | v2.0 Performance | Memory Usage |
 |--------------|-------------|------------------|---------------|
-| 100 pages | ✅ 5.2s | ✅ 0.5s | 128MB |
-| 1,000 pages | ✅ 52s | ✅ 2.1s | 256MB |
-| 10,000 pages | ❌ OOM | ✅ 18s | 512MB |
-| 100,000 pages | ❌ OOM | ✅ 3.2min | 1GB |
+| 100 pages | Ã¢Å“â€¦ 5.2s | Ã¢Å“â€¦ 0.5s | 128MB |
+| 1,000 pages | Ã¢Å“â€¦ 52s | Ã¢Å“â€¦ 2.1s | 256MB |
+| 10,000 pages | Ã¢ÂÅ’ OOM | Ã¢Å“â€¦ 18s | 512MB |
+| 100,000 pages | Ã¢ÂÅ’ OOM | Ã¢Å“â€¦ 3.2min | 1GB |
 
-## 🛠️ Technical Architecture
+## Ã°Å¸â€ºÂ Ã¯Â¸Â Technical Architecture
 
 ### New Components
 
@@ -133,7 +135,7 @@ console.log('AI Insights:', aiReport.aiInsights);
 - **ESLint Configuration**: Comprehensive linting rules and standards
 - **Security Scanning**: Automated security vulnerability scanning
 
-## 🚀 Getting Started with v2.0
+## Ã°Å¸Å¡â‚¬ Getting Started with v2.0
 
 ### Installation
 
@@ -204,7 +206,7 @@ signaler monitor --config ./monitor-config.js --interval 300
 signaler budget --config ./budget-config.js --trend-analysis
 ```
 
-## 🔄 Migration from v1.x
+## Ã°Å¸â€â€ž Migration from v1.x
 
 ### Breaking Changes
 
@@ -231,10 +233,10 @@ signaler budget --config ./budget-config.js --trend-analysis
 signaler migrate --from ./old-config.js --to ./signaler.config.js
 
 # Validate migrated configuration
-signaler validate --config ./signaler.config.js
+signaler config --validate --output ./signaler.config.json
 ```
 
-## 🎯 Use Cases & Benefits
+## Ã°Å¸Å½Â¯ Use Cases & Benefits
 
 ### For Development Teams
 - **Faster Debugging**: AI-powered issue identification and prioritization
@@ -260,7 +262,7 @@ signaler validate --config ./signaler.config.js
 - **Parallel Execution**: Concurrent processing for faster results
 - **Error Recovery**: Comprehensive error handling with automatic recovery
 
-## 🔒 Security & Reliability
+## Ã°Å¸â€â€™ Security & Reliability
 
 ### Security Enhancements
 - **Input Validation**: Comprehensive validation and sanitization
@@ -274,7 +276,7 @@ signaler validate --config ./signaler.config.js
 - **Data Integrity**: Checksums and validation for all operations
 - **Graceful Degradation**: Continues operation with partial failures
 
-## 📊 Performance Benchmarks
+## Ã°Å¸â€œÅ  Performance Benchmarks
 
 ### Real-World Performance
 
@@ -296,7 +298,7 @@ signaler validate --config ./signaler.config.js
 - **Network Efficiency**: 40% reduction in network requests
 - **Memory Allocation**: 90% reduction in memory allocations
 
-## 🌟 Community & Ecosystem
+## Ã°Å¸Å’Å¸ Community & Ecosystem
 
 ### Distribution
 - **JSR Primary**: JavaScript Registry as the primary distribution channel
@@ -316,7 +318,7 @@ signaler validate --config ./signaler.config.js
 - **Discord**: Community support and discussions
 - **Examples**: Real-world usage examples and patterns
 
-## 🔮 Future Roadmap
+## Ã°Å¸â€Â® Future Roadmap
 
 ### Planned Features (v2.1)
 - **Machine Learning Models**: Custom ML models for performance prediction
@@ -330,7 +332,7 @@ signaler validate --config ./signaler.config.js
 - **Advanced Visualizations**: Interactive performance visualizations
 - **Performance Optimization**: Automated performance optimization suggestions
 
-## 🙏 Acknowledgments
+## Ã°Å¸â„¢Â Acknowledgments
 
 ### Contributors
 Special thanks to all contributors who made this release possible:
@@ -345,7 +347,7 @@ Special thanks to all contributors who made this release possible:
 - **fast-check**: For property-based testing capabilities
 - **JSR Team**: For the modern JavaScript registry platform
 
-## 📞 Support & Resources
+## Ã°Å¸â€œÅ¾ Support & Resources
 
 ### Getting Help
 - **Documentation**: [https://signaler.kiro.dev](https://signaler.kiro.dev)
@@ -364,4 +366,4 @@ Special thanks to all contributors who made this release possible:
 **Signaler v2.0: Intelligence & Scale**  
 *Making web performance optimization accessible, actionable, and scalable for everyone.*
 
-**Built with ❤️ by the Kiro team**
+**Built with Ã¢ÂÂ¤Ã¯Â¸Â by the Kiro team**

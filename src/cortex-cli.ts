@@ -21,6 +21,10 @@ export async function runCortexCli(argv: readonly string[]): Promise<void> {
 └─────────────────────────────────────────────────┘
 `);
 
+    void argv;
+    console.log("Core workflow: signaler init -> signaler run -> signaler review.");
+    console.log("Cortex is optional and is best used after run/review artifacts exist.\n");
+
     const cwd = process.cwd();
     const config = await loadCortexConfig(cwd);
 
@@ -30,7 +34,7 @@ export async function runCortexCli(argv: readonly string[]): Promise<void> {
         const response = await prompts({
             type: 'select',
             name: 'action',
-            message: 'What would you like to do?',
+            message: 'Cortex tools (optional):',
             choices: [
                 { title: '🧠 Diagnose: Run AI-powered audit', value: 'diagnose' },
                 { title: '🪄 Fix: Interactive remediation', value: 'fix' },

@@ -3,8 +3,8 @@
 // Check Node.js version before importing anything
 const nodeVersion = process.versions.node;
 const major = parseInt(nodeVersion.split('.')[0], 10);
-if (major < 16) {
-  console.error(`Error: Node.js 16 or higher is required. You have ${nodeVersion}`);
+if (major < 18) {
+  console.error(`Error: Node.js 18 or higher is required. You have ${nodeVersion}`);
   console.error('Please upgrade Node.js: https://nodejs.org/');
   process.exit(1);
 }
@@ -13,7 +13,7 @@ if (major < 16) {
 import { freemem } from 'node:os';
 const freeMemoryMB = Math.round(freemem() / 1024 / 1024);
 if (freeMemoryMB < 512) {
-  console.warn(`⚠️  Warning: Low memory detected (${freeMemoryMB}MB free)`);
+  console.warn(`âš ï¸  Warning: Low memory detected (${freeMemoryMB}MB free)`);
   console.warn('   Signaler may run slowly or fail. Consider closing other applications.');
 }
 
@@ -36,11 +36,14 @@ import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
 import { runFolderCli } from "./folder-cli.js";
 import { runCortexCli } from "./cortex-cli.js";
+import { runTuiCli } from "./tui-cli.js";
 import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
 import { readEngineVersion } from "./engine-version.js";
 
 type ApexCommandId =
+  | "run"
+  | "review"
   | "audit"
   | "quick"
   | "report"
@@ -58,6 +61,7 @@ type ApexCommandId =
   | "wizard"
   | "quickstart"
   | "guide"
+  | "tui"
   | "shell"
   | "help"
   | "init"
@@ -88,6 +92,8 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     return { command: "shell", argv: commandArgv };
   }
   if (
+    rawCommand === "run" ||
+    rawCommand === "review" ||
     rawCommand === "audit" ||
     rawCommand === "quick" ||
     rawCommand === "report" ||
@@ -105,6 +111,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "wizard" ||
     rawCommand === "quickstart" ||
     rawCommand === "guide" ||
+    rawCommand === "tui" ||
     rawCommand === "init" ||
     rawCommand === "config" ||
     rawCommand === "export" ||
@@ -123,14 +130,14 @@ async function printVersion(): Promise<void> {
   const platform = `${process.platform} ${process.arch}`;
 
   console.log(`
-┌─────────────────────────────────────────────────┐
-│                 Signaler CLI                    │
-├─────────────────────────────────────────────────┤
-│ Version         │ ${version.padEnd(30)} │
-│ Node.js         │ ${nodeVersion.padEnd(30)} │
-│ Platform        │ ${platform.padEnd(30)} │
-│ Package Manager │ JSR (@signaler/cli)${' '.repeat(9)} │
-└─────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                 Signaler CLI                    â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Version         â”‚ ${version.padEnd(30)} â”‚
+â”‚ Node.js         â”‚ ${nodeVersion.padEnd(30)} â”‚
+â”‚ Platform        â”‚ ${platform.padEnd(30)} â”‚
+â”‚ Package Manager â”‚ JSR (@signaler/cli)${' '.repeat(9)} â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Installation:
   npx jsr add @signaler/cli@${version}
@@ -222,6 +229,10 @@ function printHelp(topic?: string): void {
       "",
       "Usage:",
       "  signaler                 # interactive shell (default)",
+      "  signaler init            # canonical setup",
+      "  signaler run --mode <fidelity|throughput> [flags]   # canonical runner",
+      "  signaler review [--dir <path>]   # canonical review from artifacts",
+      "  signaler tui [--config <path>]",
       "  signaler quickstart --base-url <url> [--project-root <path>]",
       "  signaler wizard [--config <path>]",
       "  signaler quick [--config <path>] [--project-root <path>]",
@@ -236,11 +247,14 @@ function printHelp(topic?: string): void {
       "Commands:",
       "  Interactive:",
       "    shell      Start interactive shell (default)",
+      "    tui        Fullscreen interactive dashboard with live command output",
       "    wizard     Run interactive config wizard",
       "    guide      Same as wizard, with inline tips for non-technical users",
       "    quickstart Detect routes and run a one-off audit with sensible defaults",
       "",
       "  Audits and checks:",
+      "    run        Alias of audit (v3 canonical command)",
+      "    review     Alias of report (v3 canonical command)",
       "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
       "    report     Generate global reports from existing .signaler/ artifacts (no Lighthouse run)",
@@ -296,6 +310,10 @@ function printHelp(topic?: string): void {
       "  --accurate         Preset: devtools throttling + warm-up + stability-first (parallel=1 unless overridden)",
       "  --devtools-accurate Preset: devtools throttling + warm-up + higher parallelism by default",
       "  --open             Open the HTML report after the run.",
+      "  --mode <m>         Run mode profile: fidelity | throughput (default throughput)",
+      "  --contract <c>     Artifact contract: legacy | v3 (default legacy)",
+      "  --legacy-artifacts Keep legacy artifacts when --contract v3 is enabled",
+      "  --baseline <path>  Baseline run.json path to compare compat hash against",
       "",
       "Options (measure):",
       "  --mobile-only      Run measure only for 'mobile' devices defined in the config",
@@ -434,7 +452,7 @@ function setupGracefulShutdown(): void {
     }
     isShuttingDown = true;
 
-    console.error(`\n\n⚠️  Received ${signal}, shutting down gracefully...`);
+    console.error(`\n\nâš ï¸  Received ${signal}, shutting down gracefully...`);
     console.error("Cleaning up Chrome processes...");
 
     await cleanupChromeProcesses();
@@ -448,13 +466,13 @@ function setupGracefulShutdown(): void {
 
   // Cleanup on uncaught errors
   process.on("uncaughtException", async (error) => {
-    console.error("\n❌ Uncaught exception:", error.message);
+    console.error("\nâŒ Uncaught exception:", error.message);
     await cleanupChromeProcesses();
     process.exit(1);
   });
 
   process.on("unhandledRejection", async (reason) => {
-    console.error("\n❌ Unhandled rejection:", reason);
+    console.error("\nâŒ Unhandled rejection:", reason);
     await cleanupChromeProcesses();
     process.exit(1);
   });
@@ -482,6 +500,11 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     return;
   }
 
+  if (parsed.command === "tui") {
+    await runTuiCli(parsed.argv);
+    return;
+  }
+
   if (parsed.command === "quickstart") {
     await runQuickstartCli(parsed.argv);
     if (isInteractiveTty()) {
@@ -495,11 +518,19 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       await runAuditCli(parsed.argv);
       return;
     }
+    if (parsed.command === "run") {
+      await runAuditCli(parsed.argv);
+      return;
+    }
     if (parsed.command === "quick") {
       await runQuickCli(parsed.argv);
       return;
     }
     if (parsed.command === "report") {
+      await runReportCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "review") {
       await runReportCli(parsed.argv);
       return;
     }
@@ -578,7 +609,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
     // Handle common error scenarios with helpful messages
     if (message.includes("ENOENT") && message.includes("signaler.config.json")) {
-      console.error("\n❌ Config file not found");
+      console.error("\nâŒ Config file not found");
       console.error("\nTo create a config file, run:");
       console.error("  signaler wizard");
       console.error("\nOr specify a config path:");
@@ -588,21 +619,21 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
 
     if (message.includes("ECONNREFUSED") || message.includes("ENOTFOUND")) {
-      console.error("\n❌ Cannot connect to baseUrl");
+      console.error("\nâŒ Cannot connect to baseUrl");
       console.error("\nMake sure:");
-      console.error("  • Your development server is running");
-      console.error("  • The baseUrl in signaler.config.json is correct");
-      console.error("  • The server is accessible from this machine");
+      console.error("  â€¢ Your development server is running");
+      console.error("  â€¢ The baseUrl in signaler.config.json is correct");
+      console.error("  â€¢ The server is accessible from this machine");
       process.exitCode = 1;
       return;
     }
 
     if (message.includes("EACCES") || message.includes("permission denied")) {
-      console.error("\n❌ Permission denied");
+      console.error("\nâŒ Permission denied");
       console.error("\nTry:");
-      console.error("  • Running with appropriate permissions");
-      console.error("  • Checking file/directory permissions");
-      console.error("  • Closing other applications that might lock files");
+      console.error("  â€¢ Running with appropriate permissions");
+      console.error("  â€¢ Checking file/directory permissions");
+      console.error("  â€¢ Closing other applications that might lock files");
       process.exitCode = 1;
       return;
     }
@@ -617,7 +648,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 }
 
 void runBin(process.argv).catch((error: unknown) => {
-  console.error("\n❌ Signaler CLI failed\n");
+  console.error("\nâŒ Signaler CLI failed\n");
 
   if (error instanceof Error) {
     console.error("Error:", error.message);
@@ -634,9 +665,9 @@ void runBin(process.argv).catch((error: unknown) => {
   }
 
   console.error("\nNeed help? Check:");
-  console.error("  • README.md for documentation");
-  console.error("  • signaler help for command reference");
-  console.error("  • GitHub issues for known problems");
+  console.error("  â€¢ README.md for documentation");
+  console.error("  â€¢ signaler help for command reference");
+  console.error("  â€¢ GitHub issues for known problems");
 
   process.exitCode = 1;
 });
