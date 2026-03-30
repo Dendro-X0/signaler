@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-23T08:49:24.435Z",
+  "status": "pass",
+  "workspaceDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\v63-low-memory-evidence",
+  "baseUrl": "http://127.0.0.1:50061",
+  "baseline": {
+    "id": "baseline",
+    "outputDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\v63-low-memory-evidence\\.signaler-baseline",
+    "elapsedMs": 25457,
+    "resolvedParallel": 1,
+    "stabilityStatus": "stable",
+    "resourceProfile": {
+      "cpuCount": 12,
+      "freeMemoryMB": 2241,
+      "baseParallelCap": 1,
+      "appliedParallelCap": 1,
+      "reasons": [
+        "low-memory"
+      ]
+    }
+  },
+  "forcedLowMemory": {
+    "id": "forced-low-memory",
+    "outputDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\v63-low-memory-evidence\\.signaler-low-memory",
+    "elapsedMs": 20034,
+    "resolvedParallel": 1,
+    "stabilityStatus": "stable",
+    "resourceProfile": {
+      "cpuCount": 4,
+      "freeMemoryMB": 2048,
+      "baseParallelCap": 1,
+      "appliedParallelCap": 1,
+      "reasons": [
+        "forced-resource-profile",
+        "low-memory"
+      ]
+    }
+  },
+  "assertions": {
+    "lowMemoryReasonPresent": true,
+    "forcedProfileReasonPresent": true,
+    "parallelCappedToOne": true,
+    "stableRunner": true,
+    "predictabilityImproved": true
+  }
+}

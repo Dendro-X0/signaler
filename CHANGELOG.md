@@ -1,5 +1,388 @@
 # Changelog
 
+## Unreleased
+
+### V3 Push/Release Preparation
+
+- Replaced stale `scripts/release.js` (`v2.0` hardcoded flow) with a version-agnostic V3 preflight runner.
+- Added deterministic preflight checks for:
+  - package/jsr version sync
+  - required docs + release assets
+  - V3/Phase6/V6.3 gate report status
+  - optional cross-platform evidence enforcement (`--require-cross-platform`, `--strict`)
+- Added machine-readable preflight output:
+  - `release/v3/release-preflight.json` (default)
+- Added release scripts:
+  - `release:preflight`
+  - `release:preflight:strict`
+- Added `docs/v3-push-release-playbook.md` and linked it from docs/readme/checklist/CLI references.
+- Added regression tests for release preflight behavior:
+  - `test/release-script.test.ts`
+
+### Documentation IA Reorganization
+
+- Added a standard docs structure:
+  - `docs/guides/`
+  - `docs/reference/`
+  - `docs/operations/`
+  - `docs/roadmap/`
+  - `docs/specs/`
+  - `docs/archive/`
+- Added neutral canonical paths for operations docs (launch checklist, production playbook, performance baseline, SLO, release playbook).
+- Added active-only roadmap entrypoint:
+  - `docs/roadmap/active-roadmap.md`
+  - root `ROADMAP.md` now tracks open work only.
+- Preserved compatibility with existing gate/test contracts by keeping legacy versioned docs in place and adding canonical-path banners.
+- Updated release/gate evaluators to accept canonical docs paths while remaining backward-compatible with legacy paths.
+- Updated docs-site sync pipeline (`site/scripts/sync-cli-docs.mjs`) to source canonical docs (`guides/`, `reference/`, `operations/`, `roadmap/`, `specs/`) with legacy fallback mapping.
+
+### V6 Workstream A (Rust Core Consolidation)
+
+- Added Rust-first core runtime commands in sidecar:
+  - `signaler_hotpath run-core --in <path> --out <path>`
+  - `signaler_hotpath reduce-signals --in <path> --out <path>`
+- Added Node stdio Lighthouse worker bridge:
+  - `src/lighthouse-stdio-worker.ts`
+  - Rust `run-core` now dispatches tasks to persistent Node workers over NDJSON/stdin-stdout.
+- Added new Rust core adapters/contracts:
+  - `src/rust/core-contracts.ts`
+  - `src/rust/core-adapter.ts`
+- Added default Rust-core policy:
+  - `SIGNALER_RUST_CORE=0` disables Rust core
+  - `SIGNALER_RUST_CORE=1` force-enables Rust core
+  - unset defaults to Rust-first with automatic Node fallback
+- Wired `run` pipeline to attempt Rust core by default with mandatory fallback to Node when sidecar fails.
+- Added additive run metadata in `run.json`:
+  - `runtime.accelerators.rustCore`
+  - `runtime.stepTimings` (`warmUpMs`, `queueBuildMs`, `runLoopMs`, `reductionMs`, `artifactWriteMs`, `totalPipelineMs`)
+- Kept existing `rustDiscovery` and `rustProcessor` metadata for compatibility.
+- Added Rust reducer integration for top issues and V3 suggestions with fallback to existing Node aggregation/ranking.
+- Added tests:
+  - `test/rust-core-policy.test.ts`
+  - `test/rust-reducer-parity.test.ts`
+- Extended rust parity script to include new Workstream A tests.
+
+### V6 Workstream B (Agent Signal Layer: `analyze`)
+
+- Added new V6-gated command: `signaler analyze --contract v6`.
+- Added V6 analyze contracts and validators:
+  - `src/contracts/v6/analyze-v6.ts`
+  - `src/contracts/v6/validators.ts`
+- Added full analyze pipeline in `src/analyze-cli.ts`:
+  - strict/non-strict artifact loading from canonical v3 artifacts
+  - mandatory filtering (zero-impact, missing evidence, confidence threshold)
+  - deterministic de-duplication and ranking policy
+  - token-budget enforcement by payload-size estimate
+  - deterministic `verifyPlan` synthesis per action
+- Added new outputs:
+  - `.signaler/analyze.json`
+  - `.signaler/analyze.md`
+- Added shell/bin command integration:
+  - `analyze` command in `src/bin.ts` and `src/shell-cli.ts`
+  - shell home/help/completion support for analyze workflow
+  - `open-analyze` shortcut in shell
+- Added Workstream B tests:
+  - `test/analyze-cli-v6.test.ts`
+- Added analyze coverage to Phase 6 smoke suite:
+  - `test:phase6:smoke` now includes analyze tests.
+- Updated docs and migration guidance for agent flow:
+  - `README.md`
+  - `docs/README.md`
+  - `docs/getting-started.md`
+  - `docs/cli-and-ci.md`
+  - `docs/migration-v3.md`
+
+### V6 Workstream C (Verification Loop: `verify`)
+
+- Added new V6-gated command: `signaler verify --contract v6`.
+- Added V6 verify contracts:
+  - `src/contracts/v6/verify-v6.ts`
+  - extended `src/contracts/v6/validators.ts` with `isVerifyReportV6` and `isVerifyThresholdsV6`
+- Added full verify pipeline in `src/verify-cli.ts`:
+  - loads baseline `run.json/results.json` and `analyze.json`
+  - action selection via `--action-ids` or `--top-actions`
+  - deterministic focused route selection with `--max-routes`
+  - in-process scoped rerun via existing `runAuditCli`
+  - comparability policy (`warn+continue` default, strict fail unless override)
+  - deterministic before/after check evaluation with pass/fail/skipped statuses
+  - supports `--dry-run` planned output mode (exit code `3`)
+- Added new outputs:
+  - `.signaler/verify.json`
+  - `.signaler/verify.md`
+  - `.signaler/verify-runs/<verifyRunId>/` with `verify.config.json`
+- Added shell/bin command integration:
+  - `verify` command in `src/bin.ts` and `src/shell-cli.ts`
+  - shell help/completion/home updates for verify workflow
+  - `open-verify` shortcut in shell
+- Added Workstream C tests:
+  - `test/verify-cli-v6.test.ts`
+- Added verify coverage to Phase 6 smoke suite:
+  - `test:phase6:smoke` now includes verify tests.
+- Updated docs and roadmap:
+  - `README.md`
+  - `docs/README.md`
+  - `docs/getting-started.md`
+  - `docs/cli-and-ci.md`
+  - `docs/migration-v3.md`
+  - `ROADMAP.md` Workstream C checklist marked complete
+
+### V6 Blueprint (Planned)
+
+- Added `docs/V6-BLUEPRINT.md` as the decision-complete V6 specification.
+- Defined canonical V6 flow: `discover -> run -> analyze -> verify`.
+- Locked public interfaces and contracts for new `analyze` and `verify` commands, including artifacts, exit codes, and verification thresholds.
+
+### V5 Phase 6 (Release Gate + Adoption Pack)
+
+- Added cross-platform smoke validation in CI (Windows/macOS/Linux) with deterministic critical checks.
+- Added Phase 6 release gate evaluator and schema:
+  - `benchmarks/phase6/evaluate-release-gate.ts`
+  - `benchmarks/phase6/report.schema.json`
+  - `benchmarks/phase6/validate.ts`
+- Added Phase 6 scripts:
+  - `bench:phase6:gate`
+  - `bench:phase6:validate`
+  - `test:phase6:smoke`
+- Added final CI release gate job:
+  - `phase6-release-gate` depends on benchmark + cross-platform jobs
+  - emits `benchmarks/out/phase6-release-gate.json|md`
+- Added GitHub workflow templates for adoption:
+  - `.github/workflow-templates/signaler-audit-pnpm.yml`
+  - `.github/workflow-templates/signaler-audit-npm.yml`
+  - `.github/workflow-templates/signaler-audit-yarn.yml`
+  - with matching `.properties.json` descriptors
+- Added Phase 6 operational docs:
+  - `docs/production-playbook-v5.md`
+  - `docs/launch-checklist-v5.md`
+  - `docs/known-limits.md`
+- Added agent-first onboarding docs:
+  - `docs/agent-quickstart.md`
+  - copy-paste agent workflow, artifact read order, and prompt templates
+- Added reusable model-specific prompt pack:
+  - `docs/examples/agent-prompt-pack.md`
+- Added repository-level agent defaults:
+  - `AGENTS.md`
+  - canonical Signaler flow, artifact read order, and fix-loop rules
+- Added a copy/paste agent bootstrap block in:
+  - `docs/cli-and-ci.md`
+- Added shell-specific bootstrap guide:
+  - `scripts/agent-bootstrap.md` (bash + PowerShell)
+- Added executable bootstrap helpers:
+  - `scripts/agent-bootstrap.sh`
+  - `scripts/agent-bootstrap.ps1`
+- Added package-script aliases for bootstrap helpers:
+  - `agent:bootstrap:sh`
+  - `agent:bootstrap:ps`
+- Standardized PowerShell bootstrap docs/alias on `powershell` and added `--help` usage output for both bootstrap scripts.
+- Repositioned README toward direct agent usage via canonical v3 artifacts.
+- Added regression test for Phase 6 gate report validation:
+  - `test/phase6-release-gate-validation.test.ts`
+
+### V5 Phase 5 (Signal Quality + Contract Tightening)
+
+- Enforced zero-impact suppression in default v3 suggestion ranking:
+  - suggestion rows are excluded when both time impact (`totalMs`) and bytes impact are zero.
+- Added bytes-aware suggestion impact propagation:
+  - `suggestions.json` now includes `estimatedImpact.bytes` when byte savings are present.
+- Tightened suggestion evidence requirements:
+  - default ranked suggestions now always carry non-empty evidence pointers.
+  - v3 validators now reject malformed suggestion evidence payloads.
+- Added additive migration metadata to `agent-index.json`:
+  - `compatibility.legacyToCanonical` provides machine-readable legacy-to-canonical artifact mapping.
+- Reduced default v3 report redundancy in `overview.md`:
+  - canonical v3 artifacts are listed by default (`run/results/suggestions/agent-index`).
+  - legacy heavy artifacts are listed only when legacy artifact mode is enabled.
+- Fixed `report` command for default v3 runs without legacy AI artifacts:
+  - when `ai-ledger.json` is absent, `report` now builds from canonical `suggestions.json` + `issues.json`.
+  - emits `ai-global-red.json` with `meta.source = \"v3-canonical\"` in fallback mode.
+- Added Phase 5 contract tests:
+  - `test/v3-contract-phase5.test.ts`
+  - `test/report-cli-v3-fallback.test.ts`
+
+### V5 Phase 4 (Rust Network Workers + Soft Gate)
+
+- Added Rust network worker command surface in sidecar:
+  - `signaler_hotpath net-worker --mode <health|headers|links|console> --in <path> --out <path>`
+- Added new runtime flags for network workers:
+  - `SIGNALER_RUST_NETWORK=1`
+  - `SIGNALER_RUST_HEALTH=1`
+  - `SIGNALER_RUST_HEADERS=1`
+  - `SIGNALER_RUST_LINKS=1`
+  - `SIGNALER_RUST_CONSOLE=1`
+- Extended Rust bridge runtime behavior:
+  - prefers prebuilt sidecar binary when present
+  - falls back to `cargo run` path automatically
+- Added shared Node adapter/contracts for Rust network worker calls:
+  - `src/rust/network-contracts.ts`
+  - `src/rust/network-adapter.ts`
+- Integrated network worker attempts into command flows with additive metadata:
+  - `health`, `headers`, `links`, `console`
+  - each runner artifact now includes `meta.accelerator` (`engine`, `requested`, `used`, fallback info)
+- Added Rust network adapter tests:
+  - `test/rust-network-adapter-flags.test.ts`
+  - `test/rust-network-fallback-behavior.test.ts`
+- Added Phase 4 benchmark harness and soft gate:
+  - `benchmarks/phase4/runner.ts`
+  - `benchmarks/phase4/evaluate-soft-gate.ts`
+  - `benchmarks/phase4/report.schema.json`
+  - scripts: `bench:phase4`, `bench:phase4:ci`, `bench:phase4:gate`
+- Updated CI to run/upload Phase 4 benchmark artifacts and evaluate the Phase 4 soft gate.
+- Added Phase 4 docs:
+  - `docs/rust-network-workers.md`
+
+### V5 Phase 2 + 3 (Throughput Hardening + Rust Pilot)
+
+- Hardened throughput scheduler/backoff behavior in `lighthouse-runner`:
+  - prevents scheduling into reduced/deactivated worker slots
+  - adds failure-storm and low-memory backoff triggers
+  - adds bounded recovery increases after stable windows
+  - adds deterministic cooldown accounting and cleaner ASCII warnings
+- Added large-suite throughput optimizations:
+  - sampled warm-up in throughput mode (`min(8, routes)`, concurrency `min(2, parallel)`)
+  - deterministic round-robin queue ordering across route/device combos
+- Added low-impact auto resource profile resolution:
+  - hardware-aware parallel caps from CPU and free memory
+  - suite-size safety caps for medium/large combo counts
+  - resolved cap reasons surfaced in shell/run summary
+- Expanded runner instability telemetry in run metadata:
+  - `failureRate`, `retryRate`, `maxConsecutiveRetries`
+  - `cooldownMsTotal`, `recoveryIncreases`
+  - `status` (`stable|degraded|unstable`)
+- Added additive runtime accelerator metadata in `run.json`:
+  - `runtime.accelerators.rustDiscovery`
+  - `runtime.accelerators.rustProcessor`
+  - fallback reasons captured when sidecar path is unavailable/invalid
+- Landed Rust sidecar command surface:
+  - `discover-scan --project-root --limit --preferred-detector --out`
+  - `process-summary --summary --out`
+- Added flagged runtime Rust integration with safe fallback:
+  - `SIGNALER_RUST_DISCOVERY=1`
+  - `SIGNALER_RUST_PROCESSOR=1`
+  - Node path remains default and authoritative
+- Added Rust parity/fallback tests:
+  - `test/route-detectors-rust-parity.test.ts`
+  - `test/rust-processor-parity.test.ts`
+  - `test/rust-fallback-behavior.test.ts`
+- Added CI soft-gate evaluation for severe regressions only:
+  - new script `pnpm run bench:phase2:gate`
+  - fails on severe elapsed regression/failure-rate/artifact/status conditions
+  - moderate regressions are warnings
+  - profiles with `status=warn` now report missing-artifact warnings instead of hard-failing the gate
+- Documented known large-suite fidelity pitfall:
+  - lowering parallel alone can make runs slower and still lower performance scores
+  - docs now recommend throughput full sweep + focused fidelity reruns
+
+### V5 Phase 1 (Usability + Workflow Hardening)
+
+- Promoted canonical command narrative to `discover -> run -> report` across CLI/shell/docs.
+- Added explicit compatibility alias messaging:
+  - `init` -> `discover`
+  - `audit` -> `run`
+  - `review` -> `report`
+- Upgraded discovery contract (`.signaler/discovery.json`) with additive metadata:
+  - `scopeRequested`, `scopeResolved`
+  - `status` (`ok|warn|error`) + `warnings`
+  - `strategy` (`routeCap`, `source`)
+- Added non-interactive discovery controls:
+  - `--base-url`
+  - `--project-root`
+  - `--profile`
+  - `--yes`
+  - `--non-interactive`
+- Added fail-fast validation for invalid non-interactive file-scope discovery and guaranteed discovery artifact emission on error paths.
+- Added shell `discover` command support and post-command summaries:
+  - discover summary panel (selected/excluded/strategy)
+  - run strategy panel (mode/parallel/warmUp/isolation/backoff)
+  - report artifact panel (key outputs + next actions)
+- Added scripted onboarding gate:
+  - `pnpm run bench:phase1:onboarding`
+  - CI now blocks on this gate while Phase 0 benchmark deltas remain observe-only.
+- Added Phase 1 tests:
+  - wizard arg parsing for non-interactive discover
+  - discovery summary contract field coverage
+  - non-interactive failure path verifies `discovery.json` status=`error`
+
+### V5 Phase 0 (Baseline + Guardrails + Rust Sidecar Kickoff)
+
+- Added Phase 0 benchmark harness:
+  - `benchmarks/phase0/runner.ts`
+  - `benchmarks/phase0/collect.ts`
+  - `benchmarks/phase0/validate.ts`
+  - `benchmarks/phase0/rust-probe.ts`
+  - `benchmarks/phase0/report.schema.json`
+- Added benchmark corpus and fixture contracts:
+  - synthetic profiles (`synthetic-small`, `synthetic-medium`, `synthetic-large`)
+  - real profile (`real-next-blogkit-pro`)
+  - `benchmarks/README.md`
+- Added new scripts:
+  - `pnpm run bench:phase0`
+  - `pnpm run bench:phase0:ci`
+  - `pnpm run bench:phase0:validate`
+- Added Phase 0 docs:
+  - `docs/v5-slo.md`
+  - `docs/performance-baseline-v5.md`
+- Synced user-facing docs for this phase:
+  - updated `docs/getting-started.md` command/alias guidance
+  - added benchmark baseline usage to `docs/cli-and-ci.md`
+- Added CI observe-only benchmark job on Node 20.x:
+  - uploads Phase 0 JSON/Markdown artifacts
+  - prints summary in logs
+  - includes TODO marker for Phase 1 hard-gating transition
+- Added Rust sidecar scaffold:
+  - `rust/Cargo.toml` workspace
+  - `rust/signaler_hotpath` crate
+  - `signaler_hotpath discover-scan --profile <path> --out <path>`
+- Kept Node path as source of truth; Rust probe is optional and enabled only with `SIGNALER_RUST_DISCOVERY=1`.
+
+### Roadmap Refresh (V5 Overhaul)
+
+- Replaced the previous V4 iteration roadmap with a new V5 overhaul roadmap in `ROADMAP.md`.
+- Added a speed-first delivery track with explicit SLOs and benchmark checkpoints.
+- Added a hybrid architecture plan: Node control plane + Rust acceleration modules for hot paths.
+- Defined phased Rust adoption strategy (sidecar first, optional native module later) with Node fallback.
+
+### V4 Phase 0 (Contract Freeze and Roadmap Reset)
+
+- Replaced the old Cortex-centric roadmap with a V4 reliability-first roadmap in `ROADMAP.md`.
+- Added V4 planning docs:
+  - `docs/V4-RESET-SPEC.md`
+  - `docs/v4-contract.md`
+  - `docs/migration-v4.md`
+- Updated docs index and README links to include V4 reset and migration references.
+- Added a concrete V4 Phase 0 launch checklist to `docs/CURRENT-SHORTCOMINGS.md`.
+
+### V4 Phase 1 (Discovery Reliability Reset, In Progress)
+
+- Added `discover` command path in the CLI launcher as a first-class setup command.
+- Added discovery scopes:
+  - `--scope quick`
+  - `--scope full`
+  - `--scope file --routes-file <path>`
+- Added default full-scope behavior for `discover` when no scope is provided.
+- Added `.signaler/discovery.json` emission with route accounting:
+  - detected routes
+  - selected routes
+  - excluded dynamic routes
+  - excluded-by-filter count
+  - excluded-by-scope count
+- Increased full-scope discovery cap for larger projects to reduce under-detection.
+
+### V4 Phase 2 (Runner Protocol Split, In Progress)
+
+- Added explicit run isolation flag:
+  - `--isolation shared`
+  - `--isolation per-audit`
+  - `--isolation browser`
+- `--isolation browser` now enforces strict stability semantics:
+  - maps to per-audit session isolation
+  - forces `parallel=1` (ignores higher `--parallel` overrides with a clear note)
+- Added throughput backoff control:
+  - `--throughput-backoff auto|aggressive|off`
+  - propagated into run config and comparability metadata
+- Added runner instability telemetry in run metadata:
+  - `meta.runnerStability` (attempts, failures, retries, reductions, cooldown pauses, final parallel)
+- Updated CLI help and docs to expose strict fidelity execution path.
+
 ## 2.6.4 - 2026-03-03
 
 ### Wizard Onboarding, Runtime Stability, and Fidelity Improvements

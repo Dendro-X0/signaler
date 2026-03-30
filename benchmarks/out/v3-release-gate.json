@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-30T05:01:30.260Z",
+  "status": "ok",
+  "checks": [
+    {
+      "id": "v3-core-docs",
+      "status": "ok",
+      "details": "V3 contract and migration docs are present.",
+      "blocking": true
+    },
+    {
+      "id": "canonical-flow-docs-v3",
+      "status": "ok",
+      "details": "Canonical flow is clear in 3 key docs.",
+      "blocking": true
+    },
+    {
+      "id": "local-build-flow-docs",
+      "status": "ok",
+      "details": "Local unpublished-build workflow (`node ./dist/bin.js`) is documented.",
+      "blocking": true
+    },
+    {
+      "id": "required-cli-scripts",
+      "status": "ok",
+      "details": "Required build/smoke scripts are present.",
+      "blocking": true
+    },
+    {
+      "id": "v63-gate-dependencies",
+      "status": "ok",
+      "details": "V6.3 gate dependency scripts are present.",
+      "blocking": true
+    },
+    {
+      "id": "package-metadata",
+      "status": "ok",
+      "details": "Package name and signaler bin mapping are valid.",
+      "blocking": true
+    },
+    {
+      "id": "v3-gate-schema-files",
+      "status": "ok",
+      "details": "V3 gate evaluator/validator/schema files are present.",
+      "blocking": true
+    },
+    {
+      "id": "release-manifest-contract",
+      "status": "ok",
+      "details": "V3 release manifest schema/example files are present.",
+      "blocking": true
+    },
+    {
+      "id": "release-checklist-v3-gate",
+      "status": "ok",
+      "details": "Launch checklist references V3 release gate commands.",
+      "blocking": true
+    },
+    {
+      "id": "dogfood-evidence",
+      "status": "ok",
+      "details": "Dogfood evidence complete for 3 repos (>=14 days each).",
+      "blocking": false
+    },
+    {
+      "id": "loop-smoke-evidence",
+      "status": "ok",
+      "details": "Loop smoke evidence exists and is recent (<=30 days).",
+      "blocking": false
+    },
+    {
+      "id": "release-notes-draft",
+      "status": "ok",
+      "details": "V3 release notes draft/candidate exists.",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "blockingFailures": 0,
+    "warnings": 0,
+    "manualItems": 3
+  }
+}

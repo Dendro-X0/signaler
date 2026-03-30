@@ -1,51 +1,51 @@
-# Signaler Cortex Roadmap
+# Signaler Roadmap (Active)
 
-> Before executing this Cortex roadmap, review the current product gaps:
-> [docs/CURRENT-SHORTCOMINGS.md](./docs/CURRENT-SHORTCOMINGS.md)
+Status: Active
+Updated: 2026-03-23
 
-**Signaler Cortex** turns the CLI into an automated optimization engineer. This roadmap outlines the evolution from a diagnostic tool to an intelligent remediation platform.
+This roadmap keeps only unfinished work. Completed phases/workstreams are archived under `docs/archive/roadmaps/`.
 
-## 🧠 Phase 1: The Foundation (Completed)
-**Goal**: Establish connectivity, configuration, and basic interaction capabilities.
+## Current Release Track
 
-- [x] **Provider Architecture**: Plug-and-play interface for AI models.
-    - [x] Support **OpenAI** (GPT-4o, GPT-4-Turbo).
-    - [x] Support **Ollama** (Llama 3, DeepSeek Coder) for local-first privacy.
-    - [x] Support **Anthropic** (Claude 3.5 Sonnet) for complex code tasks.
-- [x] **Configuration Management**: `.signalerrc` handling for keys, prompts, and model preferences.
-- [x] **Basic CLI Commands**:
-    - [x] `signaler ai init`: Interactive setup wizard.
-    - [x] `signaler ai diagnose`: Send raw audit JSON to LLM for a summary.
+1. Publish `@signaler/cli@3.0.0` to JSR from a token-authenticated environment.
+2. Confirm cross-platform smoke evidence in CI (Windows/macOS/Linux).
+3. Close launch checklist before GA tag.
 
-## 👁️ Phase 2: The Context Engine
-**Goal**: Give the AI "eyes" to see the code, not just the error report.
+References:
 
-- [ ] **Source Mapping**:
-    - [ ] Map Lighthouse DOM paths (e.g., `div.hero > img`) to React/Vue component files.
-    - [ ] Parse `package.json` and config files to understand the tech stack (Next.js vs Remix, Tailwind vs CSS Modules).
-- [ ] **Intelligent Retrieval**:
-    - [ ] Extract relevant code snippets (AST-based or regex-based) to bundle with the prompt.
-    - [ ] Token budget management (don't send the whole repo).
+- `docs/operations/launch-checklist.md`
+- `docs/operations/release-playbook.md`
+- `docs/roadmap/active-roadmap.md`
 
-## 🤖 Phase 3: Specialist Agents
-**Goal**: Specialized prompts and workflows for specific audit domains.
+## Product Expansion Track (Open)
 
-- [ ] **The Performance Engineer**:
-    - [ ] Specializes in LCP/CLS/INP.
-    - [ ] Knows how to optimize images, font loading, and script deferral.
-- [ ] **The Accessibility Expert**:
-    - [ ] Specializes in WCAG violations.
-    - [ ] Can generate ARIA labels and structure fixes.
-- [ ] **The SRE (Reliability)**:
-    - [ ] Analyzes console errors and network failures.
+### Workstream J: Benchmark and Spec Coverage Expansion
 
-## 🛠️ Phase 4: Automated Remediation
-**Goal**: Close the loop by writing code.
+- [x] Add field-data adapters (CrUX and first-party RUM) as optional external signals.
+- [ ] Add broader accessibility checks aligned to WCAG 2.2 and ARIA APG.
+- [ ] Add security baseline checks aligned to OWASP Top 10 / ASVS-lite.
+- [ ] Add technical SEO checks aligned to Google Search Essentials.
+- [ ] Add reliability/SLO metrics as optional ranking context.
+- [ ] Add cross-browser/cross-device comparability snapshots.
+- [ ] Execute phased plan in `docs/specs/workstream-j-implementation-plan.md`.
 
-- [ ] **Git Patch Generation**:
-    - [ ] AI outputs structured diffs.
-    - [ ] CLI applies diffs to a temporary branch or staging area.
-- [ ] **Test Generation**:
-    - [ ] `signaler gen-test`: Scans a page and writes a Playwright spec to verify it.
-- [ ] **Interactive Fix Mode**:
-    - [ ] `signaler fix <audit-id>`: The "Magic Wand" experience.
+### Workstream K: Rust Path for New Signals
+
+- [ ] Implement Rust normalizer/aggregator for high-volume external records.
+- [ ] Implement Rust composite scoring kernel with Node fallback.
+- [ ] Preserve Node/TypeScript control plane UX and contracts.
+- [ ] Add parity/perf tests proving Rust/Node equivalence.
+
+## Program Success Gate (Open)
+
+- [ ] Reproducible `discover -> run -> analyze -> verify` in <= 10 minutes on reference fixtures.
+- [ ] Median runtime and CPU improve versus V5 baseline.
+- [ ] Agent output remains actionable with bounded token footprint.
+- [ ] 3+ real repos complete 2+ weeks of dogfooding.
+- [ ] Optional external adapter path does not regress core reliability.
+
+## Archive
+
+- Completed roadmap records: `docs/archive/roadmaps/`
+- Completed specs: `docs/archive/specs/`
+- Historical release notes: `docs/archive/release-notes/`

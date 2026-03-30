@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+﻿import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -6,6 +6,7 @@ import { launch as launchChrome } from "chrome-launcher";
 import type { ApexConfig, ApexDevice } from "./core/types.js";
 import { loadConfig } from "./core/config.js";
 import { CdpClient } from "./cdp-client.js";
+import { runRustNetworkWorker } from "./rust/network-adapter.js";
 import { renderPanel } from "./ui/components/panel.js";
 import { renderTable } from "./ui/components/table.js";
 import { UiTheme } from "./ui/themes/theme.js";
@@ -49,8 +50,25 @@ type ConsoleReport = {
     readonly startedAt: string;
     readonly completedAt: string;
     readonly elapsedMs: number;
+    readonly accelerator: {
+      readonly engine: "node" | "rust";
+      readonly requested: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+    };
   };
   readonly results: readonly ConsoleTargetResult[];
+};
+
+type RustConsoleResult = {
+  readonly url?: string;
+  readonly path?: string;
+  readonly label?: string;
+  readonly device?: unknown;
+  readonly status?: unknown;
+  readonly events?: unknown;
+  readonly runtimeErrorMessage?: string;
 };
 
 type ChromeSession = {
@@ -365,6 +383,60 @@ function buildErrorTable(results: readonly ConsoleTargetResult[]): string {
   return renderTable({ headers: ["Label", "Path", "Dev", "Errors"], rows });
 }
 
+async function runConsoleTasksWithNode(params: {
+  readonly tasks: readonly ConsoleTask[];
+  readonly parallel: number;
+  readonly timeoutMs: number;
+  readonly maxEventsPerTarget: number;
+  readonly signal?: AbortSignal;
+}): Promise<readonly ConsoleTargetResult[]> {
+  if (params.signal?.aborted) {
+    throw new Error("Aborted");
+  }
+  const chrome: ChromeSession = await createChromeSession();
+  try {
+    const { webSocketDebuggerUrl }: JsonVersionResponse = await fetchJsonVersion(chrome.port);
+    const client: CdpClient = new CdpClient(webSocketDebuggerUrl);
+    await client.connect();
+    try {
+      return await runWithConcurrency({
+        tasks: params.tasks,
+        parallel: params.parallel,
+        signal: params.signal,
+        runner: async (task) => {
+          if (params.signal?.aborted) {
+            throw new Error("Aborted");
+          }
+          const bucket: string[] = [];
+          try {
+            const context: TargetSession = await createTargetSession(client);
+            await enableDomains(client, context.sessionId);
+            const stopLogging = recordConsoleEvents({
+              client,
+              sessionId: context.sessionId,
+              maxEvents: params.maxEventsPerTarget,
+              bucket,
+            });
+            await applyDeviceEmulation(client, task.device, context.sessionId);
+            await navigateAndAwaitLoad(client, context.sessionId, task.url, params.timeoutMs);
+            await client.send("Runtime.evaluate", { expression: "void 0", awaitPromise: false }, context.sessionId);
+            await detachAndClose(client, context, stopLogging);
+            const status: "ok" | "error" = bucket.length > 0 ? "error" : "ok";
+            return { ...task, status, events: bucket };
+          } catch (error: unknown) {
+            const message: string = error instanceof Error ? error.message : String(error);
+            return { ...task, status: "error", events: bucket, runtimeErrorMessage: message };
+          }
+        },
+      });
+    } finally {
+      client.close();
+    }
+  } finally {
+    await chrome.close();
+  }
+}
+
 /**
  * Run the `console` CLI command.
  */
@@ -377,134 +449,147 @@ export async function runConsoleCli(argv: readonly string[], options?: { readonl
   const tasks: readonly ConsoleTask[] = buildTasks(config);
   const parallel: number = resolveParallelCount({ requested: args.parallelOverride ?? config.parallel, taskCount: tasks.length });
 
-  if (options?.signal?.aborted) {
-    throw new Error("Aborted");
-  }
-  const chrome: ChromeSession = await createChromeSession();
-  try {
-    const { webSocketDebuggerUrl }: JsonVersionResponse = await fetchJsonVersion(chrome.port);
-    const client: CdpClient = new CdpClient(webSocketDebuggerUrl);
-    await client.connect();
-    try {
-      const results: readonly ConsoleTargetResult[] = await runWithConcurrency({
-        tasks,
-        parallel,
-        signal: options?.signal,
-        runner: async (task) => {
-          if (options?.signal?.aborted) {
-            throw new Error("Aborted");
-          }
-          const bucket: string[] = [];
-          try {
-            const context: TargetSession = await createTargetSession(client);
-            await enableDomains(client, context.sessionId);
-            const stopLogging = recordConsoleEvents({ client, sessionId: context.sessionId, maxEvents: args.maxEventsPerTarget, bucket });
-            await applyDeviceEmulation(client, task.device, context.sessionId);
-            await navigateAndAwaitLoad(client, context.sessionId, task.url, args.timeoutMs);
-            await client.send("Runtime.evaluate", { expression: "void 0", awaitPromise: false }, context.sessionId);
-            await detachAndClose(client, context, stopLogging);
-            const status: "ok" | "error" = bucket.length > 0 ? "error" : "ok";
-            return { ...task, status, events: bucket };
-          } catch (error: unknown) {
-            const message: string = error instanceof Error ? error.message : String(error);
-            return { ...task, status: "error", events: bucket, runtimeErrorMessage: message };
-          }
-        },
-      });
+  const rustAttempt = await runRustNetworkWorker<RustConsoleResult>({
+    mode: "console",
+    baseUrl: config.baseUrl,
+    parallel,
+    timeoutMs: args.timeoutMs,
+    retryPolicy: "auto",
+    tasks: tasks.map((task) => ({ url: task.url, path: task.path, label: task.label, device: task.device })),
+    options: { maxEventsPerTarget: args.maxEventsPerTarget },
+  });
 
-      const completedAtMs: number = Date.now();
-      const report: ConsoleReport = {
-        meta: {
-          configPath,
-          baseUrl: config.baseUrl,
-          comboCount: results.length,
-          resolvedParallel: parallel,
-          timeoutMs: args.timeoutMs,
-          maxEventsPerTarget: args.maxEventsPerTarget,
-          startedAt: new Date(startedAtMs).toISOString(),
-          completedAt: new Date(completedAtMs).toISOString(),
-          elapsedMs: completedAtMs - startedAtMs,
-        },
-        results,
+  const results: readonly ConsoleTargetResult[] = rustAttempt.used && rustAttempt.output
+    ? rustAttempt.output.results.map((item, index) => {
+      const fallbackTask: ConsoleTask | undefined = tasks[index];
+      const events: readonly string[] = Array.isArray(item.events)
+        ? item.events.filter((event): event is string => typeof event === "string")
+        : [];
+      const device: ApexDevice = item.device === "mobile" || item.device === "desktop"
+        ? item.device
+        : (fallbackTask?.device ?? "desktop");
+      const status: "ok" | "error" = item.status === "ok" || item.status === "error"
+        ? item.status
+        : (events.length > 0 || typeof item.runtimeErrorMessage === "string" ? "error" : "ok");
+      return {
+        url: typeof item.url === "string" ? item.url : (fallbackTask?.url ?? config.baseUrl),
+        path: typeof item.path === "string" ? item.path : (fallbackTask?.path ?? "/"),
+        label: typeof item.label === "string" ? item.label : (fallbackTask?.label ?? `target-${index + 1}`),
+        device,
+        status,
+        events,
+        runtimeErrorMessage: typeof item.runtimeErrorMessage === "string" ? item.runtimeErrorMessage : undefined,
       };
+    })
+    : await runConsoleTasksWithNode({
+      tasks,
+      parallel,
+      timeoutMs: args.timeoutMs,
+      maxEventsPerTarget: args.maxEventsPerTarget,
+      signal: options?.signal,
+    });
 
-      const outputDir: string = resolve(".signaler");
-      const outputPath: string = resolve(outputDir, "console.json");
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
+  const completedAtMs: number = Date.now();
+  const report: ConsoleReport = {
+    meta: {
+      configPath,
+      baseUrl: config.baseUrl,
+      comboCount: results.length,
+      resolvedParallel: parallel,
+      timeoutMs: args.timeoutMs,
+      maxEventsPerTarget: args.maxEventsPerTarget,
+      startedAt: new Date(startedAtMs).toISOString(),
+      completedAt: new Date(completedAtMs).toISOString(),
+      elapsedMs: completedAtMs - startedAtMs,
+      accelerator: {
+        engine: rustAttempt.used ? "rust" : "node",
+        requested: rustAttempt.requested,
+        used: rustAttempt.used,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      },
+    },
+    results,
+  };
 
-      const errorCombos: number = results.filter((r) => r.status === "error").length;
-      const eventCount: number = results.reduce((sum, r) => sum + r.events.length, 0);
-      const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".signaler/console.json" }] as const;
-      const findings: RunnerFinding[] = [
-        {
-          title: "Summary",
-          severity: errorCombos > 0 ? "error" : "info",
-          details: [`Combos: ${results.length}`, `Error combos: ${errorCombos}`, `Events: ${eventCount}`],
-          evidence,
-        },
-      ];
-      const worst: readonly (typeof results)[number][] = [...results]
-        .filter((r) => r.status === "error")
-        .sort((a, b) => b.events.length - a.events.length)
-        .slice(0, 10);
-      if (worst.length > 0) {
-        findings.push({
-          title: "Worst pages (top 10 by error events)",
-          severity: "warn",
-          details: worst.map((r) => `${r.label} ${r.path} [${r.device}] – ${r.events.length} events`),
-          evidence,
-        });
-      }
-      await writeRunnerReports({
-        outputDir,
-        runner: "console",
-        generatedAt: new Date().toISOString(),
-        humanTitle: "Signaler Console report",
-        humanSummaryLines: [`Combos: ${results.length}`, `Error combos: ${errorCombos}`, `Events: ${eventCount}`],
-        artifacts: [{ label: "Console events (JSON)", relativePath: "console.json" }],
-        aiMeta: {
-          configPath,
-          baseUrl: config.baseUrl,
-          comboCount: results.length,
-          resolvedParallel: parallel,
-          timeoutMs: args.timeoutMs,
-          maxEventsPerTarget: args.maxEventsPerTarget,
-          errorCombos,
-          eventCount,
-        },
-        aiFindings: findings,
-      });
-      await writeArtifactsNavigation({ outputDir });
+  const outputDir: string = resolve(".signaler");
+  const outputPath: string = resolve(outputDir, "console.json");
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(outputPath, JSON.stringify(report, null, 2), "utf8");
 
-      if (args.jsonOutput) {
-        // eslint-disable-next-line no-console
-        console.log(JSON.stringify(report, null, 2));
-        return;
-      }
-      const lines: readonly string[] = [
-        `Config: ${configPath}`,
-        `Combos: ${results.length}`,
-        `Parallel: ${parallel}`,
-        `Timeout: ${args.timeoutMs}ms`,
-        `Error combos: ${errorCombos}`,
-        `Events: ${eventCount}`,
-        `Output: .signaler/console.json`,
-      ];
+  const errorCombos: number = results.filter((r) => r.status === "error").length;
+  const eventCount: number = results.reduce((sum, r) => sum + r.events.length, 0);
+  const evidence: readonly RunnerEvidence[] = [{ kind: "file", path: ".signaler/console.json" }] as const;
+  const findings: RunnerFinding[] = [
+    {
+      title: "Summary",
+      severity: errorCombos > 0 ? "error" : "info",
+      details: [`Combos: ${results.length}`, `Error combos: ${errorCombos}`, `Events: ${eventCount}`],
+      evidence,
+    },
+  ];
+  const worst: readonly (typeof results)[number][] = [...results]
+    .filter((r) => r.status === "error")
+    .sort((a, b) => b.events.length - a.events.length)
+    .slice(0, 10);
+  if (worst.length > 0) {
+    findings.push({
+      title: "Worst pages (top 10 by error events)",
+      severity: "warn",
+      details: worst.map((r) => `${r.label} ${r.path} [${r.device}] - ${r.events.length} events`),
+      evidence,
+    });
+  }
+  await writeRunnerReports({
+    outputDir,
+    runner: "console",
+    generatedAt: new Date().toISOString(),
+    humanTitle: "Signaler Console report",
+    humanSummaryLines: [`Combos: ${results.length}`, `Error combos: ${errorCombos}`, `Events: ${eventCount}`],
+    artifacts: [{ label: "Console events (JSON)", relativePath: "console.json" }],
+    aiMeta: {
+      configPath,
+      baseUrl: config.baseUrl,
+      comboCount: results.length,
+      resolvedParallel: parallel,
+      timeoutMs: args.timeoutMs,
+      maxEventsPerTarget: args.maxEventsPerTarget,
+      errorCombos,
+      eventCount,
+    },
+    aiFindings: findings,
+  });
+  await writeArtifactsNavigation({ outputDir });
 
-      console.log(renderPanel({ title: theme.bold("Console"), lines }));
+  if (args.jsonOutput) {
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
 
-      const table: string = buildErrorTable(results);
-      if (table.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`\n${theme.bold("Errors (first 20)")}`);
-        // eslint-disable-next-line no-console
-        console.log(table);
-      }
-    } finally {
-      client.close();
-    }
-  } finally {
-    await chrome.close();
+  if (rustAttempt.requested && !rustAttempt.used && rustAttempt.fallbackReason) {
+    // eslint-disable-next-line no-console
+    console.log(theme.yellow(`[rust-console] fallback to node: ${rustAttempt.fallbackReason}`));
+  }
+
+  const lines: readonly string[] = [
+    `Config: ${configPath}`,
+    `Combos: ${results.length}`,
+    `Parallel: ${parallel}`,
+    `Timeout: ${args.timeoutMs}ms`,
+    `Engine: ${report.meta.accelerator.engine}`,
+    `Error combos: ${errorCombos}`,
+    `Events: ${eventCount}`,
+    `Output: .signaler/console.json`,
+  ];
+
+  console.log(renderPanel({ title: theme.bold("Console"), lines }));
+
+  const table: string = buildErrorTable(results);
+  if (table.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log(`\n${theme.bold("Errors (first 20)")}`);
+    // eslint-disable-next-line no-console
+    console.log(table);
   }
 }

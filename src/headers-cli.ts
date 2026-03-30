@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import type { ApexConfig } from "./core/types.js";
 import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
+import { runRustNetworkWorker } from "./rust/network-adapter.js";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
 import { renderPanel } from "./ui/components/panel.js";
@@ -50,8 +51,25 @@ type HeadersReport = {
     readonly startedAt: string;
     readonly completedAt: string;
     readonly elapsedMs: number;
+    readonly accelerator: {
+      readonly engine: "node" | "rust";
+      readonly requested: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+    };
   };
   readonly results: readonly HeaderCheckResult[];
+};
+
+type RustHeadersResult = {
+  readonly label?: string;
+  readonly path?: string;
+  readonly url?: string;
+  readonly statusCode?: number;
+  readonly missing?: unknown;
+  readonly present?: unknown;
+  readonly runtimeErrorMessage?: string;
 };
 
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
@@ -310,40 +328,86 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
   });
 
   const parallel: number = resolveParallelCount({ requested: args.parallelOverride, taskCount: targets.length });
-
-  const results: readonly HeaderCheckResult[] = await runWithConcurrency({
-    tasks: targets,
+  const rustAttempt = await runRustNetworkWorker<RustHeadersResult>({
+    mode: "headers",
+    baseUrl: config.baseUrl,
     parallel,
-    signal: options?.signal,
-    runner: async (t) => {
-      if (options?.signal?.aborted) {
-        throw new Error("Aborted");
-      }
-      try {
-        const res = await fetchHeaders({ url: t.url, timeoutMs: args.timeoutMs });
-        const required: readonly SecurityHeaderKey[] = getRequiredHeaders({ url: t.url });
-        const present: SecurityHeaderKey[] = [];
-        const missing: SecurityHeaderKey[] = [];
-        const lowerHeaders: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(res.headers)) {
-          lowerHeaders[k.toLowerCase()] = v;
-        }
-        for (const key of required) {
-          const value: string | undefined = getHeaderValue(lowerHeaders, key);
-          if (value && value.trim().length > 0) {
-            present.push(key);
-          } else {
-            missing.push(key);
-          }
-        }
-        return { ...t, statusCode: res.statusCode, present, missing };
-      } catch (error: unknown) {
-        const message: string = error instanceof Error ? error.message : String(error);
-        const required: readonly SecurityHeaderKey[] = getRequiredHeaders({ url: t.url });
-        return { ...t, runtimeErrorMessage: message, present: [], missing: [...required] };
-      }
-    },
+    timeoutMs: args.timeoutMs,
+    retryPolicy: "auto",
+    tasks: targets.map((target) => ({
+      label: target.label,
+      path: target.path,
+      url: target.url,
+      requiredHeaders: getRequiredHeaders({ url: target.url }),
+    })),
   });
+
+  const toHeaderList = (value: unknown): readonly SecurityHeaderKey[] => Array.isArray(value)
+    ? value
+      .filter((item): item is SecurityHeaderKey => typeof item === "string")
+      .filter((item): item is SecurityHeaderKey =>
+        item === "content-security-policy" ||
+        item === "strict-transport-security" ||
+        item === "x-content-type-options" ||
+        item === "x-frame-options" ||
+        item === "referrer-policy" ||
+        item === "permissions-policy" ||
+        item === "cross-origin-opener-policy" ||
+        item === "cross-origin-resource-policy" ||
+        item === "cross-origin-embedder-policy")
+    : [];
+
+  const results: readonly HeaderCheckResult[] = rustAttempt.used && rustAttempt.output
+    ? rustAttempt.output.results.map((item, index) => {
+      const fallbackTarget: HeaderCheckResult | undefined = targets[index];
+      const fallbackRequired: readonly SecurityHeaderKey[] = getRequiredHeaders({
+        url: typeof item.url === "string" ? item.url : (fallbackTarget?.url ?? config.baseUrl),
+      });
+      const present: readonly SecurityHeaderKey[] = toHeaderList(item.present);
+      const missing: readonly SecurityHeaderKey[] = toHeaderList(item.missing);
+      return {
+        label: typeof item.label === "string" ? item.label : (fallbackTarget?.label ?? `target-${index + 1}`),
+        path: typeof item.path === "string" ? item.path : (fallbackTarget?.path ?? "/"),
+        url: typeof item.url === "string" ? item.url : (fallbackTarget?.url ?? config.baseUrl),
+        statusCode: typeof item.statusCode === "number" ? item.statusCode : undefined,
+        present,
+        missing: missing.length > 0 ? missing : (typeof item.runtimeErrorMessage === "string" ? fallbackRequired : []),
+        runtimeErrorMessage: typeof item.runtimeErrorMessage === "string" ? item.runtimeErrorMessage : undefined,
+      };
+    })
+    : await runWithConcurrency({
+      tasks: targets,
+      parallel,
+      signal: options?.signal,
+      runner: async (t) => {
+        if (options?.signal?.aborted) {
+          throw new Error("Aborted");
+        }
+        try {
+          const res = await fetchHeaders({ url: t.url, timeoutMs: args.timeoutMs });
+          const required: readonly SecurityHeaderKey[] = getRequiredHeaders({ url: t.url });
+          const present: SecurityHeaderKey[] = [];
+          const missing: SecurityHeaderKey[] = [];
+          const lowerHeaders: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(res.headers)) {
+            lowerHeaders[k.toLowerCase()] = v;
+          }
+          for (const key of required) {
+            const value: string | undefined = getHeaderValue(lowerHeaders, key);
+            if (value && value.trim().length > 0) {
+              present.push(key);
+            } else {
+              missing.push(key);
+            }
+          }
+          return { ...t, statusCode: res.statusCode, present, missing };
+        } catch (error: unknown) {
+          const message: string = error instanceof Error ? error.message : String(error);
+          const required: readonly SecurityHeaderKey[] = getRequiredHeaders({ url: t.url });
+          return { ...t, runtimeErrorMessage: message, present: [], missing: [...required] };
+        }
+      },
+    });
 
   const completedAtMs: number = Date.now();
   const report: HeadersReport = {
@@ -356,6 +420,13 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
       startedAt: new Date(startedAtMs).toISOString(),
       completedAt: new Date(completedAtMs).toISOString(),
       elapsedMs: completedAtMs - startedAtMs,
+      accelerator: {
+        engine: rustAttempt.used ? "rust" : "node",
+        requested: rustAttempt.requested,
+        used: rustAttempt.used,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      },
     },
     results,
   };
@@ -393,6 +464,11 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
     return;
   }
 
+  if (rustAttempt.requested && !rustAttempt.used && rustAttempt.fallbackReason) {
+    // eslint-disable-next-line no-console
+    console.log(theme.yellow(`[rust-headers] fallback to node: ${rustAttempt.fallbackReason}`));
+  }
+
   const failCount: number = results.filter((r) => r.missing.length > 0 || Boolean(r.runtimeErrorMessage)).length;
 
   const allFailed: boolean = results.length > 0 && results.every((r) => typeof r.runtimeErrorMessage === "string" && r.runtimeErrorMessage.length > 0);
@@ -410,6 +486,7 @@ export async function runHeadersCli(argv: readonly string[], options?: { readonl
     `Targets: ${results.length}`,
     `Parallel: ${parallel}`,
     `Timeout: ${args.timeoutMs}ms`,
+    `Engine: ${report.meta.accelerator.engine}`,
     `Fail: ${failCount}`,
     `Output: .signaler/headers.json`,
   ];

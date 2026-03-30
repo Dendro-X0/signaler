@@ -1,10 +1,10 @@
-import { access, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import type { Dirent } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import prompts, { type PromptObject } from "prompts";
-import { detectRoutes, type DetectedRoute, type RouteDetectorId } from "./route-detectors.js";
+import { detectRoutes, type DetectedRoute, type RouteDetectionLogEntry, type RouteDetectorId } from "./route-detectors.js";
 import { discoverRuntimeRoutes } from "./sitemap-discovery.js";
 import { pathExists } from "./infrastructure/filesystem/utils.js";
 import { discoverNextProjects, type DiscoveredProject } from "./project-discovery.js";
@@ -14,6 +14,39 @@ interface WizardArgs {
   readonly configPath: string;
   readonly mode: "quick" | "advanced";
   readonly runAfterInit: boolean;
+  readonly scope: "quick" | "full" | "file" | undefined;
+  readonly routesFile: string | undefined;
+  readonly baseUrl: string | undefined;
+  readonly projectRoot: string | undefined;
+  readonly profile: ProjectProfileId | undefined;
+  readonly yes: boolean;
+  readonly nonInteractive: boolean;
+}
+
+export interface DiscoverySummary {
+  readonly generatedAt: string;
+  readonly scope: "quick" | "full" | "file" | "interactive";
+  readonly scopeRequested: "quick" | "full" | "file" | "interactive";
+  readonly scopeResolved: "quick" | "full" | "file" | "interactive";
+  readonly status: "ok" | "warn" | "error";
+  readonly warnings?: readonly string[];
+  readonly repoRoot: string;
+  readonly baseUrl: string;
+  readonly totals: {
+    readonly detected: number;
+    readonly selected: number;
+    readonly excludedDynamic: number;
+    readonly excludedByFilter: number;
+    readonly excludedByScope: number;
+  };
+  readonly routes: {
+    readonly selected: readonly string[];
+    readonly excludedDynamic: readonly string[];
+  };
+  readonly strategy: {
+    readonly routeCap: number;
+    readonly source: "filesystem" | "runtime" | "mixed" | "file";
+  };
 }
 
 class WizardAbortError extends Error {
@@ -100,6 +133,7 @@ const DEFAULT_PROJECT_ROOT = "." as const;
 const QUICK_STARTER_MAX_ROUTES = 12;
 const DEFAULT_PRESELECT_COUNT = 5;
 const DEFAULT_ROUTE_CAP = 50;
+const FULL_SCOPE_ROUTE_CAP = 1000;
 const DEFAULT_DEVICES: readonly ApexDevice[] = ["mobile", "desktop"] as const;
 const PROMPT_OPTIONS = { onCancel: handleCancel } as const;
 const profileChoices: readonly { readonly title: string; readonly value: ProjectProfileId }[] = [
@@ -364,10 +398,17 @@ function profileDisplayName(profile: ProjectProfileId): string {
   }
 }
 
-function parseArgs(argv: readonly string[]): WizardArgs {
+export function parseWizardArgs(argv: readonly string[]): WizardArgs {
   let configPath: string | undefined;
   let mode: "quick" | "advanced" = "quick";
   let runAfterInit = false;
+  let scope: "quick" | "full" | "file" | undefined = "full";
+  let routesFile: string | undefined;
+  let baseUrl: string | undefined;
+  let projectRoot: string | undefined;
+  let profile: ProjectProfileId | undefined;
+  let yes = false;
+  let nonInteractive = false;
   for (let index = 2; index < argv.length; index += 1) {
     const arg: string = argv[index];
     if ((arg === "--config" || arg === "-c") && index + 1 < argv.length) {
@@ -379,9 +420,50 @@ function parseArgs(argv: readonly string[]): WizardArgs {
       mode = "advanced";
     } else if (arg === "--run") {
       runAfterInit = true;
+    } else if (arg === "--scope" && index + 1 < argv.length) {
+      const value = argv[index + 1];
+      if (value === "quick" || value === "full" || value === "file") {
+        scope = value;
+      }
+      index += 1;
+    } else if (arg.startsWith("--scope=")) {
+      const value = arg.split("=")[1];
+      if (value === "quick" || value === "full" || value === "file") {
+        scope = value;
+      }
+    } else if ((arg === "--routes-file" || arg === "--scope-file") && index + 1 < argv.length) {
+      routesFile = argv[index + 1];
+      index += 1;
+    } else if (arg.startsWith("--routes-file=") || arg.startsWith("--scope-file=")) {
+      routesFile = arg.split("=")[1];
+    } else if (arg === "--base-url" && index + 1 < argv.length) {
+      baseUrl = argv[index + 1];
+      index += 1;
+    } else if (arg.startsWith("--base-url=")) {
+      baseUrl = arg.split("=")[1];
+    } else if ((arg === "--project-root" || arg === "--root") && index + 1 < argv.length) {
+      projectRoot = argv[index + 1];
+      index += 1;
+    } else if (arg.startsWith("--project-root=") || arg.startsWith("--root=")) {
+      projectRoot = arg.split("=")[1];
+    } else if (arg === "--profile" && index + 1 < argv.length) {
+      const value = argv[index + 1];
+      if (value === "next" || value === "nuxt" || value === "remix" || value === "sveltekit" || value === "spa" || value === "custom") {
+        profile = value;
+      }
+      index += 1;
+    } else if (arg.startsWith("--profile=")) {
+      const value = arg.split("=")[1];
+      if (value === "next" || value === "nuxt" || value === "remix" || value === "sveltekit" || value === "spa" || value === "custom") {
+        profile = value;
+      }
+    } else if (arg === "--yes" || arg === "-y") {
+      yes = true;
+    } else if (arg === "--non-interactive") {
+      nonInteractive = true;
     }
   }
-  return { configPath: configPath ?? "signaler.config.json", mode, runAfterInit };
+  return { configPath: configPath ?? "signaler.config.json", mode, runAfterInit, scope, routesFile, baseUrl, projectRoot, profile, yes, nonInteractive };
 }
 
 async function resolveProjectRootForWizard(mode: "quick" | "advanced"): Promise<string> {
@@ -538,7 +620,10 @@ async function findMonorepoCandidates(repoRoot: string): Promise<readonly Monore
   return candidates;
 }
 
-async function resolveWizardProjectRoot(repoRoot: string): Promise<{ readonly repoRoot: string; readonly detectedProfile: ProjectProfileId | undefined }> {
+async function resolveWizardProjectRoot(
+  repoRoot: string,
+  options?: { readonly nonInteractive?: boolean },
+): Promise<{ readonly repoRoot: string; readonly detectedProfile: ProjectProfileId | undefined }> {
   const rootProfile: ProjectProfileId | undefined = await detectProjectProfileFromPackageJson(repoRoot);
   if (rootProfile) {
     return { repoRoot, detectedProfile: rootProfile };
@@ -546,6 +631,10 @@ async function resolveWizardProjectRoot(repoRoot: string): Promise<{ readonly re
   const candidates: readonly MonorepoCandidate[] = await findMonorepoCandidates(repoRoot);
   if (candidates.length === 0) {
     return { repoRoot, detectedProfile: undefined };
+  }
+  if (options?.nonInteractive) {
+    const selected = candidates[0] as MonorepoCandidate;
+    return { repoRoot: selected.root, detectedProfile: selected.profile };
   }
   const choices = candidates.map((candidate) => ({
     title: `${candidate.name} (${candidate.root}) - ${profileDisplayName(candidate.profile)}`,
@@ -580,9 +669,15 @@ function buildProfileQuestion(params: {
   };
 }
 
-async function ensureWritable(path: string): Promise<void> {
+async function ensureWritable(path: string, options?: { readonly nonInteractive?: boolean; readonly yes?: boolean }): Promise<void> {
   if (!(await fileExists(path))) {
     return;
+  }
+  if (options?.nonInteractive) {
+    if (options.yes) {
+      return;
+    }
+    throw new Error(`Config exists at ${path}. Pass --yes in non-interactive mode to overwrite.`);
   }
   const response = await ask<{ value: boolean }>(overwriteQuestion);
   if (response.value) {
@@ -670,35 +765,220 @@ function printQuickPlan(pages: readonly ApexPageConfig[]): void {
   console.log("  - Artifacts: .signaler/run.json, .signaler/results.json, .signaler/agent-index.json");
 }
 
-async function maybeDetectPages(params: { readonly profile: ProjectProfileId; readonly baseUrl: string; readonly repoRoot: string; readonly mode: "quick" | "advanced" }): Promise<ApexPageConfig[]> {
-  const preferredDetector = await selectDetector(params.profile);
+type DetectionResult = {
+  readonly pages: readonly ApexPageConfig[];
+  readonly detectedTotal: number;
+  readonly excludedDynamic: readonly string[];
+  readonly excludedByFilter: number;
+  readonly excludedByScope: number;
+  readonly scopeUsed: "quick" | "full" | "file" | "interactive";
+  readonly warnings: readonly string[];
+  readonly status: "ok" | "warn" | "error";
+  readonly routeCap: number;
+  readonly source: "filesystem" | "runtime" | "mixed" | "file";
+};
+
+async function maybeDetectPages(params: {
+  readonly profile: ProjectProfileId;
+  readonly baseUrl: string;
+  readonly repoRoot: string;
+  readonly mode: "quick" | "advanced";
+  readonly scope: "quick" | "full" | "file" | undefined;
+  readonly routesFile: string | undefined;
+  readonly nonInteractive: boolean;
+}): Promise<DetectionResult> {
+  const routeCap: number = params.scope === "full" ? FULL_SCOPE_ROUTE_CAP : DEFAULT_ROUTE_CAP;
+  if (params.scope === "file") {
+    console.log("Scope 'file': using explicit route file input; dynamic routes are excluded from selection.");
+    if (!params.routesFile) {
+      const warning: string = "Scope 'file' selected but no --routes-file was provided.";
+      console.log(`${warning} Add pages manually.`);
+      return {
+        pages: [],
+        detectedTotal: 0,
+        excludedDynamic: [],
+        excludedByFilter: 0,
+        excludedByScope: 0,
+        scopeUsed: "file",
+        warnings: [warning],
+        status: params.nonInteractive ? "error" : "warn",
+        routeCap,
+        source: "file",
+      };
+    }
+    try {
+      const fileRoutes: readonly DetectedRoute[] = await readRoutesFromFile(params.routesFile);
+      const deduped: readonly DetectedRoute[] = dedupeRoutes(fileRoutes);
+      const excludedDynamic: readonly string[] = deduped.filter((route) => isDynamicRoutePath(route.path)).map((route) => route.path);
+      const selected = deduped.filter((route) => !isDynamicRoutePath(route.path));
+      console.log(`Loaded ${deduped.length} route(s) from file ${resolve(params.routesFile)}.`);
+      if (excludedDynamic.length > 0) {
+        console.log(`Excluded ${excludedDynamic.length} dynamic route(s) from file scope.`);
+      }
+      return {
+        pages: selected.map(convertRouteToPage),
+        detectedTotal: deduped.length,
+        excludedDynamic,
+        excludedByFilter: 0,
+        excludedByScope: deduped.length - selected.length,
+        scopeUsed: "file",
+        warnings: excludedDynamic.length > 0 ? [`Excluded ${excludedDynamic.length} dynamic route(s) from file scope.`] : [],
+        status: excludedDynamic.length > 0 ? "warn" : "ok",
+        routeCap: deduped.length,
+        source: "file",
+      };
+    } catch {
+      const warning: string = `Could not read routes file ${params.routesFile}.`;
+      console.log(`${warning} Add pages manually.`);
+      return {
+        pages: [],
+        detectedTotal: 0,
+        excludedDynamic: [],
+        excludedByFilter: 0,
+        excludedByScope: 0,
+        scopeUsed: "file",
+        warnings: [warning],
+        status: params.nonInteractive ? "error" : "warn",
+        routeCap,
+        source: "file",
+      };
+    }
+  }
+
+  const preferredDetector = await selectDetector(params.profile, params.nonInteractive);
+  if (params.scope === "quick") {
+    console.log(`Scope 'quick': selecting starter subset for fast onboarding (route cap ${routeCap}).`);
+  } else if (params.scope === "full") {
+    console.log(`Scope 'full': selecting full static inventory (route cap ${routeCap}).`);
+  }
   const repoRoot: string = params.repoRoot;
   if (!(await pathExists(repoRoot))) {
     console.log(`No project found at ${repoRoot}. Skipping auto-detection.`);
-    return [];
+    return {
+      pages: [],
+      detectedTotal: 0,
+      excludedDynamic: [],
+      excludedByFilter: 0,
+      excludedByScope: 0,
+      scopeUsed: params.scope ?? "interactive",
+      warnings: [`No project found at ${repoRoot}.`],
+      status: "warn",
+      routeCap,
+      source: "filesystem",
+    };
   }
-  const detectionRoot = await chooseDetectionRoot({ profile: params.profile, repoRoot });
-  const filesystemRoutes: readonly DetectedRoute[] = await detectRoutes({ projectRoot: detectionRoot, preferredDetectorId: preferredDetector, limit: DEFAULT_ROUTE_CAP });
+  const detectionRoot = await chooseDetectionRoot({ profile: params.profile, repoRoot, nonInteractive: params.nonInteractive });
+  const detectionLogs: RouteDetectionLogEntry[] = [];
+  const filesystemRoutes: readonly DetectedRoute[] = await detectRoutes({
+    projectRoot: detectionRoot,
+    preferredDetectorId: preferredDetector,
+    limit: routeCap,
+    logger: { log(entry) { detectionLogs.push(entry); } },
+  });
+  const rustFallbackWarnings: readonly string[] = detectionLogs
+    .filter((entry) => entry.detectorId === "rust-discovery" && entry.message.startsWith("fallback:"))
+    .map((entry) => `Rust discovery fallback: ${entry.message.slice("fallback:".length).trim()}`);
+  let runtimeAdded = 0;
   let combined: readonly DetectedRoute[] = filesystemRoutes;
-  if (combined.length < DEFAULT_ROUTE_CAP) {
-    const remaining: number = DEFAULT_ROUTE_CAP - combined.length;
+  if (combined.length < routeCap) {
+    const remaining: number = routeCap - combined.length;
     try {
       const runtimeRoutes: readonly string[] = await discoverRuntimeRoutes({ baseUrl: params.baseUrl, limit: remaining });
       combined = mergeRoutes({ primary: combined, secondaryPaths: runtimeRoutes });
+      runtimeAdded = Math.max(0, combined.length - filesystemRoutes.length);
     } catch {
       combined = filesystemRoutes;
     }
   }
+  const source: "filesystem" | "runtime" | "mixed" =
+    filesystemRoutes.length === 0 && runtimeAdded > 0
+      ? "runtime"
+      : filesystemRoutes.length > 0 && runtimeAdded > 0
+        ? "mixed"
+        : "filesystem";
   if (combined.length === 0) {
     console.log("No routes detected. Add pages manually.");
-    return [];
+    return {
+      pages: [],
+      detectedTotal: 0,
+      excludedDynamic: [],
+      excludedByFilter: 0,
+      excludedByScope: 0,
+      scopeUsed: params.scope ?? "interactive",
+      warnings: ["No routes detected."],
+      status: "warn",
+      routeCap,
+      source,
+    };
   }
-  console.log(`Detected ${combined.length} route(s) using auto-discovery.`);
+  const dedupedCombined: readonly DetectedRoute[] = dedupeRoutes(combined);
+  const dynamicRoutes: readonly DetectedRoute[] = dedupedCombined.filter((route) => isDynamicRoutePath(route.path));
+  const staticRoutes: readonly DetectedRoute[] = dedupedCombined.filter((route) => !isDynamicRoutePath(route.path));
+  console.log(`Detected ${dedupedCombined.length} route(s) using auto-discovery.`);
+  if (dynamicRoutes.length > 0) {
+    console.log(`Excluded ${dynamicRoutes.length} dynamic route(s) ([slug]/param style).`);
+  }
+
+  if (params.scope === "quick") {
+    const quickStarter: readonly DetectedRoute[] = buildQuickStarterRoutes(staticRoutes);
+    return {
+      pages: quickStarter.map(convertRouteToPage),
+      detectedTotal: dedupedCombined.length,
+      excludedDynamic: dynamicRoutes.map((route) => route.path),
+      excludedByFilter: 0,
+      excludedByScope: Math.max(0, staticRoutes.length - quickStarter.length),
+      scopeUsed: "quick",
+      warnings: [...rustFallbackWarnings],
+      status: rustFallbackWarnings.length > 0 ? "warn" : "ok",
+      routeCap,
+      source,
+    };
+  }
+  if (params.scope === "full") {
+    return {
+      pages: staticRoutes.map(convertRouteToPage),
+      detectedTotal: dedupedCombined.length,
+      excludedDynamic: dynamicRoutes.map((route) => route.path),
+      excludedByFilter: 0,
+      excludedByScope: 0,
+      scopeUsed: "full",
+      warnings: [...rustFallbackWarnings],
+      status: rustFallbackWarnings.length > 0 ? "warn" : "ok",
+      routeCap,
+      source,
+    };
+  }
+
   if (params.mode === "quick") {
-    const quickStarter: readonly DetectedRoute[] = buildQuickStarterRoutes(combined);
+    const quickStarter: readonly DetectedRoute[] = buildQuickStarterRoutes(staticRoutes);
     if (quickStarter.length === 0) {
       console.log("No starter routes selected automatically. Add pages manually.");
-      return [];
+      return {
+        pages: [],
+        detectedTotal: dedupedCombined.length,
+        excludedDynamic: dynamicRoutes.map((route) => route.path),
+        excludedByFilter: 0,
+        excludedByScope: 0,
+        scopeUsed: "interactive",
+        warnings: ["No starter routes selected automatically."],
+        status: "warn",
+        routeCap,
+        source,
+      };
+    }
+    if (params.nonInteractive) {
+      return {
+        pages: quickStarter.map(convertRouteToPage),
+        detectedTotal: dedupedCombined.length,
+        excludedDynamic: dynamicRoutes.map((route) => route.path),
+        excludedByFilter: 0,
+        excludedByScope: Math.max(0, staticRoutes.length - quickStarter.length),
+        scopeUsed: "interactive",
+        warnings: [...rustFallbackWarnings],
+        status: rustFallbackWarnings.length > 0 ? "warn" : "ok",
+        routeCap,
+        source,
+      };
     }
     const useStarter = await ask<{ readonly value: boolean }>({
       type: "confirm",
@@ -706,24 +986,60 @@ async function maybeDetectPages(params: { readonly profile: ProjectProfileId; re
       message: `Use a quick starter set of ${quickStarter.length} route(s)?`,
       initial: true,
     });
-    const picked: readonly DetectedRoute[] = useStarter.value ? quickStarter : combined;
-    return picked.map(convertRouteToPage);
+    const picked: readonly DetectedRoute[] = useStarter.value ? quickStarter : staticRoutes;
+    return {
+      pages: picked.map(convertRouteToPage),
+      detectedTotal: dedupedCombined.length,
+      excludedDynamic: dynamicRoutes.map((route) => route.path),
+      excludedByFilter: 0,
+      excludedByScope: useStarter.value ? Math.max(0, staticRoutes.length - quickStarter.length) : 0,
+      scopeUsed: "interactive",
+      warnings: [...rustFallbackWarnings],
+      status: rustFallbackWarnings.length > 0 ? "warn" : "ok",
+      routeCap,
+      source,
+    };
   }
   const suggestedExclude: readonly string[] = buildSuggestedExcludePatterns(params.profile);
-  const initialFilter: boolean = combined.length >= ROUTE_FILTER_DEFAULT_ON_THRESHOLD || suggestedExclude.length > 0;
+  const initialFilter: boolean = staticRoutes.length >= ROUTE_FILTER_DEFAULT_ON_THRESHOLD || suggestedExclude.length > 0;
   const confirmQuestion: PromptObject = { ...routeFilterConfirmQuestion, initial: initialFilter };
   const shouldFilter: RouteFilterConfirmAnswer = await ask<RouteFilterConfirmAnswer>(confirmQuestion);
   const filtered: readonly DetectedRoute[] = shouldFilter.value
-    ? await filterDetectedRoutes({ routes: combined, profile: params.profile, suggestedExclude })
-    : combined;
+    ? await filterDetectedRoutes({ routes: staticRoutes, profile: params.profile, suggestedExclude })
+    : staticRoutes;
   if (filtered.length === 0) {
     console.log("No routes remain after filtering. Add pages manually.");
-    return [];
+    return {
+      pages: [],
+      detectedTotal: dedupedCombined.length,
+      excludedDynamic: dynamicRoutes.map((route) => route.path),
+      excludedByFilter: staticRoutes.length,
+      excludedByScope: 0,
+      scopeUsed: "interactive",
+      warnings: ["No routes remain after filtering."],
+      status: "warn",
+      routeCap,
+      source,
+    };
   }
-  if (filtered.length !== combined.length) {
-    console.log(`Filtered routes: ${filtered.length}/${combined.length}.`);
+  if (filtered.length !== staticRoutes.length) {
+    console.log(`Filtered routes: ${filtered.length}/${staticRoutes.length}.`);
   }
-  return selectDetectedRoutes(filtered);
+  const selectedPages: readonly ApexPageConfig[] = await selectDetectedRoutes(filtered);
+  const excludedByFilter: number = Math.max(0, staticRoutes.length - filtered.length);
+  const excludedByScope: number = Math.max(0, filtered.length - selectedPages.length);
+  return {
+    pages: selectedPages,
+    detectedTotal: dedupedCombined.length,
+    excludedDynamic: dynamicRoutes.map((route) => route.path),
+    excludedByFilter,
+    excludedByScope,
+    scopeUsed: "interactive",
+    warnings: [...rustFallbackWarnings],
+    status: rustFallbackWarnings.length > 0 ? "warn" : "ok",
+    routeCap,
+    source,
+  };
 }
 
 async function filterDetectedRoutes(params: { readonly routes: readonly DetectedRoute[]; readonly profile: ProjectProfileId; readonly suggestedExclude: readonly string[] }): Promise<readonly DetectedRoute[]> {
@@ -756,9 +1072,11 @@ function compileGlob(pattern: string): RegExp {
 async function chooseDetectionRoot({
   profile,
   repoRoot,
+  nonInteractive,
 }: {
   readonly profile: ProjectProfileId;
   readonly repoRoot: string;
+  readonly nonInteractive?: boolean;
 }): Promise<string> {
   const candidates: readonly MonorepoCandidate[] = await findMonorepoCandidates(repoRoot);
   const matching: readonly MonorepoCandidate[] = candidates.filter((candidate) => candidate.profile === profile);
@@ -774,6 +1092,11 @@ async function chooseDetectionRoot({
       const onlyProject = projects[0] as DiscoveredProject;
       console.log(`Detected Next.js app at ${onlyProject.root}.`);
       return onlyProject.root;
+    }
+    if (nonInteractive) {
+      const selected = projects[0] as DiscoveredProject;
+      console.log(`Non-interactive mode selected first detected app: ${selected.root}`);
+      return selected.root;
     }
     const choices = projects.map((project) => ({
       title: `${project.name} (${project.root})`,
@@ -792,6 +1115,11 @@ async function chooseDetectionRoot({
     console.log(`Detected ${profileDisplayName(profile)} app at ${only.root}.`);
     return only.root;
   }
+  if (nonInteractive) {
+    const selected = matching[0] as MonorepoCandidate;
+    console.log(`Non-interactive mode selected first matching app: ${selected.root}`);
+    return selected.root;
+  }
   const choices = matching.map((candidate) => ({
     title: `${candidate.name} (${candidate.root}) - ${profileDisplayName(candidate.profile)}`,
     value: candidate.root,
@@ -805,10 +1133,13 @@ async function chooseDetectionRoot({
   return answer.projectRoot ?? matching[0]?.root ?? repoRoot;
 }
 
-async function selectDetector(profile: ProjectProfileId): Promise<RouteDetectorId | undefined> {
+async function selectDetector(profile: ProjectProfileId, nonInteractive: boolean): Promise<RouteDetectorId | undefined> {
   const preset = PROFILE_TO_DETECTOR[profile];
   if (preset) {
     return preset;
+  }
+  if (nonInteractive) {
+    return undefined;
   }
   const choice = await ask<DetectorChoiceAnswer>(detectorChoiceQuestion);
   return choice.detector;
@@ -851,10 +1182,144 @@ function convertRouteToPage(route: DetectedRoute): ApexPageConfig {
   };
 }
 
-async function buildConfigForMode(mode: "quick" | "advanced"): Promise<ApexConfig> {
+function isDynamicRoutePath(path: string): boolean {
+  return path.includes(":") || path.includes("[") || path.includes("]");
+}
+
+function dedupeRoutes(routes: readonly DetectedRoute[]): readonly DetectedRoute[] {
+  const unique = new Map<string, DetectedRoute>();
+  for (const route of routes) {
+    if (!unique.has(route.path)) {
+      unique.set(route.path, route);
+    }
+  }
+  return Array.from(unique.values());
+}
+
+async function readRoutesFromFile(path: string): Promise<readonly DetectedRoute[]> {
+  const absolute: string = resolve(path);
+  const raw: string = await readFile(absolute, "utf8");
+  const lines: readonly string[] = raw.split(/\r?\n/g).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#"));
+  const normalized: readonly string[] = lines.map((line) => (line.startsWith("/") ? line : `/${line}`));
+  const unique: readonly string[] = Array.from(new Set(normalized));
+  return unique.map((routePath) => ({ path: routePath, label: buildLabel(routePath), source: "manual" as const }));
+}
+
+export function buildDiscoverySummary(params: {
+  readonly repoRoot: string;
+  readonly baseUrl: string;
+  readonly scopeRequested: "quick" | "full" | "file" | "interactive";
+  readonly scopeUsed: "quick" | "full" | "file" | "interactive";
+  readonly detectedTotal: number;
+  readonly pages: readonly ApexPageConfig[];
+  readonly excludedDynamic: readonly string[];
+  readonly excludedByFilter: number;
+  readonly excludedByScope: number;
+  readonly status: "ok" | "warn" | "error";
+  readonly warnings?: readonly string[];
+  readonly routeCap: number;
+  readonly source: "filesystem" | "runtime" | "mixed" | "file";
+}): DiscoverySummary {
+  return {
+    generatedAt: new Date().toISOString(),
+    scope: params.scopeUsed,
+    scopeRequested: params.scopeRequested,
+    scopeResolved: params.scopeUsed,
+    status: params.status,
+    warnings: params.warnings?.length ? params.warnings : undefined,
+    repoRoot: params.repoRoot,
+    baseUrl: params.baseUrl,
+    totals: {
+      detected: params.detectedTotal,
+      selected: params.pages.length,
+      excludedDynamic: params.excludedDynamic.length,
+      excludedByFilter: params.excludedByFilter,
+      excludedByScope: params.excludedByScope,
+    },
+    routes: {
+      selected: params.pages.map((page) => page.path),
+      excludedDynamic: params.excludedDynamic,
+    },
+    strategy: {
+      routeCap: params.routeCap,
+      source: params.source,
+    },
+  };
+}
+
+async function writeDiscoverySummary(params: { readonly configPath: string; readonly summary: DiscoverySummary }): Promise<void> {
+  const signalerDir: string = resolve(dirname(params.configPath), ".signaler");
+  await mkdir(signalerDir, { recursive: true });
+  const discoveryPath: string = resolve(signalerDir, "discovery.json");
+  await writeFile(discoveryPath, `${JSON.stringify(params.summary, null, 2)}\n`, "utf8");
+  console.log(`Saved discovery summary to ${discoveryPath}`);
+}
+
+function printDiscoveryStrategySummary(summary: DiscoverySummary): void {
+  const warnings: readonly string[] = summary.warnings ?? [];
+  const warningText: string = warnings.length === 0 ? "none" : warnings.join(" | ");
+  console.log("");
+  console.log("Discovery summary:");
+  console.log(`  - scope: requested=${summary.scopeRequested}, resolved=${summary.scopeResolved}`);
+  console.log(`  - status: ${summary.status}`);
+  console.log(`  - totals: detected=${summary.totals.detected}, selected=${summary.totals.selected}, excludedDynamic=${summary.totals.excludedDynamic}, excludedByFilter=${summary.totals.excludedByFilter}, excludedByScope=${summary.totals.excludedByScope}`);
+  console.log(`  - strategy: source=${summary.strategy.source}, routeCap=${summary.strategy.routeCap}`);
+  console.log(`  - warnings: ${warningText}`);
+}
+
+async function writeDiscoveryFailureSummary(params: {
+  readonly configPath: string;
+  readonly baseUrl: string;
+  readonly repoRoot: string;
+  readonly scopeRequested: "quick" | "full" | "file" | "interactive";
+  readonly warning: string;
+}): Promise<void> {
+  const summary: DiscoverySummary = {
+    generatedAt: new Date().toISOString(),
+    scope: params.scopeRequested,
+    scopeRequested: params.scopeRequested,
+    scopeResolved: params.scopeRequested,
+    status: "error",
+    warnings: [params.warning],
+    repoRoot: params.repoRoot,
+    baseUrl: params.baseUrl,
+    totals: {
+      detected: 0,
+      selected: 0,
+      excludedDynamic: 0,
+      excludedByFilter: 0,
+      excludedByScope: 0,
+    },
+    routes: {
+      selected: [],
+      excludedDynamic: [],
+    },
+    strategy: {
+      routeCap: 0,
+      source: params.scopeRequested === "file" ? "file" : "filesystem",
+    },
+  };
+  await writeDiscoverySummary({ configPath: params.configPath, summary });
+  printDiscoveryStrategySummary(summary);
+}
+
+async function buildConfigAndDiscoveryForMode(params: {
+  readonly mode: "quick" | "advanced";
+  readonly scope: "quick" | "full" | "file" | undefined;
+  readonly routesFile: string | undefined;
+  readonly baseUrl: string | undefined;
+  readonly projectRoot: string | undefined;
+  readonly profile: ProjectProfileId | undefined;
+  readonly yes: boolean;
+  readonly nonInteractive: boolean;
+}): Promise<{ readonly config: ApexConfig; readonly discovery: DiscoverySummary }> {
   const suggestedBaseUrl: string = await detectLikelyBaseUrl();
   let baseAnswers: BaseAnswers;
-  if (mode === "quick") {
+  if (params.baseUrl && params.baseUrl.trim().length > 0) {
+    baseAnswers = { baseUrl: params.baseUrl.trim(), query: undefined };
+  } else if (params.nonInteractive) {
+    baseAnswers = { baseUrl: suggestedBaseUrl, query: undefined };
+  } else if (params.mode === "quick") {
     const useSuggested = await ask<{ readonly value: boolean }>({
       type: "confirm",
       name: "value",
@@ -867,12 +1332,18 @@ async function buildConfigForMode(mode: "quick" | "advanced"): Promise<ApexConfi
   } else {
     baseAnswers = await collectBaseAnswersWithSafety({ initialBaseUrl: suggestedBaseUrl, includeQuery: true });
   }
-  const initialRepoRoot: string = await resolveProjectRootForWizard(mode);
-  const resolved = await resolveWizardProjectRoot(initialRepoRoot);
+  const initialRepoRoot: string = params.projectRoot && params.projectRoot.trim().length > 0
+    ? resolve(params.projectRoot)
+    : params.nonInteractive
+      ? resolve(DEFAULT_PROJECT_ROOT)
+      : await resolveProjectRootForWizard(params.mode);
+  const resolved = await resolveWizardProjectRoot(initialRepoRoot, { nonInteractive: params.nonInteractive });
   const repoRoot: string = resolved.repoRoot;
-  const detectedProfile: ProjectProfileId | undefined = resolved.detectedProfile;
+  const detectedProfile: ProjectProfileId | undefined = params.profile ?? resolved.detectedProfile;
   if (detectedProfile) {
-    const useDetectedProfile: boolean = mode === "quick"
+    const useDetectedProfile: boolean = params.nonInteractive
+      ? true
+      : params.mode === "quick"
       ? true
       : (await ask<{ readonly value: boolean }>({
         type: "confirm",
@@ -882,47 +1353,135 @@ async function buildConfigForMode(mode: "quick" | "advanced"): Promise<ApexConfi
       })).value;
     if (useDetectedProfile) {
       console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
-      const detectedPages = await maybeDetectPages({ profile: detectedProfile, baseUrl: baseAnswers.baseUrl, repoRoot, mode });
-      const pages = await collectPages(detectedPages);
-      if (mode === "quick") {
+      const detected = await maybeDetectPages({
+        profile: detectedProfile,
+        baseUrl: baseAnswers.baseUrl,
+        repoRoot,
+        mode: params.mode,
+        scope: params.scope,
+        routesFile: params.routesFile,
+        nonInteractive: params.nonInteractive,
+      });
+      const pages = params.nonInteractive ? [...detected.pages] : await collectPages(detected.pages);
+      if (params.mode === "quick") {
         printQuickPlan(pages);
       }
-      return {
+      const config: ApexConfig = {
         baseUrl: baseAnswers.baseUrl,
         query: baseAnswers.query,
         runs: 1,
         pages,
       };
+      const discovery: DiscoverySummary = buildDiscoverySummary({
+        repoRoot,
+        baseUrl: baseAnswers.baseUrl,
+        scopeRequested: params.scope ?? "interactive",
+        scopeUsed: detected.scopeUsed,
+        detectedTotal: detected.detectedTotal,
+        pages,
+        excludedDynamic: detected.excludedDynamic,
+        excludedByFilter: detected.excludedByFilter,
+        excludedByScope: Math.max(0, detected.excludedByScope + Math.max(0, detected.pages.length - pages.length)),
+        status: detected.status,
+        warnings: detected.warnings,
+        routeCap: detected.routeCap,
+        source: detected.source,
+      });
+      return { config, discovery };
     }
   }
-  const profileAnswer = await ask<ProjectProfileAnswer>(buildProfileQuestion({ detectedProfile }));
+  const profileAnswer = params.nonInteractive
+    ? { profile: detectedProfile ?? "custom" as ProjectProfileId }
+    : await ask<ProjectProfileAnswer>(buildProfileQuestion({ detectedProfile }));
   console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
-  const detectedPages = await maybeDetectPages({ profile: profileAnswer.profile, baseUrl: baseAnswers.baseUrl, repoRoot, mode });
-  const pages = await collectPages(detectedPages);
-  if (mode === "quick") {
+  const detected = await maybeDetectPages({
+    profile: profileAnswer.profile,
+    baseUrl: baseAnswers.baseUrl,
+    repoRoot,
+    mode: params.mode,
+    scope: params.scope,
+    routesFile: params.routesFile,
+    nonInteractive: params.nonInteractive,
+  });
+  const pages = params.nonInteractive ? [...detected.pages] : await collectPages(detected.pages);
+  if (params.mode === "quick") {
     printQuickPlan(pages);
   }
-  return {
+  const config: ApexConfig = {
     baseUrl: baseAnswers.baseUrl,
     query: baseAnswers.query,
     runs: 1,
     pages,
   };
+  const discovery: DiscoverySummary = buildDiscoverySummary({
+    repoRoot,
+    baseUrl: baseAnswers.baseUrl,
+    scopeRequested: params.scope ?? "interactive",
+    scopeUsed: detected.scopeUsed,
+    detectedTotal: detected.detectedTotal,
+    pages,
+    excludedDynamic: detected.excludedDynamic,
+    excludedByFilter: detected.excludedByFilter,
+    excludedByScope: Math.max(0, detected.excludedByScope + Math.max(0, detected.pages.length - pages.length)),
+    status: detected.status,
+    warnings: detected.warnings,
+    routeCap: detected.routeCap,
+    source: detected.source,
+  });
+  return { config, discovery };
 }
 
 /**
  * Run the interactive configuration wizard CLI.
  */
 export async function runWizardCli(argv: readonly string[]): Promise<void> {
+  let parsedArgs: WizardArgs | undefined;
+  let absolutePath = resolve("signaler.config.json");
+  let fallbackBaseUrl: string = DEFAULT_BASE_URL;
+  let fallbackRepoRoot = resolve(DEFAULT_PROJECT_ROOT);
   try {
-    const args = parseArgs(argv);
-    const absolutePath = resolve(args.configPath);
-    await ensureWritable(absolutePath);
-    const config = await buildConfigForMode(args.mode);
+    const args = parseWizardArgs(argv);
+    parsedArgs = args;
+    absolutePath = resolve(args.configPath);
+    if (args.baseUrl && args.baseUrl.trim().length > 0) {
+      fallbackBaseUrl = args.baseUrl.trim();
+    }
+    if (args.projectRoot && args.projectRoot.trim().length > 0) {
+      fallbackRepoRoot = resolve(args.projectRoot);
+    }
+    if (args.nonInteractive && args.scope === "file" && (!args.routesFile || args.routesFile.trim().length === 0)) {
+      await writeDiscoveryFailureSummary({
+        configPath: absolutePath,
+        baseUrl: fallbackBaseUrl,
+        repoRoot: fallbackRepoRoot,
+        scopeRequested: "file",
+        warning: "Non-interactive discovery with --scope file requires --routes-file.",
+      });
+      throw new Error("Missing required --routes-file for non-interactive file scope.");
+    }
+    await ensureWritable(absolutePath, { nonInteractive: args.nonInteractive, yes: args.yes });
+    const built = await buildConfigAndDiscoveryForMode({
+      mode: args.nonInteractive ? "quick" : args.mode,
+      scope: args.scope,
+      routesFile: args.routesFile,
+      baseUrl: args.baseUrl,
+      projectRoot: args.projectRoot,
+      profile: args.profile,
+      yes: args.yes,
+      nonInteractive: args.nonInteractive,
+    });
+    const config = built.config;
+    if (args.nonInteractive && config.pages.length === 0) {
+      throw new Error("Non-interactive discovery produced zero selected routes. Provide --scope/--routes-file or valid filters.");
+    }
     await writeFile(absolutePath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
     console.log(`Saved Signaler config to ${absolutePath}`);
+    await writeDiscoverySummary({ configPath: absolutePath, summary: built.discovery });
+    printDiscoveryStrategySummary(built.discovery);
     const runNow: boolean = args.runAfterInit
       ? true
+      : args.nonInteractive
+        ? false
       : (await ask<{ readonly value: boolean }>({
         type: "confirm",
         name: "value",
@@ -938,6 +1497,16 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
   } catch (error: unknown) {
     if (error instanceof WizardAbortError) {
       return;
+    }
+    if (parsedArgs) {
+      const warning: string = error instanceof Error ? error.message : String(error);
+      await writeDiscoveryFailureSummary({
+        configPath: absolutePath,
+        baseUrl: fallbackBaseUrl,
+        repoRoot: fallbackRepoRoot,
+        scopeRequested: parsedArgs.scope ?? "interactive",
+        warning,
+      });
     }
     throw error;
   }

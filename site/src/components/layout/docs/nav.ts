@@ -24,10 +24,23 @@ export const navigationItems: ReadonlyArray<NavItem> = [
     items: [
       { title: "CLI Reference", url: "/docs/signaler/cli" },
       { title: "Configuration", url: "/docs/signaler/configuration" },
+      { title: "Agent Quickstart", url: "/docs/signaler/agent-quickstart" },
       { title: "Folder Mode", url: "/docs/signaler/folder-mode" },
       { title: "Artifacts", url: "/docs/signaler/artifacts" },
-      { title: "AI Reports", url: "/docs/signaler/AI-OPTIMIZED-REPORTS" },
-      { title: "Migration", url: "/docs/signaler/MIGRATION" },
+      { title: "Known Limits", url: "/docs/signaler/known-limits" },
+      { title: "AI Reports", url: "/docs/signaler/ai-optimized-reports" },
+      { title: "Migration", url: "/docs/signaler/migration" },
+      {
+        title: "Operations",
+        items: [
+          { title: "Launch Checklist", url: "/docs/signaler/launch-checklist" },
+          { title: "Release Playbook", url: "/docs/signaler/release-playbook" },
+          { title: "Production Playbook", url: "/docs/signaler/production-playbook" },
+          { title: "Performance Baseline", url: "/docs/signaler/performance-baseline" },
+          { title: "SLO", url: "/docs/signaler/slo" },
+          { title: "Active Roadmap", url: "/docs/signaler/active-roadmap" },
+        ],
+      },
     ],
   },
 ] as const

@@ -15,6 +15,8 @@ import { runWizardCli } from "./wizard-cli.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
 import { runReportCli } from "./report-cli.js";
+import { runAnalyzeCli } from "./analyze-cli.js";
+import { runVerifyCli } from "./verify-cli.js";
 import { loadConfig } from "./core/config.js";
 import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { pathExists } from "./infrastructure/filesystem/utils.js";
@@ -597,7 +599,7 @@ function resolveBuildIdStrategy(args: readonly string[]): { readonly strategy: B
   return undefined;
 }
 
-type HelpTopic = "core" | "audit" | "other" | "hidden" | "all";
+type HelpTopic = "core" | "audit" | "agent" | "other" | "hidden" | "all";
 
 type HelpLine = {
   readonly command: string;
@@ -605,13 +607,17 @@ type HelpLine = {
 };
 
 const HELP_CORE_COMMANDS: readonly HelpLine[] = [
-  { command: "init", description: "Create/update signaler.config.json via wizard" },
+  { command: "discover [flags]", description: "Primary discovery/setup flow (quick|full|file scopes)" },
   { command: "run [flags]", description: "Canonical runner (defaults: --contract v3 --mode throughput)" },
-  { command: "review [flags]", description: "Canonical review from existing .signaler artifacts" },
+  { command: "analyze [flags]", description: "V6 machine packet generation from v3 artifacts (requires --contract v6)" },
+  { command: "verify [flags]", description: "V6 focused rerun and pass/fail checks (requires --contract v6)" },
+  { command: "report [flags]", description: "Primary report/review from existing .signaler artifacts" },
 ] as const;
 
 const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
+  { command: "init", description: "Compatibility alias for discover (still supported)" },
   { command: "audit", description: "Legacy alias for run (still supported)" },
+  { command: "review", description: "Legacy alias for report (still supported)" },
   { command: "measure", description: "Fast batch metrics (CDP, non-Lighthouse)" },
   { command: "bundle", description: "Bundle size audit (Next.js .next or dist)" },
   { command: "health", description: "HTTP status + latency checks" },
@@ -619,7 +625,6 @@ const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
   { command: "headers", description: "Security headers audit" },
   { command: "console", description: "Console errors + runtime exceptions audit" },
   { command: "quick", description: "Run the quick pack (measure+headers+links+bundle+accessibility)" },
-  { command: "report", description: "Legacy alias for review (still supported)" },
 ] as const;
 
 const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
@@ -631,6 +636,8 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "uninstall", description: "Remove .signaler and the current config file" },
   { command: "clear-screenshots", description: "Remove .signaler/screenshots/" },
   { command: "open", description: "Open .signaler/report.html from the latest run/review" },
+  { command: "open-analyze", description: "Open .signaler/analyze.md" },
+  { command: "open-verify", description: "Open .signaler/verify.md" },
   { command: "open-triage", description: "Open legacy triage markdown (.signaler/triage.md)" },
   { command: "open-screenshots", description: "Open the screenshots output directory (.signaler/screenshots/)" },
   { command: "open-artifacts", description: "Open canonical AI entrypoint (.signaler/agent-index.json)" },
@@ -642,7 +649,7 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "build-id auto", description: "Use auto buildId detection" },
   { command: "build-id manual <id>", description: "Use a fixed buildId" },
   { command: "config <path>", description: "Set config path used by audit" },
-  { command: "help [core|audit|other|hidden|all]", description: "Show help (use categories to expand)" },
+  { command: "help [core|audit|agent|other|hidden|all]", description: "Show help (use categories to expand)" },
   { command: "exit", description: "Exit the shell" },
 ] as const;
 const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
@@ -650,10 +657,10 @@ const HELP_HIDDEN_COMMANDS: readonly HelpLine[] = [
   { command: "quit", description: "Alias for exit" },
 ] as const;
 
-const HELP_TOPICS: readonly HelpTopic[] = ["core", "audit", "other", "hidden", "all"] as const;
+const HELP_TOPICS: readonly HelpTopic[] = ["core", "audit", "agent", "other", "hidden", "all"] as const;
 
 function parseHelpTopic(raw: string | undefined): HelpTopic | undefined {
-  if (raw === "core" || raw === "audit" || raw === "other" || raw === "hidden" || raw === "all") {
+  if (raw === "core" || raw === "audit" || raw === "agent" || raw === "other" || raw === "hidden" || raw === "all") {
     return raw;
   }
   return undefined;
@@ -664,6 +671,28 @@ function pushHelpLines(lines: string[], title: string, entries: readonly HelpLin
   for (const entry of entries) {
     lines.push(`${theme.cyan(entry.command)} ${entry.description}`);
   }
+}
+
+function pushAgentGuide(lines: string[]): void {
+  lines.push(theme.bold("Agent quickstart"));
+  lines.push(`${theme.cyan("Goal")} deterministic detect -> prioritize -> verify loop with machine artifacts`);
+  lines.push("");
+  lines.push(theme.bold("Canonical loop"));
+  lines.push(`${theme.cyan("discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000")}`);
+  lines.push(`${theme.cyan("run --contract v3 --mode throughput --yes --no-color")}`);
+  lines.push(`${theme.cyan("analyze --contract v6 --json")}`);
+  lines.push(`${theme.cyan("verify --contract v6 --runtime-budget-ms 90000 --dry-run --json")}`);
+  lines.push(`${theme.cyan("report")}`);
+  lines.push("");
+  lines.push(theme.bold("Local unpublished build"));
+  lines.push(`${theme.cyan("node ./dist/bin.js <command>")} (same sequence as above)`);
+  lines.push("");
+  lines.push(theme.bold("Artifact order"));
+  lines.push(".signaler/analyze.json -> .signaler/verify.json -> .signaler/agent-index.json -> .signaler/suggestions.json -> .signaler/results.json -> .signaler/run.json");
+  lines.push("");
+  lines.push(theme.bold("Automation exit codes"));
+  lines.push("verify: 0 pass | 1 runtime error | 2 checks failed | 3 dry-run");
+  lines.push("analyze: 0 success | 1 runtime/processing failure | 2 strict input validation failure");
 }
 
 function toLower(input: string): string {
@@ -693,10 +722,11 @@ async function runGuidedHelp(rl: readline.Interface): Promise<void> {
     "Choose an option:",
     `  1) ${theme.cyan("Core workflow")}`,
     `  2) ${theme.cyan("Audit commands")}`,
-    `  3) ${theme.cyan("Other commands")}`,
-    `  4) ${theme.cyan("Hidden commands")}`,
-    `  5) ${theme.cyan("Search")} (type keywords)`,
-    `  6) ${theme.cyan("Show all")}`,
+    `  3) ${theme.cyan("Agent quickstart")}`,
+    `  4) ${theme.cyan("Other commands")}`,
+    `  5) ${theme.cyan("Hidden commands")}`,
+    `  6) ${theme.cyan("Search")} (type keywords)`,
+    `  7) ${theme.cyan("Show all")}`,
     `  0) ${theme.cyan("Exit help")}`,
     "",
   ];
@@ -736,18 +766,22 @@ async function runGuidedHelp(rl: readline.Interface): Promise<void> {
       continue;
     }
     if (choice === "3") {
-      printHelp("other");
+      printHelp("agent");
       continue;
     }
     if (choice === "4") {
-      printHelp("hidden");
+      printHelp("other");
       continue;
     }
     if (choice === "5") {
-      await renderSearch();
+      printHelp("hidden");
       continue;
     }
     if (choice === "6") {
+      await renderSearch();
+      continue;
+    }
+    if (choice === "7") {
       printHelp("all");
       continue;
     }
@@ -775,9 +809,16 @@ function printHelp(rawTopic?: string): void {
     lines.push(theme.bold("Help"));
     lines.push(theme.dim("Use `help <topic>` to expand a category."));
     lines.push("");
+    lines.push(theme.bold("Primary workflow"));
+    lines.push(`${theme.cyan("discover")} -> ${theme.cyan("run")} -> ${theme.cyan("analyze")} -> ${theme.cyan("verify")} -> ${theme.cyan("report")}`);
+    lines.push("");
+    lines.push(theme.bold("Compatibility aliases"));
+    lines.push(`${theme.cyan("init")} -> discover, ${theme.cyan("audit")} -> run, ${theme.cyan("review")} -> report`);
+    lines.push("");
     lines.push(theme.bold("Topics"));
-    lines.push(`${theme.cyan("help core")} Show canonical init -> run -> review commands`);
+    lines.push(`${theme.cyan("help core")} Show canonical discover -> run -> analyze -> verify -> report commands`);
     lines.push(`${theme.cyan("help audit")} Show audit commands`);
+    lines.push(`${theme.cyan("help agent")} Show agent-first workflow and artifact order`);
     lines.push(`${theme.cyan("help other")} Show other commands`);
     lines.push(`${theme.cyan("help hidden")} Show hidden/alias commands`);
     lines.push(`${theme.cyan("help all")} Show everything`);
@@ -789,8 +830,15 @@ function printHelp(rawTopic?: string): void {
   }
   if (topic === "core") {
     pushHelpLines(lines, "Core workflow", HELP_CORE_COMMANDS);
+    lines.push("");
+    lines.push(theme.bold("Compatibility aliases"));
+    lines.push(`${theme.cyan("init")} -> discover`);
+    lines.push(`${theme.cyan("audit")} -> run`);
+    lines.push(`${theme.cyan("review")} -> report`);
   } else if (topic === "audit") {
     pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
+  } else if (topic === "agent") {
+    pushAgentGuide(lines);
   } else if (topic === "other") {
     pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
   } else if (topic === "hidden") {
@@ -799,6 +847,8 @@ function printHelp(rawTopic?: string): void {
     pushHelpLines(lines, "Core workflow", HELP_CORE_COMMANDS);
     lines.push("");
     pushHelpLines(lines, "Audit commands", HELP_AUDIT_COMMANDS);
+    lines.push("");
+    pushAgentGuide(lines);
     lines.push("");
     pushHelpLines(lines, "Other commands", HELP_OTHER_COMMANDS);
     lines.push("");
@@ -832,15 +882,20 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   const lines: string[] = [];
   lines.push(theme.dim("Reliable web lab runner with agent-first artifacts."));
   lines.push("");
-  lines.push(theme.bold("Canonical workflow"));
-  lines.push(`${theme.cyan(padCmd("init"))}Create or update signaler.config.json`);
+  lines.push(theme.bold("Primary workflow"));
+  lines.push(`${theme.cyan(padCmd("discover"))}Discover routes and create/update signaler.config.json`);
   lines.push(`${theme.cyan(padCmd("run"))}Run canonical audits (defaults to --contract v3 --mode throughput)`);
-  lines.push(`${theme.cyan(padCmd("review"))}Regenerate review outputs from .signaler artifacts`);
+  lines.push(`${theme.cyan(padCmd("analyze"))}Build V6 action packet for agents from canonical artifacts`);
+  lines.push(`${theme.cyan(padCmd("verify"))}Run focused rerun and evaluate pass/fail deltas`);
+  lines.push(`${theme.cyan(padCmd("report"))}Regenerate report/review outputs from .signaler artifacts`);
   lines.push("");
-  lines.push(theme.bold("Additional checks"));
+  lines.push(theme.bold("Compatibility aliases"));
+  lines.push(`${theme.cyan(padCmd("init"))}Alias of discover`);
+  lines.push(`${theme.cyan(padCmd("audit"))}Alias of run`);
+  lines.push(`${theme.cyan(padCmd("review"))}Alias of report`);
+  lines.push("");
+  lines.push(theme.bold("Advanced/secondary checks"));
   lines.push(`${theme.cyan(padCmd("measure"))}Fast batch metrics (LCP/CLS/INP + screenshot + console errors)`);
-  lines.push(`${theme.cyan(padCmd("audit"))}Legacy alias for run`);
-  lines.push(`${theme.cyan(padCmd("report"))}Legacy alias for review`);
   lines.push(`${theme.cyan(padCmd("bundle"))}Bundle size audit (Next.js .next/ or dist/ build output)`);
   lines.push(`${theme.cyan(padCmd("health"))}HTTP health + latency checks for configured routes`);
   lines.push(`${theme.cyan(padCmd("links"))}Broken links audit (sitemap + HTML link extraction)`);
@@ -852,9 +907,12 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   lines.push(`${theme.cyan(padCmd("help"))}Show all commands`);
   lines.push(`${theme.cyan(padCmd("open"))}Open .signaler/report.html`);
   lines.push(`${theme.cyan(padCmd("open-artifacts"))}Open .signaler/agent-index.json`);
+  lines.push(`${theme.cyan(padCmd("open-analyze"))}Open .signaler/analyze.md`);
+  lines.push(`${theme.cyan(padCmd("open-verify"))}Open .signaler/verify.md`);
   lines.push("");
   lines.push(theme.bold("Tips"));
   lines.push(theme.dim("- Press Tab for auto-completion"));
+  lines.push(theme.dim("- Type `help agent` for copy/paste agent workflow and artifact order"));
   lines.push(theme.dim("- Press Ctrl+C or type exit to quit"));
   // eslint-disable-next-line no-console
   console.log(renderPanel({ title: theme.magenta(theme.bold(`Signaler v${version}`)), lines }));
@@ -862,7 +920,10 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
 
 function createCompleter(): (line: string) => readonly [readonly string[], string] {
   const commands: readonly string[] = [
+    "discover",
     "run",
+    "analyze",
+    "verify",
     "review",
     "audit",
     "report",
@@ -880,6 +941,8 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "uninstall",
     "clear-screenshots",
     "open",
+    "open-analyze",
+    "open-verify",
     "open-triage",
     "open-screenshots",
     "open-artifacts",
@@ -904,15 +967,59 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "-c",
     "--mode",
     "--contract",
+    "--artifact-profile",
+    "--machine-token-budget",
     "--legacy-artifacts",
     "--baseline",
+    "--external-signals",
     "--yes",
     "--stable",
     "--focus-worst",
     "--flags",
     "--json",
   ] as const;
+  const discoverFlags: readonly string[] = [
+    "--scope",
+    "--routes-file",
+    "--base-url",
+    "--project-root",
+    "--profile",
+    "--yes",
+    "-y",
+    "--non-interactive",
+    "--quick",
+    "--advanced",
+    "--run",
+    "--config",
+    "-c",
+  ] as const;
   const reviewFlags: readonly string[] = ["--dir", "--output-dir", "--json", "--md"] as const;
+  const analyzeFlags: readonly string[] = [
+    "--contract",
+    "--dir",
+    "--artifact-profile",
+    "--top-actions",
+    "--min-confidence",
+    "--token-budget",
+    "--external-signals",
+    "--strict",
+    "--json",
+  ] as const;
+  const verifyFlags: readonly string[] = [
+    "--contract",
+    "--dir",
+    "--from",
+    "--action-ids",
+    "--top-actions",
+    "--verify-mode",
+    "--max-routes",
+    "--runtime-budget-ms",
+    "--strict-comparability",
+    "--allow-comparability-mismatch",
+    "--pass-thresholds",
+    "--dry-run",
+    "--json",
+  ] as const;
   const measureFlags: readonly string[] = ["--desktop-only", "--mobile-only", "--parallel", "--timeout-ms", "--screenshots", "--json"] as const;
   const bundleFlags: readonly string[] = ["--project-root", "--root", "--top", "--json"] as const;
   const healthFlags: readonly string[] = ["--config", "-c", "--parallel", "--timeout-ms", "--json"] as const;
@@ -964,8 +1071,17 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     if (command === "run" || command === "audit") {
       return [filterStartsWith(runFlags, fragment), rawLine] as const;
     }
+    if (command === "discover" || command === "init") {
+      return [filterStartsWith(discoverFlags, fragment), rawLine] as const;
+    }
     if (command === "review" || command === "report") {
       return [filterStartsWith(reviewFlags, fragment), rawLine] as const;
+    }
+    if (command === "analyze") {
+      return [filterStartsWith(analyzeFlags, fragment), rawLine] as const;
+    }
+    if (command === "verify") {
+      return [filterStartsWith(verifyFlags, fragment), rawLine] as const;
     }
     if (command === "bundle") {
       return [filterStartsWith(bundleFlags, fragment), rawLine] as const;
@@ -1147,9 +1263,10 @@ async function runAuditFromShell(projectRoot: string, session: ShellSessionState
     }
     const reportPath: string = resolve(projectRoot, SESSION_DIR_NAME, "report.html");
     // eslint-disable-next-line no-console
-    console.log(`Tip: type ${theme.cyan("review")} to rebuild review outputs, then ${theme.cyan("open")} for HTML.`);
+    console.log(`Tip: ${theme.cyan("analyze --contract v6")} -> ${theme.cyan("verify --contract v6")} -> ${theme.cyan("report")}.`);
     // eslint-disable-next-line no-console
     console.log(`AI entrypoint: ${theme.cyan(".signaler/agent-index.json")}`);
+    await printRunStrategySummary(projectRoot);
     const updated: ShellSessionState = { ...session, lastReportPath: reportPath };
     await saveSession(projectRoot, updated);
     return updated;
@@ -1185,8 +1302,281 @@ async function runReviewFromShell(projectRoot: string, args: readonly string[]):
   // eslint-disable-next-line no-console
   console.log(`Tip: type ${theme.cyan("open")} to view .signaler/report.html`);
   // eslint-disable-next-line no-console
-  console.log(`AI entrypoint: ${theme.cyan(".signaler/agent-index.json")}`);
+  console.log(`Agent loop: ${theme.cyan("analyze --contract v6")} -> ${theme.cyan("verify --contract v6")} (artifacts: .signaler/analyze.json, .signaler/verify.json)`);
+  await printReportSummary(projectRoot);
   return resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+}
+
+async function runAnalyzeFromShell(projectRoot: string, args: readonly string[]): Promise<void> {
+  const hasContract: boolean = args.some((arg) => arg === "--contract" || arg.startsWith("--contract="));
+  const argv: readonly string[] = hasContract
+    ? ["node", "signaler", ...args]
+    : ["node", "signaler", "--contract", "v6", ...args];
+  const escResult = await runWithEscAbort(async () => {
+    startSpinner("Building analyze packet");
+    try {
+      await runAnalyzeCli(argv);
+    } finally {
+      stopSpinner();
+    }
+  });
+  if (escResult === "aborted") {
+    // eslint-disable-next-line no-console
+    console.log("Analyze cancelled via Esc. Back to shell.");
+    process.exitCode = 0;
+    return;
+  }
+  if ((process.exitCode ?? 0) !== 0) {
+    return;
+  }
+  await printAnalyzeSummary(projectRoot);
+  // eslint-disable-next-line no-console
+  console.log(`Next: ${theme.cyan("verify --contract v6")} for focused rerun validation.`);
+}
+
+async function runVerifyFromShell(projectRoot: string, args: readonly string[]): Promise<void> {
+  const hasContract: boolean = args.some((arg) => arg === "--contract" || arg.startsWith("--contract="));
+  const argv: readonly string[] = hasContract
+    ? ["node", "signaler", ...args]
+    : ["node", "signaler", "--contract", "v6", ...args];
+  const escResult = await runWithEscAbort(async () => {
+    startSpinner("Running focused verify rerun");
+    try {
+      await runVerifyCli(argv);
+    } finally {
+      stopSpinner();
+    }
+  });
+  if (escResult === "aborted") {
+    // eslint-disable-next-line no-console
+    console.log("Verify cancelled via Esc. Back to shell.");
+    process.exitCode = 0;
+    return;
+  }
+  if ((process.exitCode ?? 0) !== 0 && (process.exitCode ?? 0) !== 2 && (process.exitCode ?? 0) !== 3) {
+    return;
+  }
+  await printVerifySummary(projectRoot);
+}
+
+async function runDiscoverFromShell(projectRoot: string, session: ShellSessionState, args: readonly string[]): Promise<void> {
+  const hasConfigArg: boolean = args.some((arg) => arg === "--config" || arg === "-c" || arg.startsWith("--config="));
+  const resolveConfigPath = (): string => {
+    for (let index = 0; index < args.length; index += 1) {
+      const arg = args[index] ?? "";
+      if ((arg === "--config" || arg === "-c") && index + 1 < args.length) {
+        return args[index + 1] ?? session.configPath;
+      }
+      if (arg.startsWith("--config=")) {
+        return arg.slice("--config=".length);
+      }
+    }
+    return session.configPath;
+  };
+  const resolvedConfigPath: string = resolveConfigPath();
+  const argv: string[] = hasConfigArg
+    ? ["node", "signaler", "discover", ...args]
+    : ["node", "signaler", "discover", "--config", resolvedConfigPath, ...args];
+  await runWizardCli(argv);
+  await printDiscoverSummary(resolvedConfigPath);
+  // eslint-disable-next-line no-console
+  console.log(`Ready. Next: ${theme.cyan("run")}, then ${theme.cyan("analyze --contract v6")}, then ${theme.cyan("verify --contract v6")}, then ${theme.cyan("report")}.`);
+  void projectRoot;
+}
+
+async function printDiscoverSummary(configPath: string): Promise<void> {
+  type DiscoveryLike = {
+    readonly scopeRequested?: string;
+    readonly scopeResolved?: string;
+    readonly status?: string;
+    readonly warnings?: readonly string[];
+    readonly totals?: {
+      readonly detected?: number;
+      readonly selected?: number;
+      readonly excludedDynamic?: number;
+      readonly excludedByFilter?: number;
+      readonly excludedByScope?: number;
+    };
+    readonly strategy?: { readonly source?: string; readonly routeCap?: number };
+  };
+  const discoveryPath = resolve(dirname(resolve(configPath)), SESSION_DIR_NAME, "discovery.json");
+  const summary = await readJsonFile<DiscoveryLike>(discoveryPath);
+  if (!summary) {
+    return;
+  }
+  const warnings = summary.warnings ?? [];
+  const totals = summary.totals;
+  const lines: string[] = [
+    `scope: requested=${summary.scopeRequested ?? "-"} resolved=${summary.scopeResolved ?? "-"}`,
+    `status: ${summary.status ?? "-"}`,
+    `totals: detected=${totals?.detected ?? 0} selected=${totals?.selected ?? 0} excludedDynamic=${totals?.excludedDynamic ?? 0} excludedByFilter=${totals?.excludedByFilter ?? 0} excludedByScope=${totals?.excludedByScope ?? 0}`,
+    `strategy: source=${summary.strategy?.source ?? "-"} routeCap=${summary.strategy?.routeCap ?? 0}`,
+    `next: ${theme.cyan("run --mode throughput")} (or ${theme.cyan("run --mode fidelity")} for reproducibility)`,
+  ];
+  if (warnings.length > 0) {
+    lines.push(`warnings: ${warnings.join(" | ")}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: theme.bold("Discover Summary"), lines }));
+}
+
+async function printRunStrategySummary(projectRoot: string): Promise<void> {
+  type RunLike = {
+    readonly protocol?: {
+      readonly mode?: string;
+      readonly parallel?: number;
+      readonly warmUp?: boolean;
+      readonly sessionIsolation?: string;
+      readonly throughputBackoff?: string;
+    };
+    readonly meta?: {
+      readonly resolvedParallel?: number;
+      readonly warmUp?: boolean;
+      readonly runnerStability?: {
+        readonly failureRate?: number;
+        readonly retryRate?: number;
+        readonly maxConsecutiveRetries?: number;
+        readonly recoveryIncreases?: number;
+        readonly status?: string;
+      };
+    };
+    readonly runtime?: {
+      readonly resourceProfile?: {
+        readonly cpuCount?: number;
+        readonly freeMemoryMB?: number;
+        readonly appliedParallelCap?: number;
+        readonly reasons?: readonly string[];
+      };
+      readonly accelerators?: {
+        readonly rustCore?: { readonly enabled?: boolean; readonly used?: boolean };
+        readonly rustDiscovery?: { readonly enabled?: boolean; readonly used?: boolean };
+        readonly rustProcessor?: { readonly enabled?: boolean; readonly used?: boolean; readonly fallbackReason?: string };
+      };
+    };
+  };
+  const runPath = resolve(projectRoot, SESSION_DIR_NAME, "run.json");
+  const runSummary = await readJsonFile<RunLike>(runPath);
+  if (!runSummary) {
+    return;
+  }
+  const mode = runSummary.protocol?.mode ?? "throughput";
+  const parallel = runSummary.protocol?.parallel ?? runSummary.meta?.resolvedParallel ?? 0;
+  const warmUp = runSummary.protocol?.warmUp ?? runSummary.meta?.warmUp ?? false;
+  const isolation = runSummary.protocol?.sessionIsolation ?? "shared";
+  const backoff = runSummary.protocol?.throughputBackoff ?? "auto";
+  const stability = runSummary.meta?.runnerStability;
+  const failureRatePct = typeof stability?.failureRate === "number" ? `${(stability.failureRate * 100).toFixed(1)}%` : "-";
+  const retryRatePct = typeof stability?.retryRate === "number" ? `${(stability.retryRate * 100).toFixed(1)}%` : "-";
+  const resourceLine = runSummary.runtime?.resourceProfile
+    ? `resource: cpu=${runSummary.runtime.resourceProfile.cpuCount ?? "-"} freeMemMB=${runSummary.runtime.resourceProfile.freeMemoryMB ?? "-"} cap=${runSummary.runtime.resourceProfile.appliedParallelCap ?? "-"} reasons=${(runSummary.runtime.resourceProfile.reasons ?? []).join(",")}`
+    : undefined;
+  const acceleratorLine = runSummary.runtime?.accelerators
+    ? `accelerators: rustCore=${runSummary.runtime.accelerators.rustCore?.enabled ? (runSummary.runtime.accelerators.rustCore.used ? "on" : "fallback") : "off"} rustDiscovery=${runSummary.runtime.accelerators.rustDiscovery?.enabled ? (runSummary.runtime.accelerators.rustDiscovery.used ? "on" : "fallback") : "off"} rustProcessor=${runSummary.runtime.accelerators.rustProcessor?.enabled ? (runSummary.runtime.accelerators.rustProcessor.used ? "on" : "fallback") : "off"}`
+    : undefined;
+  const trustLine = mode === "throughput"
+    ? "trust: throughput is trend-oriented; use `run --mode fidelity` (or --parity) for DevTools-like validation"
+    : "trust: fidelity is parity-oriented; compare only with matching comparabilityHash";
+  // eslint-disable-next-line no-console
+  console.log(
+    renderPanel({
+      title: theme.bold("Run Strategy"),
+      lines: [
+        `mode=${mode} parallel=${parallel} warmUp=${String(warmUp)} isolation=${isolation} throughputBackoff=${backoff}`,
+        `stability: status=${stability?.status ?? "-"} failureRate=${failureRatePct} retryRate=${retryRatePct} maxConsecutiveRetries=${stability?.maxConsecutiveRetries ?? 0} recoveries=${stability?.recoveryIncreases ?? 0}`,
+        trustLine,
+        ...(resourceLine ? [resourceLine] : []),
+        ...(acceleratorLine ? [acceleratorLine] : []),
+      ],
+    }),
+  );
+}
+
+async function printReportSummary(projectRoot: string): Promise<void> {
+  const lines: string[] = [
+    `.signaler/report.html`,
+    `.signaler/analyze.json`,
+    `.signaler/verify.json`,
+    `.signaler/agent-index.json`,
+    `.signaler/results.json`,
+    `.signaler/suggestions.json`,
+    `next: ${theme.cyan("open")} or ${theme.cyan("run --mode throughput")} for another baseline pass`,
+  ];
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: theme.bold("Report Artifacts"), lines }));
+  void projectRoot;
+}
+
+async function printAnalyzeSummary(projectRoot: string): Promise<void> {
+  type AnalyzeLike = {
+    readonly source?: {
+      readonly runMode?: string;
+      readonly runComparabilityHash?: string;
+      readonly runProfile?: string;
+    };
+    readonly summary?: {
+      readonly emittedActions?: number;
+      readonly estimatedTokens?: number;
+      readonly droppedByTokenBudget?: number;
+      readonly warnings?: readonly string[];
+    };
+  };
+  const analyzePath = resolve(projectRoot, SESSION_DIR_NAME, "analyze.json");
+  const analyze = await readJsonFile<AnalyzeLike>(analyzePath);
+  if (!analyze) {
+    return;
+  }
+  const warnings = analyze.summary?.warnings ?? [];
+  const lines: string[] = [
+    `mode=${analyze.source?.runMode ?? "-"} profile=${analyze.source?.runProfile ?? "-"} comparability=${analyze.source?.runComparabilityHash ?? "-"}`,
+    `emittedActions=${analyze.summary?.emittedActions ?? 0} estimatedTokens=${analyze.summary?.estimatedTokens ?? 0} droppedByTokenBudget=${analyze.summary?.droppedByTokenBudget ?? 0}`,
+    `outputs: .signaler/analyze.json, .signaler/analyze.md`,
+    `next: ${theme.cyan("report")} for human-readable summary`,
+  ];
+  if (warnings.length > 0) {
+    lines.push(`warnings: ${warnings.join(" | ")}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: theme.bold("Analyze Summary"), lines }));
+}
+
+async function printVerifySummary(projectRoot: string): Promise<void> {
+  type VerifyLike = {
+    readonly verifyRunId?: string;
+    readonly comparability?: {
+      readonly matched?: boolean;
+      readonly reason?: string;
+    };
+    readonly summary?: {
+      readonly totalChecks?: number;
+      readonly passed?: number;
+      readonly failed?: number;
+      readonly skipped?: number;
+      readonly status?: string;
+      readonly warnings?: readonly string[];
+    };
+    readonly rerun?: {
+      readonly dir?: string;
+      readonly elapsedMs?: number;
+    };
+  };
+  const verifyPath = resolve(projectRoot, SESSION_DIR_NAME, "verify.json");
+  const verify = await readJsonFile<VerifyLike>(verifyPath);
+  if (!verify) {
+    return;
+  }
+  const warnings = verify.summary?.warnings ?? [];
+  const lines: string[] = [
+    `verifyRunId=${verify.verifyRunId ?? "-"}`,
+    `status=${verify.summary?.status ?? "-"} checks=${verify.summary?.totalChecks ?? 0} passed=${verify.summary?.passed ?? 0} failed=${verify.summary?.failed ?? 0} skipped=${verify.summary?.skipped ?? 0}`,
+    `comparabilityMatched=${String(verify.comparability?.matched ?? false)}${verify.comparability?.reason ? ` (${verify.comparability.reason})` : ""}`,
+    `rerunDir=${verify.rerun?.dir ?? "-"} elapsedMs=${verify.rerun?.elapsedMs ?? 0}`,
+    `outputs: .signaler/verify.json, .signaler/verify.md`,
+  ];
+  if (warnings.length > 0) {
+    lines.push(`warnings: ${warnings.join(" | ")}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log(renderPanel({ title: theme.bold("Verify Summary"), lines }));
 }
 
 async function maybePrintV3MigrationHint(projectRoot: string): Promise<void> {
@@ -1196,11 +1586,11 @@ async function maybePrintV3MigrationHint(projectRoot: string): Promise<void> {
     return;
   }
   const lines: string[] = [
-    theme.bold("V3 Canonical Flow"),
-    `${theme.cyan("init")} -> ${theme.cyan("run")} -> ${theme.cyan("review")}`,
+    theme.bold("Canonical Flow"),
+    `${theme.cyan("discover")} -> ${theme.cyan("run")} -> ${theme.cyan("analyze")} -> ${theme.cyan("verify")} -> ${theme.cyan("report")}`,
     "",
     `${theme.dim("run")} defaults to ${theme.cyan("--contract v3 --mode throughput")} in shell mode.`,
-    `${theme.dim("audit")} and ${theme.dim("report")} remain available as legacy aliases.`,
+    `${theme.dim("init")}, ${theme.dim("audit")}, and ${theme.dim("review")} remain available as compatibility aliases.`,
   ];
   // eslint-disable-next-line no-console
   console.log(renderPanel({ title: theme.bold("Migration Hint"), lines }));
@@ -1232,6 +1622,18 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     const nextSession: ShellSessionState = await runAuditFromShell(projectRoot, session, effectiveArgs);
     return { session: nextSession, shouldExit: false };
   }
+  if (command.id === "analyze") {
+    await runAnalyzeFromShell(projectRoot, command.args);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "verify") {
+    await runVerifyFromShell(projectRoot, command.args);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "discover") {
+    await runDiscoverFromShell(projectRoot, session, command.args);
+    return { session, shouldExit: false };
+  }
   if (command.id === "audit") {
     // eslint-disable-next-line no-console
     console.log(theme.dim("Legacy alias: 'audit' maps to the canonical 'run' workflow."));
@@ -1239,6 +1641,8 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session: nextSession, shouldExit: false };
   }
   if (command.id === "review") {
+    // eslint-disable-next-line no-console
+    console.log(theme.dim("Legacy alias: 'review' maps to the primary 'report' workflow."));
     const reportPath = await runReviewFromShell(projectRoot, command.args);
     const updated: ShellSessionState = reportPath ? { ...session, lastReportPath: reportPath } : session;
     if (reportPath) {
@@ -1247,8 +1651,6 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session: updated, shouldExit: false };
   }
   if (command.id === "report") {
-    // eslint-disable-next-line no-console
-    console.log(theme.dim("Legacy alias: 'report' maps to the canonical 'review' workflow."));
     const reportPath = await runReviewFromShell(projectRoot, command.args);
     const updated: ShellSessionState = reportPath ? { ...session, lastReportPath: reportPath } : session;
     if (reportPath) {
@@ -1297,14 +1699,24 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
   }
   if (command.id === "init") {
     // eslint-disable-next-line no-console
-    console.log("Starting config wizard...");
-    await runWizardCli(["node", "signaler"]);
+    console.log("Compatibility alias: use 'discover' as the primary setup command.");
     // eslint-disable-next-line no-console
-    console.log(`Ready. Next: ${theme.cyan("run")} and then ${theme.cyan("review")}.`);
+    console.log("Starting config wizard...");
+    await runDiscoverFromShell(projectRoot, session, []);
     return { session, shouldExit: false };
   }
   if (command.id === "open") {
     const path: string = session.lastReportPath ?? resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-analyze") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "analyze.md");
+    openInBrowser(path);
+    return { session, shouldExit: false };
+  }
+  if (command.id === "open-verify") {
+    const path: string = resolve(projectRoot, SESSION_DIR_NAME, "verify.md");
     openInBrowser(path);
     return { session, shouldExit: false };
   }
@@ -1417,7 +1829,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
     rl.setPrompt(buildPrompt(session));
     rl.prompt();
     let onLine: ((line: string) => Promise<void>) | undefined;
-    const runWizardInShell = async (): Promise<void> => {
+    const runWizardInShell = async (extraArgs?: readonly string[]): Promise<void> => {
       const previousPrompt: string = buildPrompt(session);
       rl.pause();
       rl.setPrompt("");
@@ -1431,7 +1843,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         rl.off("line", onLine);
       }
       try {
-        await runWizardCli(["node", "signaler"]);
+        await runWizardCli(["node", "signaler", ...(extraArgs ?? [])]);
       } finally {
         rl.on("SIGINT", onSigint);
         if (rlClosed) {
@@ -1498,7 +1910,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
             // eslint-disable-next-line no-console
             console.log("Starting config wizard...");
             try {
-              await runWizardInShell();
+              await runWizardInShell(["discover"]);
               // eslint-disable-next-line no-console
               console.log(`Ready. Next: ${theme.cyan(command.id)}.`);
             } finally {
@@ -1506,7 +1918,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
             }
           } else {
             // eslint-disable-next-line no-console
-            console.log(`Config required. Create one with ${theme.cyan("init")} or point to an existing file with ${theme.cyan("config <path>")}.`);
+            console.log(`Config required. Create one with ${theme.cyan("discover")} (or ${theme.cyan("init")}) or point to an existing file with ${theme.cyan("config <path>")}.`);
           }
           if (!rlClosed) {
             rl.resume();
@@ -1532,12 +1944,17 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         }
         return;
       }
-      if (command.id === "init") {
+      if (command.id === "init" || command.id === "discover") {
+        if (command.id === "init") {
+          // eslint-disable-next-line no-console
+          console.log("Compatibility alias: use 'discover' as the primary setup command.");
+        }
         // eslint-disable-next-line no-console
         console.log("Starting config wizard...");
-        await runWizardInShell();
+        await runWizardInShell(command.id === "discover" ? ["discover", ...command.args] : ["init", ...command.args]);
+        await printDiscoverSummary(session.configPath);
         // eslint-disable-next-line no-console
-        console.log(`Ready. Next: ${theme.cyan("run")} and then ${theme.cyan("review")}.`);
+        console.log(`Ready. Next: ${theme.cyan("run")}, then ${theme.cyan("analyze --contract v6")}, then ${theme.cyan("verify --contract v6")}, then ${theme.cyan("report")}.`);
         // Force readline recreation by closing current instance - this ensures
         // the shell stays alive after the wizard completes even if prompts closed stdin
         rl.close();

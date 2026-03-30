@@ -1,24 +1,33 @@
 # Getting Started
 
-Signaler (formerly ApexAuditor) is a **measure-first** performance + metrics assistant.
+Signaler is a **reliable web lab runner** with an agent-first artifact contract.
+
+If you are using an editor or terminal agent, start with [`agent-quickstart.md`](/docs/signaler/agent-quickstart).
 
 This remastered release is designed to be installed and run as a CLI (`signaler`).
 
-Typical workflow:
+Canonical workflow:
 
-1. Run the interactive shell.
-2. Use `measure` for fast feedback.
-3. Use `audit` for deep Lighthouse analysis.
-4. **NEW in v2.0.1**: Review AI-optimized reports for quick insights.
-5. Use `bundle` to quickly sanity-check build output sizes.
-6. Use `health` to validate routes are up and reasonably fast.
-7. Type `open` to review the latest HTML report.
+1. `discover`
+2. `run --mode throughput|fidelity`
+3. `analyze --contract v6`
+4. `verify --contract v6`
+5. `report`
+
+CLI onboarding shortcut:
+
+- Run `signaler help agent` for copy/paste agent workflow commands, artifact order, and automation exit codes.
+- Use `signaler help agent --json` when your agent runtime prefers structured onboarding metadata.
+
+Legacy aliases remain supported:
+
+- `init` (legacy alias of `discover`)
+- `audit` (legacy alias of `run`)
+- `review` (legacy alias of `report`)
 
 Helpful navigation shortcuts:
 
 - `open-triage` opens `.signaler/triage.md`
-- **NEW**: Review `.signaler/QUICK-FIXES.md` for immediate action items
-- **NEW**: Check `.signaler/AI-SUMMARY.json` for quick AI assessment
 - `open-screenshots` opens `.signaler/screenshots/`
 - `open-diagnostics` opens `.signaler/lighthouse-artifacts/diagnostics/`
 - `open-lhr` opens `.signaler/lighthouse-artifacts/lhr/`
@@ -61,18 +70,63 @@ Prerequisites:
 Recommended first run:
 
 ```bash
-signaler wizard
+signaler discover --scope full
 ```
 
-## 2. Create a config
+Local workspace execution (unpublished build):
+
+If your latest CLI changes are only in your local workspace, run the built local binary directly with Node.
+
+Windows (PowerShell, from repo root):
+
+```powershell
+corepack pnpm run build
+node .\dist\bin.js discover --scope full
+node .\dist\bin.js run --contract v3 --mode throughput --yes
+node .\dist\bin.js analyze --contract v6 --json
+node .\dist\bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json
+```
+
+macOS/Linux (from repo root):
+
+```bash
+corepack pnpm run build
+node ./dist/bin.js discover --scope full
+node ./dist/bin.js run --contract v3 --mode throughput --yes
+node ./dist/bin.js analyze --contract v6 --json
+node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json
+```
+
+## 2. Discover routes and create config
 
 Inside the shell:
 
 ```text
-> init
+> discover --scope full
 ```
 
-The wizard creates or updates `signaler.config.json`.
+Discovery creates or updates `signaler.config.json` and writes `.signaler/discovery.json`.
+
+Discovery scopes:
+
+- `signaler discover --scope full` (recommended for complete static route inventory)
+- `signaler discover --scope quick` (starter subset for fast onboarding)
+- `signaler discover --scope file --routes-file routes.txt` (explicit route list)
+
+Compatibility setup alias remains supported:
+
+- `signaler init` (default full-scope discovery alias of `discover`)
+- `signaler init --advanced` (full prompt flow)
+- `signaler init --run` (save config and run first audit automatically)
+
+Discovery behavior:
+
+- auto-detects a likely local base URL (`localhost` common ports)
+- prefers current directory as project root
+- auto-detects framework from `package.json`
+- supports full-route and starter-route scopes
+- shows a short run plan preview before handoff
+- asks whether to run the first canonical audit immediately
 
 You can also point the shell at a different config file:
 
@@ -93,26 +147,47 @@ Outputs:
 - `.signaler/measure-summary.json`
 - `.signaler/measure/` (screenshots and artifacts)
 
-## 4. Audit (Lighthouse)
+## 4. Run (Lighthouse)
 
 ```text
-> audit
+> run --contract v3 --mode throughput
 ```
 
 Optional capture flags:
 
-- `audit --diagnostics`: capture DevTools-like Lighthouse tables and save screenshots.
-- `audit --lhr`: also save the full Lighthouse result JSON per page/device (implies `--diagnostics`).
+- `run --diagnostics`: capture DevTools-like Lighthouse tables and save screenshots.
+- `run --lhr`: also save the full Lighthouse result JSON per page/device (implies `--diagnostics`).
 
-During an audit:
+During a run:
 
 - A warm-up step may run first (if enabled).
-- You will see a runtime progress line like `page X/Y — /path [device] | ETA ...`.
+- You will see a runtime progress line like `page X/Y - /path [device] | ETA ...`.
 - Press **Esc** to cancel and return to the shell prompt.
 
-Outputs:
+Fidelity hardening option:
 
-- `.signaler/run.json` (stable run index)
+- `run --mode fidelity --isolation browser` forces strict browser relaunch semantics with `parallel=1` for maximum reproducibility.
+
+Throughput stability option:
+
+- `run --mode throughput --throughput-backoff aggressive` reduces parallelism faster when worker failures are detected.
+
+Canonical outputs (v3):
+
+- `.signaler/run.json`
+- `.signaler/results.json`
+- `.signaler/suggestions.json`
+- `.signaler/agent-index.json`
+
+V6 analyze outputs:
+
+- `.signaler/analyze.json`
+- `.signaler/analyze.md`
+- `.signaler/verify.json`
+- `.signaler/verify.md`
+
+Legacy compatibility outputs (still available):
+
 - `.signaler/summary.json`
 - `.signaler/summary-lite.json`
 - `.signaler/summary.md`
@@ -122,9 +197,6 @@ Outputs:
 - `.signaler/pwa.json`
 - `.signaler/ai-fix.json` (unless `audit --no-ai-fix`)
 - `.signaler/ai-fix.min.json` (unless `audit --no-ai-fix`)
-- **NEW in v2.0.1**: `.signaler/AI-ANALYSIS.json` (comprehensive AI report)
-- **NEW in v2.0.1**: `.signaler/AI-SUMMARY.json` (ultra-condensed AI report)
-- **NEW in v2.0.1**: `.signaler/QUICK-FIXES.md` (enhanced developer triage)
 - `.signaler/export.json` (unless `audit --no-export`)
 - `.signaler/report.html`
 - `.signaler/screenshots/` (when `--diagnostics` or `--lhr` is enabled)
@@ -134,56 +206,69 @@ Outputs:
 - `.signaler/accessibility-summary.json`
 - `.signaler/accessibility/` (axe-core artifacts per page/device)
 
-## 4.1 AI-Optimized Reports (New in v2.0.1)
-
-Signaler now generates AI-optimized reports that provide token-efficient analysis and enhanced developer insights:
-
-### Quick Developer Triage
-```text
-cat .signaler/QUICK-FIXES.md
-```
-
-This enhanced triage report includes:
-- **Performance score disclaimers** explaining why scores are lower than DevTools
-- **Time estimates** for each recommended fix
-- **Specific file paths** and implementation guidance
-- **Impact analysis** with concrete metrics
-
-### AI Analysis Integration
-```javascript
-// Ultra-condensed for quick AI assessment (95% token reduction)
-const summary = JSON.parse(fs.readFileSync('.signaler/AI-SUMMARY.json'));
-console.log(`Status: ${summary.status}`);
-console.log(`Top issue: ${summary.topIssues[0].type}`);
-
-// Comprehensive structured analysis (75% token reduction)
-const analysis = JSON.parse(fs.readFileSync('.signaler/AI-ANALYSIS.json'));
-analysis.criticalIssues.forEach(issue => {
-  console.log(`${issue.severity}: ${issue.title}`);
-  console.log(`Fix: ${issue.fixGuidance.implementation}`);
-});
-```
-
-### Performance Score Context
-All reports now include clear disclaimers about performance score accuracy:
-
-- **Headless Chrome environment** produces lower scores than DevTools
-- **Batch testing** is optimized for relative comparison, not absolute measurement
-- **Use for trend analysis** and identifying optimization opportunities
-- **Actual user experience** is better than test results indicate
-
 Notes:
 
 - Start with `triage.md` and `issues.json` when the suite is large.
+- For AI/agent ingestion, use `agent-index.json` first.
+- For V6 agent loops, use `analyze.json` then `verify.json`.
+- For a copy-paste agent workflow and prompt pack, use `agent-quickstart.md`.
 - For PWA-specific checks (HTTPS, service worker, offline signals), use `pwa.json`.
 - Large JSON files may also be written as gzip copies (`*.json.gz`) to reduce disk size.
 
 Speed and output controls:
 
-- `audit --focus-worst <n>` re-runs only the worst N combos from the previous run.
-- `audit --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
-- `audit --no-ai-fix` and `audit --no-export` can skip writing large artifacts.
-- If parallel mode flakes (Chrome disconnects / Lighthouse target errors), retry with `audit --stable` (forces parallel=1).
+- `run --focus-worst <n>` re-runs only the worst N combos from the previous run.
+- `run --ai-min-combos <n>` limits `ai-fix.min.json` to the worst N combos (default 25).
+- `run --no-ai-fix` and `run --no-export` can skip writing large artifacts.
+- If parallel mode flakes (Chrome disconnects / Lighthouse target errors), retry with `run --stable` (forces parallel=1).
+
+## 4.2 Analyze (Agent Packet)
+
+```text
+> analyze --contract v6
+```
+
+`analyze` consumes canonical v3 artifacts and emits a deterministic, token-budgeted action packet for agents.
+
+Useful flags:
+
+- `--artifact-profile lean|standard|diagnostics` (default `lean`)
+- `--top-actions <n>` (default `12`)
+- `--min-confidence high|medium|low` (default `medium`)
+- `--token-budget <n>` (min `2000`; default by profile: `lean=8000`, `standard=16000`, `diagnostics=32000`)
+- `--external-signals <path>` (repeatable local external-signal files merged into ranking)
+- `--strict` (exit `2` on missing/invalid required v3 artifacts)
+- `--json` (compact machine summary to stdout)
+
+## 4.3 Verify (Focused Rerun + Delta Checks)
+
+```text
+> verify --contract v6
+```
+
+`verify` runs a focused rerun for selected actions/routes and emits pass/fail checks in `.signaler/verify.json`.
+
+Useful flags:
+
+- `--action-ids <csv>` (explicit actions from `analyze.json`)
+- `--top-actions <n>` (default `1`)
+- `--verify-mode fidelity|throughput` (default `fidelity`)
+- `--max-routes <n>` (default `10`)
+- `--runtime-budget-ms <n>` (optional route-budget cap using baseline average step timing)
+- `--strict-comparability` (fail when comparability hash differs)
+- `--allow-comparability-mismatch` (override strict mode)
+- `--pass-thresholds <path>` (JSON threshold overrides)
+- `--dry-run` (write plan artifacts and exit code `3`)
+- `--json` (compact machine summary with timing/planning fields)
+
+## 4.4 Review (Report Regeneration)
+
+```text
+> report
+```
+
+Use `report` to regenerate report outputs from existing `.signaler` artifacts without running Lighthouse again.
+Legacy alias: `review`.
 
 ## 5. Bundle (build output sizes)
 
@@ -262,5 +347,28 @@ Notes:
 
 ## 11. Next steps
 
-- `configuration-and-routes.md` for config details.
-- `cli-and-ci.md` for non-interactive CLI usage and CI/budgets.
+- `../reference/configuration.md` for config details.
+- `../reference/cli.md` for non-interactive CLI usage and CI/budgets.
+- `../operations/performance-baseline.md` for Phase 0 benchmark baseline commands and interpretation.
+- `../operations/slo.md` for baseline SLO formulas and thresholds.
+
+## 12. Phase 0 benchmark baseline
+
+Run the benchmark harness:
+
+```bash
+pnpm run bench:phase0
+pnpm run bench:phase0:validate
+```
+
+CI observe-only run:
+
+```bash
+pnpm run bench:phase0:ci
+```
+
+Outputs:
+
+- `benchmarks/out/phase0-baseline.json`
+- `benchmarks/out/phase0-baseline.md`
+

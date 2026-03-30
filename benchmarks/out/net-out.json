@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "status": "error",
+  "mode": "health",
+  "elapsedMs": 2168,
+  "usedFallbackSafeDefaults": false,
+  "results": [
+    {
+      "label": "home",
+      "path": "/",
+      "runtimeErrorMessage": "http://127.0.0.1:1/: Connection Failed: Connect error: connection timed out",
+      "url": "http://127.0.0.1:1/"
+    }
+  ],
+  "stats": {
+    "attempted": 1,
+    "succeeded": 0,
+    "failed": 1,
+    "retries": 1,
+    "cooldownPauses": 1
+  },
+  "errorMessage": null
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Signaler Audit (pnpm)",
+  "description": "Run Signaler discover -> run -> report in CI for pnpm projects.",
+  "iconName": "terminal",
+  "categories": [
+    "JavaScript",
+    "TypeScript"
+  ],
+  "filePatterns": [
+    "package.json",
+    "pnpm-lock.yaml"
+  ]
+}

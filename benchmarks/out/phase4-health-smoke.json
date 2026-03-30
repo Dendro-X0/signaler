@@ -1,0 +1,51 @@
+﻿{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\phase4-network\\signaler.config.json",
+    "baseUrl": "http://127.0.0.1:49885",
+    "comboCount": 5,
+    "resolvedParallel": 5,
+    "timeoutMs": 20000,
+    "startedAt": "2026-03-05T16:54:18.281Z",
+    "completedAt": "2026-03-05T16:54:22.882Z",
+    "elapsedMs": 4601,
+    "accelerator": {
+      "engine": "node",
+      "requested": true,
+      "used": false,
+      "fallbackReason": "Rust network worker produced an invalid output payload.",
+      "sidecarElapsedMs": 4579
+    }
+  },
+  "results": [
+    {
+      "label": "home",
+      "path": "/",
+      "url": "http://127.0.0.1:49885/",
+      "runtimeErrorMessage": "connect ECONNREFUSED 127.0.0.1:49885"
+    },
+    {
+      "label": "pricing",
+      "path": "/pricing",
+      "url": "http://127.0.0.1:49885/pricing",
+      "runtimeErrorMessage": "connect ECONNREFUSED 127.0.0.1:49885"
+    },
+    {
+      "label": "docs",
+      "path": "/docs",
+      "url": "http://127.0.0.1:49885/docs",
+      "runtimeErrorMessage": "connect ECONNREFUSED 127.0.0.1:49885"
+    },
+    {
+      "label": "blog",
+      "path": "/blog",
+      "url": "http://127.0.0.1:49885/blog",
+      "runtimeErrorMessage": "connect ECONNREFUSED 127.0.0.1:49885"
+    },
+    {
+      "label": "contact",
+      "path": "/contact",
+      "url": "http://127.0.0.1:49885/contact",
+      "runtimeErrorMessage": "connect ECONNREFUSED 127.0.0.1:49885"
+    }
+  ]
+}

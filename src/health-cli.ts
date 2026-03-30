@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import type { ApexConfig } from "./core/types.js";
 import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
+import { runRustNetworkWorker } from "./rust/network-adapter.js";
 import { renderPanel } from "./ui/components/panel.js";
 import { renderTable } from "./ui/components/table.js";
 import { UiTheme } from "./ui/themes/theme.js";
@@ -38,8 +39,26 @@ type HealthReport = {
     readonly startedAt: string;
     readonly completedAt: string;
     readonly elapsedMs: number;
+    readonly accelerator: {
+      readonly engine: "node" | "rust";
+      readonly requested: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+    };
   };
   readonly results: readonly HealthResult[];
+};
+
+type RustHealthResult = {
+  readonly label?: string;
+  readonly path?: string;
+  readonly url?: string;
+  readonly statusCode?: number;
+  readonly ttfbMs?: number;
+  readonly totalMs?: number;
+  readonly bytes?: number;
+  readonly runtimeErrorMessage?: string;
 };
 
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
@@ -231,24 +250,46 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
   });
 
   const parallel: number = resolveParallelCount({ requested: args.parallelOverride, taskCount: targets.length });
-
-  const results: readonly HealthResult[] = await runWithConcurrency({
-    tasks: targets,
+  const rustAttempt = await runRustNetworkWorker<RustHealthResult>({
+    mode: "health",
+    baseUrl: config.baseUrl,
     parallel,
-    signal: options?.signal,
-    runner: async (t) => {
-      if (options?.signal?.aborted) {
-        throw new Error("Aborted");
-      }
-      try {
-        const r = await runHttpHealthCheck({ url: t.url, timeoutMs: args.timeoutMs });
-        return { ...t, statusCode: r.statusCode, ttfbMs: r.ttfbMs, totalMs: r.totalMs, bytes: r.bytes };
-      } catch (error: unknown) {
-        const message: string = error instanceof Error ? error.message : String(error);
-        return { ...t, runtimeErrorMessage: message };
-      }
-    },
+    timeoutMs: args.timeoutMs,
+    retryPolicy: "auto",
+    tasks: targets.map((target) => ({ label: target.label, path: target.path, url: target.url })),
   });
+
+  const results: readonly HealthResult[] = rustAttempt.used && rustAttempt.output
+    ? rustAttempt.output.results.map((item, index) => {
+      const fallbackTarget: HealthResult | undefined = targets[index];
+      return {
+        label: typeof item.label === "string" ? item.label : (fallbackTarget?.label ?? `target-${index + 1}`),
+        path: typeof item.path === "string" ? item.path : (fallbackTarget?.path ?? "/"),
+        url: typeof item.url === "string" ? item.url : (fallbackTarget?.url ?? config.baseUrl),
+        statusCode: typeof item.statusCode === "number" ? item.statusCode : undefined,
+        ttfbMs: typeof item.ttfbMs === "number" ? item.ttfbMs : undefined,
+        totalMs: typeof item.totalMs === "number" ? item.totalMs : undefined,
+        bytes: typeof item.bytes === "number" ? item.bytes : undefined,
+        runtimeErrorMessage: typeof item.runtimeErrorMessage === "string" ? item.runtimeErrorMessage : undefined,
+      };
+    })
+    : await runWithConcurrency({
+      tasks: targets,
+      parallel,
+      signal: options?.signal,
+      runner: async (t) => {
+        if (options?.signal?.aborted) {
+          throw new Error("Aborted");
+        }
+        try {
+          const r = await runHttpHealthCheck({ url: t.url, timeoutMs: args.timeoutMs });
+          return { ...t, statusCode: r.statusCode, ttfbMs: r.ttfbMs, totalMs: r.totalMs, bytes: r.bytes };
+        } catch (error: unknown) {
+          const message: string = error instanceof Error ? error.message : String(error);
+          return { ...t, runtimeErrorMessage: message };
+        }
+      },
+    });
 
   const completedAtMs: number = Date.now();
   const report: HealthReport = {
@@ -261,6 +302,13 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
       startedAt: new Date(startedAtMs).toISOString(),
       completedAt: new Date(completedAtMs).toISOString(),
       elapsedMs: completedAtMs - startedAtMs,
+      accelerator: {
+        engine: rustAttempt.used ? "rust" : "node",
+        requested: rustAttempt.requested,
+        used: rustAttempt.used,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      },
     },
     results,
   };
@@ -274,6 +322,11 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(report, null, 2));
     return;
+  }
+
+  if (rustAttempt.requested && !rustAttempt.used && rustAttempt.fallbackReason) {
+    // eslint-disable-next-line no-console
+    console.log(theme.yellow(`[rust-health] fallback to node: ${rustAttempt.fallbackReason}`));
   }
 
   const errorCount: number = results.filter((r) => Boolean(r.runtimeErrorMessage)).length;
@@ -297,6 +350,7 @@ export async function runHealthCli(argv: readonly string[], options?: { readonly
     `Targets: ${results.length}`,
     `Parallel: ${parallel}`,
     `Timeout: ${args.timeoutMs}ms`,
+    `Engine: ${report.meta.accelerator.engine}`,
     `OK: ${okCount}`,
     `Errors: ${errorCount}`,
     `Output: .signaler/health.json`,

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import type { ApexConfig } from "./core/types.js";
 import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
+import { runRustNetworkWorker } from "./rust/network-adapter.js";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
 import { renderPanel } from "./ui/components/panel.js";
@@ -53,6 +54,13 @@ type LinksReport = {
     readonly startedAt: string;
     readonly completedAt: string;
     readonly elapsedMs: number;
+    readonly accelerator: {
+      readonly engine: "node" | "rust";
+      readonly requested: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+    };
   };
   readonly discovered: {
     readonly total: number;
@@ -61,6 +69,13 @@ type LinksReport = {
   };
   readonly results: readonly LinkCheckResult[];
   readonly broken: readonly BrokenLink[];
+};
+
+type RustLinksResult = {
+  readonly url?: string;
+  readonly statusCode?: number;
+  readonly bytes?: number;
+  readonly runtimeErrorMessage?: string;
 };
 
 const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
@@ -426,24 +441,43 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
   }
 
   const parallel: number = resolveParallelCount({ requested: args.parallelOverride, taskCount: discovered.length });
-
-  const results: readonly LinkCheckResult[] = await runWithConcurrency({
-    tasks: discovered.map((d) => d.url),
+  const rustAttempt = await runRustNetworkWorker<RustLinksResult>({
+    mode: "links",
+    baseUrl: config.baseUrl,
     parallel,
-    signal: options?.signal,
-    runner: async (url) => {
-      if (options?.signal?.aborted) {
-        throw new Error("Aborted");
-      }
-      try {
-        const r = await fetchStatus({ url, timeoutMs: args.timeoutMs });
-        return { url, statusCode: r.statusCode, bytes: r.bytes };
-      } catch (error: unknown) {
-        const message: string = error instanceof Error ? error.message : String(error);
-        return { url, runtimeErrorMessage: message };
-      }
-    },
+    timeoutMs: args.timeoutMs,
+    retryPolicy: "auto",
+    tasks: discovered.map((target) => ({ url: target.url })),
+    options: { maxUrls: args.maxUrls },
   });
+
+  const results: readonly LinkCheckResult[] = rustAttempt.used && rustAttempt.output
+    ? rustAttempt.output.results.map((item, index) => {
+      const fallbackUrl: string = discovered[index]?.url ?? config.baseUrl;
+      return {
+        url: typeof item.url === "string" ? item.url : fallbackUrl,
+        statusCode: typeof item.statusCode === "number" ? item.statusCode : undefined,
+        bytes: typeof item.bytes === "number" ? item.bytes : undefined,
+        runtimeErrorMessage: typeof item.runtimeErrorMessage === "string" ? item.runtimeErrorMessage : undefined,
+      };
+    })
+    : await runWithConcurrency({
+      tasks: discovered.map((d) => d.url),
+      parallel,
+      signal: options?.signal,
+      runner: async (url) => {
+        if (options?.signal?.aborted) {
+          throw new Error("Aborted");
+        }
+        try {
+          const r = await fetchStatus({ url, timeoutMs: args.timeoutMs });
+          return { url, statusCode: r.statusCode, bytes: r.bytes };
+        } catch (error: unknown) {
+          const message: string = error instanceof Error ? error.message : String(error);
+          return { url, runtimeErrorMessage: message };
+        }
+      },
+    });
 
   const broken: readonly BrokenLink[] = results
     .filter((r) => Boolean(r.runtimeErrorMessage) || (r.statusCode !== undefined && r.statusCode >= 400))
@@ -471,6 +505,13 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
       startedAt: new Date(startedAtMs).toISOString(),
       completedAt: new Date(completedAtMs).toISOString(),
       elapsedMs: completedAtMs - startedAtMs,
+      accelerator: {
+        engine: rustAttempt.used ? "rust" : "node",
+        requested: rustAttempt.requested,
+        used: rustAttempt.used,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      },
     },
     discovered: {
       total: discovered.length,
@@ -517,11 +558,17 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     return;
   }
 
+  if (rustAttempt.requested && !rustAttempt.used && rustAttempt.fallbackReason) {
+    // eslint-disable-next-line no-console
+    console.log(theme.yellow(`[rust-links] fallback to node: ${rustAttempt.fallbackReason}`));
+  }
+
   const lines: readonly string[] = [
     `Config: ${configPath}`,
     `Base URL: ${config.baseUrl}`,
     `Sitemap: ${sitemapUrl}`,
     `Discovered: ${report.discovered.total}${report.discovered.truncated ? " (truncated)" : ""}`,
+    `Engine: ${report.meta.accelerator.engine}`,
     `Broken: ${report.broken.length}`,
     `Output: .signaler/links.json`,
   ];

@@ -16,6 +16,7 @@ export type ApexPageScope = "public" | "requires-auth";
  * - "devtools": More accurate, matches Chrome DevTools results but slower.
  */
 export type ApexThrottlingMethod = "simulate" | "devtools";
+export type ApexThroughputBackoffPolicy = "auto" | "aggressive" | "off";
 
 /**
  * Configuration for a single page to be audited.
@@ -161,6 +162,7 @@ export interface ApexConfig {
    * - "per-audit": create a fresh Chrome session per audit for better reproducibility.
    */
   readonly sessionIsolation?: "shared" | "per-audit";
+  readonly throughputBackoff?: ApexThroughputBackoffPolicy;
   /**
    * Whether to perform a warm-up request before auditing.
    * Helps avoid cold start penalties on the first audit.
@@ -291,6 +293,22 @@ export interface RunMeta {
   readonly completedAt: string;
   readonly elapsedMs: number;
   readonly averageStepMs: number;
+  readonly runnerStability?: {
+    readonly backoffPolicy: ApexThroughputBackoffPolicy;
+    readonly initialParallel: number;
+    readonly finalParallel: number;
+    readonly totalAttempts: number;
+    readonly totalFailures: number;
+    readonly totalRetries: number;
+    readonly reductions: number;
+    readonly cooldownPauses: number;
+    readonly failureRate?: number;
+    readonly retryRate?: number;
+    readonly maxConsecutiveRetries?: number;
+    readonly cooldownMsTotal?: number;
+    readonly recoveryIncreases?: number;
+    readonly status?: "stable" | "degraded" | "unstable";
+  };
 }
 
 /**

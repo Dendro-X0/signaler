@@ -1,0 +1,13 @@
+[package]
+name = "signaler_hotpath"
+version = "0.1.0"
+edition = "2021"
+description = "Signaler Rust sidecar prototype for discovery hot paths."
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+walkdir = "2"
+ureq = { version = "2.10.1", default-features = true }

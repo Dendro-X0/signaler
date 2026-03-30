@@ -11,9 +11,11 @@ if (major < 18) {
 
 // Check available memory
 import { freemem } from 'node:os';
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 const freeMemoryMB = Math.round(freemem() / 1024 / 1024);
 if (freeMemoryMB < 512) {
-  console.warn(`âš ï¸  Warning: Low memory detected (${freeMemoryMB}MB free)`);
+  console.warn(`[WARN] Low memory detected (${freeMemoryMB}MB free)`);
   console.warn('   Signaler may run slowly or fail. Consider closing other applications.');
 }
 
@@ -34,12 +36,15 @@ import { runUninstallCli } from "./uninstall-cli.js";
 import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
 import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
+import { runAnalyzeCli } from "./analyze-cli.js";
+import { runVerifyCli } from "./verify-cli.js";
 import { runFolderCli } from "./folder-cli.js";
 import { runCortexCli } from "./cortex-cli.js";
 import { runTuiCli } from "./tui-cli.js";
 import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
 import { readEngineVersion } from "./engine-version.js";
+import { hasHelpFlag, resolveCommandHelpTopic } from "./help-routing.js";
 
 type ApexCommandId =
   | "run"
@@ -47,6 +52,8 @@ type ApexCommandId =
   | "audit"
   | "quick"
   | "report"
+  | "analyze"
+  | "verify"
   | "upgrade"
   | "measure"
   | "bundle"
@@ -65,6 +72,7 @@ type ApexCommandId =
   | "shell"
   | "help"
   | "init"
+  | "discover"
   | "config"
   | "export"
   | "ai"
@@ -97,6 +105,8 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "audit" ||
     rawCommand === "quick" ||
     rawCommand === "report" ||
+    rawCommand === "analyze" ||
+    rawCommand === "verify" ||
     rawCommand === "upgrade" ||
     rawCommand === "measure" ||
     rawCommand === "bundle" ||
@@ -113,6 +123,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "guide" ||
     rawCommand === "tui" ||
     rawCommand === "init" ||
+    rawCommand === "discover" ||
     rawCommand === "config" ||
     rawCommand === "export" ||
     rawCommand === "ai" ||
@@ -129,30 +140,245 @@ async function printVersion(): Promise<void> {
   const nodeVersion = process.versions.node;
   const platform = `${process.platform} ${process.arch}`;
 
-  console.log(`
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                 Signaler CLI                    â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ Version         â”‚ ${version.padEnd(30)} â”‚
-â”‚ Node.js         â”‚ ${nodeVersion.padEnd(30)} â”‚
-â”‚ Platform        â”‚ ${platform.padEnd(30)} â”‚
-â”‚ Package Manager â”‚ JSR (@signaler/cli)${' '.repeat(9)} â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-
-Installation:
-  npx jsr add @signaler/cli@${version}
-
-Quick Start:
-  signaler wizard      # Interactive setup
-  signaler audit       # Run performance audit
-  signaler help        # Show all commands
-
-Documentation:
-  https://jsr.io/@signaler/cli
-`);
+  console.log(
+    [
+      "Signaler CLI",
+      `Version: ${version}`,
+      `Node.js: ${nodeVersion}`,
+      `Platform: ${platform}`,
+      "Package Manager: JSR (@signaler/cli)",
+      "",
+      "Installation:",
+      `  npx jsr add @signaler/cli@${version}`,
+      "",
+      "Quick Start:",
+      "  signaler discover    # Primary setup/discovery",
+      "  signaler run         # Primary runner",
+      "  signaler analyze     # V6 action packet",
+      "  signaler verify      # V6 focused verification loop",
+      "  signaler report      # Primary report/review",
+      "  signaler help        # Show all commands",
+      "",
+      "Documentation:",
+      "  https://jsr.io/@signaler/cli",
+    ].join("\n"),
+  );
 }
 
-function printHelp(topic?: string): void {
+function printCommandHelp(topic: string): boolean {
+  const normalizedTopic: string =
+    topic === "audit" ? "run"
+      : topic === "init" || topic === "wizard" || topic === "guide" ? "discover"
+        : topic === "review" ? "report"
+          : topic;
+
+  const print = (lines: readonly string[]): void => {
+    console.log(lines.join("\n"));
+  };
+
+  if (normalizedTopic === "run") {
+    print([
+      "Usage:",
+      "  signaler run --config signaler.config.json --contract v3 --mode throughput [flags]",
+      "",
+      "Key flags:",
+      "  --contract <legacy|v3>",
+      "  --mode <fidelity|throughput>",
+      "  --artifact-profile <lean|standard|diagnostics>",
+      "  --machine-token-budget <n>",
+      "  --external-signals <path> (repeatable)",
+      "  --plan | --yes | --ci | --no-color",
+      "",
+      "Examples:",
+      "  signaler run --contract v3 --mode throughput --yes --no-color",
+      "  signaler run --contract v3 --mode fidelity --focus-worst 5",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "discover") {
+    print([
+      "Usage:",
+      "  signaler discover --scope <quick|full|file> [flags]",
+      "",
+      "Key flags:",
+      "  --scope <quick|full|file> (default full)",
+      "  --routes-file <path> (required for --scope file in non-interactive mode)",
+      "  --base-url <url>",
+      "  --project-root <path>",
+      "  --profile <next|nuxt|remix|sveltekit|spa|custom>",
+      "  --non-interactive --yes",
+      "",
+      "Example:",
+      "  signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "analyze") {
+    print([
+      "Usage:",
+      "  signaler analyze --contract v6 --dir .signaler [flags]",
+      "",
+      "Key flags:",
+      "  --artifact-profile <lean|standard|diagnostics>",
+      "  --top-actions <n>",
+      "  --min-confidence <high|medium|low>",
+      "  --token-budget <n>",
+      "  --external-signals <path> (repeatable)",
+      "  --strict --json",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "verify") {
+    print([
+      "Usage:",
+      "  signaler verify --contract v6 --dir .signaler --from .signaler/analyze.json [flags]",
+      "",
+      "Key flags:",
+      "  --action-ids <csv> | --top-actions <n>",
+      "  --verify-mode <fidelity|throughput>",
+      "  --max-routes <n>",
+      "  --runtime-budget-ms <n>",
+      "  --strict-comparability | --allow-comparability-mismatch",
+      "  --pass-thresholds <path>",
+      "  --dry-run --json",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "report") {
+    print([
+      "Usage:",
+      "  signaler report [--dir <path>]",
+      "",
+      "Description:",
+      "  Rebuild report/review outputs from existing artifacts without running Lighthouse again.",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "quickstart") {
+    print([
+      "Usage:",
+      "  signaler quickstart --base-url <url> [--project-root <path>] [--scope <quick|full|file>]",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "quick") {
+    print([
+      "Usage:",
+      "  signaler quick [--config <path>] [--project-root <path>] [--json]",
+      "",
+      "Description:",
+      "  Fast runner pack (measure + headers + links + bundle + accessibility pass).",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "uninstall" || normalizedTopic === "clear-screenshots" || normalizedTopic === "upgrade" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell") {
+    print([
+      "Usage:",
+      `  signaler ${normalizedTopic} [flags]`,
+      "",
+      "Run `signaler --help` for full command and flag reference.",
+    ]);
+    return true;
+  }
+
+  return false;
+}
+
+type HelpRenderOptions = {
+  readonly json: boolean;
+};
+
+type AgentHelpJson = {
+  readonly schemaVersion: 1;
+  readonly generatedAt: string;
+  readonly goal: string;
+  readonly workflows: {
+    readonly installedCli: readonly string[];
+    readonly localDist: readonly string[];
+  };
+  readonly artifactOrder: readonly string[];
+  readonly highSignalFlags: readonly string[];
+  readonly exitCodes: {
+    readonly verify: {
+      readonly pass: 0;
+      readonly runtimeError: 1;
+      readonly checksFailed: 2;
+      readonly dryRun: 3;
+    };
+    readonly analyze: {
+      readonly success: 0;
+      readonly runtimeOrProcessingFailure: 1;
+      readonly strictInputValidationFailure: 2;
+    };
+  };
+};
+
+function buildAgentHelpJson(): AgentHelpJson {
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    goal: "deterministic detect -> prioritize -> verify loop with machine-readable artifacts",
+    workflows: {
+      installedCli: [
+        "signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+        "signaler run --contract v3 --mode throughput --yes --no-color",
+        "signaler analyze --contract v6 --json",
+        "signaler verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
+        "signaler report",
+      ],
+      localDist: [
+        "node ./dist/bin.js discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+        "node ./dist/bin.js run --contract v3 --mode throughput --yes --no-color",
+        "node ./dist/bin.js analyze --contract v6 --json",
+        "node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
+        "node ./dist/bin.js report",
+      ],
+    },
+    artifactOrder: [
+      ".signaler/analyze.json",
+      ".signaler/verify.json",
+      ".signaler/agent-index.json",
+      ".signaler/suggestions.json",
+      ".signaler/results.json",
+      ".signaler/run.json",
+    ],
+    highSignalFlags: [
+      "--artifact-profile <lean|standard|diagnostics>",
+      "--token-budget <n>",
+      "--external-signals <path> (repeatable)",
+      "--runtime-budget-ms <n>",
+    ],
+    exitCodes: {
+      verify: {
+        pass: 0,
+        runtimeError: 1,
+        checksFailed: 2,
+        dryRun: 3,
+      },
+      analyze: {
+        success: 0,
+        runtimeOrProcessingFailure: 1,
+        strictInputValidationFailure: 2,
+      },
+    },
+  };
+}
+
+function printHelp(topic?: string, options: HelpRenderOptions = { json: false }): void {
+  if (typeof topic === "string" && topic.length > 0 && printCommandHelp(topic)) {
+    return;
+  }
+  if (options.json && topic === "agent") {
+    console.log(JSON.stringify(buildAgentHelpJson()));
+    return;
+  }
   if (topic === "topics") {
     console.log(
       [
@@ -160,11 +386,13 @@ function printHelp(topic?: string): void {
         "  budgets   Budget schema and CI behaviour",
         "  configs   signaler.config.json fields and defaults",
         "  ci        CI mode, exit codes, budgets",
+        "  agent     Agent-first usage guide and copy/paste loop",
         "  topics    This list",
         "Examples:",
         "  signaler help budgets",
         "  signaler help configs",
         "  signaler help ci",
+        "  signaler help agent",
       ].join("\n"),
     );
     return;
@@ -199,7 +427,7 @@ function printHelp(topic?: string): void {
         "  auditTimeoutMs         Per-audit timeout in milliseconds (prevents hung runs from stalling)",
         "  throttlingMethod       simulate | devtools (default simulate)",
         "  cpuSlowdownMultiplier  CPU slowdown (default 4)",
-        "  parallel               Workers (default auto up to 4, respects CPU/memory)",
+        "  parallel               Workers (default auto up to 3, respects CPU/memory)",
         "  warmUp                 true/false to warm cache before auditing (bounded concurrency)",
         "  incremental            (deprecated default) Set in config but only active when --incremental is passed",
         "  pages                  Array of { path, label, devices: [mobile|desktop] }",
@@ -223,18 +451,64 @@ function printHelp(topic?: string): void {
     );
     return;
   }
+  if (topic === "agent") {
+    console.log(
+      [
+        "Agent guide:",
+        "  Goal: deterministic detect -> prioritize -> verify loop with machine-readable artifacts.",
+        "",
+        "Canonical workflow (installed CLI):",
+        "  signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+        "  signaler run --contract v3 --mode throughput --yes --no-color",
+        "  signaler analyze --contract v6 --json",
+        "  signaler verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
+        "  signaler report",
+        "",
+        "Local unpublished build workflow:",
+        "  node ./dist/bin.js discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+        "  node ./dist/bin.js run --contract v3 --mode throughput --yes --no-color",
+        "  node ./dist/bin.js analyze --contract v6 --json",
+        "  node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
+        "  node ./dist/bin.js report",
+        "",
+        "Artifact ingestion order for agents:",
+        "  1) .signaler/analyze.json",
+        "  2) .signaler/verify.json",
+        "  3) .signaler/agent-index.json",
+        "  4) .signaler/suggestions.json",
+        "  5) .signaler/results.json",
+        "  6) .signaler/run.json",
+        "",
+        "High-signal flags:",
+        "  --artifact-profile <lean|standard|diagnostics>",
+        "  --token-budget <n>",
+        "  --external-signals <path> (repeatable)",
+        "  --runtime-budget-ms <n>",
+        "",
+        "Exit codes to automate:",
+        "  verify: 0=pass, 1=runtime error, 2=checks failed, 3=dry-run",
+        "  analyze: 0=success, 1=runtime/processing failure, 2=strict input validation failure",
+      ].join("\n"),
+    );
+    return;
+  }
   console.log(
     [
       "Signaler CLI",
       "",
       "Usage:",
       "  signaler                 # interactive shell (default)",
-      "  signaler init            # canonical setup",
+      "  signaler discover        # primary route discovery/setup",
       "  signaler run --mode <fidelity|throughput> [flags]   # canonical runner",
-      "  signaler review [--dir <path>]   # canonical review from artifacts",
+      "  signaler analyze --contract v6 [flags]   # canonical machine action packet",
+      "  signaler verify --contract v6 [flags]   # canonical focused rerun + delta validation",
+      "  signaler report [--dir <path>]   # primary report/review from artifacts",
+      "  signaler init            # compatibility alias of discover (planned removal in v4.0)",
+      "  signaler review [--dir <path>]   # compatibility alias of report (planned removal in v4.0)",
       "  signaler tui [--config <path>]",
       "  signaler quickstart --base-url <url> [--project-root <path>]",
       "  signaler wizard [--config <path>]",
+      "  signaler discover [--scope <quick|full|file>] [--routes-file <path>] [--config <path>]",
       "  signaler quick [--config <path>] [--project-root <path>]",
       "  signaler report [--dir <path>]",
       "  signaler folder --root <dir> [--route-cap <n>]",
@@ -249,16 +523,20 @@ function printHelp(topic?: string): void {
       "    shell      Start interactive shell (default)",
       "    tui        Fullscreen interactive dashboard with live command output",
       "    wizard     Run interactive config wizard",
+      "    discover   Primary route discovery/setup command",
       "    guide      Same as wizard, with inline tips for non-technical users",
       "    quickstart Detect routes and run a one-off audit with sensible defaults",
       "",
       "  Audits and checks:",
-      "    run        Alias of audit (v3 canonical command)",
-      "    review     Alias of report (v3 canonical command)",
+      "    run        Primary Lighthouse runner command",
+      "    analyze    V6 machine-facing action packet generator (requires --contract v6)",
+      "    verify     V6 focused rerun and pass/fail verification loop (requires --contract v6)",
+      "    report     Primary report/review command from existing artifacts",
+      "    audit      Compatibility alias for run (planned removal in v4.0)",
+      "    review     Compatibility alias for report (planned removal in v4.0)",
       "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
-      "    report     Generate global reports from existing .signaler/ artifacts (no Lighthouse run)",
-      "    audit      Run Lighthouse audits using signaler.config.json",
+      "    discover   Primary setup/discovery flow",
       "    folder     Audit a local folder by serving it with a static server",
       "    upgrade    Self-update the CLI from GitHub Releases",
       "    bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
@@ -311,9 +589,24 @@ function printHelp(topic?: string): void {
       "  --devtools-accurate Preset: devtools throttling + warm-up + higher parallelism by default",
       "  --open             Open the HTML report after the run.",
       "  --mode <m>         Run mode profile: fidelity | throughput (default throughput)",
+      "  --parity           Preset: parity-oriented fidelity run (equivalent to --mode fidelity defaults)",
+      "  --throughput-backoff <m> Backoff policy for parallel instability: auto | aggressive | off",
+      "  --isolation <m>    Browser isolation: shared | per-audit | browser (browser => strict relaunch + parallel=1)",
       "  --contract <c>     Artifact contract: legacy | v3 (default legacy)",
       "  --legacy-artifacts Keep legacy artifacts when --contract v3 is enabled",
       "  --baseline <path>  Baseline run.json path to compare compat hash against",
+      "  --artifact-profile <lean|standard|diagnostics>  Machine output profile (default lean)",
+      "  --machine-token-budget <n>  Strict machine-output token budget (default by profile)",
+      "  --external-signals <path>  Merge local external signals into ranking (repeatable)",
+      "",
+      "Options (discover/init):",
+      "  --scope <quick|full|file>     Discovery scope profile (default full)",
+      "  --routes-file <path>          Route list file (required for --scope file in non-interactive mode)",
+      "  --base-url <url>              Override detected base URL",
+      "  --project-root <path>         Override project root for route detection",
+      "  --profile <id>                Force project profile: next|nuxt|remix|sveltekit|spa|custom",
+      "  --non-interactive             Fail fast on missing required inputs",
+      "  --yes, -y                     Accept defaults without prompts",
       "",
       "Options (measure):",
       "  --mobile-only      Run measure only for 'mobile' devices defined in the config",
@@ -368,6 +661,32 @@ function printHelp(topic?: string): void {
       "Options (report):",
       "  --dir <path>           Artifacts directory (default .signaler)",
       "",
+      "Options (analyze):",
+      "  --contract v6          Required in this phase to enable analyze command",
+      "  --dir <path>           Artifacts directory (default .signaler)",
+      "  --artifact-profile <lean|standard|diagnostics>  Output density profile (default lean)",
+      "  --top-actions <n>      Action cap (1..100, default 12)",
+      "  --min-confidence <high|medium|low>  Minimum confidence filter (default medium)",
+      "  --token-budget <n>     Max estimated tokens for emitted actions payload (min 2000, default by profile: lean=8000, standard=16000, diagnostics=32000)",
+      "  --external-signals <path>  Merge local external signals into action ranking (repeatable)",
+      "  --strict               Fail on missing/invalid required v3 inputs with exit code 2",
+      "  --json                 Print compact analyze summary JSON to stdout",
+      "",
+      "Options (verify):",
+      "  --contract v6          Required in this phase to enable verify command",
+      "  --dir <path>           Baseline artifacts directory (default .signaler)",
+      "  --from <path>          Analyze source (default .signaler/analyze.json)",
+      "  --action-ids <csv>     Explicit action ids to verify (overrides --top-actions)",
+      "  --top-actions <n>      Number of actions from analyze.json when --action-ids is omitted",
+      "  --verify-mode <fidelity|throughput>  Rerun mode (default fidelity)",
+      "  --max-routes <n>       Cap focused routes for rerun (1..50, default 10)",
+      "  --runtime-budget-ms <n>  Optional verify route-budget cap using baseline average step timing",
+      "  --strict-comparability Fail if rerun comparability hash differs from baseline",
+      "  --allow-comparability-mismatch  Override strict comparability and continue checks",
+      "  --pass-thresholds <path>  JSON thresholds override",
+      "  --dry-run              Write planned verify artifacts without rerun (exit 3)",
+      "  --json                 Print compact verify summary JSON to stdout",
+      "",
       "Options (console):",
       "  --config <path>        Config path (default signaler.config.json)",
       "  --parallel <n>         Parallel workers (default auto)",
@@ -408,7 +727,7 @@ function printHelp(topic?: string): void {
       "  pnpm dlx signaler@latest audit       # run with signaler.config.json",
       "",
       "Defaults:",
-      "  - Parallel auto-tunes from CPU/memory (up to 4 by default)",
+      "  - Parallel auto-tunes from CPU/memory (up to 3 by default)",
       "  - Throttling: simulate, CPU slowdown: 4, Runs: 1",
       "  - Stability: use --stable only when parallel mode flakes (e.g., TargetClose/Lantern errors)",
       "  - Accuracy tip: run against a production server (e.g., Next.js: next build && next start)",
@@ -418,6 +737,7 @@ function printHelp(topic?: string): void {
       "More help:",
       "  signaler help topics",
       "  signaler help budgets",
+      "  signaler help agent",
     ].join("\n"),
   );
 }
@@ -443,7 +763,7 @@ function setupGracefulShutdown(): void {
     }
     isShuttingDown = true;
 
-    console.error(`\n\nâš ï¸  Received ${signal}, shutting down gracefully...`);
+    console.error(`\n\n[WARN] Received ${signal}, shutting down gracefully...`);
     console.error("Cleaning up Chrome processes...");
 
     await cleanupChromeProcesses();
@@ -457,13 +777,13 @@ function setupGracefulShutdown(): void {
 
   // Cleanup on uncaught errors
   process.on("uncaughtException", async (error) => {
-    console.error("\nâŒ Uncaught exception:", error.message);
+    console.error("\n[ERROR] Uncaught exception:", error.message);
     await cleanupChromeProcesses();
     process.exit(1);
   });
 
   process.on("unhandledRejection", async (reason) => {
-    console.error("\nâŒ Unhandled rejection:", reason);
+    console.error("\n[ERROR] Unhandled rejection:", reason);
     await cleanupChromeProcesses();
     process.exit(1);
   });
@@ -476,14 +796,24 @@ export async function runBin(argv: readonly string[]): Promise<void> {
   setupGracefulShutdown();
   const parsed: ParsedBinArgs = parseBinArgs(argv);
   if (parsed.command === "help") {
-    const topic: string | undefined = argv[3];
-    printHelp(topic);
+    const helpArgs: readonly string[] = argv.slice(3);
+    const topic: string | undefined = helpArgs.find((arg) => !arg.startsWith("-"));
+    const json: boolean = helpArgs.includes("--json");
+    printHelp(topic, { json });
     return;
   }
 
   if (parsed.command === "version") {
     await printVersion();
     return;
+  }
+
+  if (hasHelpFlag(argv)) {
+    const helpTopic: string | undefined = resolveCommandHelpTopic(parsed.command);
+    if (helpTopic !== undefined) {
+      printHelp(helpTopic);
+      return;
+    }
   }
 
   if (parsed.command === "shell") {
@@ -506,6 +836,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
   const runOnce = async (): Promise<void> => {
     if (parsed.command === "audit") {
+      console.log("Compatibility alias: 'audit' maps to primary 'run' (planned removal in v4.0).");
       await runAuditCli(parsed.argv);
       return;
     }
@@ -521,7 +852,16 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       await runReportCli(parsed.argv);
       return;
     }
+    if (parsed.command === "analyze") {
+      await runAnalyzeCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "verify") {
+      await runVerifyCli(parsed.argv);
+      return;
+    }
     if (parsed.command === "review") {
+      console.log("Compatibility alias: 'review' maps to primary 'report' (planned removal in v4.0).");
       await runReportCli(parsed.argv);
       return;
     }
@@ -569,8 +909,16 @@ export async function runBin(argv: readonly string[]): Promise<void> {
       await runClearScreenshotsCli(parsed.argv);
       return;
     }
-    if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
-      await runWizardCli(parsed.argv);
+    if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide" || parsed.command === "discover") {
+      if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
+        console.log("Compatibility alias: use 'discover' as the primary setup command (init planned removal in v4.0).");
+      }
+      const hasScope: boolean = parsed.argv.some((arg) => arg === "--scope" || arg.startsWith("--scope="));
+      const discoverArgv: readonly string[] =
+        !hasScope
+          ? [...parsed.argv, "--scope", "full"]
+          : parsed.argv;
+      await runWizardCli(discoverArgv);
       return;
     }
     if (parsed.command === "config") {
@@ -600,7 +948,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
     // Handle common error scenarios with helpful messages
     if (message.includes("ENOENT") && message.includes("signaler.config.json")) {
-      console.error("\nâŒ Config file not found");
+      console.error("\n[ERROR] Config file not found");
       console.error("\nTo create a config file, run:");
       console.error("  signaler wizard");
       console.error("\nOr specify a config path:");
@@ -610,21 +958,21 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
 
     if (message.includes("ECONNREFUSED") || message.includes("ENOTFOUND")) {
-      console.error("\nâŒ Cannot connect to baseUrl");
+      console.error("\n[ERROR] Cannot connect to baseUrl");
       console.error("\nMake sure:");
-      console.error("  â€¢ Your development server is running");
-      console.error("  â€¢ The baseUrl in signaler.config.json is correct");
-      console.error("  â€¢ The server is accessible from this machine");
+      console.error("  - Your development server is running");
+      console.error("  - The baseUrl in signaler.config.json is correct");
+      console.error("  - The server is accessible from this machine");
       process.exitCode = 1;
       return;
     }
 
     if (message.includes("EACCES") || message.includes("permission denied")) {
-      console.error("\nâŒ Permission denied");
+      console.error("\n[ERROR] Permission denied");
       console.error("\nTry:");
-      console.error("  â€¢ Running with appropriate permissions");
-      console.error("  â€¢ Checking file/directory permissions");
-      console.error("  â€¢ Closing other applications that might lock files");
+      console.error("  - Running with appropriate permissions");
+      console.error("  - Checking file/directory permissions");
+      console.error("  - Closing other applications that might lock files");
       process.exitCode = 1;
       return;
     }
@@ -635,8 +983,8 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
 }
 
-void runBin(process.argv).catch((error: unknown) => {
-  console.error("\nâŒ Signaler CLI failed\n");
+function handleRunBinError(error: unknown): void {
+  console.error("\n[ERROR] Signaler CLI failed\n");
 
   if (error instanceof Error) {
     console.error("Error:", error.message);
@@ -653,9 +1001,27 @@ void runBin(process.argv).catch((error: unknown) => {
   }
 
   console.error("\nNeed help? Check:");
-  console.error("  â€¢ README.md for documentation");
-  console.error("  â€¢ signaler help for command reference");
-  console.error("  â€¢ GitHub issues for known problems");
+  console.error("  - README.md for documentation");
+  console.error("  - signaler help for command reference");
+  console.error("  - GitHub issues for known problems");
 
   process.exitCode = 1;
-});
+}
+
+function isDirectExecution(): boolean {
+  const invokedPath: string | undefined = process.argv[1];
+  if (typeof invokedPath !== "string" || invokedPath.length === 0) {
+    return false;
+  }
+  const modulePath: string = fileURLToPath(import.meta.url);
+  return resolve(invokedPath) === resolve(modulePath);
+}
+
+if (isDirectExecution()) {
+  void runBin(process.argv).catch(handleRunBinError);
+}
+
+
+
+
+

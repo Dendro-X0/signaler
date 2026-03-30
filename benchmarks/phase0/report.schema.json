@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signaler.dev/schemas/phase0-baseline-report.schema.json",
+  "title": "Signaler Phase 0 Baseline Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "entries", "summary"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "environment",
+          "profileId",
+          "runMode",
+          "toolchain",
+          "metrics",
+          "artifactSizes",
+          "status"
+        ],
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": ["ci-linux", "local-6c12t"]
+          },
+          "profileId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "runMode": {
+            "type": "string",
+            "enum": ["throughput", "fidelity"]
+          },
+          "toolchain": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nodeVersion"],
+            "properties": {
+              "nodeVersion": {
+                "type": "string",
+                "minLength": 1
+              },
+              "rustVersion": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["elapsedMs", "avgStepMs", "comboCount", "resolvedParallel"],
+            "properties": {
+              "elapsedMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "avgStepMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "comboCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "resolvedParallel": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "runnerStability": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "totalAttempts",
+                  "totalFailures",
+                  "totalRetries",
+                  "reductions",
+                  "cooldownPauses",
+                  "initialParallel",
+                  "finalParallel"
+                ],
+                "properties": {
+                  "totalAttempts": { "type": "integer", "minimum": 0 },
+                  "totalFailures": { "type": "integer", "minimum": 0 },
+                  "totalRetries": { "type": "integer", "minimum": 0 },
+                  "reductions": { "type": "integer", "minimum": 0 },
+                  "cooldownPauses": { "type": "integer", "minimum": 0 },
+                  "initialParallel": { "type": "integer", "minimum": 0 },
+                  "finalParallel": { "type": "integer", "minimum": 0 },
+                  "failureRate": { "type": "number", "minimum": 0 },
+                  "retryRate": { "type": "number", "minimum": 0 },
+                  "maxConsecutiveRetries": { "type": "integer", "minimum": 0 },
+                  "cooldownMsTotal": { "type": "number", "minimum": 0 },
+                  "recoveryIncreases": { "type": "integer", "minimum": 0 },
+                  "status": { "type": "string", "enum": ["stable", "degraded", "unstable"] }
+                }
+              }
+            }
+          },
+          "discovery": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["detected", "selected", "excludedDynamic", "excludedByFilter", "excludedByScope"],
+            "properties": {
+              "detected": { "type": "integer", "minimum": 0 },
+              "selected": { "type": "integer", "minimum": 0 },
+              "excludedDynamic": { "type": "integer", "minimum": 0 },
+              "excludedByFilter": { "type": "integer", "minimum": 0 },
+              "excludedByScope": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "artifactSizes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["runJsonBytes", "summaryJsonBytes"],
+            "properties": {
+              "runJsonBytes": { "type": "integer", "minimum": 0 },
+              "summaryJsonBytes": { "type": "integer", "minimum": 0 },
+              "resultsJsonBytes": { "type": "integer", "minimum": 0 },
+              "suggestionsJsonBytes": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ok", "warn", "error"]
+          },
+          "notes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "rustProbe": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["enabled", "status"],
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "status": { "type": "string", "enum": ["ok", "skipped", "error"] },
+              "elapsedMs": { "type": "number", "minimum": 0 },
+              "outputPath": { "type": "string", "minLength": 1 },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "ok", "warn", "error"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "ok": { "type": "integer", "minimum": 0 },
+        "warn": { "type": "integer", "minimum": 0 },
+        "error": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

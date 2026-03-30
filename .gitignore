@@ -19,7 +19,12 @@ test-report-failed/
 apex.config.json
 
 # Release artifacts
-release/
+release/*
+!release/v3/
+release/v3/*
+!release/v3/*.json
+release/v3/release-manifest.generated.json
+release/v3/release-preflight.json
 *.zip
 *.tgz
 
@@ -36,3 +41,9 @@ Thumbs.db
 # Rust build artifacts
 launcher/target/signaler-pkg.exe
 portable-package/
+rust/target/
+
+# Benchmark runtime artifacts
+benchmarks/workspaces/
+benchmarks/out/tmp/
+benchmarks/out/*.rust-discovery.json

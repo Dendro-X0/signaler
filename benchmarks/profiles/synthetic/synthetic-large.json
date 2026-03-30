@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "id": "synthetic-large",
+  "kind": "synthetic",
+  "description": "Synthetic large profile for high-load baseline checks (100 combos target).",
+  "projectRoot": "benchmarks/workspaces/synthetic-large",
+  "baseUrl": "__SYNTHETIC_BASE_URL__",
+  "routes": [
+    {
+      "path": "/",
+      "label": "home"
+    },
+    {
+      "path": "/route-01",
+      "label": "route-01"
+    },
+    {
+      "path": "/route-02",
+      "label": "route-02"
+    },
+    {
+      "path": "/route-03",
+      "label": "route-03"
+    },
+    {
+      "path": "/route-04",
+      "label": "route-04"
+    },
+    {
+      "path": "/route-05",
+      "label": "route-05"
+    },
+    {
+      "path": "/route-06",
+      "label": "route-06"
+    },
+    {
+      "path": "/route-07",
+      "label": "route-07"
+    },
+    {
+      "path": "/route-08",
+      "label": "route-08"
+    },
+    {
+      "path": "/route-09",
+      "label": "route-09"
+    },
+    {
+      "path": "/route-10",
+      "label": "route-10"
+    },
+    {
+      "path": "/route-11",
+      "label": "route-11"
+    },
+    {
+      "path": "/route-12",
+      "label": "route-12"
+    },
+    {
+      "path": "/route-13",
+      "label": "route-13"
+    },
+    {
+      "path": "/route-14",
+      "label": "route-14"
+    },
+    {
+      "path": "/route-15",
+      "label": "route-15"
+    },
+    {
+      "path": "/route-16",
+      "label": "route-16"
+    },
+    {
+      "path": "/route-17",
+      "label": "route-17"
+    },
+    {
+      "path": "/route-18",
+      "label": "route-18"
+    },
+    {
+      "path": "/route-19",
+      "label": "route-19"
+    },
+    {
+      "path": "/route-20",
+      "label": "route-20"
+    },
+    {
+      "path": "/route-21",
+      "label": "route-21"
+    },
+    {
+      "path": "/route-22",
+      "label": "route-22"
+    },
+    {
+      "path": "/route-23",
+      "label": "route-23"
+    },
+    {
+      "path": "/route-24",
+      "label": "route-24"
+    },
+    {
+      "path": "/route-25",
+      "label": "route-25"
+    },
+    {
+      "path": "/route-26",
+      "label": "route-26"
+    },
+    {
+      "path": "/route-27",
+      "label": "route-27"
+    },
+    {
+      "path": "/route-28",
+      "label": "route-28"
+    },
+    {
+      "path": "/route-29",
+      "label": "route-29"
+    },
+    {
+      "path": "/route-30",
+      "label": "route-30"
+    },
+    {
+      "path": "/route-31",
+      "label": "route-31"
+    },
+    {
+      "path": "/route-32",
+      "label": "route-32"
+    },
+    {
+      "path": "/route-33",
+      "label": "route-33"
+    },
+    {
+      "path": "/route-34",
+      "label": "route-34"
+    },
+    {
+      "path": "/route-35",
+      "label": "route-35"
+    },
+    {
+      "path": "/route-36",
+      "label": "route-36"
+    },
+    {
+      "path": "/route-37",
+      "label": "route-37"
+    },
+    {
+      "path": "/route-38",
+      "label": "route-38"
+    },
+    {
+      "path": "/route-39",
+      "label": "route-39"
+    },
+    {
+      "path": "/route-40",
+      "label": "route-40"
+    },
+    {
+      "path": "/route-41",
+      "label": "route-41"
+    },
+    {
+      "path": "/route-42",
+      "label": "route-42"
+    },
+    {
+      "path": "/route-43",
+      "label": "route-43"
+    },
+    {
+      "path": "/route-44",
+      "label": "route-44"
+    },
+    {
+      "path": "/route-45",
+      "label": "route-45"
+    },
+    {
+      "path": "/route-46",
+      "label": "route-46"
+    },
+    {
+      "path": "/route-47",
+      "label": "route-47"
+    },
+    {
+      "path": "/route-48",
+      "label": "route-48"
+    },
+    {
+      "path": "/route-49",
+      "label": "route-49"
+    }
+  ],
+  "devices": [
+    "mobile",
+    "desktop"
+  ],
+  "runModes": [
+    "throughput",
+    "fidelity"
+  ],
+  "modeConfig": {
+    "throughput": {
+      "parallel": 4,
+      "warmUp": false,
+      "runs": 1,
+      "throttlingMethod": "simulate"
+    },
+    "fidelity": {
+      "parallel": 1,
+      "warmUp": true,
+      "runs": 1,
+      "throttlingMethod": "devtools"
+    }
+  },
+  "expectedDetection": {
+    "detected": 50,
+    "selected": 50,
+    "excludedDynamic": 0,
+    "excludedByFilter": 0,
+    "excludedByScope": 0
+  },
+  "expectedCombos": 100
+}

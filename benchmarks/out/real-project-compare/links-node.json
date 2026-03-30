@@ -1,0 +1,416 @@
+{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\next-blogkit-pro\\signaler.config.json",
+    "baseUrl": "http://localhost:3000",
+    "resolvedParallel": 10,
+    "timeoutMs": 20000,
+    "maxUrls": 200,
+    "startedAt": "2026-03-06T01:51:22.639Z",
+    "completedAt": "2026-03-06T01:51:29.599Z",
+    "elapsedMs": 6960,
+    "accelerator": {
+      "engine": "node",
+      "requested": false,
+      "used": false
+    }
+  },
+  "discovered": {
+    "total": 70,
+    "unique": 70,
+    "truncated": false
+  },
+  "results": [
+    {
+      "url": "http://localhost:3000/",
+      "statusCode": 200,
+      "bytes": 233224
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/36866ad92e12152f.css",
+      "statusCode": 200,
+      "bytes": 105829
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/58fd7617f19721f2.js",
+      "statusCode": 200,
+      "bytes": 10242
+    },
+    {
+      "url": "http://localhost:3000/favicon-light.svg",
+      "statusCode": 200,
+      "bytes": 616
+    },
+    {
+      "url": "http://localhost:3000/favicon-dark.svg",
+      "statusCode": 200,
+      "bytes": 616
+    },
+    {
+      "url": "http://localhost:3000/blog",
+      "statusCode": 200,
+      "bytes": 43270
+    },
+    {
+      "url": "http://localhost:3000/docs",
+      "statusCode": 200,
+      "bytes": 64389
+    },
+    {
+      "url": "http://localhost:3000/search",
+      "statusCode": 200,
+      "bytes": 42555
+    },
+    {
+      "url": "http://localhost:3000/contact",
+      "statusCode": 200,
+      "bytes": 65464
+    },
+    {
+      "url": "http://localhost:3000/admin",
+      "statusCode": 307,
+      "bytes": 14222
+    },
+    {
+      "url": "http://localhost:3000/privacy",
+      "statusCode": 200,
+      "bytes": 15306
+    },
+    {
+      "url": "http://localhost:3000/terms",
+      "statusCode": 200,
+      "bytes": 15261
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics",
+      "statusCode": 307,
+      "bytes": 14710
+    },
+    {
+      "url": "http://localhost:3000/admin/posts",
+      "statusCode": 307,
+      "bytes": 16075
+    },
+    {
+      "url": "http://localhost:3000/blog/i18n-ready",
+      "statusCode": 200,
+      "bytes": 45367
+    },
+    {
+      "url": "http://localhost:3000/blog/mdx-support",
+      "statusCode": 200,
+      "bytes": 45369
+    },
+    {
+      "url": "http://localhost:3000/blog/secure-auth",
+      "statusCode": 200,
+      "bytes": 45369
+    },
+    {
+      "url": "http://localhost:3000/blog/theming",
+      "statusCode": 200,
+      "bytes": 45361
+    },
+    {
+      "url": "http://localhost:3000/blog/seo-optimized",
+      "statusCode": 200,
+      "bytes": 45373
+    },
+    {
+      "url": "http://localhost:3000/blog/extensible-and-customizable",
+      "statusCode": 200,
+      "bytes": 45401
+    },
+    {
+      "url": "http://localhost:3000/blog/analytics",
+      "statusCode": 200,
+      "bytes": 45365
+    },
+    {
+      "url": "http://localhost:3000/blog/advertising",
+      "statusCode": 200,
+      "bytes": 45369
+    },
+    {
+      "url": "http://localhost:3000/blog/email-templates",
+      "statusCode": 200,
+      "bytes": 45377
+    },
+    {
+      "url": "http://localhost:3000/docs/billing",
+      "statusCode": 200,
+      "bytes": 59236
+    },
+    {
+      "url": "http://localhost:3000/docs/monetization",
+      "statusCode": 200,
+      "bytes": 58761
+    },
+    {
+      "url": "http://localhost:3000/admin/monetization",
+      "statusCode": 307,
+      "bytes": 14691
+    },
+    {
+      "url": "http://localhost:3000/docs/admin-guide",
+      "statusCode": 200,
+      "bytes": 53694
+    },
+    {
+      "url": "http://localhost:3000/downloads",
+      "statusCode": 200,
+      "bytes": 42816
+    },
+    {
+      "url": "http://localhost:3000/docs/configuration",
+      "statusCode": 200,
+      "bytes": 65808
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/80ece4553d785e26.js",
+      "statusCode": 200,
+      "bytes": 21193
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js",
+      "statusCode": 200,
+      "bytes": 34185
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/62803306080a2d0f.js",
+      "statusCode": 200,
+      "bytes": 214872
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/d2b55967bb62176c.js",
+      "statusCode": 200,
+      "bytes": 39349
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/a5c89c5b7ae224ed.js",
+      "statusCode": 200,
+      "bytes": 85646
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/turbopack-783729a16d80fba2.js",
+      "statusCode": 200,
+      "bytes": 9982
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/4f25b594fc7426eb.js",
+      "statusCode": 200,
+      "bytes": 283
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/8d18549e358cd5f2.js",
+      "statusCode": 200,
+      "bytes": 27959
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/7e8ea8b38e641ee8.js",
+      "statusCode": 200,
+      "bytes": 12492
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/35ecfec58ae9b3f7.js",
+      "statusCode": 200,
+      "bytes": 42465
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/897fe33a1d3794ee.js",
+      "statusCode": 200,
+      "bytes": 23477
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/a1a45a13ca20504e.js",
+      "statusCode": 200,
+      "bytes": 25499
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/0883d2a0bab8c113.js",
+      "statusCode": 200,
+      "bytes": 30374
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/b65e17e4014faa65.js",
+      "statusCode": 200,
+      "bytes": 25940
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/d8345124c33321f7.js",
+      "statusCode": 200,
+      "bytes": 43376
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/cf6c673f158ef427.js",
+      "statusCode": 200,
+      "bytes": 113873
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/d29277d85be4f023.js",
+      "statusCode": 200,
+      "bytes": 30338
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/5067b3b86ca52b57.js",
+      "statusCode": 200,
+      "bytes": 17799
+    },
+    {
+      "url": "http://localhost:3000/_next/static/chunks/a6dad97d9634a72d.js",
+      "statusCode": 200,
+      "bytes": 112594
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fnext-blogkit_dark.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_1.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_2.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_3.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_4.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/icons/Next.js_wordmark_light.svg",
+      "statusCode": 200,
+      "bytes": 3597
+    },
+    {
+      "url": "http://localhost:3000/icons/React_light.svg",
+      "statusCode": 200,
+      "bytes": 6491
+    },
+    {
+      "url": "http://localhost:3000/icons/Tailwind%20CSS_wordmark_light.svg",
+      "statusCode": 200,
+      "bytes": 3301
+    },
+    {
+      "url": "http://localhost:3000/icons/typescript.svg",
+      "statusCode": 200,
+      "bytes": 1744
+    },
+    {
+      "url": "http://localhost:3000/icons/Drizzle%20ORM_light.svg",
+      "statusCode": 200,
+      "bytes": 608
+    },
+    {
+      "url": "http://localhost:3000/icons/Better%20Auth_dark.svg",
+      "statusCode": 200,
+      "bytes": 347
+    },
+    {
+      "url": "http://localhost:3000/icons/shadcn_ui_light.svg",
+      "statusCode": 200,
+      "bytes": 223
+    },
+    {
+      "url": "http://localhost:3000/icons/tanstack.svg",
+      "statusCode": 200,
+      "bytes": 9298
+    },
+    {
+      "url": "http://localhost:3000/icons/postgresql.svg",
+      "statusCode": 200,
+      "bytes": 3944
+    },
+    {
+      "url": "http://localhost:3000/icons/playwright.svg",
+      "statusCode": 200,
+      "bytes": 5024
+    },
+    {
+      "url": "http://localhost:3000/icons/stripe.svg",
+      "statusCode": 200,
+      "bytes": 1643
+    },
+    {
+      "url": "http://localhost:3000/icons/Motion_light.svg",
+      "statusCode": 200,
+      "bytes": 455
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fadmin_dashboard.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fnext-blogkit.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmonetization.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fanalytics.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fposts_management.png&amp;w=3840&amp;q=75",
+      "statusCode": 400,
+      "bytes": 33
+    }
+  ],
+  "broken": [
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fnext-blogkit_dark.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_1.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_2.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_3.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmobile_4.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fadmin_dashboard.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fnext-blogkit.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fmonetization.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fanalytics.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    },
+    {
+      "url": "http://localhost:3000/_next/image?url=%2Fposts_management.png&amp;w=3840&amp;q=75",
+      "statusCode": 400
+    }
+  ]
+}

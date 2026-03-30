@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-30T05:01:46.023Z",
+  "status": "ok",
+  "checks": [
+    {
+      "id": "v63-required-files",
+      "status": "ok",
+      "details": "Core V6.3 docs, commands, and tests are present.",
+      "blocking": true
+    },
+    {
+      "id": "canonical-flow-docs-v63",
+      "status": "ok",
+      "details": "V6.3 canonical flow found in 3 key docs.",
+      "blocking": true
+    },
+    {
+      "id": "local-workspace-flow-docs",
+      "status": "ok",
+      "details": "Local unpublished-build execution path is documented with node dist/bin.js commands.",
+      "blocking": true
+    },
+    {
+      "id": "runtime-budget-integration",
+      "status": "ok",
+      "details": "Verify runtime budget flag is integrated in CLI and shell completion.",
+      "blocking": true
+    },
+    {
+      "id": "timing-metadata",
+      "status": "ok",
+      "details": "Compact JSON summaries include orchestration timing/planning fields.",
+      "blocking": true
+    },
+    {
+      "id": "low-memory-guidance",
+      "status": "ok",
+      "details": "Low-memory throughput guidance is present in run output path.",
+      "blocking": true
+    },
+    {
+      "id": "v63-regression-tests",
+      "status": "ok",
+      "details": "V6.3 regression tests cover timing metadata and runtime budget planning.",
+      "blocking": true
+    },
+    {
+      "id": "success-gate-progress",
+      "status": "ok",
+      "details": "Success gate checklist complete (4/4).",
+      "blocking": false
+    },
+    {
+      "id": "loop-smoke-evidence",
+      "status": "ok",
+      "details": "Loop smoke passed in 14733ms.",
+      "blocking": false
+    },
+    {
+      "id": "low-memory-evidence",
+      "status": "ok",
+      "details": "Low-memory evidence report is present and passing.",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "blockingFailures": 0,
+    "warnings": 0,
+    "manualItems": 3
+  }
+}

@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { exec } from "node:child_process";
 import { createHash } from "node:crypto";
+import { cpus, freemem } from "node:os";
 import { gzipSync } from "node:zlib";
 import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
@@ -32,6 +33,7 @@ import type {
   ApexDevice,
   ApexPageConfig,
   ApexThrottlingMethod,
+  ApexThroughputBackoffPolicy,
   CategoryBudgetThresholds,
   MetricBudgetThresholds,
   OpportunitySummary,
@@ -43,6 +45,23 @@ import type { AgentIndexV3, AgentIndexSuggestionRefV3 } from "./contracts/v3/age
 import type { ResultsV3, ResultsV3Line } from "./contracts/v3/results-v3.js";
 import type { SuggestionV3, SuggestionsV3 } from "./contracts/v3/suggestions-v3.js";
 import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./contracts/v3/validators.js";
+import { processSummaryWithRust, type RustProcessorAttempt } from "./rust/processor-adapter.js";
+import { isRustFeatureEnabled } from "./rust/bridge.js";
+import { runRustSignalReducer, type RustReduceSignalsAttempt } from "./rust/core-adapter.js";
+import {
+  applyExternalBoostToSuggestions,
+  buildDefaultExternalSignalsMetadata,
+  evaluateConservativeExternalSignals,
+  extractIssueIdFromSuggestionId,
+  loadExternalSignalsFromFiles,
+} from "./external-signals.js";
+import {
+  buildTopSuggestionRefs,
+  estimateTokens,
+  getMachineProfileCaps,
+  type MachineArtifactProfile,
+} from "./machine-output-profile.js";
+import { buildRunSuggestionCommand } from "./cli-invocation.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -108,9 +127,15 @@ interface CliArgs {
   readonly budgetWebhookUrl: string | undefined;
   readonly budgetWebhookRetries: number | undefined;
   readonly mode: "fidelity" | "throughput" | undefined;
+  readonly parity: boolean;
   readonly contractVersion: "legacy" | "v3";
   readonly legacyArtifacts: boolean;
   readonly baselinePath: string | undefined;
+  readonly isolationOverride: "shared" | "per-audit" | "browser" | undefined;
+  readonly throughputBackoffOverride: ApexThroughputBackoffPolicy | undefined;
+  readonly externalSignalsPaths: readonly string[];
+  readonly artifactProfile: MachineArtifactProfile;
+  readonly machineTokenBudgetOverride: number | undefined;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -125,6 +150,7 @@ type RunProtocolV3 = {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
   readonly sessionIsolation: "shared" | "per-audit";
+  readonly throughputBackoff: ApexThroughputBackoffPolicy;
   readonly warmUp: boolean;
   readonly headless: boolean;
   readonly runsPerCombo: number;
@@ -139,6 +165,7 @@ type V3ModeDefaults = {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
   readonly sessionIsolation: "shared" | "per-audit";
+  readonly throughputBackoff: ApexThroughputBackoffPolicy;
   readonly warmUp: boolean;
   readonly runsPerCombo: number;
 };
@@ -309,9 +336,30 @@ type RuntimeMeta = {
   readonly throttlingOverridesApplied: boolean;
   readonly cpuSlowdownMultiplier?: number;
   readonly parallel: number;
+  readonly throughputBackoff: ApexThroughputBackoffPolicy;
   readonly runsPerCombo: number;
   readonly warmUp: boolean;
   readonly captureLevel: "diagnostics" | "lhr" | "none";
+  readonly resourceProfile?: {
+    readonly cpuCount: number;
+    readonly freeMemoryMB: number;
+    readonly baseParallelCap: number;
+    readonly appliedParallelCap: number;
+    readonly reasons: readonly string[];
+  };
+  readonly stepTimings?: {
+    readonly warmUpMs: number;
+    readonly queueBuildMs: number;
+    readonly runLoopMs: number;
+    readonly reductionMs: number;
+    readonly artifactWriteMs: number;
+    readonly totalPipelineMs: number;
+  };
+  readonly accelerators?: {
+    readonly rustCore?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
+    readonly rustDiscovery?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
+    readonly rustProcessor?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
+  };
 };
 
 type AiFixPacket = {
@@ -1520,6 +1568,9 @@ function buildRuntimeMeta(params: {
   readonly config: ApexConfig;
   readonly captureLevel: "diagnostics" | "lhr" | undefined;
   readonly chromePort?: number;
+  readonly resourceProfile?: RuntimeMeta["resourceProfile"];
+  readonly stepTimings?: RuntimeMeta["stepTimings"];
+  readonly accelerators?: RuntimeMeta["accelerators"];
 }): RuntimeMeta {
   const captureLevel: RuntimeMeta["captureLevel"] = params.captureLevel ?? "none";
   const throttlingMethod: ApexThrottlingMethod = params.config.throttlingMethod ?? "simulate";
@@ -1563,9 +1614,13 @@ function buildRuntimeMeta(params: {
     throttlingOverridesApplied,
     cpuSlowdownMultiplier: params.config.cpuSlowdownMultiplier,
     parallel: params.config.parallel ?? 1,
+    throughputBackoff: params.config.throughputBackoff ?? "auto",
     runsPerCombo: params.config.runs ?? 1,
     warmUp: params.config.warmUp ?? false,
     captureLevel,
+    resourceProfile: params.resourceProfile,
+    stepTimings: params.stepTimings,
+    accelerators: params.accelerators,
   };
 }
 
@@ -1917,6 +1972,9 @@ function collectTopIssues(results: readonly PageDeviceSummary[]): readonly {
   const counts: Map<string, { readonly title: string; count: number; totalMs: number }> = new Map();
   for (const r of results) {
     for (const opp of r.opportunities) {
+      if (!hasMeaningfulSavings(opp)) {
+        continue;
+      }
       const existing = counts.get(opp.title);
       if (existing) {
         existing.count += 1;
@@ -1937,7 +1995,13 @@ function getFileNameFromPath(input: string): string {
 
 function buildSuggestedCommands(configFileName: string, targets: readonly { readonly path: string; readonly device: ApexDevice }[]): readonly string[] {
   const configArg: string = configFileName.length > 0 ? configFileName : "<config.json>";
-  return targets.map((t) => `pnpm tsx src/bin.ts --config ${configArg} --${t.device}-only --open-report # focus on ${t.path}`);
+  return targets.map((t) =>
+    buildRunSuggestionCommand({
+      configArg,
+      targetPath: t.path,
+      device: t.device,
+    }),
+  );
 }
 
 function buildShareableExport(params: {
@@ -2106,7 +2170,9 @@ function buildIssuesPanel(results: readonly PageDeviceSummary[], useColor: boole
     return renderPanel({ title: theme.bold("Issues"), lines: [theme.green("No red issues.")] });
   }
   const lines: string[] = reds.map((r) => {
-    const top = r.opportunities[0];
+    const meaningful: OpportunitySummary[] = r.opportunities.filter((opp) => hasMeaningfulSavings(opp));
+    const source: readonly OpportunitySummary[] = meaningful.length > 0 ? meaningful : r.opportunities;
+    const top = source[0];
     const issue: string = top ? `${top.title}${top.estimatedSavingsMs ? ` (${Math.round(top.estimatedSavingsMs)}ms)` : ""}` : "No top issue reported";
     const perfText: string = colorScore(r.scores.performance, theme);
     const deviceText: string = colorDevice(r.device, theme);
@@ -2120,6 +2186,9 @@ function buildTopFixesPanel(results: readonly PageDeviceSummary[], useColor: boo
   const opportunityCounts: Map<string, { readonly title: string; count: number; totalMs: number }> = new Map();
   for (const r of results) {
     for (const opp of r.opportunities) {
+      if (!hasMeaningfulSavings(opp)) {
+        continue;
+      }
       const existing = opportunityCounts.get(opp.title);
       if (existing) {
         existing.count += 1;
@@ -2135,6 +2204,26 @@ function buildTopFixesPanel(results: readonly PageDeviceSummary[], useColor: boo
   }
   const lines: string[] = sorted.map((o) => `- ${theme.cyan(o.title)} (seen on ${o.count} pages) (${Math.round(o.totalMs)}ms)`);
   return renderPanel({ title: theme.bold("Top fixes"), lines });
+}
+
+function buildTrustNotePanel(params: { readonly useColor: boolean; readonly protocol: RunProtocolV3 }): string {
+  const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  if (params.protocol.mode === "throughput") {
+    return renderPanel({
+      title: theme.bold("Trust note"),
+      lines: [
+        "Throughput mode is trend-oriented and may score lower than manual DevTools runs.",
+        "Use `--mode fidelity` (or `--parity`) when validating DevTools-like parity.",
+      ],
+    });
+  }
+  return renderPanel({
+    title: theme.bold("Trust note"),
+    lines: [
+      "Fidelity mode is reproducibility-first and intended for DevTools-like validation.",
+      "Compare runs only when comparabilityHash matches.",
+    ],
+  });
 }
 
 function buildLowestPerformancePanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
@@ -2258,9 +2347,15 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let budgetWebhookUrl: string | undefined;
   let budgetWebhookRetries: number | undefined;
   let mode: RunnerMode | undefined;
+  let parity = false;
   let contractVersion: "legacy" | "v3" = "legacy";
   let legacyArtifacts = false;
   let baselinePath: string | undefined;
+  let isolationOverride: "shared" | "per-audit" | "browser" | undefined;
+  let throughputBackoffOverride: ApexThroughputBackoffPolicy | undefined;
+  const externalSignalsPaths: string[] = [];
+  let artifactProfile: MachineArtifactProfile = "lean";
+  let machineTokenBudgetOverride: number | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2449,6 +2544,38 @@ function parseArgs(argv: readonly string[]): CliArgs {
       if (value === "fidelity" || value === "throughput") mode = value;
       else throw new Error(`Invalid --mode value: ${value}. Expected "fidelity" or "throughput".`);
       i += 1;
+    } else if (arg === "--parity") {
+      parity = true;
+    } else if (arg === "--throughput-backoff" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "auto" || value === "aggressive" || value === "off") {
+        throughputBackoffOverride = value;
+      } else {
+        throw new Error(`Invalid --throughput-backoff value: ${value}. Expected "auto", "aggressive", or "off".`);
+      }
+      i += 1;
+    } else if (arg.startsWith("--throughput-backoff=")) {
+      const value: string = arg.split("=")[1] ?? "";
+      if (value === "auto" || value === "aggressive" || value === "off") {
+        throughputBackoffOverride = value;
+      } else {
+        throw new Error(`Invalid --throughput-backoff value: ${value}. Expected "auto", "aggressive", or "off".`);
+      }
+    } else if (arg === "--isolation" && i + 1 < argv.length) {
+      const value: string = argv[i + 1];
+      if (value === "shared" || value === "per-audit" || value === "browser") {
+        isolationOverride = value;
+      } else {
+        throw new Error(`Invalid --isolation value: ${value}. Expected "shared", "per-audit", or "browser".`);
+      }
+      i += 1;
+    } else if (arg.startsWith("--isolation=")) {
+      const value: string = arg.split("=")[1] ?? "";
+      if (value === "shared" || value === "per-audit" || value === "browser") {
+        isolationOverride = value;
+      } else {
+        throw new Error(`Invalid --isolation value: ${value}. Expected "shared", "per-audit", or "browser".`);
+      }
     } else if (arg === "--contract" && i + 1 < argv.length) {
       const value: string = argv[i + 1];
       if (value === "legacy" || value === "v3") contractVersion = value;
@@ -2459,11 +2586,35 @@ function parseArgs(argv: readonly string[]): CliArgs {
     } else if (arg === "--baseline" && i + 1 < argv.length) {
       baselinePath = argv[i + 1];
       i += 1;
+    } else if (arg === "--artifact-profile" && i + 1 < argv.length) {
+      const value: string = argv[i + 1] ?? "";
+      if (value === "lean" || value === "standard" || value === "diagnostics") {
+        artifactProfile = value;
+      } else {
+        throw new Error(`Invalid --artifact-profile value: ${value}. Expected "lean", "standard", or "diagnostics".`);
+      }
+      i += 1;
+    } else if (arg === "--machine-token-budget" && i + 1 < argv.length) {
+      const value: number = parseInt(argv[i + 1], 10);
+      if (Number.isNaN(value) || value < 2000) {
+        throw new Error(`Invalid --machine-token-budget value: ${argv[i + 1]}. Expected integer >= 2000.`);
+      }
+      machineTokenBudgetOverride = value;
+      i += 1;
+    } else if (arg === "--external-signals" && i + 1 < argv.length) {
+      externalSignalsPaths.push(resolve(argv[i + 1]));
+      i += 1;
+    } else if (arg.startsWith("--external-signals=")) {
+      const value: string = arg.split("=")[1] ?? "";
+      if (value.length === 0) {
+        throw new Error("Invalid --external-signals value: expected a file path.");
+      }
+      externalSignalsPaths.push(resolve(value));
     }
   }
-  const presetCount: number = [fast, quick, accurate, devtoolsAccurate, overview].filter((flag) => flag).length;
+  const presetCount: number = [fast, quick, accurate, devtoolsAccurate, overview, parity].filter((flag) => flag).length;
   if (presetCount > 1) {
-    throw new Error("Choose only one preset: --overview, --fast, --quick, --accurate, or --devtools-accurate");
+    throw new Error("Choose only one preset: --overview, --fast, --quick, --accurate, --devtools-accurate, or --parity");
   }
   if (lhr) {
     diagnostics = true;
@@ -2515,9 +2666,15 @@ function parseArgs(argv: readonly string[]): CliArgs {
     budgetWebhookUrl,
     budgetWebhookRetries,
     mode,
+    parity,
     contractVersion,
     legacyArtifacts,
     baselinePath,
+    isolationOverride,
+    throughputBackoffOverride,
+    externalSignalsPaths,
+    artifactProfile,
+    machineTokenBudgetOverride,
   };
 }
 
@@ -2529,6 +2686,7 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
       throttlingMethod: "devtools",
       parallel: 1,
       sessionIsolation: "per-audit",
+      throughputBackoff: "off",
       warmUp: true,
       runsPerCombo: 3,
     };
@@ -2537,10 +2695,75 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
     mode: "throughput",
     profile: "throughput-balanced",
     throttlingMethod: "simulate",
-    parallel: 4,
+    // Safer default for common laptops/desktops; users can still opt-in higher with --parallel.
+    parallel: 2,
     sessionIsolation: "shared",
+    throughputBackoff: "auto",
     warmUp: true,
     runsPerCombo: 1,
+  };
+}
+
+type AutoResourceProfile = {
+  readonly cpuCount: number;
+  readonly freeMemoryMB: number;
+  readonly baseParallelCap: number;
+  readonly appliedParallelCap: number;
+  readonly reasons: readonly string[];
+};
+
+function readPositiveIntEnv(name: string): number | undefined {
+  const raw = process.env[name];
+  if (raw === undefined) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return parsed;
+}
+
+function resolveAutoResourceProfile(params: { readonly plannedCombos: number }): AutoResourceProfile {
+  const forcedCpuCount: number | undefined = readPositiveIntEnv("SIGNALER_FORCE_CPU_COUNT");
+  const forcedFreeMemoryMB: number | undefined = readPositiveIntEnv("SIGNALER_FORCE_FREE_MEMORY_MB");
+  const cpuCount: number = forcedCpuCount ?? cpus().length;
+  const freeMemoryMB: number = forcedFreeMemoryMB ?? Math.round(freemem() / (1024 * 1024));
+  const reasons: string[] = [];
+
+  if (forcedCpuCount !== undefined || forcedFreeMemoryMB !== undefined) {
+    reasons.push("forced-resource-profile");
+  }
+
+  let baseParallelCap = 4;
+  if (freeMemoryMB < 3072 || cpuCount <= 4) {
+    baseParallelCap = 1;
+    reasons.push(freeMemoryMB < 3072 ? "low-memory" : "low-cpu");
+  } else if (cpuCount <= 8) {
+    baseParallelCap = 2;
+    reasons.push("mid-cpu");
+  } else if (cpuCount <= 12) {
+    baseParallelCap = 3;
+    reasons.push("upper-mid-cpu");
+  } else {
+    reasons.push("high-cpu");
+  }
+
+  let appliedParallelCap = baseParallelCap;
+  if (params.plannedCombos >= 80) {
+    appliedParallelCap = Math.min(appliedParallelCap, 2);
+    reasons.push("large-suite-cap");
+  } else if (params.plannedCombos >= 40) {
+    appliedParallelCap = Math.min(appliedParallelCap, 3);
+    reasons.push("medium-suite-cap");
+  }
+
+  return {
+    cpuCount,
+    freeMemoryMB,
+    baseParallelCap,
+    appliedParallelCap: Math.max(1, appliedParallelCap),
+    reasons,
   };
 }
 
@@ -2550,6 +2773,7 @@ function buildComparabilityHash(params: {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly parallel: number;
   readonly sessionIsolation: "shared" | "per-audit";
+  readonly throughputBackoff: ApexThroughputBackoffPolicy;
   readonly warmUp: boolean;
   readonly headless: boolean;
   readonly runsPerCombo: number;
@@ -2562,6 +2786,7 @@ function buildComparabilityHash(params: {
     throttlingMethod: params.throttlingMethod,
     parallel: params.parallel,
     sessionIsolation: params.sessionIsolation,
+    throughputBackoff: params.throughputBackoff,
     warmUp: params.warmUp,
     headless: params.headless,
     runsPerCombo: params.runsPerCombo,
@@ -2639,9 +2864,15 @@ function printAuditFlags(): void {
       "  --devtools-accurate Preset: devtools throttling + warm-up + higher parallelism by default",
       "  --open             Open the HTML report after the run.",
       "  --mode <m>         Run mode profile: fidelity | throughput (default throughput)",
+      "  --parity           Preset: parity-oriented fidelity run (equivalent to --mode fidelity defaults)",
+      "  --throughput-backoff <m> Backoff policy for parallel instability: auto | aggressive | off",
+      "  --isolation <m>    Browser isolation: shared | per-audit | browser (browser => strict relaunch + parallel=1)",
       "  --contract <c>     Artifact contract: legacy | v3 (default legacy)",
       "  --legacy-artifacts Keep legacy artifacts when --contract v3 is enabled",
       "  --baseline <path>  Baseline run.json path to compare compat hash against",
+      "  --artifact-profile <p> Machine output profile: lean | standard | diagnostics (default lean)",
+      "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
+      "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
     ].join("\n"),
   );
 }
@@ -2660,6 +2891,7 @@ function printPlan(params: {
   const lines: string[] = [];
   lines.push(`Config: ${params.configPath}`);
   lines.push(`Parallel: ${params.resolvedConfig.parallel ?? "auto"}`);
+  lines.push(`Throughput backoff: ${params.resolvedConfig.throughputBackoff ?? "auto"}`);
   lines.push(`Throttling: ${params.resolvedConfig.throttlingMethod ?? "simulate"}`);
   lines.push(`CPU slowdown: ${params.resolvedConfig.cpuSlowdownMultiplier ?? 4}`);
   lines.push(`Warm-up: ${params.resolvedConfig.warmUp === true ? "yes" : "no"}`);
@@ -2789,6 +3021,7 @@ function buildEffectiveSettingsPanel(params: { readonly configPath: string; read
   const throttlingText: string = params.config.throttlingMethod ?? "simulate";
   const cpuText: string = String(params.config.cpuSlowdownMultiplier ?? 4);
   const parallelText: string = String(params.config.parallel ?? 4);
+  const backoffText: string = params.config.throughputBackoff ?? "auto";
   const warmUpText: string = params.config.warmUp ? "yes" : "no";
   const incrementalText: string = params.config.incremental ? "on" : "off";
   const lines: string[] = [];
@@ -2799,6 +3032,7 @@ function buildEffectiveSettingsPanel(params: { readonly configPath: string; read
   lines.push(`${theme.dim("Throttling")}: ${throttlingText}`);
   lines.push(`${theme.dim("CPU slowdown")}: ${cpuText}`);
   lines.push(`${theme.dim("Parallel")}: ${parallelText}`);
+  lines.push(`${theme.dim("Throughput backoff")}: ${backoffText}`);
   return renderPanel({ title: theme.bold("Effective settings"), lines });
 }
 
@@ -2821,6 +3055,17 @@ function buildMetaPanel(meta: RunSummary["meta"], useColor: boolean): string {
     `${theme.dim("Elapsed")}: ${formatElapsedTime(meta.elapsedMs)}`,
     `${theme.dim("Avg / step")}: ${formatElapsedTime(meta.averageStepMs)}`,
   ];
+  if (meta.runnerStability !== undefined) {
+    const failureRatePct = typeof meta.runnerStability.failureRate === "number"
+      ? `${(meta.runnerStability.failureRate * 100).toFixed(1)}%`
+      : "-";
+    const retryRatePct = typeof meta.runnerStability.retryRate === "number"
+      ? `${(meta.runnerStability.retryRate * 100).toFixed(1)}%`
+      : "-";
+    lines.push(
+      `${theme.dim("Runner stability")}: policy=${meta.runnerStability.backoffPolicy}, status=${meta.runnerStability.status ?? "-"}, failures=${meta.runnerStability.totalFailures}, retries=${meta.runnerStability.totalRetries}, failureRate=${failureRatePct}, retryRate=${retryRatePct}, maxConsecutiveRetries=${meta.runnerStability.maxConsecutiveRetries ?? 0}, reductions=${meta.runnerStability.reductions}, recoveries=${meta.runnerStability.recoveryIncreases ?? 0}, finalParallel=${meta.runnerStability.finalParallel}`,
+    );
+  }
   return renderPanel({ title: theme.bold("Meta"), lines });
 }
 
@@ -2957,6 +3202,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     printAuditFlags();
     return;
   }
+  const loadedExternalSignals = await loadExternalSignalsFromFiles(args.externalSignalsPaths);
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
   if (config.gitIgnoreSignalerDir === true) {
@@ -2964,7 +3210,10 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   const previousSummary: RunSummary | undefined = await loadPreviousSummary({ outputDir: resolvedOutput.outputDir });
   let comparisonSummary: RunSummary | undefined = previousSummary;
-  const modeDefaults: V3ModeDefaults = resolveV3ModeDefaults(args.mode);
+  const resolvedModeArg: RunnerMode | undefined = args.parity ? "fidelity" : args.mode;
+  const modeDefaults: V3ModeDefaults = resolveV3ModeDefaults(resolvedModeArg);
+  const profileCaps = getMachineProfileCaps(args.artifactProfile);
+  const effectiveMachineTokenBudget: number = args.machineTokenBudgetOverride ?? profileCaps.defaultTokenBudget;
 
   const DEFAULT_PARALLEL: number = 4;
   const DEFAULT_WARM_UP: boolean = true;
@@ -2978,7 +3227,10 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const effectiveLogLevel: CliLogLevel | undefined = args.logLevelOverride ?? config.logLevel;
   const effectiveThrottling: ApexThrottlingMethod | undefined = args.fast ? "simulate" : args.throttlingMethodOverride ?? presetThrottling ?? config.throttlingMethod ?? modeDefaults.throttlingMethod;
   const effectiveCpuSlowdown: number | undefined = args.cpuSlowdownOverride ?? config.cpuSlowdownMultiplier;
-  const effectiveParallel: number | undefined = args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel ?? modeDefaults.parallel ?? DEFAULT_PARALLEL;
+  const strictBrowserIsolationRequested: boolean = args.isolationOverride === "browser";
+  const effectiveParallel: number | undefined = strictBrowserIsolationRequested
+    ? 1
+    : (args.stable ? 1 : args.parallelOverride ?? presetParallel ?? config.parallel ?? modeDefaults.parallel ?? DEFAULT_PARALLEL);
   const effectiveAuditTimeoutMs: number | undefined = args.auditTimeoutMsOverride ?? config.auditTimeoutMs;
   const warmUpDefaulted: boolean = presetWarmUp ?? config.warmUp ?? modeDefaults.warmUp ?? DEFAULT_WARM_UP;
   const effectiveWarmUp: boolean = args.warmUp ? true : warmUpDefaulted;
@@ -3001,7 +3253,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const devtoolsRunsDefault: number | undefined = isDevtoolsAccuratePreset && configRuns === undefined ? 3 : undefined;
   const modeRunsDefault: number = modeDefaults.runsPerCombo;
   const effectiveRuns: number = args.fast ? 1 : (configRuns ?? devtoolsRunsDefault ?? modeRunsDefault);
-  const effectiveSessionIsolation: "shared" | "per-audit" = config.sessionIsolation ?? modeDefaults.sessionIsolation;
+  const isolationCandidate: "shared" | "per-audit" | "browser" = args.isolationOverride ?? config.sessionIsolation ?? modeDefaults.sessionIsolation;
+  const effectiveSessionIsolation: "shared" | "per-audit" = isolationCandidate === "browser" ? "per-audit" : isolationCandidate;
+  const effectiveThroughputBackoff: ApexThroughputBackoffPolicy = args.throughputBackoffOverride ?? config.throughputBackoff ?? modeDefaults.throughputBackoff;
   const onlyCategories: readonly ApexCategory[] | undefined = args.fast ? ["performance"] : undefined;
   const resolvedMode: RunnerMode = modeDefaults.mode;
   const resolvedProfile: RunnerProfile = modeDefaults.profile;
@@ -3014,6 +3268,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
     parallel: effectiveParallel ?? DEFAULT_PARALLEL,
     sessionIsolation: effectiveSessionIsolation,
+    throughputBackoff: effectiveThroughputBackoff,
     warmUp: effectiveWarmUp,
     headless: true,
     runsPerCombo: effectiveRuns,
@@ -3024,6 +3279,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       throttlingMethod: effectiveThrottling ?? DEFAULT_THROTTLING,
       parallel: effectiveParallel ?? DEFAULT_PARALLEL,
       sessionIsolation: effectiveSessionIsolation,
+      throughputBackoff: effectiveThroughputBackoff,
       warmUp: effectiveWarmUp,
       headless: true,
       runsPerCombo: effectiveRuns,
@@ -3034,6 +3290,10 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       ? "Fidelity mode targets DevTools-like reproducibility; compare only with matching comparabilityHash."
       : "Throughput mode prioritizes coverage and consistency over direct DevTools parity.",
   };
+  if (strictBrowserIsolationRequested && args.parallelOverride !== undefined && args.parallelOverride !== 1) {
+    // eslint-disable-next-line no-console
+    console.log("Isolation mode 'browser' enforces parallel=1 for stability; ignoring --parallel override.");
+  }
   if (args.baselinePath) {
     const baseline = await readBaselineCompat({ baselinePath: args.baselinePath });
     if (!baseline) {
@@ -3074,6 +3334,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     cpuSlowdownMultiplier: effectiveCpuSlowdown,
     parallel: effectiveParallel,
     sessionIsolation: effectiveSessionIsolation,
+    throughputBackoff: effectiveThroughputBackoff,
     auditTimeoutMs: effectiveAuditTimeoutMs,
     warmUp: effectiveWarmUp,
     incremental: finalIncremental,
@@ -3128,13 +3389,11 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const plannedCombos: number = overviewSample.config.pages.reduce((acc, p) => acc + p.devices.length, 0);
   const plannedRuns: number = overviewSample.config.runs ?? 1;
   const plannedSteps: number = plannedCombos * plannedRuns;
-  const LARGE_RUN_COMBOS_THRESHOLD: number = 76;
-  const LARGE_RUN_PARALLEL_CAP: number = 4;
+  const resourceProfile: AutoResourceProfile = resolveAutoResourceProfile({ plannedCombos });
   const usingDefaultParallel: boolean = args.parallelOverride === undefined && presetParallel === undefined && config.parallel === undefined;
-  const isLargeRun: boolean = plannedCombos >= LARGE_RUN_COMBOS_THRESHOLD;
-  const autoStableLargeRun: boolean = isLargeRun && !args.stable && usingDefaultParallel;
-  const resolvedConfigForRun: ApexConfig = autoStableLargeRun
-    ? { ...overviewSample.config, parallel: Math.min(overviewSample.config.parallel ?? DEFAULT_PARALLEL, LARGE_RUN_PARALLEL_CAP) }
+  const autoSafeParallel: boolean = !args.stable && usingDefaultParallel;
+  const resolvedConfigForRun: ApexConfig = autoSafeParallel
+    ? { ...overviewSample.config, parallel: Math.min(overviewSample.config.parallel ?? DEFAULT_PARALLEL, resourceProfile.appliedParallelCap) }
     : overviewSample.config;
   const maxSteps: number = args.maxSteps ?? DEFAULT_MAX_STEPS;
   const maxCombos: number = args.maxCombos ?? DEFAULT_MAX_COMBOS;
@@ -3160,11 +3419,17 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     // eslint-disable-next-line no-console
     console.log(`Tip: large run (${plannedCombos} combos). Use --plan to preview, and retry with --stable if parallel mode flakes.`);
   }
-  if (autoStableLargeRun && isTty && !args.ci && !args.jsonOutput) {
+  if (autoSafeParallel && isTty && !args.ci && !args.jsonOutput) {
     // eslint-disable-next-line no-console
     console.log(
-      `Large run detected (${plannedCombos} combos). Using stability mode: parallel capped to ${resolvedConfigForRun.parallel}. Override with --parallel <n> or --stable (parallel=1).`,
+      `Auto resource profile applied: parallel capped to ${resolvedConfigForRun.parallel} (cpu=${resourceProfile.cpuCount}, freeMem=${resourceProfile.freeMemoryMB}MB, reasons=${resourceProfile.reasons.join(",")}). Override with --parallel <n> or --stable (parallel=1).`,
     );
+    if (resourceProfile.reasons.includes("low-memory")) {
+      // eslint-disable-next-line no-console
+      console.log(
+        "Low-memory guidance: reduce scope (discover --scope quick), use focused reruns (--focus-worst <n>), and keep verify runs narrow (--max-routes <n>).",
+      );
+    }
   }
   if (overviewSample.sampled) {
     // eslint-disable-next-line no-console
@@ -3247,6 +3512,19 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (!filteredConfig.warmUp) {
     startAuditSpinner();
   }
+  let rustCoreRunnerMeta: {
+    readonly enabled: boolean;
+    readonly used: boolean;
+    readonly fallbackReason?: string;
+    readonly sidecarElapsedMs?: number;
+    readonly stepTimings?: {
+      readonly warmUpMs: number;
+      readonly queueBuildMs: number;
+      readonly runLoopMs: number;
+      readonly reductionMs: number;
+      readonly totalMs: number;
+    };
+  } | undefined;
   try {
     summary = await runAuditsForConfig({
       config: resolvedConfigForRun,
@@ -3257,6 +3535,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       captureLevel,
       signal: abortController.signal,
       onAfterWarmUp: startAuditSpinner,
+      onRustCoreMeta: (meta) => {
+        rustCoreRunnerMeta = meta;
+      },
       onProgress: ({ completed, total, path, device, etaMs }) => {
         if (engineJson.enabled) {
           const event: EngineEventPayload = {
@@ -3314,6 +3595,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (writeFullLegacyArtifacts) {
     await writeJsonWithOptionalGzip(resolve(outputDir, "summary-lite.json"), summaryLite);
   }
+  const reductionStartedAtMs: number = Date.now();
   const worstFirstForHints: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly baseName: string }[] =
     [...summary.results]
       .sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101))
@@ -3335,15 +3617,127 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     captureLevel,
     failing: failingForHints,
   });
+  const rustReducerAttempt: RustReduceSignalsAttempt = await runRustSignalReducer({
+    summaryPath: resolve(outputDir, "summary.json"),
+    protocol: {
+      mode: protocol.mode,
+      profile: protocol.profile,
+      comparabilityHash: protocol.comparabilityHash,
+    },
+    policy: {
+      zeroImpactFilter: true,
+      minConfidence: "medium",
+      maxSuggestions: 50,
+    },
+  });
+  const rustProcessorAttempt: RustProcessorAttempt = await processSummaryWithRust({
+    summaryPath: resolve(outputDir, "summary.json"),
+  });
   const issues: IssuesIndex = buildIssuesIndex({
     summary,
     outputDir,
     captureLevel,
     targetScore: DEFAULT_TARGET_SCORE,
     hintsByBaseName,
+    topIssuesOverride: rustReducerAttempt.used
+      ? rustReducerAttempt.topIssues
+      : rustProcessorAttempt.used
+        ? rustProcessorAttempt.topIssues
+        : undefined,
   });
   await writeJsonWithOptionalGzip(resolve(outputDir, "issues.json"), issues);
-  const runtime: RuntimeMeta = buildRuntimeMeta({ config: resolvedConfigForRun, captureLevel, chromePort: resolvedConfigForRun.chromePort });
+  let suggestionsV3: SuggestionsV3 = rustReducerAttempt.used && rustReducerAttempt.suggestions !== undefined
+    ? {
+      generatedAt: new Date().toISOString(),
+      mode: protocol.mode,
+      comparabilityHash: protocol.comparabilityHash,
+      suggestions: [...rustReducerAttempt.suggestions],
+    }
+    : buildSuggestionsV3({ issues, protocol });
+  const knownIssueIds: ReadonlySet<string> = new Set(
+    suggestionsV3.suggestions
+      .map((row) => extractIssueIdFromSuggestionId(row.id))
+      .filter((row): row is string => typeof row === "string" && row.length > 0),
+  );
+  const knownPaths: ReadonlySet<string> = new Set(summary.results.map((row) => row.path));
+  const externalSignalsEval = evaluateConservativeExternalSignals({
+    loaded: loadedExternalSignals,
+    knownIssueIds,
+    knownPaths,
+  });
+  const externalSignalsMetadata = externalSignalsEval?.metadata ?? buildDefaultExternalSignalsMetadata();
+  if (externalSignalsEval !== undefined) {
+    suggestionsV3 = {
+      ...suggestionsV3,
+      suggestions: applyExternalBoostToSuggestions({
+        suggestions: suggestionsV3.suggestions,
+        accepted: externalSignalsEval.acceptedRecords,
+      }),
+      externalSignals: externalSignalsMetadata,
+    };
+  } else {
+    suggestionsV3 = {
+      ...suggestionsV3,
+      externalSignals: externalSignalsMetadata,
+    };
+  }
+  if (!isSuggestionsV3(suggestionsV3)) {
+    throw new Error("Internal contract error: suggestions.json failed validation.");
+  }
+  const reductionElapsedMs: number = Date.now() - reductionStartedAtMs;
+  const runtimeStepTimings: RuntimeMeta["stepTimings"] | undefined = rustCoreRunnerMeta?.stepTimings
+    ? {
+      warmUpMs: rustCoreRunnerMeta.stepTimings.warmUpMs,
+      queueBuildMs: rustCoreRunnerMeta.stepTimings.queueBuildMs,
+      runLoopMs: rustCoreRunnerMeta.stepTimings.runLoopMs,
+      reductionMs: reductionElapsedMs,
+      artifactWriteMs: 0,
+      totalPipelineMs: rustCoreRunnerMeta.stepTimings.warmUpMs
+        + rustCoreRunnerMeta.stepTimings.queueBuildMs
+        + rustCoreRunnerMeta.stepTimings.runLoopMs
+        + reductionElapsedMs,
+    }
+    : undefined;
+  let runtime: RuntimeMeta = buildRuntimeMeta({
+    config: resolvedConfigForRun,
+    captureLevel,
+    chromePort: resolvedConfigForRun.chromePort,
+    resourceProfile: autoSafeParallel
+      ? {
+        cpuCount: resourceProfile.cpuCount,
+        freeMemoryMB: resourceProfile.freeMemoryMB,
+        baseParallelCap: resourceProfile.baseParallelCap,
+        appliedParallelCap: resourceProfile.appliedParallelCap,
+        reasons: resourceProfile.reasons,
+      }
+      : undefined,
+    stepTimings: runtimeStepTimings,
+    accelerators: {
+      rustCore: {
+        enabled: rustCoreRunnerMeta?.enabled ?? (process.env.SIGNALER_RUST_CORE !== "0"),
+        used: rustCoreRunnerMeta?.used ?? false,
+        fallbackReason: rustCoreRunnerMeta?.fallbackReason,
+        sidecarElapsedMs: rustCoreRunnerMeta?.sidecarElapsedMs,
+      },
+      rustDiscovery: {
+        enabled: isRustFeatureEnabled("SIGNALER_RUST_DISCOVERY"),
+        used: false,
+        fallbackReason: isRustFeatureEnabled("SIGNALER_RUST_DISCOVERY")
+          ? "Discovery acceleration is used during discover/init, not run."
+          : undefined,
+      },
+      rustProcessor: {
+        enabled: rustProcessorAttempt.enabled || rustReducerAttempt.enabled,
+        used: rustProcessorAttempt.used || rustReducerAttempt.used,
+        fallbackReason: rustReducerAttempt.fallbackReason ?? rustProcessorAttempt.fallbackReason,
+      },
+    },
+  });
+  const artifactWriteStartedAtMs: number = Date.now();
+  if ((runtime.accelerators?.rustCore?.enabled ?? false) && !(runtime.accelerators?.rustCore?.used ?? false) && typeof runtime.accelerators?.rustCore?.fallbackReason === "string") {
+    // eslint-disable-next-line no-console
+    console.log("Rust core fallback: using Node runner for this run.");
+  }
   const aiLedger: AiLedger = buildAiLedger({
     summary,
     previousSummary: comparisonSummary,
@@ -3490,6 +3884,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     targetScore: DEFAULT_TARGET_SCORE,
     includeAiFix: !args.noAiFix,
     includeExport: !args.noExport,
+    includeLegacyArtifacts: writeFullLegacyArtifacts,
   });
   await writeFile(overviewPath, overview, "utf8");
 
@@ -3508,12 +3903,13 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     throw new Error("Internal contract error: results.json failed validation.");
   }
   await writeJsonWithOptionalGzip(resolve(outputDir, "results.json"), resultsV3);
-  const suggestionsV3: SuggestionsV3 = buildSuggestionsV3({ issues, protocol });
-  if (!isSuggestionsV3(suggestionsV3)) {
-    throw new Error("Internal contract error: suggestions.json failed validation.");
-  }
   await writeJsonWithOptionalGzip(resolve(outputDir, "suggestions.json"), suggestionsV3, { pretty: false });
-  const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({ protocol, suggestions: suggestionsV3, tokenBudget: 8000 });
+  const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({
+    protocol,
+    suggestions: suggestionsV3,
+    tokenBudget: effectiveMachineTokenBudget,
+    artifactProfile: args.artifactProfile,
+  });
   if (!isAgentIndexV3(agentIndexV3)) {
     throw new Error("Internal contract error: agent-index.json failed validation.");
   }
@@ -3553,6 +3949,21 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     accessibilityAggregated = accessibilitySummary === undefined ? undefined : summariseAccessibility(accessibilitySummary);
   }
   await writeArtifactsNavigation({ outputDir });
+  if (runtime.stepTimings !== undefined) {
+    const artifactWriteMs: number = Date.now() - artifactWriteStartedAtMs;
+    runtime = {
+      ...runtime,
+      stepTimings: {
+        ...runtime.stepTimings,
+        artifactWriteMs,
+        totalPipelineMs: runtime.stepTimings.warmUpMs
+          + runtime.stepTimings.queueBuildMs
+          + runtime.stepTimings.runLoopMs
+          + runtime.stepTimings.reductionMs
+          + artifactWriteMs,
+      },
+    };
+  }
 
   const engineVersion: string = await readEngineVersion();
   const artifactsBase: AuditOutputArtifact[] = [
@@ -3598,7 +4009,13 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       artifacts,
       contractVersion: useV3Contract ? "v3" : "legacy",
       workflow: "init-run-review",
+      meta: summary.meta,
       protocol,
+      runtime: {
+        resourceProfile: runtime.resourceProfile,
+        stepTimings: runtime.stepTimings,
+        accelerators: runtime.accelerators,
+      },
     },
   });
   if (engineJson.enabled) {
@@ -3681,6 +4098,8 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   printSectionHeader("Top fixes", useColor);
   // eslint-disable-next-line no-console
   console.log(buildTopFixesPanel(summary.results, useColor));
+  // eslint-disable-next-line no-console
+  console.log(buildTrustNotePanel({ useColor, protocol }));
   const budgetsPanel: string | undefined = buildBudgetsPanel({
     budgets: effectiveConfig.budgets,
     violations: budgetViolations,
@@ -5549,28 +5968,44 @@ function buildSuggestionsV3(params: {
   readonly issues: IssuesIndex;
   readonly protocol: RunProtocolV3;
 }): SuggestionsV3 {
-  const suggestions: SuggestionV3[] = params.issues.topIssues
-    .filter((issue) => (issue.totalMs ?? 0) > 0)
-    .map((issue, index): SuggestionV3 => {
-      const priorityScore = Math.round((issue.totalMs ?? 0) + issue.count * 80 - index * 10);
+  const bytesByIssue: Map<string, number> = new Map();
+  for (const failing of params.issues.failing) {
+    for (const opportunity of failing.topOpportunities) {
+      const bytes: number = typeof opportunity.estimatedSavingsBytes === "number" ? Math.max(0, opportunity.estimatedSavingsBytes) : 0;
+      if (bytes <= 0) continue;
+      bytesByIssue.set(opportunity.id, (bytesByIssue.get(opportunity.id) ?? 0) + bytes);
+    }
+  }
+  const rankedSuggestions: SuggestionV3[] = params.issues.topIssues
+    .map((issue, sourceIndex) => ({ issue, sourceIndex, estimatedBytes: bytesByIssue.get(issue.id) ?? 0 }))
+    .filter(({ issue, estimatedBytes }) => {
+      const estimatedMs: number = issue.totalMs ?? 0;
+      // Mandatory zero-impact suppression in default ranking.
+      return estimatedMs > 0 || estimatedBytes > 0;
+    })
+    .map(({ issue, sourceIndex, estimatedBytes }): SuggestionV3 => {
+      const priorityScore = Math.round((issue.totalMs ?? 0) + estimatedBytes / 1024 + issue.count * 80);
       const confidence = classifySuggestionConfidence({ issueId: issue.id, totalMs: issue.totalMs ?? 0, count: issue.count });
       const action = guessActionForIssue(issue.id);
+      const evidence: SuggestionV3["evidence"] = [
+        {
+          sourceRelPath: "issues.json",
+          pointer: `/topIssues/${sourceIndex}`,
+          artifactRelPath: "issues.json",
+        },
+      ];
       return {
-        id: `sugg-${issue.id}-${index + 1}`,
+        id: `sugg-${issue.id}-${sourceIndex + 1}`,
         title: issue.title,
         category: "performance",
         priorityScore,
         confidence,
         estimatedImpact: {
-          timeMs: issue.totalMs,
+          ...(typeof issue.totalMs === "number" ? { timeMs: issue.totalMs } : {}),
+          ...(estimatedBytes > 0 ? { bytes: estimatedBytes } : {}),
           affectedCombos: issue.count,
         },
-        evidence: [
-          {
-            sourceRelPath: "issues.json",
-            pointer: `/topIssues/${index}`,
-          },
-        ],
+        evidence,
         action: {
           summary: action.summary,
           steps: [...action.steps],
@@ -5579,12 +6014,16 @@ function buildSuggestionsV3(params: {
         modeApplicability: ["fidelity", "throughput"] as const,
       };
     })
-    .sort((a, b) => b.priorityScore - a.priorityScore);
+    .filter((suggestion) => suggestion.evidence.length > 0)
+    .sort((a, b) => {
+      if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+      return a.id.localeCompare(b.id);
+    });
   return {
     generatedAt: new Date().toISOString(),
     mode: params.protocol.mode,
     comparabilityHash: params.protocol.comparabilityHash,
-    suggestions,
+    suggestions: rankedSuggestions,
   };
 }
 
@@ -5592,15 +6031,61 @@ function buildAgentIndexV3(params: {
   readonly protocol: RunProtocolV3;
   readonly suggestions: SuggestionsV3;
   readonly tokenBudget: number;
+  readonly artifactProfile: MachineArtifactProfile;
 }): AgentIndexV3 {
-  const refs: AgentIndexSuggestionRefV3[] = params.suggestions.suggestions.slice(0, 12).map((s) => ({
-    id: s.id,
-    title: s.title,
-    priorityScore: s.priorityScore,
-    confidence: s.confidence,
-    pointer: `suggestions[?(@.id==\"${s.id}\")]`,
-  }));
-  return {
+  const caps = getMachineProfileCaps(params.artifactProfile);
+  const baseRefs: AgentIndexSuggestionRefV3[] = [...buildTopSuggestionRefs(params.suggestions.suggestions, caps.topSuggestionsCap)];
+  let refs: AgentIndexSuggestionRefV3[] = [...baseRefs];
+  const fixed = {
+    generatedAt: new Date().toISOString(),
+    contractVersion: "v3" as const,
+    mode: params.protocol.mode,
+    profile: params.protocol.profile,
+    comparabilityHash: params.protocol.comparabilityHash,
+    tokenBudget: params.tokenBudget,
+    entrypoints: {
+      run: "run.json" as const,
+      results: "results.json" as const,
+      suggestions: "suggestions.json" as const,
+    },
+    compatibility: {
+      legacyToCanonical: [
+        {
+          legacyArtifact: "summary-lite.json",
+          canonicalArtifact: "results.json" as const,
+        },
+        {
+          legacyArtifact: "ai-ledger.json",
+          canonicalArtifact: "agent-index.json" as const,
+          notes: "Use suggestions.json for ranked, evidence-linked actions.",
+        },
+        {
+          legacyArtifact: "ai-fix.json",
+          canonicalArtifact: "suggestions.json" as const,
+        },
+        {
+          legacyArtifact: "ai-fix.min.json",
+          canonicalArtifact: "suggestions.json" as const,
+        },
+      ],
+    },
+  };
+  while (refs.length > 0) {
+    const estimate: number = estimateTokens({
+      ...fixed,
+      topSuggestions: refs,
+    });
+    if (estimate <= params.tokenBudget) {
+      break;
+    }
+    refs = refs.slice(0, refs.length - 1);
+  }
+  const droppedByTokenBudget: number = Math.max(0, baseRefs.length - refs.length);
+  const estimatedTokens: number = estimateTokens({
+    ...fixed,
+    topSuggestions: refs,
+  });
+  const agentIndex: AgentIndexV3 = {
     generatedAt: new Date().toISOString(),
     contractVersion: "v3",
     mode: params.protocol.mode,
@@ -5612,8 +6097,36 @@ function buildAgentIndexV3(params: {
       results: "results.json",
       suggestions: "suggestions.json",
     },
+    compatibility: {
+      legacyToCanonical: [
+        {
+          legacyArtifact: "summary-lite.json",
+          canonicalArtifact: "results.json",
+        },
+        {
+          legacyArtifact: "ai-ledger.json",
+          canonicalArtifact: "agent-index.json",
+          notes: "Use suggestions.json for ranked, evidence-linked actions.",
+        },
+        {
+          legacyArtifact: "ai-fix.json",
+          canonicalArtifact: "suggestions.json",
+        },
+        {
+          legacyArtifact: "ai-fix.min.json",
+          canonicalArtifact: "suggestions.json",
+        },
+      ],
+    },
+    machineOutput: {
+      artifactProfile: params.artifactProfile,
+      estimatedTokens,
+      droppedByTokenBudget,
+      topSuggestionsCap: caps.topSuggestionsCap,
+    },
     topSuggestions: refs,
   };
+  return agentIndex;
 }
 
 type BaselineCompatCheck = {
@@ -5653,6 +6166,7 @@ function buildIssuesIndex(params: {
   readonly captureLevel: "diagnostics" | "lhr" | undefined;
   readonly targetScore: number;
   readonly hintsByBaseName?: ReadonlyMap<string, { readonly hints?: ComboHints }>;
+  readonly topIssuesOverride?: readonly { readonly id: string; readonly title: string; readonly count: number; readonly totalMs: number }[];
 }): IssuesIndex {
   const generatedAt: string = new Date().toISOString();
   const counts = { red: 0, yellow: 0, green: 0, runtimeErrors: 0 };
@@ -5850,10 +6364,15 @@ function buildIssuesIndex(params: {
     }
   }
   failing.sort((a: (typeof failing)[number], b: (typeof failing)[number]) => (a.performance ?? 101) - (b.performance ?? 101));
-  const topIssues: IssuesIndex["topIssues"] = [...issueAgg.entries()]
-    .map(([id, v]) => ({ id, title: v.title, count: v.count, totalMs: Math.round(v.totalMs) }))
-    .sort((a, b) => b.totalMs - a.totalMs)
-    .slice(0, 20);
+  const topIssues: IssuesIndex["topIssues"] = params.topIssuesOverride !== undefined
+    ? [...params.topIssuesOverride]
+      .map((issue) => ({ id: issue.id, title: issue.title, count: issue.count, totalMs: Math.round(issue.totalMs) }))
+      .sort((a, b) => b.totalMs - a.totalMs)
+      .slice(0, 20)
+    : [...issueAgg.entries()]
+      .map(([id, v]) => ({ id, title: v.title, count: v.count, totalMs: Math.round(v.totalMs) }))
+      .sort((a, b) => b.totalMs - a.totalMs)
+      .slice(0, 20);
   const offendersList: IssuesIndex["offenders"] = [...offenders.values()]
     .map((o) => {
       const uniqueCombos: OffenderComboRef[] = o.combos.reduce((acc, c) => {
@@ -6062,6 +6581,7 @@ function buildOverviewMarkdown(params: {
   readonly targetScore: number;
   readonly includeAiFix: boolean;
   readonly includeExport: boolean;
+  readonly includeLegacyArtifacts: boolean;
 }): string {
   const lines: string[] = [];
   const meta: RunSummary["meta"] = params.summary.meta;
@@ -6120,18 +6640,24 @@ function buildOverviewMarkdown(params: {
   lines.push("");
   lines.push(`- Overview: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "overview.md"), label: "overview.md" })}`);
   lines.push(`- Triage: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.triagePath, label: "triage.md" })}`);
-  lines.push(`- Quick Fixes: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "QUICK-FIXES.md"), label: "QUICK-FIXES.md" })}`);
-  lines.push(`- Plan (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.planPath, label: "plan.json" })}`);
   lines.push(`- Report: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.reportPath, label: "report.html" })}`);
+  lines.push(`- Run protocol (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "run.json"), label: "run.json" })}`);
+  lines.push(`- Results (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "results.json"), label: "results.json" })}`);
+  lines.push(`- Suggestions (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "suggestions.json"), label: "suggestions.json" })}`);
+  lines.push(`- Agent entrypoint (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "agent-index.json"), label: "agent-index.json" })}`);
   lines.push(`- Issues (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "issues.json"), label: "issues.json" })}`);
-  lines.push(`- AI Analysis (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-ANALYSIS.json"), label: "AI-ANALYSIS.json" })}`);
-  lines.push(`- AI Summary (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-SUMMARY.json"), label: "AI-SUMMARY.json" })}`);
-  lines.push(`- AI ledger (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-ledger.json"), label: "ai-ledger.json" })}`);
-  if (params.includeAiFix) {
-    lines.push(`- AI fix packet (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-fix.json"), label: "ai-fix.json" })}`);
-    lines.push(`- AI fix packet (min): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-fix.min.json"), label: "ai-fix.min.json" })}`);
+  if (params.includeLegacyArtifacts) {
+    lines.push(`- Quick Fixes: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "QUICK-FIXES.md"), label: "QUICK-FIXES.md" })}`);
+    lines.push(`- Plan (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.planPath, label: "plan.json" })}`);
+    lines.push(`- AI Analysis (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-ANALYSIS.json"), label: "AI-ANALYSIS.json" })}`);
+    lines.push(`- AI Summary (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "AI-SUMMARY.json"), label: "AI-SUMMARY.json" })}`);
+    lines.push(`- AI ledger (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-ledger.json"), label: "ai-ledger.json" })}`);
+    lines.push(`- Summary (lite): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "summary-lite.json"), label: "summary-lite.json" })}`);
+    if (params.includeAiFix) {
+      lines.push(`- AI fix packet (JSON): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-fix.json"), label: "ai-fix.json" })}`);
+      lines.push(`- AI fix packet (min): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "ai-fix.min.json"), label: "ai-fix.min.json" })}`);
+    }
   }
-  lines.push(`- Summary (lite): ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: resolve(params.outputDir, "summary-lite.json"), label: "summary-lite.json" })}`);
   if (params.includeExport) {
     lines.push(`- Export: ${toRelativeMarkdownLink({ outputDir: params.outputDir, absolutePath: params.exportPath, label: "export.json" })}`);
   }

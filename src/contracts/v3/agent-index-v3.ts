@@ -21,5 +21,18 @@ export interface AgentIndexV3 {
     readonly results: "results.json";
     readonly suggestions: "suggestions.json";
   };
+  readonly compatibility?: {
+    readonly legacyToCanonical: readonly {
+      readonly legacyArtifact: string;
+      readonly canonicalArtifact: "run.json" | "results.json" | "suggestions.json" | "agent-index.json";
+      readonly notes?: string;
+    }[];
+  };
+  readonly machineOutput?: {
+    readonly artifactProfile: "lean" | "standard" | "diagnostics";
+    readonly estimatedTokens: number;
+    readonly droppedByTokenBudget: number;
+    readonly topSuggestionsCap: number;
+  };
   readonly topSuggestions: readonly AgentIndexSuggestionRefV3[];
 }

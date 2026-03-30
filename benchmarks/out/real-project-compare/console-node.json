@@ -1,0 +1,574 @@
+{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\next-blogkit-pro\\signaler.config.json",
+    "baseUrl": "http://localhost:3000",
+    "comboCount": 68,
+    "resolvedParallel": 4,
+    "timeoutMs": 60000,
+    "maxEventsPerTarget": 50,
+    "startedAt": "2026-03-06T01:51:48.196Z",
+    "completedAt": "2026-03-06T01:51:57.064Z",
+    "elapsedMs": 8868,
+    "accelerator": {
+      "engine": "node",
+      "requested": false,
+      "used": false
+    }
+  },
+  "results": [
+    {
+      "url": "http://localhost:3000/terms",
+      "path": "/terms",
+      "label": "terms",
+      "device": "mobile",
+      "status": "error",
+      "events": [],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/terms",
+      "path": "/terms",
+      "label": "terms",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/settings",
+      "path": "/settings",
+      "label": "settings",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/settings",
+      "path": "/settings",
+      "label": "settings",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/profile",
+      "path": "/profile",
+      "label": "profile",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/profile",
+      "path": "/profile",
+      "label": "profile",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/privacy",
+      "path": "/privacy",
+      "label": "privacy",
+      "device": "mobile",
+      "status": "error",
+      "events": [],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/privacy",
+      "path": "/privacy",
+      "label": "privacy",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/",
+      "path": "/",
+      "label": "home",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/",
+      "path": "/",
+      "label": "home",
+      "device": "desktop",
+      "status": "error",
+      "events": [],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/search",
+      "path": "/search",
+      "label": "search",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/search",
+      "path": "/search",
+      "label": "search",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/downloads",
+      "path": "/downloads",
+      "label": "downloads",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/downloads",
+      "path": "/downloads",
+      "label": "downloads",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/docs",
+      "path": "/docs",
+      "label": "docs",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/docs",
+      "path": "/docs",
+      "label": "docs",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/contact",
+      "path": "/contact",
+      "label": "contact",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/contact",
+      "path": "/contact",
+      "label": "contact",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/blog",
+      "path": "/blog",
+      "label": "blog",
+      "device": "mobile",
+      "status": "error",
+      "events": [
+        "exception: {\"timestamp\":1772761914776.559,\"exceptionDetails\":{\"exceptionId\":1,\"text\":\"Uncaught\",\"lineNumber\":0,\"columnNumber\":209578,\"scriptId\":\"20\",\"url\":\"http://localhost:3000/_next/static/chunks/62803306080a2d0f.js\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"er\",\"scriptId\":\"8\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":17652},{\"functionName\":\"\",\"scriptId\":\"8\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":21011},{\"functionName\":\"n\",\"scriptId\":\"8\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":21754}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"Error\",\"description\":\"Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.\",\"objectId\":\"-3672738045534938003.2.1\",\"preview\":{\"type\":\"object\",\"subtype\":\"error\",\"description\":\"Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.\",\"overflow\":false,\"properties\":[{\"name\":\"digest\",\"type\":\"string\",\"value\":\"2763773826\"},{\"name\":\"stack\",\"type\":\"string\",\"value\":\"Error: An error occurred in the Server Components …additional details about the nature of the error.\"},{\"name\":\"message\",\"type\":\"string\",\"value\":\"An error occurred in the Server Components render.…additional details about the nature of the error.\"}]}},\"executionContextId\":2}}"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/blog",
+      "path": "/blog",
+      "label": "blog",
+      "device": "desktop",
+      "status": "error",
+      "events": [
+        "exception: {\"timestamp\":1772761914903.299,\"exceptionDetails\":{\"exceptionId\":1,\"text\":\"Uncaught\",\"lineNumber\":0,\"columnNumber\":209578,\"scriptId\":\"23\",\"url\":\"http://localhost:3000/_next/static/chunks/62803306080a2d0f.js\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"er\",\"scriptId\":\"11\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":17652},{\"functionName\":\"\",\"scriptId\":\"11\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":21011},{\"functionName\":\"n\",\"scriptId\":\"11\",\"url\":\"http://localhost:3000/_next/static/chunks/5e612aa206a8ae12.js\",\"lineNumber\":0,\"columnNumber\":21754}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"Error\",\"description\":\"Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.\",\"objectId\":\"-9200173944859807197.2.1\",\"preview\":{\"type\":\"object\",\"subtype\":\"error\",\"description\":\"Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.\",\"overflow\":false,\"properties\":[{\"name\":\"digest\",\"type\":\"string\",\"value\":\"1827780805\"},{\"name\":\"stack\",\"type\":\"string\",\"value\":\"Error: An error occurred in the Server Components …additional details about the nature of the error.\"},{\"name\":\"message\",\"type\":\"string\",\"value\":\"An error occurred in the Server Components render.…additional details about the nature of the error.\"}]}},\"executionContextId\":2}}"
+      ],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/auth/register",
+      "path": "/auth/register",
+      "label": "register",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/register",
+      "path": "/auth/register",
+      "label": "register",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/new-password",
+      "path": "/auth/new-password",
+      "label": "new-password",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/new-password",
+      "path": "/auth/new-password",
+      "label": "new-password",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/login",
+      "path": "/auth/login",
+      "label": "login",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/login",
+      "path": "/auth/login",
+      "label": "login",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/forgot-password",
+      "path": "/auth/forgot-password",
+      "label": "forgot-password",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/forgot-password",
+      "path": "/auth/forgot-password",
+      "label": "forgot-password",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/2fa",
+      "path": "/auth/2fa",
+      "label": "2fa",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/auth/2fa",
+      "path": "/auth/2fa",
+      "label": "2fa",
+      "device": "desktop",
+      "status": "error",
+      "events": [],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/admin",
+      "path": "/admin",
+      "label": "admin",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin",
+      "path": "/admin",
+      "label": "admin",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/users",
+      "path": "/admin/users",
+      "label": "users",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/users",
+      "path": "/admin/users",
+      "label": "users",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/posts",
+      "path": "/admin/posts",
+      "label": "posts",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/posts",
+      "path": "/admin/posts",
+      "label": "posts",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/posts/new",
+      "path": "/admin/posts/new",
+      "label": "new",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/posts/new",
+      "path": "/admin/posts/new",
+      "label": "new",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/monetization",
+      "path": "/admin/monetization",
+      "label": "monetization",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/monetization",
+      "path": "/admin/monetization",
+      "label": "monetization",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/downloads",
+      "path": "/admin/downloads",
+      "label": "downloads",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/downloads",
+      "path": "/admin/downloads",
+      "label": "downloads",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/comments",
+      "path": "/admin/comments",
+      "label": "comments",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/comments",
+      "path": "/admin/comments",
+      "label": "comments",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics",
+      "path": "/admin/analytics",
+      "label": "analytics",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics",
+      "path": "/admin/analytics",
+      "label": "analytics",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics/webhooks",
+      "path": "/admin/analytics/webhooks",
+      "label": "webhooks",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics/webhooks",
+      "path": "/admin/analytics/webhooks",
+      "label": "webhooks",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics/kpis",
+      "path": "/admin/analytics/kpis",
+      "label": "kpis",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/analytics/kpis",
+      "path": "/admin/analytics/kpis",
+      "label": "kpis",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/affiliate-links",
+      "path": "/admin/affiliate-links",
+      "label": "affiliate-links",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/affiliate-links",
+      "path": "/admin/affiliate-links",
+      "label": "affiliate-links",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/advertisements",
+      "path": "/admin/advertisements",
+      "label": "advertisements",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/admin/advertisements",
+      "path": "/admin/advertisements",
+      "label": "advertisements",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account",
+      "path": "/account",
+      "label": "account",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account",
+      "path": "/account",
+      "label": "account",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/subscriptions",
+      "path": "/account/subscriptions",
+      "label": "subscriptions",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/subscriptions",
+      "path": "/account/subscriptions",
+      "label": "subscriptions",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/settings",
+      "path": "/account/settings",
+      "label": "settings",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/settings",
+      "path": "/account/settings",
+      "label": "settings",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/profile",
+      "path": "/account/profile",
+      "label": "profile",
+      "device": "mobile",
+      "status": "error",
+      "events": [],
+      "runtimeErrorMessage": "No session with given id"
+    },
+    {
+      "url": "http://localhost:3000/account/profile",
+      "path": "/account/profile",
+      "label": "profile",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/comments",
+      "path": "/account/comments",
+      "label": "comments",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/comments",
+      "path": "/account/comments",
+      "label": "comments",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/bookmarks",
+      "path": "/account/bookmarks",
+      "label": "bookmarks",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/bookmarks",
+      "path": "/account/bookmarks",
+      "label": "bookmarks",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/billing",
+      "path": "/account/billing",
+      "label": "billing",
+      "device": "mobile",
+      "status": "ok",
+      "events": []
+    },
+    {
+      "url": "http://localhost:3000/account/billing",
+      "path": "/account/billing",
+      "label": "billing",
+      "device": "desktop",
+      "status": "ok",
+      "events": []
+    }
+  ]
+}

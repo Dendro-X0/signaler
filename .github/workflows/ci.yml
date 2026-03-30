@@ -117,10 +117,303 @@ jobs:
       
     - name: Validate API documentation
       run: pnpm test:full api-documentation-coverage.test.ts
+
+  cross-platform-smoke:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Ensure pnpm
+      run: |
+        corepack prepare pnpm@10 --activate
+        pnpm --version
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build project
+      run: pnpm build
+
+    - name: Run smoke tests
+      run: pnpm test:smoke
+
+    - name: Run Phase 6 critical smoke tests
+      run: pnpm run test:phase6:smoke
+
+    - name: Emit cross-platform smoke evidence
+      if: always()
+      run: pnpm run bench:phase6:cross-platform-evidence -- --os "${{ matrix.os }}" --out-json "benchmarks/out/cross-platform-smoke-${{ matrix.os }}.json" --out-md "benchmarks/out/cross-platform-smoke-${{ matrix.os }}.md"
+
+    - name: Upload cross-platform smoke evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cross-platform-smoke-${{ matrix.os }}
+        path: |
+          benchmarks/out/cross-platform-smoke-${{ matrix.os }}.json
+          benchmarks/out/cross-platform-smoke-${{ matrix.os }}.md
+        if-no-files-found: warn
+
+  phase0-benchmark:
+    # TODO(phase2): decide when to turn Phase 0 delta tracking into blocking regression gates.
+    runs-on: ubuntu-latest
+    needs: [test, quality]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Ensure pnpm
+      run: |
+        corepack prepare pnpm@10 --activate
+        pnpm --version
+
+    - name: Cache pnpm store
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.pnpm-store
+          ~/.local/share/pnpm/store
+          ~/.local/share/pnpm/store/v3
+        key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Backup previous Phase 0 baseline
+      run: |
+        if [ -f benchmarks/out/phase0-baseline.json ]; then
+          cp benchmarks/out/phase0-baseline.json benchmarks/out/phase0-baseline.prev.json
+        else
+          echo "No previous baseline found; skipping backup."
+        fi
+
+    - name: Backup previous Phase 4 baseline
+      run: |
+        if [ -f benchmarks/out/phase4-baseline.json ]; then
+          cp benchmarks/out/phase4-baseline.json benchmarks/out/phase4-baseline.prev.json
+        else
+          echo "No previous Phase 4 baseline found; skipping backup."
+        fi
+
+    - name: Setup Rust toolchain (for parity checks)
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Run Phase 0 benchmark harness (observe-only)
+      continue-on-error: true
+      run: pnpm run bench:phase0:ci
+
+    - name: Run Rust parity tests
+      run: pnpm run test:rust:parity
+
+    - name: Run Phase 1 onboarding gate (blocking)
+      run: pnpm run bench:phase1:onboarding
+
+    - name: Run V6.3 loop smoke (evidence)
+      if: always()
+      continue-on-error: true
+      run: pnpm run bench:v63:loop
+
+    - name: Run V6.3 low-memory evidence (predictability)
+      if: always()
+      continue-on-error: true
+      run: pnpm run bench:v63:lowmem
+
+    - name: Validate Phase 0 report schema
+      if: always()
+      continue-on-error: true
+      run: |
+        if [ -f benchmarks/out/phase0-baseline.json ]; then
+          pnpm run bench:phase0:validate
+        else
+          echo "Phase 0 baseline JSON not generated; skipping validation."
+        fi
+
+    - name: Print Phase 0 summary
+      if: always()
+      run: |
+        if [ -f benchmarks/out/phase0-baseline.md ]; then
+          cat benchmarks/out/phase0-baseline.md
+        else
+          echo "Phase 0 baseline markdown not generated."
+        fi
+        echo "TODO(phase2): convert observe-only benchmark deltas into a hard regression gate."
+
+    - name: Evaluate Phase 2 soft gate
+      if: always()
+      run: pnpm run bench:phase2:gate
+
+    - name: Run Phase 4 benchmark harness
+      if: always()
+      run: pnpm run bench:phase4:ci
+
+    - name: Print Phase 4 summary
+      if: always()
+      run: |
+        if [ -f benchmarks/out/phase4-baseline.md ]; then
+          cat benchmarks/out/phase4-baseline.md
+        else
+          echo "Phase 4 baseline markdown not generated."
+        fi
+
+    - name: Evaluate Phase 4 soft gate
+      if: always()
+      run: pnpm run bench:phase4:gate
+
+    - name: Upload Phase 0 benchmark artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase-benchmark-baseline
+        path: |
+          benchmarks/out/phase0-baseline.json
+          benchmarks/out/phase0-baseline.md
+          benchmarks/out/phase0-baseline.prev.json
+          benchmarks/out/phase4-baseline.json
+          benchmarks/out/phase4-baseline.md
+          benchmarks/out/phase4-baseline.prev.json
+          benchmarks/out/v63-loop-smoke.json
+          benchmarks/out/v63-loop-smoke.md
+          benchmarks/out/v63-low-memory-evidence.json
+          benchmarks/out/v63-low-memory-evidence.md
+          benchmarks/out/*.rust-discovery.json
+          benchmarks/out/tmp/*.config.json
+        if-no-files-found: warn
+
+  phase6-release-gate:
+    runs-on: ubuntu-latest
+    needs: [test, quality, phase0-benchmark, cross-platform-smoke]
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Ensure pnpm
+      run: |
+        corepack prepare pnpm@10 --activate
+        pnpm --version
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Download benchmark artifacts
+      if: always()
+      uses: actions/download-artifact@v4
+      with:
+        name: phase-benchmark-baseline
+        path: .
+
+    - name: Download cross-platform smoke evidence artifacts
+      if: always()
+      uses: actions/download-artifact@v4
+      with:
+        pattern: cross-platform-smoke-*
+        path: .
+        merge-multiple: true
+
+    - name: Evaluate Phase 6 release gate
+      env:
+        PHASE6_NEED_TEST: ${{ needs.test.result }}
+        PHASE6_NEED_QUALITY: ${{ needs.quality.result }}
+        PHASE6_NEED_PHASE0_BENCHMARK: ${{ needs['phase0-benchmark'].result }}
+        PHASE6_NEED_CROSS_PLATFORM: ${{ needs['cross-platform-smoke'].result }}
+      run: pnpm run bench:phase6:gate
+
+    - name: Run Phase 6 gate test suite
+      if: always()
+      run: pnpm run test:phase6:gate
+
+    - name: Validate Phase 6 gate report schema
+      if: always()
+      run: pnpm run bench:phase6:validate
+
+    - name: Evaluate V3 Phase 1 release gate
+      if: always()
+      run: pnpm run bench:v3:gate
+
+    - name: Validate V3 Phase 1 release gate report schema
+      if: always()
+      run: pnpm run bench:v3:validate
+
+    - name: Evaluate V3 Phase 2 manifest packaging policy
+      if: always()
+      run: pnpm run bench:v3:phase2
+
+    - name: Evaluate V6.3 success gate
+      if: always()
+      run: pnpm run bench:v63:gate
+
+    - name: Validate V6.3 success gate report schema
+      if: always()
+      run: pnpm run bench:v63:validate
+
+    - name: Upload Phase 6 release gate artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase6-release-gate
+        path: |
+          benchmarks/out/phase6-release-gate.json
+          benchmarks/out/phase6-release-gate.md
+          benchmarks/out/v3-release-gate.json
+          benchmarks/out/v3-release-gate.md
+          release/v3/release-manifest.generated.json
+          benchmarks/out/v63-success-gate.json
+          benchmarks/out/v63-success-gate.md
+          benchmarks/out/v63-loop-smoke.json
+          benchmarks/out/v63-loop-smoke.md
+          benchmarks/out/v63-low-memory-evidence.json
+          benchmarks/out/v63-low-memory-evidence.md
+          benchmarks/out/cross-platform-smoke-*.json
+          benchmarks/out/cross-platform-smoke-*.md
+          release/v3/release-manifest.schema.json
+          release/v3/release-manifest.example.json
+          release/v3/dogfood-evidence.schema.json
+          release/v3/dogfood-evidence.json
+        if-no-files-found: warn
       
   publish-dry-run:
     runs-on: ubuntu-latest
-    needs: [test, quality]
+    needs: [test, quality, phase0-benchmark, cross-platform-smoke, phase6-release-gate]
     if: github.event_name == 'pull_request'
     
     steps:

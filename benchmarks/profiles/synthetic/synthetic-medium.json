@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "synthetic-medium",
+  "kind": "synthetic",
+  "description": "Synthetic medium profile for scalability checks (40 combos target).",
+  "projectRoot": "benchmarks/workspaces/synthetic-medium",
+  "baseUrl": "__SYNTHETIC_BASE_URL__",
+  "routes": [
+    { "path": "/", "label": "home" },
+    { "path": "/route-01", "label": "route-01" },
+    { "path": "/route-02", "label": "route-02" },
+    { "path": "/route-03", "label": "route-03" },
+    { "path": "/route-04", "label": "route-04" },
+    { "path": "/route-05", "label": "route-05" },
+    { "path": "/route-06", "label": "route-06" },
+    { "path": "/route-07", "label": "route-07" },
+    { "path": "/route-08", "label": "route-08" },
+    { "path": "/route-09", "label": "route-09" },
+    { "path": "/route-10", "label": "route-10" },
+    { "path": "/route-11", "label": "route-11" },
+    { "path": "/route-12", "label": "route-12" },
+    { "path": "/route-13", "label": "route-13" },
+    { "path": "/route-14", "label": "route-14" },
+    { "path": "/route-15", "label": "route-15" },
+    { "path": "/route-16", "label": "route-16" },
+    { "path": "/route-17", "label": "route-17" },
+    { "path": "/route-18", "label": "route-18" },
+    { "path": "/route-19", "label": "route-19" }
+  ],
+  "devices": ["mobile", "desktop"],
+  "runModes": ["throughput", "fidelity"],
+  "modeConfig": {
+    "throughput": { "parallel": 3, "warmUp": false, "runs": 1, "throttlingMethod": "simulate" },
+    "fidelity": { "parallel": 1, "warmUp": true, "runs": 1, "throttlingMethod": "devtools" }
+  },
+  "expectedDetection": {
+    "detected": 20,
+    "selected": 20,
+    "excludedDynamic": 0,
+    "excludedByFilter": 0,
+    "excludedByScope": 0
+  },
+  "expectedCombos": 40
+}

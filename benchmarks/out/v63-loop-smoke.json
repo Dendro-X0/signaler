@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-23T08:56:06.051Z",
+  "status": "pass",
+  "elapsedMs": 14733,
+  "maxAllowedMs": 600000,
+  "outputDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\v63-loop-smoke\\.signaler",
+  "baseUrl": "http://127.0.0.1:54250",
+  "steps": [
+    {
+      "id": "discover",
+      "status": "ok",
+      "elapsedMs": 40,
+      "exitCode": 0,
+      "details": "discover --scope file completed."
+    },
+    {
+      "id": "run",
+      "status": "ok",
+      "elapsedMs": 14620,
+      "exitCode": 0,
+      "details": "run --contract v3 --mode throughput completed."
+    },
+    {
+      "id": "analyze",
+      "status": "ok",
+      "elapsedMs": 9,
+      "exitCode": 0,
+      "details": "analyze --contract v6 completed."
+    },
+    {
+      "id": "verify",
+      "status": "ok",
+      "elapsedMs": 22,
+      "exitCode": 3,
+      "details": "verify --dry-run completed."
+    },
+    {
+      "id": "report",
+      "status": "ok",
+      "elapsedMs": 30,
+      "exitCode": 0,
+      "details": "report regeneration completed."
+    }
+  ],
+  "artifacts": {
+    "runJson": true,
+    "analyzeJson": true,
+    "verifyJson": true,
+    "reportHtml": true
+  }
+}

@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
 
@@ -25,6 +25,30 @@ type AiLedger = {
   readonly generatedAt: string;
   readonly issueIndex: Record<string, AiLedgerIssue>;
   readonly fixPlan: readonly { readonly title: string; readonly issueIds: readonly string[]; readonly order: number; readonly rationale: string; readonly verify: string }[];
+};
+
+type SuggestionV3 = {
+  readonly id: string;
+  readonly title: string;
+  readonly category: "performance" | "accessibility" | "best-practices" | "seo" | "reliability";
+  readonly priorityScore: number;
+  readonly confidence: "high" | "medium" | "low";
+  readonly estimatedImpact: {
+    readonly timeMs?: number;
+    readonly bytes?: number;
+    readonly affectedCombos: number;
+  };
+  readonly evidence: readonly RunnerEvidence[];
+  readonly action: {
+    readonly summary: string;
+    readonly steps: readonly string[];
+    readonly effort: "low" | "medium" | "high";
+  };
+};
+
+type SuggestionsV3File = {
+  readonly generatedAt: string;
+  readonly suggestions: readonly SuggestionV3[];
 };
 
 type IssuesFile = {
@@ -57,6 +81,7 @@ type GlobalRedReport = {
   readonly generatedAt: string;
   readonly meta: {
     readonly outputDir: string;
+    readonly source: "legacy-ai-ledger" | "v3-canonical";
     readonly sourceGeneratedAt?: string;
     readonly targetScore?: number;
     readonly totals?: IssuesFile["totals"];
@@ -92,6 +117,15 @@ async function readJson<T extends object>(absolutePath: string): Promise<T> {
     throw new Error(`Invalid JSON file: ${absolutePath}`);
   }
   return parsed as T;
+}
+
+async function fileExists(absolutePath: string): Promise<boolean> {
+  try {
+    await stat(absolutePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function buildMarkdown(params: { readonly report: GlobalRedReport; readonly aiJsonRelPath: string }): string {
@@ -183,22 +217,85 @@ export async function runReportCli(argv: readonly string[]): Promise<void> {
   const args: { readonly outputDir: string } = parseArgs(argv);
   const issuesPath: string = resolve(args.outputDir, "issues.json");
   const ledgerPath: string = resolve(args.outputDir, "ai-ledger.json");
+  const suggestionsPath: string = resolve(args.outputDir, "suggestions.json");
   const issues: IssuesFile = await readJson<IssuesFile>(issuesPath);
-  const ledger: AiLedger = await readJson<AiLedger>(ledgerPath);
   const generatedAt: string = new Date().toISOString();
-  const report: GlobalRedReport = {
-    schemaVersion: 1,
-    kind: "global-red",
-    generatedAt,
-    meta: {
-      outputDir: normalizePath(args.outputDir),
-      sourceGeneratedAt: issues.generatedAt,
-      targetScore: issues.targetScore,
-      totals: issues.totals,
-    },
-    redIssues: toRedIssues(ledger),
-    fixPlan: ledger.fixPlan,
+
+  const hasLegacyLedger: boolean = await fileExists(ledgerPath);
+  const reportFromLegacy = async (): Promise<GlobalRedReport> => {
+    const ledger: AiLedger = await readJson<AiLedger>(ledgerPath);
+    return {
+      schemaVersion: 1,
+      kind: "global-red",
+      generatedAt,
+      meta: {
+        outputDir: normalizePath(args.outputDir),
+        source: "legacy-ai-ledger",
+        sourceGeneratedAt: issues.generatedAt,
+        targetScore: issues.targetScore,
+        totals: issues.totals,
+      },
+      redIssues: toRedIssues(ledger),
+      fixPlan: ledger.fixPlan,
+    };
   };
+
+  const reportFromV3 = async (): Promise<GlobalRedReport> => {
+    const suggestions: SuggestionsV3File | undefined = (await fileExists(suggestionsPath))
+      ? await readJson<SuggestionsV3File>(suggestionsPath)
+      : undefined;
+    const mappedIssues: GlobalRedReport["redIssues"] = (suggestions?.suggestions ?? []).slice(0, 25).map((suggestion) => ({
+      id: suggestion.id,
+      title: suggestion.title,
+      summary: suggestion.action.summary,
+      kind: suggestion.category,
+      affectedCount: suggestion.estimatedImpact.affectedCombos,
+      affectedSample: [],
+      evidence: suggestion.evidence.slice(0, 8),
+    }));
+    const fallbackIssues: GlobalRedReport["redIssues"] = issues.topIssues
+      .filter((issue) => issue.totalMs > 0)
+      .slice(0, 25)
+      .map((issue, index) => ({
+        id: issue.id,
+        title: issue.title,
+        summary: `Observed in ${issue.count} combos (~${Math.round(issue.totalMs)}ms aggregate savings).`,
+        kind: "performance",
+        affectedCount: issue.count,
+        affectedSample: [],
+        evidence: [
+          {
+            sourceRelPath: "issues.json",
+            pointer: `/topIssues/${index}`,
+            artifactRelPath: "issues.json",
+          },
+        ],
+      }));
+    const fixPlan: GlobalRedReport["fixPlan"] =
+      (suggestions?.suggestions ?? []).slice(0, 12).map((suggestion, index) => ({
+        order: index + 1,
+        title: suggestion.title,
+        issueIds: [suggestion.id],
+        rationale: suggestion.action.summary,
+        verify: "Re-run `signaler run` and compare scores and opportunities.",
+      }));
+    return {
+      schemaVersion: 1,
+      kind: "global-red",
+      generatedAt,
+      meta: {
+        outputDir: normalizePath(args.outputDir),
+        source: "v3-canonical",
+        sourceGeneratedAt: suggestions?.generatedAt ?? issues.generatedAt,
+        targetScore: issues.targetScore,
+        totals: issues.totals,
+      },
+      redIssues: mappedIssues.length > 0 ? mappedIssues : fallbackIssues,
+      fixPlan,
+    };
+  };
+
+  const report: GlobalRedReport = hasLegacyLedger ? await reportFromLegacy() : await reportFromV3();
   const mdPath: string = resolve(args.outputDir, "global-red.report.md");
   const aiPath: string = resolve(args.outputDir, "ai-global-red.json");
   const md: string = buildMarkdown({ report, aiJsonRelPath: normalizePath("ai-global-red.json") });

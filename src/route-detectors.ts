@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import type { Dirent } from "node:fs";
 import { pathExists, readTextFile } from "./infrastructure/filesystem/utils.js";
+import { detectRoutesWithRust } from "./rust/discovery-adapter.js";
 
 /**
  * Identifier for the route detection strategy.
@@ -95,6 +96,31 @@ const ROUTE_DETECTORS: readonly RouteDetector[] = [
  */
 export async function detectRoutes(options: DetectRoutesOptions): Promise<readonly DetectedRoute[]> {
   const limit = options.limit ?? DEFAULT_LIMIT;
+  const rustAttempt = await detectRoutesWithRust({
+    projectRoot: options.projectRoot,
+    limit,
+    preferredDetectorId: options.preferredDetectorId,
+  });
+  if (rustAttempt.enabled && rustAttempt.used && rustAttempt.routes) {
+    const rustRoutes: readonly DetectedRoute[] = rustAttempt.routes.map((route) => ({
+      path: route.path,
+      label: route.label,
+      source: route.source,
+    }));
+    const selected = takeTopRoutes(rustRoutes, limit).filter((route) => isConcreteRoutePath(route.path));
+    if (selected.length > 0) {
+      logDetection(options, rustAttempt.detectorId ?? "rust-discovery", "routes-found", {
+        limit,
+        candidateCount: rustRoutes.length,
+        selectedCount: selected.length,
+        root: options.projectRoot,
+      });
+      return selected;
+    }
+    logDetection(options, rustAttempt.detectorId ?? "rust-discovery", "no-routes", { limit });
+  } else if (rustAttempt.enabled && rustAttempt.fallbackReason) {
+    logDetection(options, "rust-discovery", `fallback: ${rustAttempt.fallbackReason}`, { limit, root: options.projectRoot });
+  }
   const orderedDetectors = orderDetectors(options.preferredDetectorId);
   for (const detector of orderedDetectors) {
     const detectorOptions: InternalDetectOptions = { ...options, limit };

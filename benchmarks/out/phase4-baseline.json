@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-05T17:00:10.619Z",
+  "entries": [
+    {
+      "environment": "local-6c12t",
+      "command": "health",
+      "engine": "node",
+      "elapsedMs": 5387.7011999999995,
+      "taskCount": 5,
+      "errorRate": 0,
+      "retryRate": 0,
+      "status": "ok",
+      "artifactBytes": 1468
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "health",
+      "engine": "rust",
+      "elapsedMs": 4122.8026,
+      "taskCount": 5,
+      "errorRate": 0,
+      "retryRate": 0,
+      "status": "ok",
+      "artifactBytes": 1490
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "headers",
+      "engine": "node",
+      "elapsedMs": 1716.2788999999993,
+      "taskCount": 5,
+      "errorRate": 0,
+      "retryRate": 0,
+      "status": "ok",
+      "artifactBytes": 2758
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "headers",
+      "engine": "rust",
+      "elapsedMs": 1587.4652999999998,
+      "taskCount": 5,
+      "errorRate": 0,
+      "retryRate": 0,
+      "status": "ok",
+      "artifactBytes": 2788
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "links",
+      "engine": "node",
+      "elapsedMs": 1313.2268000000004,
+      "taskCount": 6,
+      "errorRate": 0.16666666666666666,
+      "retryRate": 0,
+      "status": "warn",
+      "artifactBytes": 1308
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "links",
+      "engine": "rust",
+      "elapsedMs": 1546.2685999999994,
+      "taskCount": 6,
+      "errorRate": 0.16666666666666666,
+      "retryRate": 0,
+      "status": "warn",
+      "artifactBytes": 1338
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "console",
+      "engine": "node",
+      "elapsedMs": 3269.3297999999977,
+      "taskCount": 10,
+      "errorRate": 1,
+      "retryRate": 0,
+      "status": "warn",
+      "artifactBytes": 2876
+    },
+    {
+      "environment": "local-6c12t",
+      "command": "console",
+      "engine": "rust",
+      "elapsedMs": 2724.9969999999994,
+      "taskCount": 10,
+      "errorRate": 0.9,
+      "retryRate": 0,
+      "status": "warn",
+      "artifactBytes": 3125,
+      "notes": [
+        "fallback: Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s Running `E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\rust\\target\\debug\\signaler_hotpath.exe net-worker --mode console --in C:\\Users\\ADMINI~1\\Ap..."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "ok": 4,
+    "warn": 4,
+    "error": 0
+  }
+}

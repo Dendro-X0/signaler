@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Signaler Phase 4 Baseline Report",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "entries",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "environment",
+          "command",
+          "engine",
+          "elapsedMs",
+          "taskCount",
+          "errorRate",
+          "retryRate",
+          "status",
+          "artifactBytes"
+        ],
+        "properties": {
+          "environment": { "enum": ["ci-linux", "local-6c12t"] },
+          "command": { "enum": ["health", "headers", "links", "console"] },
+          "engine": { "enum": ["node", "rust"] },
+          "elapsedMs": { "type": "number", "minimum": 0 },
+          "taskCount": { "type": "number", "minimum": 0 },
+          "errorRate": { "type": "number", "minimum": 0 },
+          "retryRate": { "type": "number", "minimum": 0 },
+          "status": { "enum": ["ok", "warn", "error"] },
+          "artifactBytes": { "type": "number", "minimum": 0 },
+          "notes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "ok", "warn", "error"],
+      "properties": {
+        "total": { "type": "number", "minimum": 0 },
+        "ok": { "type": "number", "minimum": 0 },
+        "warn": { "type": "number", "minimum": 0 },
+        "error": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

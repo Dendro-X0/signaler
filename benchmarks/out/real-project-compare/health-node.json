@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\next-blogkit-pro\\signaler.config.json",
+    "baseUrl": "http://localhost:3000",
+    "comboCount": 34,
+    "resolvedParallel": 10,
+    "timeoutMs": 20000,
+    "startedAt": "2026-03-06T01:50:31.340Z",
+    "completedAt": "2026-03-06T01:50:33.625Z",
+    "elapsedMs": 2285,
+    "accelerator": {
+      "engine": "node",
+      "requested": false,
+      "used": false
+    }
+  },
+  "results": [
+    {
+      "label": "terms",
+      "path": "/terms",
+      "url": "http://localhost:3000/terms",
+      "statusCode": 200,
+      "ttfbMs": 78,
+      "totalMs": 125,
+      "bytes": 15261
+    },
+    {
+      "label": "settings",
+      "path": "/settings",
+      "url": "http://localhost:3000/settings",
+      "statusCode": 307,
+      "ttfbMs": 110,
+      "totalMs": 127,
+      "bytes": 13512
+    },
+    {
+      "label": "profile",
+      "path": "/profile",
+      "url": "http://localhost:3000/profile",
+      "statusCode": 308,
+      "ttfbMs": 27,
+      "totalMs": 28,
+      "bytes": 16
+    },
+    {
+      "label": "privacy",
+      "path": "/privacy",
+      "url": "http://localhost:3000/privacy",
+      "statusCode": 200,
+      "ttfbMs": 110,
+      "totalMs": 127,
+      "bytes": 15306
+    },
+    {
+      "label": "home",
+      "path": "/",
+      "url": "http://localhost:3000/",
+      "statusCode": 200,
+      "ttfbMs": 111,
+      "totalMs": 132,
+      "bytes": 233224
+    },
+    {
+      "label": "search",
+      "path": "/search",
+      "url": "http://localhost:3000/search",
+      "statusCode": 200,
+      "ttfbMs": 112,
+      "totalMs": 2098,
+      "bytes": 42557
+    },
+    {
+      "label": "downloads",
+      "path": "/downloads",
+      "url": "http://localhost:3000/downloads",
+      "statusCode": 200,
+      "ttfbMs": 111,
+      "totalMs": 2186,
+      "bytes": 42816
+    },
+    {
+      "label": "docs",
+      "path": "/docs",
+      "url": "http://localhost:3000/docs",
+      "statusCode": 200,
+      "ttfbMs": 112,
+      "totalMs": 270,
+      "bytes": 64389
+    },
+    {
+      "label": "contact",
+      "path": "/contact",
+      "url": "http://localhost:3000/contact",
+      "statusCode": 200,
+      "ttfbMs": 112,
+      "totalMs": 137,
+      "bytes": 65464
+    },
+    {
+      "label": "blog",
+      "path": "/blog",
+      "url": "http://localhost:3000/blog",
+      "statusCode": 200,
+      "ttfbMs": 113,
+      "totalMs": 2144,
+      "bytes": 43272
+    },
+    {
+      "label": "register",
+      "path": "/auth/register",
+      "url": "http://localhost:3000/auth/register",
+      "statusCode": 200,
+      "ttfbMs": 111,
+      "totalMs": 136,
+      "bytes": 59905
+    },
+    {
+      "label": "new-password",
+      "path": "/auth/new-password",
+      "url": "http://localhost:3000/auth/new-password",
+      "statusCode": 200,
+      "ttfbMs": 56,
+      "totalMs": 80,
+      "bytes": 53474
+    },
+    {
+      "label": "login",
+      "path": "/auth/login",
+      "url": "http://localhost:3000/auth/login",
+      "statusCode": 200,
+      "ttfbMs": 63,
+      "totalMs": 102,
+      "bytes": 60400
+    },
+    {
+      "label": "forgot-password",
+      "path": "/auth/forgot-password",
+      "url": "http://localhost:3000/auth/forgot-password",
+      "statusCode": 200,
+      "ttfbMs": 63,
+      "totalMs": 104,
+      "bytes": 50478
+    },
+    {
+      "label": "2fa",
+      "path": "/auth/2fa",
+      "url": "http://localhost:3000/auth/2fa",
+      "statusCode": 200,
+      "ttfbMs": 60,
+      "totalMs": 99,
+      "bytes": 47505
+    },
+    {
+      "label": "admin",
+      "path": "/admin",
+      "url": "http://localhost:3000/admin",
+      "statusCode": 307,
+      "ttfbMs": 55,
+      "totalMs": 94,
+      "bytes": 14222
+    },
+    {
+      "label": "users",
+      "path": "/admin/users",
+      "url": "http://localhost:3000/admin/users",
+      "statusCode": 307,
+      "ttfbMs": 68,
+      "totalMs": 86,
+      "bytes": 16056
+    },
+    {
+      "label": "posts",
+      "path": "/admin/posts",
+      "url": "http://localhost:3000/admin/posts",
+      "statusCode": 307,
+      "ttfbMs": 62,
+      "totalMs": 83,
+      "bytes": 16075
+    },
+    {
+      "label": "new",
+      "path": "/admin/posts/new",
+      "url": "http://localhost:3000/admin/posts/new",
+      "statusCode": 307,
+      "ttfbMs": 42,
+      "totalMs": 54,
+      "bytes": 15838
+    },
+    {
+      "label": "monetization",
+      "path": "/admin/monetization",
+      "url": "http://localhost:3000/admin/monetization",
+      "statusCode": 307,
+      "ttfbMs": 42,
+      "totalMs": 53,
+      "bytes": 14691
+    },
+    {
+      "label": "downloads",
+      "path": "/admin/downloads",
+      "url": "http://localhost:3000/admin/downloads",
+      "statusCode": 307,
+      "ttfbMs": 42,
+      "totalMs": 54,
+      "bytes": 16550
+    },
+    {
+      "label": "comments",
+      "path": "/admin/comments",
+      "url": "http://localhost:3000/admin/comments",
+      "statusCode": 307,
+      "ttfbMs": 41,
+      "totalMs": 53,
+      "bytes": 15325
+    },
+    {
+      "label": "analytics",
+      "path": "/admin/analytics",
+      "url": "http://localhost:3000/admin/analytics",
+      "statusCode": 307,
+      "ttfbMs": 35,
+      "totalMs": 2015,
+      "bytes": 14710
+    },
+    {
+      "label": "webhooks",
+      "path": "/admin/analytics/webhooks",
+      "url": "http://localhost:3000/admin/analytics/webhooks",
+      "statusCode": 307,
+      "ttfbMs": 39,
+      "totalMs": 59,
+      "bytes": 16188
+    },
+    {
+      "label": "kpis",
+      "path": "/admin/analytics/kpis",
+      "url": "http://localhost:3000/admin/analytics/kpis",
+      "statusCode": 307,
+      "ttfbMs": 39,
+      "totalMs": 59,
+      "bytes": 16170
+    },
+    {
+      "label": "affiliate-links",
+      "path": "/admin/affiliate-links",
+      "url": "http://localhost:3000/admin/affiliate-links",
+      "statusCode": 307,
+      "ttfbMs": 47,
+      "totalMs": 56,
+      "bytes": 16603
+    },
+    {
+      "label": "advertisements",
+      "path": "/admin/advertisements",
+      "url": "http://localhost:3000/admin/advertisements",
+      "statusCode": 307,
+      "ttfbMs": 48,
+      "totalMs": 57,
+      "bytes": 16802
+    },
+    {
+      "label": "account",
+      "path": "/account",
+      "url": "http://localhost:3000/account",
+      "statusCode": 200,
+      "ttfbMs": 47,
+      "totalMs": 57,
+      "bytes": 46582
+    },
+    {
+      "label": "subscriptions",
+      "path": "/account/subscriptions",
+      "url": "http://localhost:3000/account/subscriptions",
+      "statusCode": 200,
+      "ttfbMs": 48,
+      "totalMs": 58,
+      "bytes": 44342
+    },
+    {
+      "label": "settings",
+      "path": "/account/settings",
+      "url": "http://localhost:3000/account/settings",
+      "statusCode": 307,
+      "ttfbMs": 35,
+      "totalMs": 47,
+      "bytes": 28707
+    },
+    {
+      "label": "profile",
+      "path": "/account/profile",
+      "url": "http://localhost:3000/account/profile",
+      "statusCode": 307,
+      "ttfbMs": 34,
+      "totalMs": 47,
+      "bytes": 28369
+    },
+    {
+      "label": "comments",
+      "path": "/account/comments",
+      "url": "http://localhost:3000/account/comments",
+      "statusCode": 200,
+      "ttfbMs": 39,
+      "totalMs": 42,
+      "bytes": 44386
+    },
+    {
+      "label": "bookmarks",
+      "path": "/account/bookmarks",
+      "url": "http://localhost:3000/account/bookmarks",
+      "statusCode": 200,
+      "ttfbMs": 38,
+      "totalMs": 42,
+      "bytes": 44380
+    },
+    {
+      "label": "billing",
+      "path": "/account/billing",
+      "url": "http://localhost:3000/account/billing",
+      "statusCode": 200,
+      "ttfbMs": 38,
+      "totalMs": 42,
+      "bytes": 44878
+    }
+  ]
+}

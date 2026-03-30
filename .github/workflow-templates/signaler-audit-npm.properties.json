@@ -1,0 +1,13 @@
+{
+  "name": "Signaler Audit (npm)",
+  "description": "Run Signaler discover -> run -> report in CI for npm projects.",
+  "iconName": "terminal",
+  "categories": [
+    "JavaScript",
+    "TypeScript"
+  ],
+  "filePatterns": [
+    "package.json",
+    "package-lock.json"
+  ]
+}

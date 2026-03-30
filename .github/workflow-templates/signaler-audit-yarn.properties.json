@@ -1,0 +1,13 @@
+{
+  "name": "Signaler Audit (yarn)",
+  "description": "Run Signaler discover -> run -> report in CI for yarn projects.",
+  "iconName": "terminal",
+  "categories": [
+    "JavaScript",
+    "TypeScript"
+  ],
+  "filePatterns": [
+    "package.json",
+    "yarn.lock"
+  ]
+}

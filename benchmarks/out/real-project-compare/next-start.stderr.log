@@ -1,0 +1,1698 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of E:\Web Project\experimental-workspace\apex-auditor-workspace\pnpm-lock.yaml as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\pnpm-lock.yaml
+
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:49:51.775Z,,2026-03-06T01:49:51.776Z,scheduled,2026-03-06T01:49:51.775Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "analytics_events"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async i (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2315)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select count(*) from "analytics_events"',
+  params: [],
+  digest: '2031578923',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+(node:25716) TimeoutNegativeWarning: -1727.3086290657593 is a negative number.
+Timeout duration was set to 1.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '113309165',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:49:55.802Z,,2026-03-06T01:49:55.802Z,scheduled,2026-03-06T01:49:55.802Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "analytics_events"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async i (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2315)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select count(*) from "analytics_events"',
+  params: [],
+  digest: '2031578923',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:50:31.423Z,,2026-03-06T01:50:31.423Z,scheduled,2026-03-06T01:50:31.423Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async k (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2979)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2',
+  params: [Array],
+  digest: '2898097611',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '157896343',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:01.010Z,,2026-03-06T01:51:01.010Z,scheduled,2026-03-06T01:51:01.010Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async k (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2979)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2',
+  params: [Array],
+  digest: '2898097611',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '113309165',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '157896343',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.731Z,,2026-03-06T01:51:22.732Z,scheduled,2026-03-06T01:51:22.731Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "referrer", count(*) as "cnt" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."referrer" is not null and "analytics_events"."referrer" <> '') group by "analytics_events"."referrer" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:3279)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: `select "referrer", count(*) as "cnt" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."referrer" is not null and "analytics_events"."referrer" <> '') group by "analytics_events"."referrer" order by "cnt" desc limit $2`,
+  params: [Array],
+  digest: '3316589991',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ [Error: [next-mdx-remote] error compiling MDX:
+Unexpected character `1` (U+0031) before name, expected a character that can start a name, such as a letter, `$`, or `_`
+
+More information: https://mdxjs.com/docs/troubleshooting-mdx] {
+  digest: '4279054907'
+}
+Error fetching post by slug i18n-ready: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.826Z,,2026-03-06T01:51:22.826Z,scheduled,2026-03-06T01:51:22.826Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug mdx-support: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.833Z,,2026-03-06T01:51:22.833Z,scheduled,2026-03-06T01:51:22.833Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug i18n-ready: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.827Z,,2026-03-06T01:51:22.827Z,scheduled,2026-03-06T01:51:22.827Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug mdx-support: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.832Z,,2026-03-06T01:51:22.832Z,scheduled,2026-03-06T01:51:22.832Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug secure-auth: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.875Z,,2026-03-06T01:51:22.875Z,scheduled,2026-03-06T01:51:22.875Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug secure-auth: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.874Z,,2026-03-06T01:51:22.874Z,scheduled,2026-03-06T01:51:22.874Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug theming: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.879Z,,2026-03-06T01:51:22.879Z,scheduled,2026-03-06T01:51:22.879Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug theming: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.881Z,,2026-03-06T01:51:22.881Z,scheduled,2026-03-06T01:51:22.881Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug seo-optimized: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.902Z,,2026-03-06T01:51:22.902Z,scheduled,2026-03-06T01:51:22.902Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug seo-optimized: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.904Z,,2026-03-06T01:51:22.904Z,scheduled,2026-03-06T01:51:22.904Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug extensible-and-customizable: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.925Z,,2026-03-06T01:51:22.925Z,scheduled,2026-03-06T01:51:22.925Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug analytics: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.938Z,,2026-03-06T01:51:22.938Z,scheduled,2026-03-06T01:51:22.938Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug extensible-and-customizable: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.926Z,,2026-03-06T01:51:22.926Z,scheduled,2026-03-06T01:51:22.926Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug analytics: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:22.937Z,,2026-03-06T01:51:22.937Z,scheduled,2026-03-06T01:51:22.937Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug advertising: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:24.742Z,,2026-03-06T01:51:24.742Z,scheduled,2026-03-06T01:51:24.742Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug email-templates: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:24.767Z,,2026-03-06T01:51:24.767Z,scheduled,2026-03-06T01:51:24.767Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug email-templates: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:24.766Z,,2026-03-06T01:51:24.766Z,scheduled,2026-03-06T01:51:24.766Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug advertising: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:24.743Z,,2026-03-06T01:51:24.743Z,scheduled,2026-03-06T01:51:24.743Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '113309165',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:52.700Z,,2026-03-06T01:51:52.700Z,scheduled,2026-03-06T01:51:52.700Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.getBlogStats (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:21901)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1827780805',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:51:52.853Z,,2026-03-06T01:51:52.853Z,scheduled,2026-03-06T01:51:52.853Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async k (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2979)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2',
+  params: [Array],
+  digest: '2898097611',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async k (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2979)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2',
+  params: [Array],
+  digest: '2898097611',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:52:16.332Z,,2026-03-06T01:52:16.332Z,scheduled,2026-03-06T01:52:16.332Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD'), count(*) as "count" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."created_at" >= now() - interval '7 days') group by date_trunc('day', "analytics_events"."created_at") order by date_trunc('day', "analytics_events"."created_at")
+params: page_view
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async j (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2474)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: `select to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD'), count(*) as "count" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."created_at" >= now() - interval '7 days') group by date_trunc('day', "analytics_events"."created_at") order by date_trunc('day', "analytics_events"."created_at")`,
+  params: [Array],
+  digest: '1390035209',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:52:36.344Z,,2026-03-06T01:52:36.344Z,scheduled,2026-03-06T01:52:36.344Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '113309165',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '2763773826',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD'), count(*) as "count" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."created_at" >= now() - interval '7 days') group by date_trunc('day', "analytics_events"."created_at") order by date_trunc('day', "analytics_events"."created_at")
+params: page_view
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async j (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2474)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: `select to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD'), count(*) as "count" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."created_at" >= now() - interval '7 days') group by date_trunc('day', "analytics_events"."created_at") order by date_trunc('day', "analytics_events"."created_at")`,
+  params: [Array],
+  digest: '1390035209',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '157896343',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:52:59.987Z,,2026-03-06T01:52:59.987Z,scheduled,2026-03-06T01:52:59.987Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async k (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2979)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select "path", count(*) as "cnt" from "analytics_events" where "analytics_events"."name" = $1 group by "analytics_events"."path" order by "cnt" desc limit $2',
+  params: [Array],
+  digest: '2898097611',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ [Error: [next-mdx-remote] error compiling MDX:
+Unexpected character `1` (U+0031) before name, expected a character that can start a name, such as a letter, `$`, or `_`
+
+More information: https://mdxjs.com/docs/troubleshooting-mdx] {
+  digest: '4279054907'
+}
+Error fetching post by slug i18n-ready: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.079Z,,2026-03-06T01:53:00.079Z,scheduled,2026-03-06T01:53:00.079Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug mdx-support: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.085Z,,2026-03-06T01:53:00.085Z,scheduled,2026-03-06T01:53:00.085Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug mdx-support: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.087Z,,2026-03-06T01:53:00.087Z,scheduled,2026-03-06T01:53:00.087Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug i18n-ready: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.081Z,,2026-03-06T01:53:00.081Z,scheduled,2026-03-06T01:53:00.081Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug secure-auth: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.129Z,,2026-03-06T01:53:00.130Z,scheduled,2026-03-06T01:53:00.129Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug theming: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.147Z,,2026-03-06T01:53:00.147Z,scheduled,2026-03-06T01:53:00.147Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug secure-auth: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.131Z,,2026-03-06T01:53:00.132Z,scheduled,2026-03-06T01:53:00.131Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug theming: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.160Z,,2026-03-06T01:53:00.160Z,scheduled,2026-03-06T01:53:00.160Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug seo-optimized: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.191Z,,2026-03-06T01:53:00.191Z,scheduled,2026-03-06T01:53:00.191Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug seo-optimized: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.194Z,,2026-03-06T01:53:00.194Z,scheduled,2026-03-06T01:53:00.194Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug extensible-and-customizable: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.224Z,,2026-03-06T01:53:00.224Z,scheduled,2026-03-06T01:53:00.224Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug analytics: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.238Z,,2026-03-06T01:53:00.238Z,scheduled,2026-03-06T01:53:00.238Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug analytics: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.239Z,,2026-03-06T01:53:00.239Z,scheduled,2026-03-06T01:53:00.239Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug extensible-and-customizable: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:00.222Z,,2026-03-06T01:53:00.222Z,scheduled,2026-03-06T01:53:00.222Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug advertising: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:02.018Z,,2026-03-06T01:53:02.018Z,scheduled,2026-03-06T01:53:02.018Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug advertising: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:02.018Z,,2026-03-06T01:53:02.018Z,scheduled,2026-03-06T01:53:02.018Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug email-templates: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:02.033Z,,2026-03-06T01:53:02.033Z,scheduled,2026-03-06T01:53:02.033Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async B (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8647) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+Error fetching post by slug email-templates: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:02.034Z,,2026-03-06T01:53:02.034Z,scheduled,2026-03-06T01:53:02.034Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async y (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:7574)
+    at async Module.A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_e08e33f6._.js:1:8028) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listCategories (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:19355)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1298732280',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async r (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__8a333356._.js:3:4316) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '113309165',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc
+params: true
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__d45597c4._.js:1:11836) {
+  query: 'select "id", "title", "slug", "description", "file_name", "created_at" from "downloads" where ("downloads"."is_active" = $1 and "downloads"."deleted_at" is null) order by "downloads"."created_at" desc',
+  params: [Array],
+  digest: '3763295465',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ uncaughtException:  ReferenceError: location is not defined
+    at p (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_2fea2d55._.js:1:5279)
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.getBlogStats (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:21901)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '1827780805',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "posts"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:10085)
+    at async Object.listTags (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:18717)
+    at async A (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8368) {
+  query: 'select count(*) from "posts"',
+  params: [],
+  digest: '157896343',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:28.056Z,,2026-03-06T01:53:28.056Z,scheduled,2026-03-06T01:53:28.056Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+[blog] Failed to load featured post: Error: Failed query: update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)
+params: published,true,2026-03-06T01:53:28.085Z,,2026-03-06T01:53:28.085Z,scheduled,2026-03-06T01:53:28.085Z
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async a (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:13901)
+    at async Object.getPublicPostBySlug (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_lib_74e65e70._.js:1:16956)
+    at async z (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_src_app_(public)_blog_page_tsx_c1adfe5a._.js:1:8000) {
+  query: 'update "posts" set "status" = $1, "published" = $2, "published_at" = $3, "scheduled_at" = $4, "updated_at" = $5 where ("posts"."status" = $6 and "posts"."scheduled_at" <= $7)',
+  params: [Array],
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select "referrer", count(*) as "cnt" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."referrer" is not null and "analytics_events"."referrer" <> '') group by "analytics_events"."referrer" order by "cnt" desc limit $2
+params: page_view,10
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async l (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:3279)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: `select "referrer", count(*) as "cnt" from "analytics_events" where ("analytics_events"."name" = $1 and "analytics_events"."referrer" is not null and "analytics_events"."referrer" <> '') group by "analytics_events"."referrer" order by "cnt" desc limit $2`,
+  params: [Array],
+  digest: '3316589991',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+ ⨯ Error: Failed query: select count(*) from "analytics_events"
+params: 
+    at bV.queryWithCache (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:38411)
+    at async (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:28:40974)
+    at async i (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:2315)
+    at async t (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\[root-of-the-server]__ed8a6c17._.js:1:4981) {
+  query: 'select count(*) from "analytics_events"',
+  params: [],
+  digest: '2031578923',
+  [cause]: i: password authentication failed for user 'neondb_owner'
+      at V (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:2313)
+      at <unknown> (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3350)
+      at TLSSocket.aQ (E:\Web Project\experimental-workspace\apex-auditor-workspace\next-blogkit-pro\.next\server\chunks\ssr\next-blogkit-pro_988f439d._.js:4:3354) {
+    severity_local: 'ERROR',
+    code: '28P01'
+  }
+}
+^C

@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-23T09:56:48.743Z",
+  "entries": [
+    {
+      "environment": "ci-linux",
+      "profileId": "synthetic-medium",
+      "runMode": "throughput",
+      "toolchain": {
+        "nodeVersion": "v24.11.0",
+        "rustVersion": "rustc 1.91.0 (f8297e351 2025-10-28)"
+      },
+      "metrics": {
+        "elapsedMs": 147353,
+        "avgStepMs": 3683.825,
+        "comboCount": 40,
+        "resolvedParallel": 3,
+        "runnerStability": {
+          "totalAttempts": 40,
+          "totalFailures": 0,
+          "totalRetries": 0,
+          "reductions": 0,
+          "cooldownPauses": 0,
+          "initialParallel": 3,
+          "finalParallel": 3,
+          "failureRate": 0,
+          "retryRate": 0,
+          "maxConsecutiveRetries": 0,
+          "cooldownMsTotal": 0,
+          "recoveryIncreases": 0,
+          "status": "stable"
+        }
+      },
+      "discovery": {
+        "detected": 20,
+        "selected": 20,
+        "excludedDynamic": 0,
+        "excludedByFilter": 0,
+        "excludedByScope": 0
+      },
+      "artifactSizes": {
+        "runJsonBytes": 3496,
+        "summaryJsonBytes": 66173,
+        "resultsJsonBytes": 60068,
+        "suggestionsJsonBytes": 307
+      },
+      "status": "ok",
+      "rustProbe": {
+        "enabled": false,
+        "status": "skipped",
+        "message": "Set SIGNALER_RUST_DISCOVERY=1 to enable Rust discovery probe."
+      }
+    },
+    {
+      "environment": "ci-linux",
+      "profileId": "synthetic-small",
+      "runMode": "throughput",
+      "toolchain": {
+        "nodeVersion": "v24.11.0",
+        "rustVersion": "rustc 1.91.0 (f8297e351 2025-10-28)"
+      },
+      "metrics": {
+        "elapsedMs": 59768,
+        "avgStepMs": 5976.8,
+        "comboCount": 10,
+        "resolvedParallel": 2,
+        "runnerStability": {
+          "totalAttempts": 10,
+          "totalFailures": 0,
+          "totalRetries": 0,
+          "reductions": 0,
+          "cooldownPauses": 0,
+          "initialParallel": 2,
+          "finalParallel": 2,
+          "failureRate": 0,
+          "retryRate": 0,
+          "maxConsecutiveRetries": 0,
+          "cooldownMsTotal": 0,
+          "recoveryIncreases": 0,
+          "status": "stable"
+        }
+      },
+      "discovery": {
+        "detected": 5,
+        "selected": 5,
+        "excludedDynamic": 0,
+        "excludedByFilter": 0,
+        "excludedByScope": 0
+      },
+      "artifactSizes": {
+        "runJsonBytes": 3487,
+        "summaryJsonBytes": 17108,
+        "resultsJsonBytes": 16073,
+        "suggestionsJsonBytes": 307
+      },
+      "status": "ok",
+      "rustProbe": {
+        "enabled": false,
+        "status": "skipped",
+        "message": "Set SIGNALER_RUST_DISCOVERY=1 to enable Rust discovery probe."
+      }
+    },
+    {
+      "environment": "ci-linux",
+      "profileId": "real-next-blogkit-pro",
+      "runMode": "throughput",
+      "toolchain": {
+        "nodeVersion": "v24.11.0",
+        "rustVersion": "rustc 1.91.0 (f8297e351 2025-10-28)"
+      },
+      "metrics": {
+        "elapsedMs": 0,
+        "avgStepMs": 0,
+        "comboCount": 0,
+        "resolvedParallel": 0
+      },
+      "discovery": {
+        "detected": 12,
+        "selected": 12,
+        "excludedDynamic": 0,
+        "excludedByFilter": 0,
+        "excludedByScope": 0
+      },
+      "artifactSizes": {
+        "runJsonBytes": 0,
+        "summaryJsonBytes": 0,
+        "resultsJsonBytes": 0,
+        "suggestionsJsonBytes": 0
+      },
+      "status": "warn",
+      "notes": [
+        "Skipped run: unresolved base URL for profile real-next-blogkit-pro.",
+        "Provide env var from profile baseUrl token before running this benchmark.",
+        "Missing .signaler/run.json",
+        "Missing .signaler/summary.json"
+      ],
+      "rustProbe": {
+        "enabled": false,
+        "status": "skipped",
+        "message": "Set SIGNALER_RUST_DISCOVERY=1 to enable Rust discovery probe."
+      }
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "ok": 2,
+    "warn": 1,
+    "error": 0
+  }
+}

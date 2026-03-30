@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-30T05:01:43.532Z",
+  "status": "ok",
+  "checks": [
+    {
+      "id": "docs-existence",
+      "status": "ok",
+      "details": "Required Phase 6 docs are present.",
+      "blocking": true
+    },
+    {
+      "id": "benchmark-outputs",
+      "status": "ok",
+      "details": "Phase 0 and Phase 4 benchmark outputs are present.",
+      "blocking": true
+    },
+    {
+      "id": "ci-templates",
+      "status": "ok",
+      "details": "GitHub workflow templates for pnpm/npm/yarn are present.",
+      "blocking": true
+    },
+    {
+      "id": "release-notes-continuity",
+      "status": "ok",
+      "details": "Release notes index + historical notes exist for package version 3.0.0.",
+      "blocking": true
+    },
+    {
+      "id": "migration-guide-link",
+      "status": "ok",
+      "details": "docs/README.md links the canonical migration guide.",
+      "blocking": true
+    },
+    {
+      "id": "canonical-flow-docs",
+      "status": "ok",
+      "details": "Canonical flow found in 3 documentation files.",
+      "blocking": true
+    },
+    {
+      "id": "ci-phase6-jobs",
+      "status": "ok",
+      "details": "CI includes cross-platform smoke and Phase 6 gate jobs.",
+      "blocking": true
+    },
+    {
+      "id": "upstream-required-jobs",
+      "status": "ok",
+      "details": "No upstream job status provided (local mode).",
+      "blocking": true
+    },
+    {
+      "id": "cross-platform-smoke-evidence",
+      "status": "ok",
+      "details": "Cross-platform smoke evidence not provided (local mode).",
+      "blocking": true
+    },
+    {
+      "id": "dogfood-evidence",
+      "status": "ok",
+      "details": "Dogfood evidence complete for 3 repos (>=14 days each).",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "blockingFailures": 0,
+    "warnings": 0,
+    "manualItems": 1
+  }
+}

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
+import type { ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, ApexThroughputBackoffPolicy, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
  * Load and minimally validate the Signaler configuration file.
@@ -62,6 +62,16 @@ function validateConfig(config: ApexConfig): string[] {
   if (config.auditTimeoutMs !== undefined && config.auditTimeoutMs < 10000) {
     errors.push('auditTimeoutMs should be at least 10000 (10 seconds)');
   }
+
+  // Validate throughput backoff policy
+  if (
+    (config as { readonly throughputBackoff?: unknown }).throughputBackoff !== undefined &&
+    (config as { readonly throughputBackoff?: unknown }).throughputBackoff !== "auto" &&
+    (config as { readonly throughputBackoff?: unknown }).throughputBackoff !== "aggressive" &&
+    (config as { readonly throughputBackoff?: unknown }).throughputBackoff !== "off"
+  ) {
+    errors.push('throughputBackoff must be one of: auto, aggressive, off');
+  }
   
   return errors;
 }
@@ -86,6 +96,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly sessionIsolation?: unknown;
     readonly warmUp?: unknown;
     readonly incremental?: unknown;
+    readonly throughputBackoff?: unknown;
     readonly budgets?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
@@ -135,6 +146,11 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     rawSessionIsolation === "shared" || rawSessionIsolation === "per-audit"
       ? rawSessionIsolation
       : undefined;
+  const rawThroughputBackoff: unknown = maybeConfig.throughputBackoff;
+  const throughputBackoff: ApexThroughputBackoffPolicy | undefined =
+    rawThroughputBackoff === "auto" || rawThroughputBackoff === "aggressive" || rawThroughputBackoff === "off"
+      ? rawThroughputBackoff
+      : undefined;
   const warmUp: boolean | undefined =
     typeof maybeConfig.warmUp === "boolean" ? maybeConfig.warmUp : undefined;
   const incremental: boolean | undefined =
@@ -153,6 +169,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     cpuSlowdownMultiplier,
     parallel,
     sessionIsolation,
+    throughputBackoff,
     warmUp,
     incremental,
     pages,

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "synthetic-small",
+  "kind": "synthetic",
+  "description": "Synthetic small profile for fast local and CI baseline verification (10 combos target).",
+  "projectRoot": "benchmarks/workspaces/synthetic-small",
+  "baseUrl": "__SYNTHETIC_BASE_URL__",
+  "routes": [
+    { "path": "/", "label": "home" },
+    { "path": "/pricing", "label": "pricing" },
+    { "path": "/docs", "label": "docs" },
+    { "path": "/blog", "label": "blog" },
+    { "path": "/contact", "label": "contact" }
+  ],
+  "devices": ["mobile", "desktop"],
+  "runModes": ["throughput", "fidelity"],
+  "modeConfig": {
+    "throughput": { "parallel": 2, "warmUp": false, "runs": 1, "throttlingMethod": "simulate" },
+    "fidelity": { "parallel": 1, "warmUp": true, "runs": 1, "throttlingMethod": "devtools" }
+  },
+  "expectedDetection": {
+    "detected": 5,
+    "selected": 5,
+    "excludedDynamic": 0,
+    "excludedByFilter": 0,
+    "excludedByScope": 0
+  },
+  "expectedCombos": 10
+}

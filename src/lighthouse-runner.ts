@@ -13,6 +13,7 @@ import type {
   ApexDevice,
   ApexPageScope,
   ApexThrottlingMethod,
+  ApexThroughputBackoffPolicy,
   CategoryScores,
   ComboRunStats,
   MetricValues,
@@ -24,11 +25,46 @@ import type {
 } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
 import { Spinner } from "./utils/progress.js";
+import { runRustCorePipeline, type RustCoreRunAttempt } from "./rust/core-adapter.js";
+import type { RunCoreInput } from "./rust/core-contracts.js";
 
 interface ChromeSession {
   readonly port: number;
   readonly close?: () => Promise<void>;
 }
+
+type RunnerStabilityMeta = {
+  readonly backoffPolicy: ApexThroughputBackoffPolicy;
+  readonly initialParallel: number;
+  readonly finalParallel: number;
+  readonly totalAttempts: number;
+  readonly totalFailures: number;
+  readonly totalRetries: number;
+  readonly reductions: number;
+  readonly cooldownPauses: number;
+  readonly failureRate: number;
+  readonly retryRate: number;
+  readonly maxConsecutiveRetries: number;
+  readonly cooldownMsTotal: number;
+  readonly recoveryIncreases: number;
+  readonly status: "stable" | "degraded" | "unstable";
+};
+
+export type RunnerStepTimings = {
+  readonly warmUpMs: number;
+  readonly queueBuildMs: number;
+  readonly runLoopMs: number;
+  readonly reductionMs: number;
+  readonly totalMs: number;
+};
+
+export type RunnerRustCoreMeta = {
+  readonly enabled: boolean;
+  readonly used: boolean;
+  readonly fallbackReason?: string;
+  readonly sidecarElapsedMs?: number;
+  readonly stepTimings?: RunnerStepTimings;
+};
 
 type IncrementalCache = {
   readonly version: 1;
@@ -42,6 +78,7 @@ const DEFAULT_WORKER_TASK_TIMEOUT_MS: number = 5 * 60 * 1000;
 const WORKER_RESPONSE_TIMEOUT_GRACE_MS: number = 15 * 1000;
 const MAX_PARENT_TASK_ATTEMPTS: number = 5;
 const MAX_PARENT_BACKOFF_MS: number = 3000;
+const LOW_MEMORY_REDUCTION_THRESHOLD_BYTES: number = 3 * 1024 * 1024 * 1024;
 
 let lastProgressLine: string | undefined;
 
@@ -95,6 +132,33 @@ function computeParentRetryDelayMs(params: { readonly attempt: number }): number
   const candidate: number = base * Math.pow(2, expFactor);
   const jitter: number = Math.floor(Math.random() * 200);
   return Math.min(MAX_PARENT_BACKOFF_MS, candidate + jitter);
+}
+
+function computeCooldownDelayMs(params: {
+  readonly backoffPolicy: ApexThroughputBackoffPolicy;
+  readonly consecutiveRetries: number;
+}): number {
+  if (params.backoffPolicy === "off") {
+    return 0;
+  }
+  const base: number = params.backoffPolicy === "aggressive" ? 2500 : 1500;
+  const cap: number = params.backoffPolicy === "aggressive" ? 7000 : 5000;
+  const multiplier: number = Math.max(1, Math.min(4, params.consecutiveRetries));
+  return Math.min(cap, base * multiplier);
+}
+
+function classifyRunnerStability(params: {
+  readonly failureRate: number;
+  readonly retryRate: number;
+  readonly reductions: number;
+}): "stable" | "degraded" | "unstable" {
+  if (params.failureRate >= 0.2 || params.retryRate >= 0.45 || params.reductions >= 3) {
+    return "unstable";
+  }
+  if (params.failureRate >= 0.1 || params.retryRate >= 0.25 || params.reductions >= 1) {
+    return "degraded";
+  }
+  return "stable";
 }
 
 function buildCacheKey(params: {
@@ -153,6 +217,17 @@ function resolveWorkerEntryUrl(): { readonly entry: URL; readonly useTsx: boolea
   return { entry: isSourceRun ? tsEntry : jsEntry, useTsx: isSourceRun };
 }
 
+function resolveStdioWorkerCommand(): { readonly command: string; readonly args: readonly string[] } {
+  const jsEntry: URL = new URL("./lighthouse-stdio-worker.js", import.meta.url);
+  const tsEntry: URL = new URL("./lighthouse-stdio-worker.ts", import.meta.url);
+  const isSourceRun: boolean = import.meta.url.endsWith(".ts");
+  const entryPath: string = fileURLToPath(isSourceRun ? tsEntry : jsEntry);
+  if (isSourceRun) {
+    return { command: process.execPath, args: ["--import", "tsx", entryPath] };
+  }
+  return { command: process.execPath, args: [entryPath] };
+}
+
 function spawnWorker(): ReturnType<typeof spawn> {
   const resolved = resolveWorkerEntryUrl();
   const entryPath: string = fileURLToPath(resolved.entry);
@@ -168,14 +243,22 @@ async function runParallelInProcesses(
   updateProgress: (path: string, device: ApexDevice) => void,
   captureLevel: "diagnostics" | "lhr" | undefined,
   outputDir: string,
-): Promise<PageDeviceSummary[]> {
-  const effectiveParallel: number = Math.min(parallelCount, tasks.length);
-  const workers: Array<{ readonly child: ReturnType<typeof spawn>; busy: boolean; inFlightId?: string; inFlightTaskIndex?: number }> = [];
-  for (let i = 0; i < effectiveParallel; i += 1) {
+  backoffPolicy: ApexThroughputBackoffPolicy,
+): Promise<{ readonly results: PageDeviceSummary[]; readonly stability: RunnerStabilityMeta }> {
+  const initialParallel: number = Math.min(parallelCount, tasks.length);
+  type WorkerSlot = {
+    child: ReturnType<typeof spawn>;
+    busy: boolean;
+    active: boolean;
+    inFlightId?: string;
+    inFlightTaskIndex?: number;
+  };
+  const workers: WorkerSlot[] = [];
+  for (let i = 0; i < initialParallel; i += 1) {
     if (i > 0) {
       await delayMs(200 * i);
     }
-    workers.push({ child: spawnWorker(), busy: false });
+    workers.push({ child: spawnWorker(), busy: false, active: true });
   }
   type PendingItem = { readonly taskIndex: number; readonly runIndex: number; readonly attempts: number };
   const results: PageDeviceSummary[] = new Array(tasks.length);
@@ -239,14 +322,108 @@ async function runParallelInProcesses(
       signal.addEventListener("abort", onAbort, { once: true });
     }
   }
+
   let consecutiveRetries = 0;
   let totalFailures = 0;
   let totalAttempts = 0;
-  let currentEffectiveParallel = effectiveParallel;
+  let totalRetries = 0;
+  let reductions = 0;
+  let cooldownPauses = 0;
+  let currentActiveWorkers = initialParallel;
+  let maxConsecutiveRetries = 0;
+  let cooldownMsTotal = 0;
+  let recoveryIncreases = 0;
+  let stableSuccesses = 0;
+  const recentFailures: number[] = [];
+  const failureWindowSize: number = backoffPolicy === "aggressive" ? 6 : 8;
+  const reductionRetryThreshold: number = backoffPolicy === "aggressive" ? 2 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 3;
+  const reductionFailureRateThreshold: number = backoffPolicy === "aggressive" ? 0.25 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 0.35;
+  const cooldownRetryThreshold: number = backoffPolicy === "aggressive" ? 1 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 2;
+  const recoveryStableWindow: number = backoffPolicy === "aggressive" ? 4 : 6;
 
-  const runOnWorker = async (workerIndex: number, taskIndex: number): Promise<void> => {
+  const rollingFailureRate = (): number => {
+    if (recentFailures.length === 0) {
+      return 0;
+    }
+    const failures: number = recentFailures.reduce((sum, value) => sum + value, 0);
+    return failures / recentFailures.length;
+  };
+
+  const pushFailureSample = (sample: 0 | 1): void => {
+    recentFailures.push(sample);
+    while (recentFailures.length > failureWindowSize) {
+      recentFailures.shift();
+    }
+  };
+
+  const replaceWorker = async (workerIndex: number): Promise<void> => {
     const worker = workers[workerIndex];
-    if (signal?.aborted) {
+    if (!worker || !worker.active) {
+      return;
+    }
+    try {
+      worker.child.kill();
+    } catch {
+      // Ignore replacement errors.
+    }
+    const replacement = spawnWorker();
+    attachListeners(replacement);
+    workers[workerIndex] = { child: replacement, busy: false, active: true };
+  };
+
+  const deactivateWorker = (workerIndex: number): void => {
+    const worker = workers[workerIndex];
+    if (!worker || !worker.active) {
+      return;
+    }
+    worker.active = false;
+    worker.busy = false;
+    worker.inFlightId = undefined;
+    worker.inFlightTaskIndex = undefined;
+    try {
+      worker.child.kill();
+    } catch {
+      // Ignore shutdown errors on deactivation.
+    }
+    currentActiveWorkers = Math.max(1, currentActiveWorkers - 1);
+  };
+
+  const reduceActiveWorkers = (reason: "failure-storm" | "low-memory"): void => {
+    if (backoffPolicy === "off" || currentActiveWorkers <= 1) {
+      return;
+    }
+    const targetParallel: number = Math.max(1, Math.floor(currentActiveWorkers / 2));
+    for (let i = workers.length - 1; i >= 0 && currentActiveWorkers > targetParallel; i -= 1) {
+      if (!workers[i]?.active) {
+        continue;
+      }
+      deactivateWorker(i);
+    }
+    reductions += 1;
+    stableSuccesses = 0;
+    logLinePreservingProgress(`Runner backoff (${reason}): active workers reduced to ${currentActiveWorkers}.`);
+  };
+
+  const maybeRecoverWorker = async (): Promise<void> => {
+    if (backoffPolicy === "off" || currentActiveWorkers >= initialParallel || stableSuccesses < recoveryStableWindow) {
+      return;
+    }
+    const recoveryIndex: number = workers.findIndex((worker) => worker.active === false);
+    if (recoveryIndex < 0) {
+      return;
+    }
+    const replacement = spawnWorker();
+    attachListeners(replacement);
+    workers[recoveryIndex] = { child: replacement, busy: false, active: true };
+    currentActiveWorkers += 1;
+    recoveryIncreases += 1;
+    stableSuccesses = 0;
+    logLinePreservingProgress(`Runner recovery: active workers increased to ${currentActiveWorkers}.`);
+  };
+
+  const runOnWorker = async (workerIndex: number): Promise<void> => {
+    const worker = workers[workerIndex];
+    if (!worker || !worker.active || signal?.aborted) {
       return;
     }
     const next = pending.shift();
@@ -255,8 +432,8 @@ async function runParallelInProcesses(
     }
     const task: AuditTask = tasks[next.taskIndex];
     const id: string = `${workerIndex}-${next.taskIndex}-${next.runIndex}-${Date.now()}`;
+    totalAttempts += 1;
 
-    totalAttempts++;
     const workerTask: WorkerTask = {
       url: task.url,
       path: task.path,
@@ -275,6 +452,7 @@ async function runParallelInProcesses(
     worker.inFlightId = id;
     worker.inFlightTaskIndex = next.taskIndex;
     inFlight.set(id, next);
+
     const responseTimeoutMs: number = auditTimeoutMs + WORKER_RESPONSE_TIMEOUT_GRACE_MS;
     const response: WorkerResponseMessage = await new Promise<WorkerResponseMessage>((resolve, reject) => {
       const timeoutHandle: NodeJS.Timeout = setTimeout(() => {
@@ -310,13 +488,16 @@ async function runParallelInProcesses(
     }).catch((error: unknown) => {
       return { type: "error", id, errorMessage: error instanceof Error ? error.message : "Worker failure" } as WorkerResponseMessage;
     });
+
     const flight: PendingItem | undefined = inFlight.get(id);
     inFlight.delete(id);
     worker.busy = false;
     worker.inFlightId = undefined;
     worker.inFlightTaskIndex = undefined;
+
     if (response.type === "error") {
-      totalFailures++;
+      totalFailures += 1;
+      totalRetries += 1;
       const isTimeout: boolean = response.errorMessage.includes("timeout") || response.errorMessage.includes("Timeout") || response.errorMessage.includes("Signaler timeout");
       const prefix: string = isTimeout ? "Timeout" : "Worker error";
       logLinePreservingProgress(`${prefix}: ${task.path} [${task.device}] (run ${next.runIndex + 1}/${task.runs}). Retrying... (${response.errorMessage})`);
@@ -334,87 +515,101 @@ async function runParallelInProcesses(
         pending.unshift(retryItem);
       }
       consecutiveRetries += 1;
+      maxConsecutiveRetries = Math.max(maxConsecutiveRetries, consecutiveRetries);
+      stableSuccesses = 0;
+      pushFailureSample(1);
 
-      // Check if we should reduce parallelism due to high failure rate
-      const failureRate = totalFailures / totalAttempts;
-      if (consecutiveRetries >= 3 && currentEffectiveParallel > 1) {
-        const newParallel = Math.max(1, Math.floor(currentEffectiveParallel / 2));
-        logLinePreservingProgress(`⚠️  High failure rate detected (${Math.round(failureRate * 100)}%). Reducing parallelism from ${currentEffectiveParallel} to ${newParallel} workers.`);
-        currentEffectiveParallel = newParallel;
-
-        // Kill excess workers
-        for (let i = newParallel; i < workers.length; i++) {
-          try {
-            workers[i].child.kill();
-          } catch {
-            // Worker may have already exited
-          }
-        }
+      const rollingRate: number = rollingFailureRate();
+      const reduceByRetries: boolean = consecutiveRetries >= reductionRetryThreshold;
+      const reduceByRate: boolean = recentFailures.length >= failureWindowSize && rollingRate >= reductionFailureRateThreshold;
+      if (currentActiveWorkers > 1 && (reduceByRetries || reduceByRate)) {
+        reduceActiveWorkers("failure-storm");
       }
 
-      try {
-        worker.child.kill();
-      } catch {
-        return;
-      }
-      const replacement = spawnWorker();
       await delayMs(computeParentRetryDelayMs({ attempt: retryItem.attempts }));
-      attachListeners(replacement);
-      workers[workerIndex] = { child: replacement, busy: false };
+      if (workers[workerIndex]?.active) {
+        await replaceWorker(workerIndex);
+      }
       return;
     }
+
     consecutiveRetries = 0;
+    stableSuccesses += 1;
+    pushFailureSample(0);
     summariesByTask[next.taskIndex].push(response.result);
     updateProgress(task.path, task.device);
     if (summariesByTask[next.taskIndex].length === task.runs) {
       results[next.taskIndex] = aggregateSummaries(summariesByTask[next.taskIndex]);
     }
+    await maybeRecoverWorker();
   };
+
   try {
     while (pending.length > 0) {
       if (signal?.aborted) {
         throw new Error("Aborted");
       }
-      if (consecutiveRetries >= 2) {
-        logLinePreservingProgress(`Cooling down after ${consecutiveRetries} retry attempts; pausing briefly before resuming...`);
-        await delayMs(computeParentRetryDelayMs({ attempt: consecutiveRetries }));
-        consecutiveRetries = 0;
+      if (backoffPolicy !== "off" && currentActiveWorkers > 1 && freemem() < LOW_MEMORY_REDUCTION_THRESHOLD_BYTES) {
+        reduceActiveWorkers("low-memory");
       }
-      const idle: number[] = workers.map((w, idx) => (w.busy ? -1 : idx)).filter((idx) => idx >= 0);
+      if (consecutiveRetries >= cooldownRetryThreshold) {
+        const cooldownMs: number = computeCooldownDelayMs({ backoffPolicy, consecutiveRetries });
+        if (cooldownMs > 0) {
+          logLinePreservingProgress(`Cooldown: pausing ${cooldownMs}ms after ${consecutiveRetries} consecutive retries.`);
+          await delayMs(cooldownMs);
+          cooldownMsTotal += cooldownMs;
+        }
+        consecutiveRetries = 0;
+        cooldownPauses += 1;
+      }
+      const idle: number[] = workers
+        .map((worker, index) => (worker.active && !worker.busy ? index : -1))
+        .filter((index) => index >= 0);
       if (idle.length === 0) {
         await delayMs(50);
         continue;
       }
-      await Promise.all(idle.map(async (workerIndex) => {
-        await runOnWorker(workerIndex, workerIndex);
-      }));
+      await Promise.all(idle.map(async (workerIndex) => runOnWorker(workerIndex)));
     }
   } finally {
-    // Enhanced cleanup: ensure all workers are properly terminated
     logLinePreservingProgress("Cleaning up workers...");
     const cleanupPromises = workers.map(async (worker, index) => {
       try {
-        // Try graceful shutdown first
-        worker.child.kill('SIGTERM');
-
-        // Wait briefly for graceful shutdown
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Force kill if still running
+        worker.child.kill("SIGTERM");
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 400));
         if (!worker.child.killed) {
-          worker.child.kill('SIGKILL');
+          worker.child.kill("SIGKILL");
         }
       } catch (error) {
-        // Worker may have already exited
         logLinePreservingProgress(`Warning: Worker ${index} cleanup error: ${error instanceof Error ? error.message : String(error)}`);
       }
     });
-
     await Promise.allSettled(cleanupPromises);
   }
-  return results;
-}
 
+  const failureRate: number = totalAttempts > 0 ? totalFailures / totalAttempts : 0;
+  const retryRate: number = totalAttempts > 0 ? totalRetries / totalAttempts : 0;
+  const status: "stable" | "degraded" | "unstable" = classifyRunnerStability({ failureRate, retryRate, reductions });
+  return {
+    results,
+    stability: {
+      backoffPolicy,
+      initialParallel,
+      finalParallel: currentActiveWorkers,
+      totalAttempts,
+      totalFailures,
+      totalRetries,
+      reductions,
+      cooldownPauses,
+      failureRate,
+      retryRate,
+      maxConsecutiveRetries,
+      cooldownMsTotal,
+      recoveryIncreases,
+      status,
+    },
+  };
+}
 interface LighthouseCategoryLike {
   readonly score?: number;
 }
@@ -605,7 +800,11 @@ async function ensureUrlReachable(url: string, signal?: AbortSignal): Promise<vo
   });
 }
 
-async function performWarmUp(config: ApexConfig, signal?: AbortSignal): Promise<void> {
+async function performWarmUp(
+  config: ApexConfig,
+  signal?: AbortSignal,
+  options?: { readonly sampleSize?: number; readonly maxConcurrency?: number },
+): Promise<void> {
   const uniqueUrls: Set<string> = new Set();
   for (const page of config.pages) {
     if (signal?.aborted) {
@@ -614,13 +813,17 @@ async function performWarmUp(config: ApexConfig, signal?: AbortSignal): Promise<
     const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
     uniqueUrls.add(url);
   }
-  const urls: readonly string[] = Array.from(uniqueUrls);
+  let urls: readonly string[] = Array.from(uniqueUrls);
+  if (typeof options?.sampleSize === "number" && options.sampleSize > 0 && options.sampleSize < urls.length) {
+    urls = urls.slice(0, options.sampleSize);
+  }
 
-  const spinner = new Spinner(`Warming up ${uniqueUrls.size} pages...`);
+  const spinner = new Spinner(`Warming up ${urls.length} pages...`);
   spinner.start();
 
   try {
-    const warmUpConcurrency: number = Math.max(1, Math.min(4, config.parallel ?? 4));
+    const warmUpConcurrencyCap: number = options?.maxConcurrency ?? 4;
+    const warmUpConcurrency: number = Math.max(1, Math.min(warmUpConcurrencyCap, config.parallel ?? warmUpConcurrencyCap));
     const warmUpNextIndex = { value: 0 };
     const warmWorker = async (): Promise<void> => {
       while (warmUpNextIndex.value < urls.length) {
@@ -641,7 +844,7 @@ async function performWarmUp(config: ApexConfig, signal?: AbortSignal): Promise<
       }
     };
     await Promise.all(new Array(warmUpConcurrency).fill(0).map(async () => warmWorker()));
-    spinner.succeed(`Warm-up complete (${uniqueUrls.size} pages)`);
+    spinner.succeed(`Warm-up complete (${urls.length} pages)`);
   } catch (error) {
     spinner.fail(`Warm-up failed: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
@@ -693,6 +896,7 @@ export async function runAuditsForConfig({
   signal,
   onAfterWarmUp,
   onProgress,
+  onRustCoreMeta,
 }: {
   readonly config: ApexConfig;
   readonly configPath: string;
@@ -703,6 +907,7 @@ export async function runAuditsForConfig({
   readonly signal?: AbortSignal;
   readonly onAfterWarmUp?: () => void;
   readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
+  readonly onRustCoreMeta?: (meta: RunnerRustCoreMeta) => void;
 }): Promise<RunSummary> {
   const runs: number = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : 1;
   const sessionIsolation: "shared" | "per-audit" = config.sessionIsolation ?? "shared";
@@ -712,41 +917,70 @@ export async function runAuditsForConfig({
     throw new Error("Aborted");
   }
   await ensureUrlReachable(healthCheckUrl, signal);
-  // Perform warm-up requests if enabled
-  if (config.warmUp) {
-    await performWarmUp(config, signal);
-  }
-  if (typeof onAfterWarmUp === "function") {
-    onAfterWarmUp();
-  }
   const throttlingMethod: ApexThrottlingMethod = config.throttlingMethod ?? "simulate";
   const cpuSlowdownMultiplier: number = config.cpuSlowdownMultiplier ?? 4;
   const logLevel = config.logLevel ?? "error";
   const auditTimeoutMs: number = config.auditTimeoutMs ?? DEFAULT_WORKER_TASK_TIMEOUT_MS;
+  const plannedTaskCount: number = config.pages.reduce((sum, page) => sum + page.devices.length, 0);
+  const resolvedParallelForWarmUp: number = resolveParallelCount({
+    requested: config.parallel,
+    chromePort: config.chromePort,
+    taskCount: Math.max(1, plannedTaskCount),
+  });
+  let warmUpMs = 0;
+  if (config.warmUp) {
+    const warmUpStartedAtMs = Date.now();
+    const uniqueRouteCount: number = new Set(config.pages.map((page) => page.path)).size;
+    const throughputLike: boolean = sessionIsolation === "shared";
+    await performWarmUp(config, signal, {
+      sampleSize: throughputLike ? Math.min(8, uniqueRouteCount) : undefined,
+      maxConcurrency: throughputLike
+        ? Math.max(1, Math.min(2, resolvedParallelForWarmUp))
+        : Math.max(1, Math.min(4, resolvedParallelForWarmUp)),
+    });
+    warmUpMs = Date.now() - warmUpStartedAtMs;
+  }
+  if (typeof onAfterWarmUp === "function") {
+    onAfterWarmUp();
+  }
 
   const incrementalEnabled: boolean = config.incremental === true && typeof config.buildId === "string" && config.buildId.length > 0;
   const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache({ outputDir }) : undefined;
   const cacheEntries: Record<string, PageDeviceSummary> = cache?.entries ?? {};
 
-  // Build list of all audit tasks
+  // Build list of all audit tasks using deterministic round-robin order (page/device).
+  const perPageTasks: readonly (readonly AuditTask[])[] = config.pages.map((page) => {
+    const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
+    return page.devices.map((device) => ({
+      url,
+      path: page.path,
+      label: page.label,
+      device,
+      pageScope: page.scope,
+      runs,
+      logLevel,
+      throttlingMethod,
+      cpuSlowdownMultiplier,
+      onlyCategories,
+    }));
+  });
+  const queueBuildStartedAtMs: number = Date.now();
   const tasks: AuditTask[] = [];
-  for (const page of config.pages) {
-    for (const device of page.devices) {
-      const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
-      tasks.push({
-        url,
-        path: page.path,
-        label: page.label,
-        device,
-        pageScope: page.scope,
-        runs,
-        logLevel,
-        throttlingMethod,
-        cpuSlowdownMultiplier,
-        onlyCategories,
-      });
+  for (let deviceIndex = 0; ; deviceIndex += 1) {
+    let pushedInRound = false;
+    for (const bucket of perPageTasks) {
+      const nextTask: AuditTask | undefined = bucket[deviceIndex];
+      if (!nextTask) {
+        continue;
+      }
+      tasks.push(nextTask);
+      pushedInRound = true;
+    }
+    if (!pushedInRound) {
+      break;
     }
   }
+  const queueBuildMs: number = Date.now() - queueBuildStartedAtMs;
 
   const results: PageDeviceSummary[] = new Array(tasks.length);
   const tasksToRun: AuditTask[] = [];
@@ -810,23 +1044,137 @@ export async function runAuditsForConfig({
   };
 
   let resultsFromRunner: PageDeviceSummary[];
+  let runnerStability: RunnerStabilityMeta | undefined;
+  let rustCoreMeta: RunnerRustCoreMeta | undefined;
+  const runLoopStartedAtMs: number = Date.now();
 
   if (tasksToRun.length === 0) {
     resultsFromRunner = [];
-  } else if (sessionIsolation === "per-audit" || parallelCount <= 1 || config.chromePort !== undefined) {
-    // Sequential execution (original behavior) or using external Chrome
-    resultsFromRunner = await runSequential({
-      tasks: tasksToRun,
-      chromePort: config.chromePort,
-      auditTimeoutMs,
-      signal,
-      updateProgress,
-      captureLevel,
-      outputDir,
-      sessionIsolation,
-    });
+    rustCoreMeta = {
+      enabled: process.env.SIGNALER_RUST_CORE !== "0",
+      used: false,
+      stepTimings: {
+        warmUpMs,
+        queueBuildMs,
+        runLoopMs: 0,
+        reductionMs: 0,
+        totalMs: warmUpMs + queueBuildMs,
+      },
+    };
   } else {
-    resultsFromRunner = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir);
+    const stdioWorker = resolveStdioWorkerCommand();
+    const rustInput: RunCoreInput = {
+      schemaVersion: 1,
+      mode: sessionIsolation === "per-audit" ? "fidelity" : "throughput",
+      baseUrl: config.baseUrl,
+      parallel: parallelCount,
+      runsPerCombo: runs,
+      throttlingMethod,
+      cpuSlowdownMultiplier,
+      sessionIsolation,
+      throughputBackoff: config.throughputBackoff ?? "auto",
+      warmUp: {
+        enabled: false,
+      },
+      auditTimeoutMs,
+      captureLevel: captureLevel ?? "none",
+      outputDir,
+      tasks: tasksToRun.map((task) => ({
+        url: task.url,
+        path: task.path,
+        label: task.label,
+        device: task.device,
+        pageScope: task.pageScope,
+        logLevel: task.logLevel,
+        throttlingMethod: task.throttlingMethod,
+        cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+        timeoutMs: auditTimeoutMs,
+        onlyCategories: task.onlyCategories,
+        captureLevel,
+        outputDir,
+        runs: task.runs,
+      })),
+      worker: {
+        command: stdioWorker.command,
+        args: stdioWorker.args,
+      },
+    };
+    const rustAttempt: RustCoreRunAttempt = await runRustCorePipeline({
+      input: rustInput,
+      timeoutMs: Math.max(180_000, auditTimeoutMs * Math.max(1, tasksToRun.length)),
+    });
+    if (rustAttempt.used && rustAttempt.output) {
+      resultsFromRunner = [...rustAttempt.output.results];
+      runnerStability = rustAttempt.output.runnerStability;
+      rustCoreMeta = {
+        enabled: rustAttempt.enabled,
+        used: true,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+        stepTimings: {
+          warmUpMs,
+          queueBuildMs,
+          runLoopMs: rustAttempt.output.execution.stepTimings.runLoopMs,
+          reductionMs: rustAttempt.output.execution.stepTimings.reductionMs,
+          totalMs: rustAttempt.output.execution.stepTimings.totalMs,
+        },
+      };
+      for (const task of tasksToRun) {
+        for (let runIndex = 0; runIndex < task.runs; runIndex += 1) {
+          updateProgress(task.path, task.device);
+        }
+      }
+    } else if (sessionIsolation === "per-audit" || parallelCount <= 1 || config.chromePort !== undefined) {
+      rustCoreMeta = {
+        enabled: rustAttempt.enabled,
+        used: false,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      };
+      // Sequential execution (original behavior) or using external Chrome
+      resultsFromRunner = await runSequential({
+        tasks: tasksToRun,
+        chromePort: config.chromePort,
+        auditTimeoutMs,
+        signal,
+        updateProgress,
+        captureLevel,
+        outputDir,
+        sessionIsolation,
+      });
+    } else {
+      rustCoreMeta = {
+        enabled: rustAttempt.enabled,
+        used: false,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      };
+      const backoffPolicy: ApexThroughputBackoffPolicy = config.throughputBackoff ?? "auto";
+      const parallelRun = await runParallelInProcesses(tasksToRun, parallelCount, auditTimeoutMs, signal, updateProgress, captureLevel, outputDir, backoffPolicy);
+      resultsFromRunner = parallelRun.results;
+      runnerStability = parallelRun.stability;
+    }
+  }
+
+  if (rustCoreMeta?.stepTimings === undefined) {
+    const runLoopMs: number = Date.now() - runLoopStartedAtMs;
+    rustCoreMeta = {
+      ...(rustCoreMeta ?? { enabled: process.env.SIGNALER_RUST_CORE !== "0", used: false }),
+      stepTimings: {
+        warmUpMs,
+        queueBuildMs,
+        runLoopMs,
+        reductionMs: 0,
+        totalMs: warmUpMs + queueBuildMs + runLoopMs,
+      },
+    };
+  }
+
+  if (typeof onRustCoreMeta === "function" && rustCoreMeta !== undefined) {
+    onRustCoreMeta(rustCoreMeta);
+  }
+
+  if (resultsFromRunner.length !== tasksToRun.length) {
+    throw new Error(`Runner returned ${resultsFromRunner.length} results for ${tasksToRun.length} tasks.`);
   }
 
   for (let runIndex = 0; runIndex < resultsFromRunner.length; runIndex += 1) {
@@ -877,6 +1225,7 @@ export async function runAuditsForConfig({
       completedAt: new Date(completedAtMs).toISOString(),
       elapsedMs,
       averageStepMs,
+      runnerStability,
     },
     results,
   };
@@ -1379,20 +1728,20 @@ function resolveParallelCount({
     return Math.max(1, Math.min(10, requested));
   }
 
-  // Auto-tune based on CPU and memory
+  // Auto-tune based on CPU and memory (prefer stability on typical developer machines)
   const logicalCpus: number = cpus().length;
-  const cpuBased: number = Math.max(1, Math.min(10, Math.floor(logicalCpus * 0.75)));
+  const cpuBased: number = Math.max(1, Math.min(10, Math.floor(logicalCpus * 0.5)));
 
-  // Each worker needs ~1.5GB memory
+  // Each worker can spike above 1.5GB during Lighthouse+Chrome activity, so keep headroom.
   const freeMemoryBytes: number = freemem();
   const freeMemoryGB: number = freeMemoryBytes / 1_000_000_000;
-  const memoryBased: number = Math.max(1, Math.min(10, Math.floor(freeMemoryGB / 1.5)));
+  const memoryBased: number = Math.max(1, Math.min(10, Math.floor(freeMemoryGB / 2)));
 
   // Take minimum of CPU and memory constraints
   const suggested: number = Math.max(1, Math.min(cpuBased, memoryBased));
 
-  // Cap at 4 by default for stability
-  const cappedSuggested: number = Math.min(4, suggested || 1);
+  // Cap at 3 by default for stability
+  const cappedSuggested: number = Math.min(3, suggested || 1);
 
   // Don't use more workers than tasks
   const final: number = Math.max(1, Math.min(10, Math.min(taskCount, cappedSuggested)));

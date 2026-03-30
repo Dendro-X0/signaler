@@ -23,6 +23,79 @@ pwsh -ExecutionPolicy Bypass -File setup-bash-wrapper.ps1
 ### postinstall.js
 Automatic postinstall script (currently not used by JSR installations).
 
+### agent-bootstrap.md
+Copy/paste bootstrap blocks for agents (bash + PowerShell) that run:
+
+1. `discover`
+2. `run --contract v3 --mode throughput`
+3. `report`
+
+### agent-bootstrap.sh
+Executable bash bootstrap helper for the same canonical sequence.
+
+**Usage:**
+```bash
+bash agent-bootstrap.sh
+```
+
+### agent-bootstrap.ps1
+Executable PowerShell bootstrap helper for the same canonical sequence.
+
+**Usage:**
+```powershell
+powershell -ExecutionPolicy Bypass -File agent-bootstrap.ps1
+```
+
+### v3-release-manifest.ts
+Generate a machine-readable V3 release manifest from known assets and gate reports.
+
+**Usage:**
+```bash
+pnpm run v3:manifest generate --version 3.0.0-rc.1 --channel rc --asset <path> --gate <path>
+```
+
+### v3-release-manifest-smoke.ts
+Create a local `.tgz` package artifact and emit/validate `release/v3/release-manifest.generated.json`.
+
+**Usage:**
+```bash
+pnpm run v3:manifest:smoke
+```
+
+### v3-release-manifest-validate.ts
+Validate manifest schema + packaging policy (`.tgz`, required gates, checksums, install helper scripts).
+
+**Usage:**
+```bash
+pnpm run v3:manifest:validate
+```
+
+### release.js
+Deterministic V3 release preflight runner.
+
+It validates:
+
+1. version sync (`package.json` + `jsr.json`)
+2. required docs/release assets
+3. gate report statuses (`v3`, `phase6`, `v6.3`)
+4. optional cross-platform smoke evidence
+
+It also emits a machine-readable report at `release/v3/release-preflight.json` (default).
+
+**Usage:**
+```bash
+pnpm run release -- --target-version 3.0.0-rc.1
+pnpm run release -- --target-version 3.0.0-rc.1 --require-cross-platform --strict
+pnpm run release -- --dry-run
+```
+
+Package-script aliases (from repo root):
+
+```bash
+corepack pnpm run agent:bootstrap:sh
+corepack pnpm run agent:bootstrap:ps
+```
+
 ## Why These Scripts?
 
 JSR installations create a `.cmd` wrapper that works in PowerShell and CMD, but not in Git Bash. These scripts create an additional bash wrapper so the CLI works in all shells.

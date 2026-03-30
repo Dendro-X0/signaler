@@ -1,0 +1,113 @@
+{
+  "generatedAt": "2026-03-06T01:54:50.859Z",
+  "entries": [
+    {
+      "command": "health",
+      "node": {
+        "elapsedMs": 2285,
+        "taskCount": 34,
+        "errorCount": 0,
+        "errorRate": 0,
+        "engine": "node",
+        "requested": false,
+        "used": false,
+        "fallbackReason": "",
+        "sidecarElapsedMs": 0
+      },
+      "rust": {
+        "elapsedMs": 2296,
+        "taskCount": 34,
+        "errorCount": 0,
+        "errorRate": 0,
+        "engine": "node",
+        "requested": true,
+        "used": false,
+        "fallbackReason": "spawn cargo.exe ENOENT",
+        "sidecarElapsedMs": 5
+      },
+      "deltaMs": 11,
+      "deltaPct": 0.5
+    },
+    {
+      "command": "headers",
+      "node": {
+        "elapsedMs": 2321,
+        "taskCount": 34,
+        "errorCount": 34,
+        "errorRate": 1,
+        "engine": "node",
+        "requested": false,
+        "used": false,
+        "fallbackReason": "",
+        "sidecarElapsedMs": 0
+      },
+      "rust": {
+        "elapsedMs": 2348,
+        "taskCount": 34,
+        "errorCount": 34,
+        "errorRate": 1,
+        "engine": "node",
+        "requested": true,
+        "used": false,
+        "fallbackReason": "spawn cargo.exe ENOENT",
+        "sidecarElapsedMs": 7
+      },
+      "deltaMs": 27,
+      "deltaPct": 1.2
+    },
+    {
+      "command": "links",
+      "node": {
+        "elapsedMs": 6960,
+        "taskCount": 70,
+        "errorCount": 10,
+        "errorRate": 0.1429,
+        "engine": "node",
+        "requested": false,
+        "used": false,
+        "fallbackReason": "",
+        "sidecarElapsedMs": 0
+      },
+      "rust": {
+        "elapsedMs": 6628,
+        "taskCount": 70,
+        "errorCount": 10,
+        "errorRate": 0.1429,
+        "engine": "node",
+        "requested": true,
+        "used": false,
+        "fallbackReason": "spawn cargo.exe ENOENT",
+        "sidecarElapsedMs": 6
+      },
+      "deltaMs": -332,
+      "deltaPct": -4.8
+    },
+    {
+      "command": "console",
+      "node": {
+        "elapsedMs": 8868,
+        "taskCount": 68,
+        "errorCount": 7,
+        "errorRate": 0.1029,
+        "engine": "node",
+        "requested": false,
+        "used": false,
+        "fallbackReason": "",
+        "sidecarElapsedMs": 0
+      },
+      "rust": {
+        "elapsedMs": 8247,
+        "taskCount": 68,
+        "errorCount": 3,
+        "errorRate": 0.0441,
+        "engine": "node",
+        "requested": true,
+        "used": false,
+        "fallbackReason": "spawn cargo.exe ENOENT",
+        "sidecarElapsedMs": 5
+      },
+      "deltaMs": -621,
+      "deltaPct": -7
+    }
+  ]
+}

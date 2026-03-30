@@ -1,0 +1,83 @@
+name: Signaler Audit (yarn)
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Application base URL"
+        required: false
+        default: "http://127.0.0.1:3000"
+      start_command:
+        description: "Command used to start the app"
+        required: false
+        default: "yarn start"
+      config_path:
+        description: "Path to signaler config file"
+        required: false
+        default: "signaler.config.json"
+      routes_scope:
+        description: "Route discovery scope: quick|full|file"
+        required: false
+        default: "full"
+
+jobs:
+  signaler:
+    runs-on: ubuntu-latest
+    env:
+      SIGNALER_BASE_URL: ${{ inputs.base_url || 'http://127.0.0.1:3000' }}
+      SIGNALER_START_COMMAND: ${{ inputs.start_command || 'yarn start' }}
+      SIGNALER_CONFIG_PATH: ${{ inputs.config_path || 'signaler.config.json' }}
+      SIGNALER_ROUTES_SCOPE: ${{ inputs.routes_scope || 'full' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build app (if script exists)
+        run: yarn build || true
+
+      - name: Start app
+        run: |
+          bash -lc "${SIGNALER_START_COMMAND}" > .signaler-start.log 2>&1 &
+
+      - name: Wait for app
+        run: npx wait-on "${SIGNALER_BASE_URL}"
+
+      - name: Discover routes
+        run: >
+          npx jsr run @signaler/cli discover
+          --config "${SIGNALER_CONFIG_PATH}"
+          --base-url "${SIGNALER_BASE_URL}"
+          --project-root "."
+          --scope "${SIGNALER_ROUTES_SCOPE}"
+          --non-interactive
+          --yes
+
+      - name: Run audit
+        run: >
+          npx jsr run @signaler/cli run
+          --config "${SIGNALER_CONFIG_PATH}"
+          --contract v3
+          --mode throughput
+          --ci
+          --no-color
+          --yes
+
+      - name: Generate report
+        run: npx jsr run @signaler/cli report --dir ".signaler"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signaler-artifacts-yarn-${{ github.run_id }}
+          path: .signaler/**
+          if-no-files-found: warn

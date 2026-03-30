@@ -1,8 +1,8 @@
 # Signaler CLI
 
-> Comprehensive web quality platform with AI-powered insights, accessibility, security, and performance audits.
+> Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-2.6.4-blue.svg)
+![Version](http://img.shields.io/badge/version-3.0.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -21,44 +21,72 @@ npx jsr run @signaler/cli run --mode throughput
 
 ## Quick Start
 
-Get up and running in minutes with the interactive init wizard. It supports a fast `--quick` path (default) and a full `--advanced` path.
+Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
 
 ```bash
-# Initialize your project (quick path, default)
-npx signaler init
-
-# Advanced setup (full prompts)
-npx signaler init --advanced
+# Discover routes and create config (full scope, v4 target)
+npx signaler discover --scope full
 
 # Run your first canonical audit
 npx signaler run --mode throughput
 
-# Generate review outputs
-npx signaler review
+# Generate machine-facing action packets (V6-gated)
+npx signaler analyze --contract v6
+
+# Run focused verify loop (V6-gated)
+npx signaler verify --contract v6
+
+# Generate report/review outputs
+npx signaler report
 
 # View all available commands
 npx signaler --help
 ```
 
-The wizard auto-detects your framework/project root, suggests a local base URL, proposes starter routes, and can run your first canonical audit immediately after saving config.
+Discovery/setup auto-detects your framework and project root, resolves base URL defaults, and writes `.signaler/discovery.json` with selected/excluded route counts, scope details, and route strategy metadata so runs are transparent and reproducible.
+
+For editor and terminal agents, use the dedicated guide:
+
+- [Agent Quickstart](./docs/guides/agent-quickstart.md)
+- [Agent Prompt Pack](./docs/examples/agent-prompt-pack.md)
+- [Repository Agent Defaults](./AGENTS.md)
+- [Agent Bootstrap Block](./docs/reference/cli.md)
+- [Agent Bootstrap (bash/PowerShell)](./scripts/agent-bootstrap.md)
+- [Agent Bootstrap Scripts](./scripts/agent-bootstrap.sh)
+
+Quick launch commands:
+
+```bash
+corepack pnpm run agent:bootstrap:sh
+corepack pnpm run agent:bootstrap:ps
+```
+
+Compatibility aliases:
+
+- `init` -> `discover`
+- `audit` -> `run`
+- `review` -> `report`
 
 ## Usage
 
-Signaler provides a comprehensive CLI for auditing web applications. Run audits locally during development or integrate into your CI/CD pipeline for continuous quality monitoring. All commands support both interactive and non-interactive modes.
+Signaler provides a CLI for auditing web applications that works well for both humans and agents. Run audits locally during development or in CI, then let an agent read the canonical v3 artifacts to identify high-impact fixes quickly.
 
 ### Basic Commands
 
 ```bash
-# Canonical v3 workflow
-signaler init
+# Canonical workflow (transition-safe)
+signaler discover --scope full
 signaler run --mode throughput
-signaler review
+signaler analyze --contract v6
+signaler verify --contract v6
+signaler report
 
 # Legacy-compatible commands (still supported)
 signaler audit
-signaler report
+signaler review
 
-# Legacy setup alias
+# Legacy setup aliases
+signaler init
 signaler wizard
 
 # Quick performance check
@@ -68,7 +96,7 @@ signaler measure
 signaler run --focus-worst 10
 
 # CI mode with budget enforcement
-signaler audit --ci --fail-on-budget
+signaler run --ci --fail-on-budget
 
 # Launch Cortex Dashboard (optional assistant surface)
 signaler cortex
@@ -77,15 +105,17 @@ signaler cortex
 signaler tui
 ```
 
-### 🧠 Signaler Cortex (New in v2.6)
+### Optional Cortex Surface
 
-Signaler Cortex is your automated performance engineer. It uses AI to:
+Cortex is optional. The preferred AI workflow is now direct agent usage through the CLI and canonical artifacts.
+
+If you still want the assistant surface, Cortex can help to:
 
 1.  **Diagnose**: Real-time analysis of your application with tech stack detection.
 2.  **Fix**: Interactive triage of audit issues with AI-suggested code patches.
 3.  **Test**: Auto-generation of Playwright tests to verify fixes.
 
-Supported AI Providers:
+Supported providers:
 - **Google**: Gemini 3 Pro, Gemini 3 Flash
 - **Anthropic**: Claude 3.5 Sonnet, Claude 4.5 Opus
 - **OpenAI**: GPT-4o, GPT-5.2
@@ -111,8 +141,21 @@ Signaler generates comprehensive reports in `.signaler/`:
 - `results.json` - Normalized per-combo metrics/opportunities
 - `suggestions.json` - Ranked actions with confidence + evidence pointers
 - `agent-index.json` - Token-conscious AI entrypoint (v3 canonical)
+- `analyze.json` - Deterministic action packet for agents (v6)
+- `analyze.md` - Human digest for top actions and verify intent
+- `verify.json` - Focused before/after check results with pass/fail
+- `verify.md` - Human digest for verification outcomes
 - `report.html` - Interactive visual report
 - `summary.json`, `issues.json`, `triage.md` - Legacy compatibility artifacts
+
+Recommended agent read order:
+
+1. `analyze.json` (after `signaler analyze --contract v6`)
+2. `verify.json` (after `signaler verify --contract v6`)
+3. `agent-index.json`
+4. `suggestions.json`
+5. `issues.json`
+6. `results.json`
 
 ## API
 
@@ -135,7 +178,7 @@ const result = await signaler.audit(config);
 console.log(`Audit completed: ${result.meta.elapsedMs}ms`);
 ```
 
-For complete API documentation, see [API Reference](./docs/api-reference.md).
+For complete API documentation, see [API Reference](./docs/reference/api.md).
 
 ## Configuration
 
@@ -163,7 +206,7 @@ Create a `signaler.config.json` file in your project root:
 - `warmUp` - Run warm-up request before auditing (recommended)
 - `budgets` - Performance budgets for CI/CD gates
 
-See [Configuration Guide](./docs/configuration-and-routes.md) for all options.
+See [Configuration Guide](./docs/reference/configuration.md) for all options.
 
 ## Examples
 
@@ -178,9 +221,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npx jsr add @signaler/cli
-      - run: npx signaler run --contract v3 --mode throughput --ci --fail-on-budget
+      - run: corepack enable
+      - run: pnpm install
+      - run: pnpm start &
+      - run: npx wait-on http://127.0.0.1:3000
+      - run: npx jsr run @signaler/cli discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
+      - run: npx jsr run @signaler/cli run --contract v3 --mode throughput --ci --no-color --yes
+      - run: npx jsr run @signaler/cli report --dir .signaler
 ```
+
+Reusable templates:
+
+- [pnpm template](./.github/workflow-templates/signaler-audit-pnpm.yml)
+- [npm template](./.github/workflow-templates/signaler-audit-npm.yml)
+- [yarn template](./.github/workflow-templates/signaler-audit-yarn.yml)
 
 ### Framework-Specific Usage
 
@@ -214,7 +268,7 @@ More examples in [`/docs/examples`](./docs/examples).
 **Issue**: Missing routes
 **Solution**: Use `signaler wizard` to auto-detect routes, or manually add them to `signaler.config.json`.
 
-For more solutions, see [Troubleshooting Guide](./docs/troubleshooting.md).
+For more solutions, see [Troubleshooting Guide](./docs/guides/troubleshooting.md).
 
 ## Features
 
@@ -231,16 +285,22 @@ For more solutions, see [Troubleshooting Guide](./docs/troubleshooting.md).
 
 Comprehensive guides available in [`/docs`](./docs):
 
-- [Current Shortcomings (Reality Check)](./docs/CURRENT-SHORTCOMINGS.md)
-- [Getting Started](./docs/getting-started.md)
-- [Accuracy Spec](./docs/accuracy-spec.md)
-- [V3 Contract](./docs/v3-contract.md)
-- [Migration V3](./docs/migration-v3.md)
-- [CLI & CI Usage](./docs/cli-and-ci.md)
-- [Configuration Reference](./docs/configuration-and-routes.md)
-- [API Documentation](./docs/api-reference.md)
-- [Features Guide](./docs/FEATURES.md)
-- [Troubleshooting](./docs/troubleshooting.md)
+- [Docs Index](./docs/README.md)
+- [Getting Started](./docs/guides/getting-started.md)
+- [Agent Quickstart](./docs/guides/agent-quickstart.md)
+- [CLI Reference](./docs/reference/cli.md)
+- [Configuration Reference](./docs/reference/configuration.md)
+- [API Documentation](./docs/reference/api.md)
+- [Features Guide](./docs/reference/features.md)
+- [Troubleshooting](./docs/guides/troubleshooting.md)
+- [Known Limits](./docs/guides/known-limits.md)
+- [Production Playbook](./docs/operations/production-playbook.md)
+- [Launch Checklist](./docs/operations/launch-checklist.md)
+- [Release Playbook](./docs/operations/release-playbook.md)
+- [Release Notes](./docs/operations/release-notes.md)
+- [Active Roadmap](./docs/roadmap/active-roadmap.md)
+- [Migration Guide](./docs/guides/migration.md)
+- [Contracts (V3)](./docs/reference/contracts-v3.md)
 
 ## Contributing
 

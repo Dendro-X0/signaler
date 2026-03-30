@@ -1,0 +1,599 @@
+{
+  "meta": {
+    "configPath": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\next-blogkit-pro\\signaler.config.json",
+    "baseUrl": "http://localhost:3000",
+    "comboCount": 34,
+    "resolvedParallel": 10,
+    "timeoutMs": 20000,
+    "startedAt": "2026-03-06T01:52:36.263Z",
+    "completedAt": "2026-03-06T01:52:38.611Z",
+    "elapsedMs": 2348,
+    "accelerator": {
+      "engine": "node",
+      "requested": true,
+      "used": false,
+      "fallbackReason": "spawn cargo.exe ENOENT",
+      "sidecarElapsedMs": 7
+    }
+  },
+  "results": [
+    {
+      "label": "terms",
+      "path": "/terms",
+      "url": "http://localhost:3000/terms",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "settings",
+      "path": "/settings",
+      "url": "http://localhost:3000/settings",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "profile",
+      "path": "/profile",
+      "url": "http://localhost:3000/profile",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 308
+    },
+    {
+      "label": "privacy",
+      "path": "/privacy",
+      "url": "http://localhost:3000/privacy",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "home",
+      "path": "/",
+      "url": "http://localhost:3000/",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "search",
+      "path": "/search",
+      "url": "http://localhost:3000/search",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "downloads",
+      "path": "/downloads",
+      "url": "http://localhost:3000/downloads",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "docs",
+      "path": "/docs",
+      "url": "http://localhost:3000/docs",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "contact",
+      "path": "/contact",
+      "url": "http://localhost:3000/contact",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "blog",
+      "path": "/blog",
+      "url": "http://localhost:3000/blog",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "register",
+      "path": "/auth/register",
+      "url": "http://localhost:3000/auth/register",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "new-password",
+      "path": "/auth/new-password",
+      "url": "http://localhost:3000/auth/new-password",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "login",
+      "path": "/auth/login",
+      "url": "http://localhost:3000/auth/login",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "forgot-password",
+      "path": "/auth/forgot-password",
+      "url": "http://localhost:3000/auth/forgot-password",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "2fa",
+      "path": "/auth/2fa",
+      "url": "http://localhost:3000/auth/2fa",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "admin",
+      "path": "/admin",
+      "url": "http://localhost:3000/admin",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "users",
+      "path": "/admin/users",
+      "url": "http://localhost:3000/admin/users",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "posts",
+      "path": "/admin/posts",
+      "url": "http://localhost:3000/admin/posts",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "new",
+      "path": "/admin/posts/new",
+      "url": "http://localhost:3000/admin/posts/new",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "monetization",
+      "path": "/admin/monetization",
+      "url": "http://localhost:3000/admin/monetization",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "downloads",
+      "path": "/admin/downloads",
+      "url": "http://localhost:3000/admin/downloads",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "comments",
+      "path": "/admin/comments",
+      "url": "http://localhost:3000/admin/comments",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "analytics",
+      "path": "/admin/analytics",
+      "url": "http://localhost:3000/admin/analytics",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "webhooks",
+      "path": "/admin/analytics/webhooks",
+      "url": "http://localhost:3000/admin/analytics/webhooks",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "kpis",
+      "path": "/admin/analytics/kpis",
+      "url": "http://localhost:3000/admin/analytics/kpis",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "affiliate-links",
+      "path": "/admin/affiliate-links",
+      "url": "http://localhost:3000/admin/affiliate-links",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "advertisements",
+      "path": "/admin/advertisements",
+      "url": "http://localhost:3000/admin/advertisements",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "account",
+      "path": "/account",
+      "url": "http://localhost:3000/account",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "subscriptions",
+      "path": "/account/subscriptions",
+      "url": "http://localhost:3000/account/subscriptions",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "settings",
+      "path": "/account/settings",
+      "url": "http://localhost:3000/account/settings",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "profile",
+      "path": "/account/profile",
+      "url": "http://localhost:3000/account/profile",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 307
+    },
+    {
+      "label": "comments",
+      "path": "/account/comments",
+      "url": "http://localhost:3000/account/comments",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "bookmarks",
+      "path": "/account/bookmarks",
+      "url": "http://localhost:3000/account/bookmarks",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    },
+    {
+      "label": "billing",
+      "path": "/account/billing",
+      "url": "http://localhost:3000/account/billing",
+      "missing": [
+        "content-security-policy",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "cross-origin-embedder-policy"
+      ],
+      "present": [],
+      "statusCode": 200
+    }
+  ]
+}

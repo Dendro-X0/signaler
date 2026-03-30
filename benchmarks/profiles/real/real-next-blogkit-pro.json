@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "real-next-blogkit-pro",
+  "kind": "real",
+  "description": "Real benchmark profile for next-blogkit-pro route matrix.",
+  "projectRoot": "../next-blogkit-pro",
+  "baseUrl": "${SIGNALER_NEXT_BLOGKIT_BASE_URL}",
+  "routes": [
+    { "path": "/", "label": "home" },
+    { "path": "/terms", "label": "terms" },
+    { "path": "/settings", "label": "settings" },
+    { "path": "/profile", "label": "profile" },
+    { "path": "/privacy", "label": "privacy" },
+    { "path": "/search", "label": "search" },
+    { "path": "/downloads", "label": "downloads" },
+    { "path": "/docs", "label": "docs" },
+    { "path": "/contact", "label": "contact" },
+    { "path": "/blog", "label": "blog" },
+    { "path": "/account", "label": "account" },
+    { "path": "/account/subscriptions", "label": "subscriptions" }
+  ],
+  "devices": ["mobile", "desktop"],
+  "runModes": ["throughput", "fidelity"],
+  "modeConfig": {
+    "throughput": { "parallel": 3, "warmUp": false, "runs": 1, "throttlingMethod": "simulate" },
+    "fidelity": { "parallel": 1, "warmUp": true, "runs": 1, "throttlingMethod": "devtools" }
+  },
+  "exclusionRules": {
+    "dynamicRoutePatterns": ["[slug]", "[...slug]"],
+    "pathFilters": ["/api/*", "/admin/*"],
+    "scopeNotes": ["Profile focuses on public routes configured in next-blogkit-pro/signaler.config.json."]
+  },
+  "expectedDetection": {
+    "detected": 12,
+    "selected": 12,
+    "excludedDynamic": 0,
+    "excludedByFilter": 0,
+    "excludedByScope": 0
+  },
+  "expectedCombos": 24
+}
