@@ -336,14 +336,14 @@ jobs:
       run: pnpm install --frozen-lockfile
 
     - name: Download benchmark artifacts
-      if: always()
+      if: always() && needs['phase0-benchmark'].result == 'success'
       uses: actions/download-artifact@v4
       with:
         name: phase-benchmark-baseline
         path: .
 
     - name: Download cross-platform smoke evidence artifacts
-      if: always()
+      if: always() && needs['cross-platform-smoke'].result == 'success'
       uses: actions/download-artifact@v4
       with:
         pattern: cross-platform-smoke-*
