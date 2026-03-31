@@ -1,6 +1,6 @@
 # Spec: Workstream J Implementation Plan
 
-Status: In Progress
+Status: In Progress (Phase J1+J2 complete, J3 composite ranking complete on run+analyze, J4 Rust benchmark normalizer + parity harness complete, overhead evidence integrated, accessibility fixture adapter path in place)
 Date: 2026-03-29
 Owners: CLI core, contracts, benchmarks
 Depends on: V3.0.0 release line and Workstream D external-signal foundation
@@ -38,6 +38,26 @@ Acceptance:
 1. Contract validator tests for valid/invalid fixtures by family.
 2. `run` and `analyze` preserve baseline ordering when only metadata mode is enabled.
 3. No schema regressions for existing V3/V6 validators.
+
+Progress notes:
+
+1. Completed: `--benchmark-signals <path>` (repeatable) on `run` and `analyze`.
+2. Completed: additive `multiBenchmark` metadata block in `suggestions.json` and `analyze.json`.
+3. Completed: conservative policy loader/validator tests and deterministic digest coverage.
+4. Completed: J2 family contract extension for `reliability-slo` and `cross-browser-parity`.
+5. Completed: J3 run+analyze composite ranking with bounded benchmark-family boost and explicit formula/version metadata.
+6. Completed: optional benchmark boost integration for run-side suggestion ranking (bounded + deterministic).
+7. Completed: J4 scaffold for optional rust benchmark loader adapter with fallback-safe behavior.
+8. Completed: Rust `normalize-benchmark-signals` command in `signaler_hotpath` with contract-compatible output and deterministic fallback semantics.
+9. Completed: cargo-gated Rust/Node parity harness for benchmark normalization (`test/rust-benchmark-parity.test.ts`).
+10. Completed: runtime overhead benchmark evidence runner for optional benchmark-input path (`pnpm run bench:workstream-j:overhead` -> `benchmarks/out/workstream-j-optional-input-overhead.{json,md}`).
+11. Completed: V6.3 success-gate integration for Workstream J overhead evidence (`workstream-j-overhead-evidence`) with warn-only fallback when evidence is missing/malformed.
+12. Completed: CI phase benchmark job emits Workstream J optional-input overhead evidence artifacts for downstream gate visibility.
+13. Completed: accessibility-extended contract/parser expansion for WCAG 2.2 + APG-aligned metrics (`focusAppearanceIssueCount`, `focusNotObscuredIssueCount`, `targetSizeIssueCount`, `draggingAlternativeIssueCount`, `apgPatternMismatchCount`, `keyboardSupportIssueCount`) across Node and Rust normalization paths.
+14. Completed: local accessibility fixture adapter (`scripts/build-accessibility-benchmark-fixture.ts`) that converts `.signaler/accessibility-summary.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`accessibility-extended`) with deterministic WCAG/APG metric mapping and evidence pointers.
+15. Completed: local security fixture adapter (`scripts/build-security-benchmark-fixture.ts`) that converts `.signaler/headers.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`security-baseline`) with deterministic OWASP/ASVS-lite header-policy metrics (`missingHeaderCount`, `tlsConfigIssueCount`, `cookiePolicyIssueCount`, `mixedContentCount`) and evidence pointers.
+16. Completed: local reliability fixture adapter (`scripts/build-reliability-benchmark-fixture.ts`) that converts `.signaler/health.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`reliability-slo`) with deterministic availability/error/latency metrics (`availabilityPct`, `errorRatePct`, `latencyP95Ms`) and evidence pointers.
+17. Completed: local SEO fixture adapter (`scripts/build-seo-benchmark-fixture.ts`) that converts `.signaler/results.json` (+ optional `.signaler/links.json` crawlability augmentation and optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`seo-technical`) with deterministic SEO metrics (`indexabilityIssueCount`, `canonicalMismatchCount`, `structuredDataErrorCount`, `crawlabilityIssueCount`) and evidence pointers.
 
 ### Phase J2: Reliability/SLO and Cross-Browser Snapshot Inputs
 

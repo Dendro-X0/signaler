@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-30T05:01:46.023Z",
+  "generatedAt": "2026-03-31T03:49:56.234Z",
   "status": "ok",
   "checks": [
     {
@@ -62,11 +62,17 @@
       "status": "ok",
       "details": "Low-memory evidence report is present and passing.",
       "blocking": false
+    },
+    {
+      "id": "workstream-j-overhead-evidence",
+      "status": "ok",
+      "details": "Workstream J overhead evidence is passing (median=1ms, p95=9ms).",
+      "blocking": false
     }
   ],
   "summary": {
     "blockingFailures": 0,
     "warnings": 0,
-    "manualItems": 3
+    "manualItems": 4
   }
 }

@@ -84,6 +84,38 @@ describe("v3 suggestions validator (phase5)", () => {
     expect(isSuggestionsV3(candidate)).toBe(true);
   });
 
+  it("accepts optional multi-benchmark metadata on suggestions", () => {
+    const candidate = {
+      generatedAt: new Date().toISOString(),
+      mode: "throughput",
+      comparabilityHash: "abc123",
+      multiBenchmark: {
+        enabled: true,
+        inputFiles: ["/tmp/bench-a.json", "/tmp/bench-b.json"],
+        sources: ["accessibility-extended", "seo-technical", "reliability-slo", "cross-browser-parity"],
+        accepted: 2,
+        rejected: 1,
+        digest: "deadbeef",
+        policy: "v1-conservative-high-30d-route-issue",
+        rankingVersion: "j3-composite-ranking",
+      },
+      suggestions: [
+        {
+          id: "s-1",
+          title: "Reduce unused JavaScript",
+          category: "performance",
+          priorityScore: 1000,
+          confidence: "high",
+          estimatedImpact: { timeMs: 1200, bytes: 50000, affectedCombos: 3 },
+          evidence: [{ sourceRelPath: "issues.json", pointer: "/topIssues/0" }],
+          action: { summary: "Split route bundles.", steps: ["Inspect", "Fix", "Re-run"], effort: "medium" },
+          modeApplicability: ["throughput", "fidelity"],
+        },
+      ],
+    };
+    expect(isSuggestionsV3(candidate)).toBe(true);
+  });
+
   it("rejects suggestions when evidence pointers are missing", () => {
     const candidate = {
       generatedAt: new Date().toISOString(),

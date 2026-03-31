@@ -56,6 +56,12 @@ import {
   loadExternalSignalsFromFiles,
 } from "./external-signals.js";
 import {
+  applyBenchmarkBoostToSuggestions,
+  buildDefaultMultiBenchmarkMetadata,
+  evaluateConservativeMultiBenchmarkSignals,
+} from "./multi-benchmark-signals.js";
+import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
+import {
   buildTopSuggestionRefs,
   estimateTokens,
   getMachineProfileCaps,
@@ -134,6 +140,7 @@ interface CliArgs {
   readonly isolationOverride: "shared" | "per-audit" | "browser" | undefined;
   readonly throughputBackoffOverride: ApexThroughputBackoffPolicy | undefined;
   readonly externalSignalsPaths: readonly string[];
+  readonly benchmarkSignalsPaths: readonly string[];
   readonly artifactProfile: MachineArtifactProfile;
   readonly machineTokenBudgetOverride: number | undefined;
 }
@@ -359,6 +366,7 @@ type RuntimeMeta = {
     readonly rustCore?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
     readonly rustDiscovery?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
     readonly rustProcessor?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
+    readonly rustBenchmark?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
   };
 };
 
@@ -2354,6 +2362,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let isolationOverride: "shared" | "per-audit" | "browser" | undefined;
   let throughputBackoffOverride: ApexThroughputBackoffPolicy | undefined;
   const externalSignalsPaths: string[] = [];
+  const benchmarkSignalsPaths: string[] = [];
   let artifactProfile: MachineArtifactProfile = "lean";
   let machineTokenBudgetOverride: number | undefined;
   for (let i = 2; i < argv.length; i += 1) {
@@ -2610,6 +2619,15 @@ function parseArgs(argv: readonly string[]): CliArgs {
         throw new Error("Invalid --external-signals value: expected a file path.");
       }
       externalSignalsPaths.push(resolve(value));
+    } else if (arg === "--benchmark-signals" && i + 1 < argv.length) {
+      benchmarkSignalsPaths.push(resolve(argv[i + 1]));
+      i += 1;
+    } else if (arg.startsWith("--benchmark-signals=")) {
+      const value: string = arg.split("=")[1] ?? "";
+      if (value.length === 0) {
+        throw new Error("Invalid --benchmark-signals value: expected a file path.");
+      }
+      benchmarkSignalsPaths.push(resolve(value));
     }
   }
   const presetCount: number = [fast, quick, accurate, devtoolsAccurate, overview, parity].filter((flag) => flag).length;
@@ -2673,6 +2691,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     isolationOverride,
     throughputBackoffOverride,
     externalSignalsPaths,
+    benchmarkSignalsPaths,
     artifactProfile,
     machineTokenBudgetOverride,
   };
@@ -2873,6 +2892,7 @@ function printAuditFlags(): void {
       "  --artifact-profile <p> Machine output profile: lean | standard | diagnostics (default lean)",
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
+      "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
     ].join("\n"),
   );
 }
@@ -3203,8 +3223,14 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     return;
   }
   const loadedExternalSignals = await loadExternalSignalsFromFiles(args.externalSignalsPaths);
+  const benchmarkRustAttempt = await loadMultiBenchmarkSignalsWithRust(args.benchmarkSignalsPaths);
+  const loadedBenchmarkSignals = benchmarkRustAttempt.loaded;
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
+  if (benchmarkRustAttempt.enabled && !benchmarkRustAttempt.used && typeof benchmarkRustAttempt.fallbackReason === "string") {
+    // eslint-disable-next-line no-console
+    console.log(`Rust benchmark fallback: ${benchmarkRustAttempt.fallbackReason}`);
+  }
   if (config.gitIgnoreSignalerDir === true) {
     await ensureSignalerGitIgnore(dirname(configPath));
   }
@@ -3666,21 +3692,31 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     knownPaths,
   });
   const externalSignalsMetadata = externalSignalsEval?.metadata ?? buildDefaultExternalSignalsMetadata();
+  const benchmarkSignalsEval = evaluateConservativeMultiBenchmarkSignals({
+    loaded: loadedBenchmarkSignals,
+    knownIssueIds,
+    knownPaths,
+  });
+  const benchmarkSignalsMetadata = benchmarkSignalsEval?.metadata ?? buildDefaultMultiBenchmarkMetadata();
+  let rankedSuggestions: readonly SuggestionV3[] = suggestionsV3.suggestions;
   if (externalSignalsEval !== undefined) {
-    suggestionsV3 = {
-      ...suggestionsV3,
-      suggestions: applyExternalBoostToSuggestions({
-        suggestions: suggestionsV3.suggestions,
-        accepted: externalSignalsEval.acceptedRecords,
-      }),
-      externalSignals: externalSignalsMetadata,
-    };
-  } else {
-    suggestionsV3 = {
-      ...suggestionsV3,
-      externalSignals: externalSignalsMetadata,
-    };
+    rankedSuggestions = applyExternalBoostToSuggestions({
+      suggestions: rankedSuggestions,
+      accepted: externalSignalsEval.acceptedRecords,
+    });
   }
+  if (benchmarkSignalsEval !== undefined) {
+    rankedSuggestions = applyBenchmarkBoostToSuggestions({
+      suggestions: rankedSuggestions,
+      accepted: benchmarkSignalsEval.acceptedRecords,
+    });
+  }
+  suggestionsV3 = {
+    ...suggestionsV3,
+    suggestions: rankedSuggestions,
+    externalSignals: externalSignalsMetadata,
+    multiBenchmark: benchmarkSignalsMetadata,
+  };
   if (!isSuggestionsV3(suggestionsV3)) {
     throw new Error("Internal contract error: suggestions.json failed validation.");
   }
@@ -3730,6 +3766,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
         enabled: rustProcessorAttempt.enabled || rustReducerAttempt.enabled,
         used: rustProcessorAttempt.used || rustReducerAttempt.used,
         fallbackReason: rustReducerAttempt.fallbackReason ?? rustProcessorAttempt.fallbackReason,
+      },
+      rustBenchmark: {
+        enabled: benchmarkRustAttempt.enabled,
+        used: benchmarkRustAttempt.used,
+        fallbackReason: benchmarkRustAttempt.fallbackReason,
+        sidecarElapsedMs: benchmarkRustAttempt.sidecarElapsedMs,
       },
     },
   });

@@ -201,6 +201,53 @@ async function writeExternalSignalsFile(params: {
   return filePath;
 }
 
+async function writeBenchmarkSignalsFile(params: {
+  readonly root: string;
+  readonly name: string;
+  readonly sourceId: "accessibility-extended" | "security-baseline" | "seo-technical" | "reliability-slo" | "cross-browser-parity";
+  readonly collectedAt?: string;
+  readonly records: readonly {
+    readonly id: string;
+    readonly issueId: string;
+    readonly path: string;
+    readonly confidence?: "high" | "medium" | "low";
+  }[];
+}): Promise<string> {
+  const filePath = resolve(params.root, params.name);
+  await writeFile(
+    filePath,
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        sources: [
+          {
+            sourceId: params.sourceId,
+            collectedAt: params.collectedAt ?? "2026-03-10T00:00:00.000Z",
+            records: params.records.map((record, index) => ({
+              id: record.id,
+              target: {
+                issueId: record.issueId,
+                path: record.path,
+              },
+              confidence: record.confidence ?? "high",
+              evidence: [
+                {
+                  sourceRelPath: `bench/${params.sourceId}.json`,
+                  pointer: `/records/${index}`,
+                },
+              ],
+            })),
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  return filePath;
+}
+
 describe("analyze-cli v6", () => {
   it("returns exit 2 in strict mode when required artifacts are missing", async () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-analyze-missing-"));
@@ -251,6 +298,16 @@ describe("analyze-cli v6", () => {
         readonly digest: string | null;
         readonly policy: string;
       };
+      readonly multiBenchmark?: {
+        readonly enabled: boolean;
+        readonly inputFiles: readonly string[];
+        readonly sources: readonly string[];
+        readonly accepted: number;
+        readonly rejected: number;
+        readonly digest: string | null;
+        readonly policy: string;
+        readonly rankingVersion: string;
+      };
     };
     expect(isAnalyzeReportV6(firstReport)).toBe(true);
     expect(firstReport.externalSignals).toBeDefined();
@@ -260,6 +317,15 @@ describe("analyze-cli v6", () => {
     expect(firstReport.externalSignals?.rejected).toBe(0);
     expect(firstReport.externalSignals?.digest).toBeNull();
     expect(firstReport.externalSignals?.policy).toBe("v1-conservative-high-30d-route-issue");
+    expect(firstReport.multiBenchmark).toBeDefined();
+    expect(firstReport.multiBenchmark?.enabled).toBe(false);
+    expect(firstReport.multiBenchmark?.inputFiles).toEqual([]);
+    expect(firstReport.multiBenchmark?.sources).toEqual([]);
+    expect(firstReport.multiBenchmark?.accepted).toBe(0);
+    expect(firstReport.multiBenchmark?.rejected).toBe(0);
+    expect(firstReport.multiBenchmark?.digest).toBeNull();
+    expect(firstReport.multiBenchmark?.policy).toBe("v1-conservative-high-30d-route-issue");
+    expect(firstReport.multiBenchmark?.rankingVersion).toBe("j3-composite-ranking");
     const firstActions = JSON.stringify(firstReport.actions);
 
     const exitCodeSecond = await invokeAnalyze(["--contract", "v6", "--dir", outDir, "--artifact-profile", "lean", "--top-actions", "12"]);
@@ -370,6 +436,20 @@ describe("analyze-cli v6", () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  it("returns exit 1 when --benchmark-signals path is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-analyze-benchmark-missing-"));
+    const outDir = await writeBaseArtifacts({
+      root,
+      suggestions: [
+        { id: "sugg-unused-javascript-1", title: "Reduce unused JavaScript", priorityScore: 1200, confidence: "high", estimatedImpact: { timeMs: 1000, affectedCombos: 2 } },
+      ],
+    });
+    const missing = resolve(root, "missing-benchmark-signals.json");
+    const exitCode = await invokeAnalyze(["--contract", "v6", "--dir", outDir, "--benchmark-signals", missing]);
+    expect(exitCode).toBe(1);
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("supports repeatable --external-signals and boosts matched actions deterministically", async () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-analyze-external-boost-"));
     const outDir = await writeBaseArtifacts({
@@ -446,6 +526,112 @@ describe("analyze-cli v6", () => {
       JSON.stringify(firstReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }))),
     );
     expect(secondReport.externalSignals?.digest).toBe(firstDigest);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("supports repeatable --benchmark-signals, boosts matched actions, and remains deterministic", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-analyze-benchmark-metadata-"));
+    const outDir = await writeBaseArtifacts({
+      root,
+      suggestions: [
+        { id: "sugg-unused-javascript-1", title: "Reduce unused JavaScript", priorityScore: 1200, confidence: "high", estimatedImpact: { timeMs: 1200, affectedCombos: 2 } },
+        { id: "sugg-server-response-time-2", title: "Reduce server response times (TTFB)", priorityScore: 1100, confidence: "high", estimatedImpact: { timeMs: 500, affectedCombos: 1 } },
+      ],
+    });
+    const benchmarkA = await writeBenchmarkSignalsFile({
+      root,
+      name: "benchmark-a.json",
+      sourceId: "accessibility-extended",
+      records: [
+        { id: "b-1", issueId: "unused-javascript", path: "/", confidence: "high" },
+      ],
+    });
+    const benchmarkB = await writeBenchmarkSignalsFile({
+      root,
+      name: "benchmark-b.json",
+      sourceId: "seo-technical",
+      records: [
+        { id: "b-2", issueId: "unused-javascript", path: "/docs", confidence: "high" },
+        { id: "b-3", issueId: "unused-javascript", path: "/", confidence: "medium" },
+      ],
+    });
+
+    const baselineExit = await invokeAnalyze([
+      "--contract",
+      "v6",
+      "--dir",
+      outDir,
+      "--artifact-profile",
+      "lean",
+    ]);
+    expect(baselineExit).toBe(0);
+    const baselineReport = JSON.parse(await readFile(resolve(outDir, "analyze.json"), "utf8")) as {
+      readonly actions: readonly { readonly id: string; readonly priorityScore: number }[];
+    };
+    const baselineActionRanking = baselineReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }));
+    const baselineUnusedPriority = baselineReport.actions.find((row) => row.id === "action-sugg-unused-javascript-1")?.priorityScore ?? 0;
+
+    const firstExit = await invokeAnalyze([
+      "--contract",
+      "v6",
+      "--dir",
+      outDir,
+      "--artifact-profile",
+      "lean",
+      "--benchmark-signals",
+      benchmarkA,
+      "--benchmark-signals",
+      benchmarkB,
+    ]);
+    expect(firstExit).toBe(0);
+    const firstReport = JSON.parse(await readFile(resolve(outDir, "analyze.json"), "utf8")) as {
+      readonly actions: readonly { readonly id: string; readonly priorityScore: number }[];
+      readonly rankingPolicy: { readonly version: string; readonly formula: string };
+      readonly multiBenchmark?: {
+        readonly accepted: number;
+        readonly rejected: number;
+        readonly digest: string;
+        readonly inputFiles: readonly string[];
+        readonly sources: readonly string[];
+        readonly rankingVersion: string;
+      };
+    };
+    expect(firstReport.multiBenchmark?.accepted).toBe(2);
+    expect(firstReport.multiBenchmark?.rejected).toBe(1);
+    expect(firstReport.multiBenchmark?.inputFiles.length).toBe(2);
+    expect(firstReport.multiBenchmark?.sources).toEqual(["accessibility-extended", "seo-technical"]);
+    expect(firstReport.multiBenchmark?.rankingVersion).toBe("j3-composite-ranking");
+    expect(firstReport.multiBenchmark?.digest.length).toBeGreaterThan(0);
+    expect(firstReport.rankingPolicy.version).toBe("v6.3");
+    expect(firstReport.rankingPolicy.formula).toBe("priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))");
+    const firstActionRanking = firstReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }));
+    expect(JSON.stringify(firstActionRanking)).not.toBe(JSON.stringify(baselineActionRanking));
+    const boostedUnusedPriority = firstReport.actions.find((row) => row.id === "action-sugg-unused-javascript-1")?.priorityScore ?? 0;
+    expect(boostedUnusedPriority).toBeGreaterThan(baselineUnusedPriority);
+    const firstDigest = firstReport.multiBenchmark?.digest ?? "";
+
+    const secondExit = await invokeAnalyze([
+      "--contract",
+      "v6",
+      "--dir",
+      outDir,
+      "--artifact-profile",
+      "lean",
+      "--benchmark-signals",
+      benchmarkA,
+      "--benchmark-signals",
+      benchmarkB,
+    ]);
+    expect(secondExit).toBe(0);
+    const secondReport = JSON.parse(await readFile(resolve(outDir, "analyze.json"), "utf8")) as {
+      readonly multiBenchmark?: { readonly digest: string };
+      readonly actions: readonly { readonly id: string; readonly priorityScore: number }[];
+    };
+    expect(secondReport.multiBenchmark?.digest).toBe(firstDigest);
+    expect(
+      JSON.stringify(secondReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }))),
+    ).toBe(JSON.stringify(firstActionRanking));
 
     await rm(root, { recursive: true, force: true });
   });

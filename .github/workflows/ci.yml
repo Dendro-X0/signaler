@@ -247,6 +247,11 @@ jobs:
       continue-on-error: true
       run: pnpm run bench:v63:lowmem
 
+    - name: Run Workstream J optional-input overhead evidence
+      if: always()
+      continue-on-error: true
+      run: pnpm run bench:workstream-j:overhead
+
     - name: Validate Phase 0 report schema
       if: always()
       continue-on-error: true
@@ -304,6 +309,8 @@ jobs:
           benchmarks/out/v63-loop-smoke.md
           benchmarks/out/v63-low-memory-evidence.json
           benchmarks/out/v63-low-memory-evidence.md
+          benchmarks/out/workstream-j-optional-input-overhead.json
+          benchmarks/out/workstream-j-optional-input-overhead.md
           benchmarks/out/*.rust-discovery.json
           benchmarks/out/tmp/*.config.json
         if-no-files-found: warn

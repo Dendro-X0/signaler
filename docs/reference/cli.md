@@ -12,6 +12,10 @@ Command help is side-effect free:
 - It does not run discovery/audits or prompt for interactive input.
 - `signaler help agent` prints an agent-first end-to-end workflow, artifact ingestion order, and automation exit-code contract.
 - `signaler help agent --json` prints the same onboarding contract in machine-readable JSON for agent bootstrap scripts.
+- `pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json` converts local accessibility output into `accessibility-extended` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json` converts local headers output into `security-baseline` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json` converts local health output into `reliability-slo` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json` converts local results/links output into `seo-technical` benchmark input for `--benchmark-signals`.
 
 Unpublished local workspace flow:
 
@@ -156,6 +160,20 @@ Key flags:
 - `--artifact-profile <lean|standard|diagnostics>` (machine-output profile, default `lean`)
 - `--machine-token-budget <n>` (strict machine-output token budget, default by profile)
 - `--external-signals <path>` (repeatable local external-signal files merged into v3 suggestion ranking)
+- `--benchmark-signals <path>` (repeatable local benchmark fixture files merged into bounded suggestion ranking + additive `multiBenchmark` metadata; families: accessibility/security/SEO/reliability/parity)
+
+Accessibility fixture helper (local-file adapter path):
+
+```bash
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-accessibility.json
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-security.json
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-reliability.json
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-seo.json
+```
 
 Runtime accelerator flags (opt-in):
 
@@ -167,6 +185,7 @@ Runtime accelerator flags (opt-in):
 - `SIGNALER_RUST_HEADERS=1` enables Rust worker for `headers`
 - `SIGNALER_RUST_LINKS=1` enables Rust worker for `links`
 - `SIGNALER_RUST_CONSOLE=1` enables Rust worker for `console`
+- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer/aggregator path (falls back to Node loader on failure)
 
 If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records the fallback reason in artifact metadata (`.signaler/run.json` and runner artifacts such as `.signaler/health.json`).
 
@@ -225,6 +244,20 @@ Flags:
 - `--min-confidence <high|medium|low>` (default `medium`)
 - `--token-budget <n>` (minimum `2000`; default by profile: `lean=8000`, `standard=16000`, `diagnostics=32000`)
 - `--external-signals <path>` (repeatable local external-signal files merged into v6 action ranking)
+- `--benchmark-signals <path>` (repeatable local benchmark fixture files merged into bounded composite action ranking + additive `multiBenchmark` metadata; families: accessibility/security/SEO/reliability/parity)
+
+Accessibility fixture helper (same input usable for analyze):
+
+```bash
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-accessibility.json --json
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-security.json --json
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-reliability.json --json
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-seo.json --json
+```
 - `--strict` (missing/invalid required artifact => exit `2`)
 - `--json` (compact command summary JSON)
 
@@ -609,9 +642,9 @@ Release manifest generation:
 
 ```bash
 pnpm run v3:manifest generate \
-  --version 3.0.0 \
+  --version 3.1.0 \
   --channel rc \
-  --asset dist/signaler-3.0.0.tgz \
+  --asset dist/signaler-3.1.0.tgz \
   --gate benchmarks/out/v3-release-gate.json \
   --gate benchmarks/out/v63-success-gate.json \
   --out release/v3/release-manifest.generated.json
@@ -627,13 +660,13 @@ pnpm run v3:manifest:validate
 Push/release preflight (docs + gate + manifest readiness):
 
 ```bash
-pnpm run release -- --target-version 3.0.0
+pnpm run release -- --target-version 3.1.0
 ```
 
 Strict mode (fail if cross-platform smoke evidence is missing):
 
 ```bash
-pnpm run release -- --target-version 3.0.0 --require-cross-platform --strict
+pnpm run release -- --target-version 3.1.0 --require-cross-platform --strict
 ```
 
 ## 9. Success gate

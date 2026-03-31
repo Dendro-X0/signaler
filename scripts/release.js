@@ -37,6 +37,8 @@ const CROSS_PLATFORM_FILES = [
   "benchmarks/out/cross-platform-smoke-windows-latest.json",
   "benchmarks/out/cross-platform-smoke-macos-latest.json",
 ];
+const WORKSTREAM_J_OVERHEAD_FILE =
+  "benchmarks/out/workstream-j-optional-input-overhead.json";
 
 const PRE_FLIGHT_COMMANDS = [
   "pnpm run bench:v3:phase1",
@@ -207,6 +209,75 @@ function evaluateCrossPlatformEvidence(requireCrossPlatform, checks, warnings, f
   warnings.push(`${details}. Run CI matrix before GA tag.`);
 }
 
+function evaluateWorkstreamJOverheadEvidence(checks, warnings) {
+  const overheadPath = resolve(WORKSTREAM_J_OVERHEAD_FILE);
+  if (!existsSync(overheadPath)) {
+    const details = `Workstream J overhead evidence not found (${WORKSTREAM_J_OVERHEAD_FILE}).`;
+    checks.push({
+      id: "workstream-j-overhead-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Run \`pnpm run bench:workstream-j:overhead\` before release review.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  let parsed;
+  try {
+    parsed = readJson(WORKSTREAM_J_OVERHEAD_FILE);
+  } catch {
+    const details = `Workstream J overhead evidence is unreadable (${WORKSTREAM_J_OVERHEAD_FILE}).`;
+    checks.push({
+      id: "workstream-j-overhead-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence with \`pnpm run bench:workstream-j:overhead\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  const hasSchema = parsed?.schemaVersion === 1;
+  const hasStatus = parsed?.status === "pass" || parsed?.status === "fail";
+  const hasMedian = typeof parsed?.overhead?.medianMs === "number";
+  const hasP95 = typeof parsed?.overhead?.p95Ms === "number";
+  if (!hasSchema || !hasStatus || !hasMedian || !hasP95) {
+    const details = "Workstream J overhead evidence format is invalid.";
+    checks.push({
+      id: "workstream-j-overhead-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence with \`pnpm run bench:workstream-j:overhead\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  if (parsed.status === "pass") {
+    const details =
+      `Workstream J overhead evidence is passing (median=${Math.round(parsed.overhead.medianMs)}ms, ` +
+      `p95=${Math.round(parsed.overhead.p95Ms)}ms).`;
+    checks.push({
+      id: "workstream-j-overhead-evidence",
+      status: STATUS_OK,
+      blocking: false,
+      details,
+    });
+    return { status: STATUS_OK, details };
+  }
+
+  const details = "Workstream J overhead evidence exists but status is fail.";
+  checks.push({
+    id: "workstream-j-overhead-evidence",
+    status: STATUS_WARN,
+    blocking: false,
+    details,
+  });
+  warnings.push(`${details} Investigate optional-input overhead before release.`);
+  return { status: STATUS_WARN, details };
+}
+
 function runCommands(commands, dryRun, results, failures) {
   for (const command of commands) {
     if (dryRun) {
@@ -282,6 +353,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
 
   evaluateGateReports(REQUIRED_GATES, args.strict, checks, warnings, failures);
   evaluateCrossPlatformEvidence(args.requireCrossPlatform, checks, warnings, failures);
+  const workstreamJOverhead = evaluateWorkstreamJOverheadEvidence(checks, warnings);
 
   const summary = {
     schemaVersion: 1,
@@ -298,6 +370,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
     },
     failures,
     warnings,
+    workstreamJOverhead,
     policy: {
       strict: args.strict,
       dryRun: args.dryRun,
@@ -315,6 +388,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
   console.log(`- status: ${summary.status}`);
   console.log(`- failures: ${summary.summary.failures}`);
   console.log(`- warnings: ${summary.summary.warnings}`);
+  console.log(`- workstream-j-overhead: ${summary.workstreamJOverhead.status}`);
   console.log(`- report: ${args.reportPath}`);
 
   if (failures.length > 0) {

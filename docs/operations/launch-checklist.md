@@ -12,6 +12,7 @@ Playbook:
 - [x] Phase 0/2/4 benchmark and soft gates are green.
 - [x] Phase 6 release gate report status is `ok` or `warn` (no blocking failures).
 - [x] Release-standardization gate report status is `ok` or `warn` (no blocking failures).
+- [ ] Workstream J optional-input overhead evidence is refreshed and passing.
 - [x] Canonical workflow (`discover -> run -> report`) is verified end-to-end.
 
 Run:
@@ -21,6 +22,7 @@ pnpm run bench:phase0:ci
 pnpm run bench:phase0:validate
 pnpm run bench:phase2:gate
 pnpm run bench:phase4:gate
+pnpm run bench:workstream-j:overhead
 pnpm run test:phase6:gate
 pnpm run bench:phase6:gate
 pnpm run bench:phase6:validate
@@ -28,7 +30,7 @@ pnpm run bench:v3:phase1
 pnpm run bench:v3:phase2
 pnpm run bench:v3:gate
 pnpm run bench:v3:validate
-pnpm run release -- --target-version 3.0.0
+pnpm run release -- --target-version 3.1.0
 ```
 
 Cross-platform note:

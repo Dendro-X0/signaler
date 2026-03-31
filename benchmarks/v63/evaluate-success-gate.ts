@@ -1,5 +1,6 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type GateStatus = "ok" | "warn" | "error";
 
@@ -38,6 +39,25 @@ type LowMemoryEvidence = {
     readonly parallelCappedToOne?: unknown;
     readonly stableRunner?: unknown;
     readonly predictabilityImproved?: unknown;
+  };
+};
+
+type WorkstreamJOverheadEvidence = {
+  readonly schemaVersion?: unknown;
+  readonly status?: unknown;
+  readonly overhead?: {
+    readonly medianMs?: unknown;
+    readonly p95Ms?: unknown;
+  };
+  readonly budgets?: {
+    readonly maxMedianOverheadMs?: unknown;
+    readonly maxP95OverheadMs?: unknown;
+  };
+  readonly assertions?: {
+    readonly baselineHasNoBenchmarkMerge?: unknown;
+    readonly benchmarkHasAcceptedRecords?: unknown;
+    readonly medianOverheadWithinBudget?: unknown;
+    readonly p95OverheadWithinBudget?: unknown;
   };
 };
 
@@ -349,6 +369,49 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
     }
   }
 
+  const workstreamJOverheadPath = resolve(root, "benchmarks/out/workstream-j-optional-input-overhead.json");
+  if (!(await fileExists(workstreamJOverheadPath))) {
+    checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence not found (benchmarks/out/workstream-j-optional-input-overhead.json).", false));
+  } else {
+    const rawOverhead = await readText(workstreamJOverheadPath);
+    if (rawOverhead === undefined) {
+      checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence exists but could not be read.", false));
+    } else {
+      try {
+        const parsed = JSON.parse(rawOverhead) as WorkstreamJOverheadEvidence;
+        const hasSchema = parsed.schemaVersion === 1;
+        const hasStatus = parsed.status === "pass" || parsed.status === "fail";
+        const hasOverhead = typeof parsed.overhead?.medianMs === "number"
+          && Number.isFinite(parsed.overhead.medianMs)
+          && typeof parsed.overhead?.p95Ms === "number"
+          && Number.isFinite(parsed.overhead.p95Ms);
+        const hasBudgets = typeof parsed.budgets?.maxMedianOverheadMs === "number"
+          && Number.isFinite(parsed.budgets.maxMedianOverheadMs)
+          && typeof parsed.budgets?.maxP95OverheadMs === "number"
+          && Number.isFinite(parsed.budgets.maxP95OverheadMs);
+        const assertions = parsed.assertions;
+        const assertionsValid = typeof assertions?.baselineHasNoBenchmarkMerge === "boolean"
+          && typeof assertions?.benchmarkHasAcceptedRecords === "boolean"
+          && typeof assertions?.medianOverheadWithinBudget === "boolean"
+          && typeof assertions?.p95OverheadWithinBudget === "boolean";
+        if (!hasSchema || !hasStatus || !hasOverhead || !hasBudgets || !assertionsValid) {
+          checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence format is invalid.", false));
+        } else if (parsed.status === "pass") {
+          checks.push(check(
+            "workstream-j-overhead-evidence",
+            "ok",
+            `Workstream J overhead evidence is passing (median=${Math.round(parsed.overhead.medianMs as number)}ms, p95=${Math.round(parsed.overhead.p95Ms as number)}ms).`,
+            false,
+          ));
+        } else {
+          checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence exists but status is fail.", false));
+        }
+      } catch {
+        checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence is not valid JSON.", false));
+      }
+    }
+  }
+
   const summary = summarize(checks);
   const report: GateReport = {
     schemaVersion: 1,
@@ -384,7 +447,11 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
+
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === resolve(SCRIPT_PATH)) {
+  void main();
+}
 
 export type { GateCheck, GateReport, GateStatus };
 export { evaluateSuccessGate, parseArgs };

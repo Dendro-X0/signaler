@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
@@ -114,6 +114,11 @@
     "bench:v63:gate": "tsx benchmarks/v63/evaluate-success-gate.ts",
     "bench:v63:lowmem": "tsx benchmarks/v63/low-memory-evidence.ts",
     "bench:v63:loop": "tsx benchmarks/v63/loop-smoke.ts",
+    "bench:workstream-j:overhead": "tsx benchmarks/workstream-j/optional-input-overhead.ts",
+    "bench:fixture:accessibility": "tsx scripts/build-accessibility-benchmark-fixture.ts",
+    "bench:fixture:security": "tsx scripts/build-security-benchmark-fixture.ts",
+    "bench:fixture:reliability": "tsx scripts/build-reliability-benchmark-fixture.ts",
+    "bench:fixture:seo": "tsx scripts/build-seo-benchmark-fixture.ts",
     "bench:v63:validate": "tsx benchmarks/v63/validate.ts benchmarks/out/v63-success-gate.json",
     "test:phase6:smoke": "vitest run test/v3-contract-phase5.test.ts test/report-cli-v3-fallback.test.ts test/analyze-cli-v6.test.ts test/verify-cli-v6.test.ts",
     "test:phase6:gate": "vitest run test/phase6-release-gate-validation.test.ts test/phase6-release-gate-cross-platform.test.ts test/phase6-cross-platform-evidence-script.test.ts",

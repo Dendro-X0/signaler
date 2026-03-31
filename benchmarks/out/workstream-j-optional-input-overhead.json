@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-31T03:49:24.916Z",
+  "status": "pass",
+  "workspaceDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-j-optional-input-overhead",
+  "iterations": 5,
+  "benchmarkSignalFiles": [
+    "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-j-optional-input-overhead\\benchmark-signals-a11y.json",
+    "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-j-optional-input-overhead\\benchmark-signals-seo.json"
+  ],
+  "budgets": {
+    "maxMedianOverheadMs": 30,
+    "maxP95OverheadMs": 60
+  },
+  "cases": {
+    "baseline": {
+      "id": "baseline",
+      "elapsedMs": {
+        "samples": [
+          7,
+          3,
+          3,
+          3,
+          3
+        ],
+        "minMs": 3,
+        "maxMs": 7,
+        "meanMs": 3.8,
+        "medianMs": 3,
+        "p95Ms": 7
+      },
+      "emittedActionsMean": 2,
+      "multiBenchmark": {
+        "enabled": false,
+        "accepted": 0,
+        "rejected": 0,
+        "digest": null,
+        "policy": "v1-conservative-high-30d-route-issue",
+        "rankingVersion": "j3-composite-ranking"
+      }
+    },
+    "benchmark": {
+      "id": "benchmark",
+      "elapsedMs": {
+        "samples": [
+          16,
+          4,
+          4,
+          3,
+          4
+        ],
+        "minMs": 3,
+        "maxMs": 16,
+        "meanMs": 6.2,
+        "medianMs": 4,
+        "p95Ms": 16
+      },
+      "emittedActionsMean": 2,
+      "multiBenchmark": {
+        "enabled": true,
+        "accepted": 2,
+        "rejected": 1,
+        "digest": "03f7ab49d0f2fbc850bd1f876b80f4c25278d9424fa907c5e42b1e17cf603fe2",
+        "policy": "v1-conservative-high-30d-route-issue",
+        "rankingVersion": "j3-composite-ranking"
+      }
+    }
+  },
+  "overhead": {
+    "medianMs": 1,
+    "p95Ms": 9,
+    "medianPct": 33.33,
+    "p95Pct": 128.57
+  },
+  "assertions": {
+    "baselineHasNoBenchmarkMerge": true,
+    "benchmarkHasAcceptedRecords": true,
+    "medianOverheadWithinBudget": true,
+    "p95OverheadWithinBudget": true
+  },
+  "notes": [
+    "This evidence isolates analyze-stage optional benchmark signal overhead.",
+    "Lighthouse execution cost is intentionally excluded to keep the measurement deterministic and local.",
+    "Benchmark fixtures include accepted and stale records to exercise conservative policy rejection counters."
+  ]
+}

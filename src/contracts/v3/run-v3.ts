@@ -51,6 +51,7 @@ export interface RunV3 {
       readonly rustCore?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
       readonly rustDiscovery?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
       readonly rustProcessor?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
+      readonly rustBenchmark?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
     };
   };
 }

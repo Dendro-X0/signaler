@@ -14,6 +14,12 @@ import {
   loadExternalSignalsFromFiles,
   matchAcceptedExternalSignals,
 } from "./external-signals.js";
+import {
+  buildDefaultMultiBenchmarkMetadata,
+  evaluateConservativeMultiBenchmarkSignals,
+  matchAcceptedMultiBenchmarkSignals,
+} from "./multi-benchmark-signals.js";
+import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
 
 type AnalyzeExitCode = 0 | 1 | 2;
 
@@ -24,6 +30,7 @@ type AnalyzeArgs = {
   readonly minConfidence: AnalyzeConfidenceV6;
   readonly tokenBudget: number;
   readonly externalSignalsPaths: readonly string[];
+  readonly benchmarkSignalsPaths: readonly string[];
   readonly strict: boolean;
   readonly json: boolean;
   readonly contract?: string;
@@ -68,6 +75,7 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
   let minConfidence: AnalyzeConfidenceV6 = "medium";
   let tokenBudget: number | undefined;
   const externalSignalsPaths: string[] = [];
+  const benchmarkSignalsPaths: string[] = [];
   let strict = false;
   let json = false;
   let contract: string | undefined;
@@ -120,6 +128,19 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
       externalSignalsPaths.push(resolve(value));
       continue;
     }
+    if (arg === "--benchmark-signals" && i + 1 < argv.length) {
+      benchmarkSignalsPaths.push(resolve(argv[i + 1] ?? ""));
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("--benchmark-signals=")) {
+      const value: string = arg.split("=")[1] ?? "";
+      if (value.length === 0) {
+        throw new Error("Invalid --benchmark-signals value: expected a file path.");
+      }
+      benchmarkSignalsPaths.push(resolve(value));
+      continue;
+    }
     if (arg === "--strict") {
       strict = true;
       continue;
@@ -142,6 +163,7 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
     minConfidence,
     tokenBudget: tokenBudget ?? getMachineProfileCaps(artifactProfile).defaultTokenBudget,
     externalSignalsPaths,
+    benchmarkSignalsPaths,
     strict,
     json,
     contract,
@@ -383,6 +405,11 @@ function formatAnalyzeMarkdown(report: AnalyzeReportV6): string {
       `External signals: accepted=${report.externalSignals.accepted}, rejected=${report.externalSignals.rejected}, digest=${report.externalSignals.digest}`,
     );
   }
+  if (report.multiBenchmark !== undefined) {
+    lines.push(
+      `Benchmark signals: sources=${report.multiBenchmark.sources.join(",") || "-"}, accepted=${report.multiBenchmark.accepted}, rejected=${report.multiBenchmark.rejected}, digest=${report.multiBenchmark.digest}`,
+    );
+  }
   lines.push("");
   lines.push("## Summary");
   lines.push("");
@@ -481,12 +508,17 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const warnings: string[] = [];
   const artifactPath = (name: string): string => resolve(args.dir, name);
   let loadedExternalSignals: Awaited<ReturnType<typeof loadExternalSignalsFromFiles>>;
+  let benchmarkRustAttempt: Awaited<ReturnType<typeof loadMultiBenchmarkSignalsWithRust>>;
   try {
     loadedExternalSignals = await loadExternalSignalsFromFiles(args.externalSignalsPaths);
+    benchmarkRustAttempt = await loadMultiBenchmarkSignalsWithRust(args.benchmarkSignalsPaths);
   } catch (error: unknown) {
     // eslint-disable-next-line no-console
     console.error(error instanceof Error ? error.message : String(error));
     return 1;
+  }
+  if (benchmarkRustAttempt.enabled && !benchmarkRustAttempt.used && typeof benchmarkRustAttempt.fallbackReason === "string") {
+    warnings.push(`Rust benchmark fallback: ${benchmarkRustAttempt.fallbackReason}`);
   }
 
   const loadArtifact = async <T>(params: {
@@ -649,6 +681,12 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     knownPaths,
   });
   const externalSignalsMetadata = externalSignalsEval?.metadata ?? buildDefaultExternalSignalsMetadata();
+  const benchmarkSignalsEval = evaluateConservativeMultiBenchmarkSignals({
+    loaded: benchmarkRustAttempt.loaded,
+    knownIssueIds,
+    knownPaths,
+  });
+  const multiBenchmarkMetadata = benchmarkSignalsEval?.metadata ?? buildDefaultMultiBenchmarkMetadata();
   const candidates: CandidateAction[] = [];
   const dedupeSet = new Set<string>();
 
@@ -694,6 +732,23 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
         allowedPaths: matchedPaths,
       })
       : { totalBoost: 0, evidence: [] as const };
+    const matchedBenchmarkSignals = typeof issueId === "string"
+      ? matchAcceptedMultiBenchmarkSignals({
+        accepted: benchmarkSignalsEval?.acceptedRecords ?? [],
+        issueId,
+        allowedPaths: matchedPaths,
+      })
+      : {
+        totalBoost: 0,
+        sourceBoosts: {
+          "accessibility-extended": 0,
+          "security-baseline": 0,
+          "seo-technical": 0,
+          "reliability-slo": 0,
+          "cross-browser-parity": 0,
+        },
+        evidence: [] as const,
+      };
     const comboMap: Map<string, ResultsV3Line> = new Map(allResults.map((row) => [`${row.label}|${row.path}|${row.device}`, row] as const));
     const matchedRows: ResultsV3Line[] = matchedCombos
       .map((combo) => comboMap.get(`${combo.label}|${combo.path}|${combo.device}`))
@@ -701,7 +756,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     const effectiveCoverage = Math.max(1, matchedCombos.length);
     const coverageWeight: number = Math.min(2, Math.max(1, 1 + Math.log10(Math.max(1, effectiveCoverage))));
     const basePriority: number = Math.round(suggestion.priorityScore * confidenceWeight(suggestion.confidence) * coverageWeight);
-    const rankedPriority: number = Math.round(basePriority * (1 + matchedExternalSignals.totalBoost));
+    const rankedPriority: number = Math.round(basePriority * (1 + matchedExternalSignals.totalBoost + matchedBenchmarkSignals.totalBoost));
 
     candidates.push({
       sourceSuggestionId: suggestion.id,
@@ -716,7 +771,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
       },
       affectedCombos: matchedCombos,
       evidence: [...new Map(
-        [...evidence, ...matchedExternalSignals.evidence].map((row) => [`${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`, row] as const),
+        [...evidence, ...matchedExternalSignals.evidence, ...matchedBenchmarkSignals.evidence].map((row) => [`${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`, row] as const),
       ).values()].slice(0, profileCaps.evidencePerAction),
       action: {
         summary: suggestion.action.summary,
@@ -785,6 +840,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     console.error("Analyze produced zero valid actions after filtering and budget enforcement.");
     return 1;
   }
+  const hasBenchmarkBoost: boolean = (benchmarkSignalsEval?.acceptedRecords.length ?? 0) > 0;
 
   const report: AnalyzeReportV6 = {
     schemaVersion: 1,
@@ -798,8 +854,10 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     artifactProfile: args.artifactProfile,
     tokenBudget: args.tokenBudget,
     rankingPolicy: {
-      version: "v6.2",
-      formula: "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))",
+      version: hasBenchmarkBoost ? "v6.3" : "v6.2",
+      formula: hasBenchmarkBoost
+        ? "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
+        : "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))",
       confidenceWeights: {
         high: 1.0,
         medium: 0.7,
@@ -808,6 +866,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     },
     actions: tokenTrimmedActions,
     externalSignals: externalSignalsMetadata,
+    multiBenchmark: multiBenchmarkMetadata,
     summary: {
       totalCandidates: suggestions.suggestions.length,
       emittedActions: tokenTrimmedActions.length,

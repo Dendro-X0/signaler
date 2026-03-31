@@ -5,7 +5,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 ## Release Readiness (Current)
 
 1. Complete cross-platform smoke evidence in CI for GA (`Windows/macOS/Linux` artifacts).
-2. Publish `@signaler/cli@3.0.0` to JSR from a token-authenticated environment.
+2. Publish `@signaler/cli@3.1.0` to JSR from a browser-authenticated environment.
 3. Confirm launch checklist completion in production-like CI context.
 
 ## Product Roadmap (Open)
@@ -13,15 +13,24 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 ### Workstream J: Benchmark and Spec Coverage Expansion
 
 - [x] Add field-data adapters (CrUX and first-party RUM) as optional external signals with explicit freshness and confidence policy.
-- [ ] Add accessibility coverage expansion aligned to WCAG 2.2 and ARIA Authoring Practices checks.
-- [ ] Add security baseline checks aligned to OWASP Top 10 / ASVS-lite and production header policy.
-- [ ] Add technical SEO checks aligned to Google Search Essentials and structured-data validity.
-- [ ] Add reliability/SLO metrics (availability, error-rate, backend latency) as optional ranking context.
+- [x] Phase J1 scaffold: add typed local benchmark fixture contracts (`accessibility-extended`, `security-baseline`, `seo-technical`) with optional `--benchmark-signals` loader and additive `multiBenchmark` artifact metadata.
+- [x] Phase J2 scaffold: extend benchmark fixture contracts with `reliability-slo` and `cross-browser-parity` families plus deterministic metadata digest coverage.
+- [x] Phase J3 (run + analyze): bounded composite benchmark boosts with explicit ranking formula/version metadata and deterministic ordering.
+- [x] Optional-input runtime overhead evidence runner added (`bench:workstream-j:overhead`) with machine + markdown outputs in `benchmarks/out/`.
+- [x] Success-gate integration added for Workstream J overhead evidence (`workstream-j-overhead-evidence`, warn-only when absent).
+- [x] CI benchmark job emits Workstream J overhead evidence artifacts for release/gate visibility.
+- [x] Expand `accessibility-extended` fixture contract + Node/Rust normalization for WCAG 2.2 + APG-aligned metric fields.
+- [x] Add accessibility signal providers/adapters and checks aligned to WCAG 2.2 and ARIA Authoring Practices.
+- [x] Add security baseline checks aligned to OWASP Top 10 / ASVS-lite and production header policy.
+- [x] Add technical SEO checks aligned to Google Search Essentials and structured-data validity.
+- [x] Add reliability/SLO metrics (availability, error-rate, backend latency) as optional ranking context.
 - [ ] Add cross-browser/cross-device comparability snapshots for parity-sensitive routes.
 - [ ] Execute the phased implementation plan in `docs/specs/workstream-j-implementation-plan.md`.
 
 ### Workstream K: Rust Performance Path for New Signals
 
+- [x] Phase K1 scaffold: add optional `SIGNALER_RUST_BENCHMARK=1` adapter path with deterministic Node fallback semantics and fallback tests.
+- [ ] Execute Phase K2 kickoff spec in `docs/specs/workstream-k-phase2-kickoff.md`.
 - [ ] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
 - [ ] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.
 - [ ] Keep Node/TypeScript control plane for UX, contracts, migration messaging, and policy defaults.

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 3.1.0 - 2026-03-30
+
+### Added
+
+- Workstream J optional benchmark-signal fixture adapters for `accessibility-extended`, `security-baseline`, `reliability-slo`, and `seo-technical`.
+- Deterministic fixture build scripts and CLI wiring for local benchmark signals (`--benchmark-signals`).
+- Expanded docs/help coverage for release preflight and agent-friendly benchmark fixture usage.
+
+### Changed
+
+- Release/readiness docs and examples now target the `3.1.x` line.
+- Default reliability fixture threshold now uses `--min-latency-ms 400` to reduce low-value signal noise.
+
 ### V3 Push/Release Preparation
 
 - Replaced stale `scripts/release.js` (`v2.0` hardcoded flow) with a version-agnostic V3 preflight runner.

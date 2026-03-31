@@ -1,4 +1,5 @@
 ﻿
+use chrono::DateTime;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -243,6 +244,65 @@ struct ReduceSignalsStats {
     suggestion_count: usize,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeInput {
+    schema_version: u32,
+    input_files: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeEvidence {
+    source_rel_path: String,
+    pointer: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    artifact_rel_path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeTarget {
+    issue_id: String,
+    path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeRecord {
+    source_id: String,
+    collected_at: String,
+    collected_at_ms: i64,
+    id: String,
+    target: BenchmarkNormalizeTarget,
+    confidence: String,
+    evidence: Vec<BenchmarkNormalizeEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    metrics: Option<Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeStats {
+    elapsed_ms: u128,
+    records_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BenchmarkNormalizeOutput {
+    schema_version: u32,
+    status: String,
+    input_files: Vec<String>,
+    source_ids: Vec<String>,
+    records: Vec<BenchmarkNormalizeRecord>,
+    stats: BenchmarkNormalizeStats,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error_message: Option<String>,
+}
+
 fn usage() {
     eprintln!("Usage:");
     eprintln!("  signaler_hotpath discover-scan --project-root <path> --limit <n> --preferred-detector <id|auto> --out <path>");
@@ -250,6 +310,7 @@ fn usage() {
     eprintln!("  signaler_hotpath net-worker --mode <health|headers|links|console> --in <path> --out <path>");
     eprintln!("  signaler_hotpath run-core --in <path> --out <path>");
     eprintln!("  signaler_hotpath reduce-signals --in <path> --out <path>");
+    eprintln!("  signaler_hotpath normalize-benchmark-signals --in <path> --out <path>");
 }
 
 fn parse_flag(args: &[String], flag: &str) -> Option<String> {
@@ -274,6 +335,255 @@ fn write_json_file<T: Serialize>(path: &str, value: &T) -> Result<(), String> {
     ensure_parent_dir(path)?;
     let body = serde_json::to_string_pretty(value).map_err(|err| format!("failed to serialize JSON: {}", err))?;
     fs::write(path, format!("{}\n", body)).map_err(|err| format!("failed to write '{}': {}", path, err))
+}
+
+fn normalize_path_slashes(path: &str) -> String {
+    path.replace('\\', "/")
+}
+
+fn parse_non_empty_string(value: Option<&Value>, context: &str) -> Result<String, String> {
+    value
+        .and_then(|row| row.as_str())
+        .map(str::trim)
+        .filter(|row| !row.is_empty())
+        .map(|row| row.to_string())
+        .ok_or_else(|| context.to_string())
+}
+
+fn parse_collected_at_millis(value: &str) -> Result<i64, String> {
+    DateTime::parse_from_rfc3339(value)
+        .map(|row| row.timestamp_millis())
+        .map_err(|_| "Invalid benchmark source collectedAt timestamp.".to_string())
+}
+
+fn parse_benchmark_evidence_rows(value: Option<&Value>) -> Result<Vec<BenchmarkNormalizeEvidence>, String> {
+    let rows = value
+        .and_then(|row| row.as_array())
+        .ok_or_else(|| "Invalid benchmark signal evidence: expected array.".to_string())?;
+    let mut evidence: Vec<BenchmarkNormalizeEvidence> = Vec::new();
+    for row in rows {
+        let object = row
+            .as_object()
+            .ok_or_else(|| "Invalid benchmark signal evidence row: expected object.".to_string())?;
+        let source_rel_path = parse_non_empty_string(
+            object.get("sourceRelPath"),
+            "Invalid benchmark signal evidence row: sourceRelPath and pointer are required.",
+        )?;
+        let pointer = parse_non_empty_string(
+            object.get("pointer"),
+            "Invalid benchmark signal evidence row: sourceRelPath and pointer are required.",
+        )?;
+        let artifact_rel_path = object
+            .get("artifactRelPath")
+            .and_then(|entry| entry.as_str())
+            .map(str::trim)
+            .filter(|entry| !entry.is_empty())
+            .map(|entry| entry.to_string());
+        evidence.push(BenchmarkNormalizeEvidence {
+            source_rel_path,
+            pointer,
+            artifact_rel_path,
+        });
+    }
+    Ok(evidence)
+}
+
+fn parse_non_negative_metric(object: &serde_json::Map<String, Value>, key: &str) -> Option<f64> {
+    let value = object.get(key)?;
+    let number = value.as_f64()?;
+    if !number.is_finite() || number < 0.0 {
+        return None;
+    }
+    Some(number)
+}
+
+fn parse_benchmark_metrics(source_id: &str, value: Option<&Value>) -> Result<Option<Value>, String> {
+    let object = match value {
+        Some(row) => row
+            .as_object()
+            .ok_or_else(|| "Invalid benchmark signal metrics: expected object.".to_string())?,
+        None => return Ok(None),
+    };
+
+    let metric_keys: &[&str] = match source_id {
+        "accessibility-extended" => &[
+            "wcagViolationCount",
+            "seriousViolationCount",
+            "criticalViolationCount",
+            "ariaPatternMismatchCount",
+            "focusAppearanceIssueCount",
+            "focusNotObscuredIssueCount",
+            "targetSizeIssueCount",
+            "draggingAlternativeIssueCount",
+            "apgPatternMismatchCount",
+            "keyboardSupportIssueCount",
+        ],
+        "security-baseline" => &[
+            "missingHeaderCount",
+            "tlsConfigIssueCount",
+            "cookiePolicyIssueCount",
+            "mixedContentCount",
+        ],
+        "seo-technical" => &[
+            "indexabilityIssueCount",
+            "canonicalMismatchCount",
+            "structuredDataErrorCount",
+            "crawlabilityIssueCount",
+        ],
+        "reliability-slo" => &["availabilityPct", "errorRatePct", "latencyP95Ms"],
+        "cross-browser-parity" => &["scoreVariancePct", "lcpDeltaMs", "clsDelta"],
+        _ => return Err("Invalid benchmark source id.".to_string()),
+    };
+
+    let mut metrics_map = serde_json::Map::new();
+    for key in metric_keys {
+        if let Some(number) = parse_non_negative_metric(object, key) {
+            metrics_map.insert((*key).to_string(), json!(number));
+        }
+    }
+    if metrics_map.is_empty() && !object.is_empty() {
+        return Err(format!("Invalid {} metrics values.", source_id));
+    }
+    if metrics_map.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(Value::Object(metrics_map)))
+}
+
+fn run_normalize_benchmark_signals(input_path: &str, out_path: &str) -> Result<(), String> {
+    let started = Instant::now();
+    let input_raw = fs::read_to_string(input_path).map_err(|err| format!("failed to read normalize input '{}': {}", input_path, err))?;
+    let input: BenchmarkNormalizeInput = serde_json::from_str(&input_raw)
+        .map_err(|err| format!("failed to parse normalize input '{}': {}", input_path, err))?;
+    if input.schema_version != 1 {
+        return Err("normalize input schemaVersion must be 1".to_string());
+    }
+
+    let mut deduped_files: Vec<String> = Vec::new();
+    let mut seen_files: HashSet<String> = HashSet::new();
+    for file in input.input_files {
+        let normalized = normalize_path_slashes(&file);
+        if normalized.is_empty() {
+            continue;
+        }
+        if seen_files.insert(normalized.clone()) {
+            deduped_files.push(normalized);
+        }
+    }
+
+    let mut records: Vec<BenchmarkNormalizeRecord> = Vec::new();
+    let mut source_set: HashSet<String> = HashSet::new();
+    for file in deduped_files.iter() {
+        let raw_text = fs::read_to_string(file).map_err(|err| format!("failed to read benchmark signals file '{}': {}", file, err))?;
+        let parsed: Value = serde_json::from_str(&raw_text).map_err(|err| format!("failed to parse benchmark signals file '{}': {}", file, err))?;
+        let root = parsed
+            .as_object()
+            .ok_or_else(|| format!("Invalid benchmark signals file '{}': expected object.", file))?;
+        let schema_version = root.get("schemaVersion").and_then(|row| row.as_u64()).unwrap_or(0);
+        if schema_version != 1 {
+            return Err(format!(
+                "Invalid benchmark signals file '{}': schemaVersion must be 1.",
+                file
+            ));
+        }
+        let sources = root
+            .get("sources")
+            .and_then(|row| row.as_array())
+            .ok_or_else(|| format!("Invalid benchmark signals file '{}': sources must be an array.", file))?;
+        for source in sources {
+            let source_obj = source
+                .as_object()
+                .ok_or_else(|| format!("Invalid benchmark source entry in '{}': expected object.", file))?;
+            let source_id = parse_non_empty_string(source_obj.get("sourceId"), "Invalid benchmark source id.")?;
+            if source_id != "accessibility-extended"
+                && source_id != "security-baseline"
+                && source_id != "seo-technical"
+                && source_id != "reliability-slo"
+                && source_id != "cross-browser-parity"
+            {
+                return Err(format!("Invalid benchmark source id in '{}'.", file));
+            }
+            let collected_at = parse_non_empty_string(
+                source_obj.get("collectedAt"),
+                "Invalid benchmark source collectedAt timestamp.",
+            )?;
+            let collected_at_ms = parse_collected_at_millis(&collected_at)?;
+            let source_records = source_obj
+                .get("records")
+                .and_then(|row| row.as_array())
+                .ok_or_else(|| format!("Invalid benchmark source records in '{}': expected array.", file))?;
+
+            source_set.insert(source_id.clone());
+            for record in source_records {
+                let record_obj = record
+                    .as_object()
+                    .ok_or_else(|| format!("Invalid benchmark source record in '{}': expected object.", file))?;
+                let id = parse_non_empty_string(record_obj.get("id"), "Invalid benchmark source record id.")?;
+                let target_obj = record_obj
+                    .get("target")
+                    .and_then(|row| row.as_object())
+                    .ok_or_else(|| "Invalid benchmark source record target.".to_string())?;
+                let issue_id = parse_non_empty_string(
+                    target_obj.get("issueId"),
+                    "Invalid benchmark source record target fields.",
+                )?;
+                let path = parse_non_empty_string(
+                    target_obj.get("path"),
+                    "Invalid benchmark source record target fields.",
+                )?;
+                let device = match target_obj.get("device") {
+                    Some(row) => {
+                        let parsed_device = parse_non_empty_string(Some(row), "Invalid benchmark source record target.device.")?;
+                        if parsed_device != "mobile" && parsed_device != "desktop" {
+                            return Err("Invalid benchmark source record target.device.".to_string());
+                        }
+                        Some(parsed_device)
+                    }
+                    None => None,
+                };
+                let confidence = parse_non_empty_string(
+                    record_obj.get("confidence"),
+                    "Invalid benchmark source record confidence.",
+                )?;
+                if confidence != "high" && confidence != "medium" && confidence != "low" {
+                    return Err("Invalid benchmark source record confidence.".to_string());
+                }
+                let evidence = parse_benchmark_evidence_rows(record_obj.get("evidence"))?;
+                let metrics = parse_benchmark_metrics(&source_id, record_obj.get("metrics"))?;
+
+                records.push(BenchmarkNormalizeRecord {
+                    source_id: source_id.clone(),
+                    collected_at: collected_at.clone(),
+                    collected_at_ms,
+                    id,
+                    target: BenchmarkNormalizeTarget {
+                        issue_id,
+                        path,
+                        device,
+                    },
+                    confidence: confidence.clone(),
+                    evidence,
+                    metrics,
+                });
+            }
+        }
+    }
+
+    let mut source_ids: Vec<String> = source_set.into_iter().collect();
+    source_ids.sort();
+    let output = BenchmarkNormalizeOutput {
+        schema_version: 1,
+        status: "ok".to_string(),
+        input_files: deduped_files,
+        source_ids,
+        stats: BenchmarkNormalizeStats {
+            elapsed_ms: started.elapsed().as_millis(),
+            records_count: records.len(),
+        },
+        records,
+        error_message: None,
+    };
+    write_json_file(out_path, &output)
 }
 
 fn normalize_route(raw: &str) -> String {
@@ -1460,6 +1770,25 @@ fn main() -> ExitCode {
                 }
             };
             run_reduce_signals(&input_path, &out)
+        }
+        "normalize-benchmark-signals" => {
+            let input_path = match parse_flag(&args, "--in") {
+                Some(value) => value,
+                None => {
+                    eprintln!("missing required --in");
+                    usage();
+                    return ExitCode::from(2);
+                }
+            };
+            let out = match parse_flag(&args, "--out") {
+                Some(value) => value,
+                None => {
+                    eprintln!("missing required --out");
+                    usage();
+                    return ExitCode::from(2);
+                }
+            };
+            run_normalize_benchmark_signals(&input_path, &out)
         }
         _ => {
             usage();

@@ -1,13 +1,13 @@
 # V6.3 Success Gate
 
-Generated: 2026-03-30T05:01:46.023Z
+Generated: 2026-03-31T03:49:56.234Z
 Status: OK
 
 ## Summary
 
 - Blocking failures: 0
 - Warnings: 0
-- Manual items: 3
+- Manual items: 4
 
 ## Checks
 
@@ -23,4 +23,5 @@ Status: OK
 | success-gate-progress | ok | no | Success gate checklist complete (4/4). |
 | loop-smoke-evidence | ok | no | Loop smoke passed in 14733ms. |
 | low-memory-evidence | ok | no | Low-memory evidence report is present and passing. |
+| workstream-j-overhead-evidence | ok | no | Workstream J overhead evidence is passing (median=1ms, p95=9ms). |
 

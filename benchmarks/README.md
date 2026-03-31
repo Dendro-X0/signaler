@@ -66,6 +66,17 @@ Outputs:
 - `benchmarks/out/v63-low-memory-evidence.json`
 - `benchmarks/out/v63-low-memory-evidence.md`
 
+## Workstream J Optional-Input Overhead Evidence
+
+```bash
+pnpm run bench:workstream-j:overhead
+```
+
+Outputs:
+
+- `benchmarks/out/workstream-j-optional-input-overhead.json`
+- `benchmarks/out/workstream-j-optional-input-overhead.md`
+
 ## Profile Contract
 
 Profiles live under:

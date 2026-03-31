@@ -972,6 +972,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "--legacy-artifacts",
     "--baseline",
     "--external-signals",
+    "--benchmark-signals",
     "--yes",
     "--stable",
     "--focus-worst",
@@ -1002,6 +1003,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
     "--min-confidence",
     "--token-budget",
     "--external-signals",
+    "--benchmark-signals",
     "--strict",
     "--json",
   ] as const;
@@ -1451,6 +1453,7 @@ async function printRunStrategySummary(projectRoot: string): Promise<void> {
         readonly rustCore?: { readonly enabled?: boolean; readonly used?: boolean };
         readonly rustDiscovery?: { readonly enabled?: boolean; readonly used?: boolean };
         readonly rustProcessor?: { readonly enabled?: boolean; readonly used?: boolean; readonly fallbackReason?: string };
+        readonly rustBenchmark?: { readonly enabled?: boolean; readonly used?: boolean; readonly fallbackReason?: string };
       };
     };
   };
@@ -1471,7 +1474,7 @@ async function printRunStrategySummary(projectRoot: string): Promise<void> {
     ? `resource: cpu=${runSummary.runtime.resourceProfile.cpuCount ?? "-"} freeMemMB=${runSummary.runtime.resourceProfile.freeMemoryMB ?? "-"} cap=${runSummary.runtime.resourceProfile.appliedParallelCap ?? "-"} reasons=${(runSummary.runtime.resourceProfile.reasons ?? []).join(",")}`
     : undefined;
   const acceleratorLine = runSummary.runtime?.accelerators
-    ? `accelerators: rustCore=${runSummary.runtime.accelerators.rustCore?.enabled ? (runSummary.runtime.accelerators.rustCore.used ? "on" : "fallback") : "off"} rustDiscovery=${runSummary.runtime.accelerators.rustDiscovery?.enabled ? (runSummary.runtime.accelerators.rustDiscovery.used ? "on" : "fallback") : "off"} rustProcessor=${runSummary.runtime.accelerators.rustProcessor?.enabled ? (runSummary.runtime.accelerators.rustProcessor.used ? "on" : "fallback") : "off"}`
+    ? `accelerators: rustCore=${runSummary.runtime.accelerators.rustCore?.enabled ? (runSummary.runtime.accelerators.rustCore.used ? "on" : "fallback") : "off"} rustDiscovery=${runSummary.runtime.accelerators.rustDiscovery?.enabled ? (runSummary.runtime.accelerators.rustDiscovery.used ? "on" : "fallback") : "off"} rustProcessor=${runSummary.runtime.accelerators.rustProcessor?.enabled ? (runSummary.runtime.accelerators.rustProcessor.used ? "on" : "fallback") : "off"} rustBenchmark=${runSummary.runtime.accelerators.rustBenchmark?.enabled ? (runSummary.runtime.accelerators.rustBenchmark.used ? "on" : "fallback") : "off"}`
     : undefined;
   const trustLine = mode === "throughput"
     ? "trust: throughput is trend-oriented; use `run --mode fidelity` (or --parity) for DevTools-like validation"

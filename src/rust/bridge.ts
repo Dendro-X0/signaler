@@ -79,7 +79,8 @@ export function isRustFeatureEnabled(
     | "SIGNALER_RUST_HEALTH"
     | "SIGNALER_RUST_HEADERS"
     | "SIGNALER_RUST_LINKS"
-    | "SIGNALER_RUST_CONSOLE",
+    | "SIGNALER_RUST_CONSOLE"
+    | "SIGNALER_RUST_BENCHMARK",
 ): boolean {
   return process.env[flagName] === "1";
 }

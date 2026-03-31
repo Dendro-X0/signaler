@@ -1,5 +1,6 @@
 import type { RunnerModeV3 } from "./run-v3.js";
 import type { ExternalSignalsMetadataV1 } from "../external-signals-v1.js";
+import type { MultiBenchmarkMetadataV1 } from "../multi-benchmark-v1.js";
 
 export type SuggestionCategoryV3 = "performance" | "accessibility" | "best-practices" | "seo" | "reliability";
 
@@ -35,4 +36,5 @@ export interface SuggestionsV3 {
   readonly comparabilityHash: string;
   readonly suggestions: readonly SuggestionV3[];
   readonly externalSignals?: ExternalSignalsMetadataV1;
+  readonly multiBenchmark?: MultiBenchmarkMetadataV1;
 }

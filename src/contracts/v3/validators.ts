@@ -31,6 +31,45 @@ function isExternalSignalsMetadata(value: unknown): boolean {
   return true;
 }
 
+function isMultiBenchmarkMetadata(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.enabled !== "boolean") return false;
+  if (!Array.isArray(value.inputFiles)) return false;
+  for (const file of value.inputFiles) {
+    if (!isNonEmptyString(file)) return false;
+  }
+  if (!Array.isArray(value.sources)) return false;
+  for (const source of value.sources) {
+    if (
+      source !== "accessibility-extended"
+      && source !== "security-baseline"
+      && source !== "seo-technical"
+      && source !== "reliability-slo"
+      && source !== "cross-browser-parity"
+    ) {
+      return false;
+    }
+  }
+  if (typeof value.accepted !== "number" || value.accepted < 0) return false;
+  if (typeof value.rejected !== "number" || value.rejected < 0) return false;
+  if (value.digest !== null && !isNonEmptyString(value.digest)) return false;
+  if (value.enabled) {
+    if (!isNonEmptyString(value.digest)) return false;
+  } else {
+    if (value.digest !== null) return false;
+    if (value.inputFiles.length !== 0) return false;
+    if (value.sources.length !== 0) return false;
+    if (value.accepted !== 0 || value.rejected !== 0) return false;
+  }
+  if (value.policy !== "v1-conservative-high-30d-route-issue") return false;
+  if (
+    value.rankingVersion !== "j1-metadata-only"
+    && value.rankingVersion !== "j2-metadata-only"
+    && value.rankingVersion !== "j3-composite-ranking"
+  ) return false;
+  return true;
+}
+
 export function isResultsV3(value: unknown): value is ResultsV3 {
   if (!isRecord(value)) return false;
   if (typeof value.generatedAt !== "string") return false;
@@ -44,6 +83,7 @@ export function isSuggestionsV3(value: unknown): value is SuggestionsV3 {
   if (value.mode !== "fidelity" && value.mode !== "throughput") return false;
   if (!isNonEmptyString(value.comparabilityHash)) return false;
   if (value.externalSignals !== undefined && !isExternalSignalsMetadata(value.externalSignals)) return false;
+  if (value.multiBenchmark !== undefined && !isMultiBenchmarkMetadata(value.multiBenchmark)) return false;
   if (!Array.isArray(value.suggestions)) return false;
   for (const suggestion of value.suggestions) {
     if (!isRecord(suggestion)) return false;

@@ -4,7 +4,7 @@ Use this playbook to push and publish release candidates and GA builds with dete
 
 Recommended placeholder:
 
-- `<version>` (for example `3.0.0-rc.1` or `3.0.0`)
+- `<version>` (for example `3.1.0-rc.1` or `3.1.0`)
 
 ## 1) Preflight (Local)
 
@@ -13,6 +13,8 @@ From the `signaler` repository root:
 ```bash
 corepack pnpm install
 corepack pnpm run build
+corepack pnpm run bench:workstream-j:overhead
+corepack pnpm run bench:v63:gate
 corepack pnpm run release -- --target-version <version>
 ```
 
@@ -95,5 +97,5 @@ npx jsr run @signaler/cli --version
 ## 6) Rollback Rules
 
 1. Never republish an existing version number.
-2. If post-publish issues are found, publish a new patch/rc (`3.0.0-rc.2` or `3.0.1`) with the same preflight steps.
+2. If post-publish issues are found, publish a new patch/rc (`3.1.0-rc.2` or `3.1.1`) with the same preflight steps.
 

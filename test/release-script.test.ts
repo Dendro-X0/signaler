@@ -26,6 +26,8 @@ const REQUIRED_GATES = [
   "benchmarks/out/v63-success-gate.json",
 ];
 
+const WORKSTREAM_J_OVERHEAD = "benchmarks/out/workstream-j-optional-input-overhead.json";
+
 const originalCwd = process.cwd();
 
 afterEach(() => {
@@ -38,7 +40,14 @@ async function writeJson(relPath: string, data: unknown, root: string): Promise<
   await writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
-async function setupRepoFixture(gateStatus: "ok" | "warn" = "ok"): Promise<string> {
+async function setupRepoFixture(params: {
+  readonly gateStatus?: "ok" | "warn";
+  readonly includeWorkstreamJOverhead?: boolean;
+  readonly workstreamJOverheadStatus?: "pass" | "fail";
+} = {}): Promise<string> {
+  const gateStatus = params.gateStatus ?? "ok";
+  const includeWorkstreamJOverhead = params.includeWorkstreamJOverhead ?? true;
+  const workstreamJOverheadStatus = params.workstreamJOverheadStatus ?? "pass";
   const root = await mkdtemp(join(tmpdir(), "signaler-release-script-"));
   await writeJson("package.json", { version: "3.0.0-rc.1" }, root);
   await writeJson("jsr.json", { version: "3.0.0-rc.1" }, root);
@@ -53,6 +62,24 @@ async function setupRepoFixture(gateStatus: "ok" | "warn" = "ok"): Promise<strin
   }
   for (const relPath of REQUIRED_GATES) {
     await writeJson(relPath, { status: gateStatus }, root);
+  }
+  if (includeWorkstreamJOverhead) {
+    await writeJson(
+      WORKSTREAM_J_OVERHEAD,
+      {
+        schemaVersion: 1,
+        status: workstreamJOverheadStatus,
+        overhead: { medianMs: 4, p95Ms: 16 },
+        budgets: { maxMedianOverheadMs: 30, maxP95OverheadMs: 60 },
+        assertions: {
+          baselineHasNoBenchmarkMerge: true,
+          benchmarkHasAcceptedRecords: true,
+          medianOverheadWithinBudget: true,
+          p95OverheadWithinBudget: true,
+        },
+      },
+      root,
+    );
   }
 
   return root;
@@ -78,7 +105,7 @@ describe("release script", () => {
   });
 
   it("returns warn when cross-platform evidence is missing in non-required mode", async () => {
-    const root = await setupRepoFixture("ok");
+    const root = await setupRepoFixture({ gateStatus: "ok" });
     try {
       process.chdir(root);
       const summary = runPreflight(["--skip-commands", "--dry-run"]);
@@ -91,12 +118,41 @@ describe("release script", () => {
   });
 
   it("fails when strict mode is used and gate status is warn", async () => {
-    const root = await setupRepoFixture("warn");
+    const root = await setupRepoFixture({ gateStatus: "warn" });
     try {
       process.chdir(root);
       const summary = runPreflight(["--skip-commands", "--strict", "--dry-run"]);
       expect(summary.status).toBe("error");
       expect(summary.failures.some((entry) => entry.includes("strict mode"))).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("records workstream-j overhead status in preflight summary", async () => {
+    const root = await setupRepoFixture({ gateStatus: "ok", workstreamJOverheadStatus: "pass" });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.workstreamJOverhead?.status).toBe("ok");
+      expect(String(summary.workstreamJOverhead?.details ?? "")).toContain("passing");
+      expect(summary.checks.some((entry) => entry.id === "workstream-j-overhead-evidence" && entry.status === "ok")).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("warns when workstream-j overhead evidence is missing", async () => {
+    const root = await setupRepoFixture({ gateStatus: "ok", includeWorkstreamJOverhead: false });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.status).toBe("warn");
+      expect(summary.workstreamJOverhead?.status).toBe("warn");
+      expect(summary.warnings.some((entry) => entry.includes("Workstream J overhead evidence"))).toBe(true);
+      expect(summary.checks.some((entry) => entry.id === "workstream-j-overhead-evidence" && entry.status === "warn")).toBe(true);
     } finally {
       process.chdir(originalCwd);
       await rm(root, { recursive: true, force: true });

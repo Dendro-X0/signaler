@@ -30,6 +30,45 @@ function isExternalSignalsMetadata(value: unknown): boolean {
   return true;
 }
 
+function isMultiBenchmarkMetadata(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.enabled !== "boolean") return false;
+  if (!Array.isArray(value.inputFiles)) return false;
+  for (const file of value.inputFiles) {
+    if (!isNonEmptyString(file)) return false;
+  }
+  if (!Array.isArray(value.sources)) return false;
+  for (const source of value.sources) {
+    if (
+      source !== "accessibility-extended"
+      && source !== "security-baseline"
+      && source !== "seo-technical"
+      && source !== "reliability-slo"
+      && source !== "cross-browser-parity"
+    ) {
+      return false;
+    }
+  }
+  if (typeof value.accepted !== "number" || value.accepted < 0) return false;
+  if (typeof value.rejected !== "number" || value.rejected < 0) return false;
+  if (value.digest !== null && !isNonEmptyString(value.digest)) return false;
+  if (value.enabled) {
+    if (!isNonEmptyString(value.digest)) return false;
+  } else {
+    if (value.digest !== null) return false;
+    if (value.inputFiles.length !== 0) return false;
+    if (value.sources.length !== 0) return false;
+    if (value.accepted !== 0 || value.rejected !== 0) return false;
+  }
+  if (value.policy !== "v1-conservative-high-30d-route-issue") return false;
+  if (
+    value.rankingVersion !== "j1-metadata-only"
+    && value.rankingVersion !== "j2-metadata-only"
+    && value.rankingVersion !== "j3-composite-ranking"
+  ) return false;
+  return true;
+}
+
 export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
   if (!isRecord(value)) return false;
   if (value.schemaVersion !== 1) return false;
@@ -42,10 +81,11 @@ export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
   if (value.artifactProfile !== "lean" && value.artifactProfile !== "standard" && value.artifactProfile !== "diagnostics") return false;
   if (typeof value.tokenBudget !== "number") return false;
   if (!isRecord(value.rankingPolicy)) return false;
-  if (value.rankingPolicy.version !== "v6.1" && value.rankingPolicy.version !== "v6.2") return false;
+  if (value.rankingPolicy.version !== "v6.1" && value.rankingPolicy.version !== "v6.2" && value.rankingPolicy.version !== "v6.3") return false;
   if (
     value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight)"
     && value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))"
+    && value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
   ) return false;
   if (!Array.isArray(value.actions)) return false;
   for (const action of value.actions) {
@@ -74,6 +114,7 @@ export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
     if (!isRecord(action.verifyPlan.expectedDirection)) return false;
   }
   if (value.externalSignals !== undefined && !isExternalSignalsMetadata(value.externalSignals)) return false;
+  if (value.multiBenchmark !== undefined && !isMultiBenchmarkMetadata(value.multiBenchmark)) return false;
   if (!isRecord(value.summary)) return false;
   if (typeof value.summary.totalCandidates !== "number") return false;
   if (typeof value.summary.emittedActions !== "number") return false;
