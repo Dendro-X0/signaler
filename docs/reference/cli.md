@@ -676,6 +676,7 @@ Success gate evaluator:
 ```bash
 pnpm run bench:v63:loop
 pnpm run bench:v63:lowmem
+pnpm run bench:workstream-k:rust-benchmark
 pnpm run bench:v63:gate
 pnpm run bench:v63:validate
 ```
@@ -686,12 +687,14 @@ Outputs:
 - `benchmarks/out/v63-loop-smoke.md`
 - `benchmarks/out/v63-low-memory-evidence.json`
 - `benchmarks/out/v63-low-memory-evidence.md`
+- `benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json`
+- `benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.md`
 - `benchmarks/out/v63-success-gate.json`
 - `benchmarks/out/v63-success-gate.md`
 
 `bench:v63:loop` runs a tiny local canonical loop smoke (`discover -> run -> analyze -> verify --dry-run -> report`) against an in-process local server and emits reproducible evidence artifacts.
 
-The gate is blocking for missing canonical-flow docs, missing local unpublished-build workflow docs, missing Workstream H runtime-budget/timing integration, and missing regression test coverage. Manual evidence checks remain warn-only.
+The gate is blocking for missing canonical-flow docs, missing local unpublished-build workflow docs, missing Workstream H runtime-budget/timing integration, and missing regression test coverage. Manual evidence checks remain warn-only, including Workstream J optional-input overhead and Workstream K Rust normalizer perf/parity evidence.
 
 ## 10. GitHub workflow templates
 

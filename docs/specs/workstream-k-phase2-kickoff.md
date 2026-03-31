@@ -28,6 +28,7 @@ Implement a Rust normalizer/aggregator for high-volume optional benchmark inputs
 3. Completed: deterministic normalization hardening (sorted/deduped evidence + records) with emitted normalizer stats (`recordsCount`, `inputRecordsCount`, `dedupedRecordsCount`, `recordsDigest`).
 4. Completed: additive accelerator metadata wiring in `run` and `analyze` artifacts for Rust benchmark path (`requested`, `enabled`, `used`, fallback/elapsed/command/stats).
 5. Completed: parity/fallback test expansion for the new Rust benchmark adapter metadata surface.
+6. Completed: deterministic Rust-vs-Node benchmark normalizer evidence runner (`bench:workstream-k:rust-benchmark`) with machine + markdown outputs, warn-level V6.3 gate visibility, CI artifact emission, and release preflight surfacing.
 
 ## Non-Goals
 

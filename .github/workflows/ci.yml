@@ -252,6 +252,11 @@ jobs:
       continue-on-error: true
       run: pnpm run bench:workstream-j:overhead
 
+    - name: Run Workstream K Rust benchmark normalizer perf evidence
+      if: always()
+      continue-on-error: true
+      run: pnpm run bench:workstream-k:rust-benchmark
+
     - name: Validate Phase 0 report schema
       if: always()
       continue-on-error: true
@@ -311,6 +316,8 @@ jobs:
           benchmarks/out/v63-low-memory-evidence.md
           benchmarks/out/workstream-j-optional-input-overhead.json
           benchmarks/out/workstream-j-optional-input-overhead.md
+          benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json
+          benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.md
           benchmarks/out/*.rust-discovery.json
           benchmarks/out/tmp/*.config.json
         if-no-files-found: warn
@@ -410,6 +417,8 @@ jobs:
           benchmarks/out/v63-loop-smoke.md
           benchmarks/out/v63-low-memory-evidence.json
           benchmarks/out/v63-low-memory-evidence.md
+          benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json
+          benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.md
           benchmarks/out/cross-platform-smoke-*.json
           benchmarks/out/cross-platform-smoke-*.md
           release/v3/release-manifest.schema.json

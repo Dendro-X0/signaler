@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-31T10:13:43.104Z",
+  "status": "pass",
+  "workspaceDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf",
+  "iterations": 6,
+  "recordsPerSource": 200,
+  "fixture": {
+    "inputFiles": [
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-accessibility-extended.json",
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-security-baseline.json",
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-seo-technical.json",
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-reliability-slo.json",
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-cross-browser-parity.json",
+      "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-accessibility-extended.json"
+    ],
+    "sourceCount": 5,
+    "inputRecordsCount": 1000
+  },
+  "cases": {
+    "node": {
+      "id": "node",
+      "elapsedMs": {
+        "samples": [
+          29.97,
+          12.54,
+          16.31,
+          11.38,
+          12.54,
+          15.26
+        ],
+        "minMs": 11.38,
+        "maxMs": 29.97,
+        "meanMs": 16.33,
+        "medianMs": 12.54,
+        "p95Ms": 29.97
+      },
+      "recordsCountMean": 1000,
+      "uniqueOutputDigests": [
+        "2ebad149da522ee7e7184e98d461a3499deaffff781b6cacd44761f0fa6d6883"
+      ]
+    },
+    "rust": {
+      "id": "rust",
+      "elapsedMs": {
+        "samples": [
+          426.03,
+          371.05,
+          370.71,
+          400.06,
+          355.68,
+          373.4
+        ],
+        "minMs": 355.68,
+        "maxMs": 426.03,
+        "meanMs": 382.82,
+        "medianMs": 371.05,
+        "p95Ms": 426.03
+      },
+      "recordsCountMean": 1000,
+      "uniqueOutputDigests": [
+        "2ebad149da522ee7e7184e98d461a3499deaffff781b6cacd44761f0fa6d6883"
+      ],
+      "rust": {
+        "usedIterations": 6,
+        "fallbackIterations": 0,
+        "sidecarCommands": [
+          "normalize-benchmark"
+        ],
+        "fallbackReasons": []
+      }
+    }
+  },
+  "delta": {
+    "medianMs": 358.51,
+    "p95Ms": 396.06,
+    "medianPct": 2858.93,
+    "p95Pct": 1321.52
+  },
+  "assertions": {
+    "nodeOutputStable": true,
+    "rustOutputStable": true,
+    "parityMatched": true,
+    "rustUsedEveryIteration": true
+  },
+  "notes": [
+    "This evidence compares benchmark-signal normalization cost only (no Lighthouse run cost included).",
+    "Output parity is verified by deterministic digest comparison of normalized records.",
+    "Status is fail when Rust falls back in any iteration, which indicates sidecar execution was unavailable for this run."
+  ]
+}

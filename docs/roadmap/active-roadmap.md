@@ -30,6 +30,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 ### Workstream K: Rust Performance Path for New Signals
 
 - [x] Phase K1 scaffold: add optional `SIGNALER_RUST_BENCHMARK=1` adapter path with deterministic Node fallback semantics and fallback tests.
+- [x] Add Rust normalizer perf/parity evidence runner (`bench:workstream-k:rust-benchmark`) plus warn-level success-gate/release-preflight visibility and CI artifact emission.
 - [ ] Execute Phase K2 kickoff spec in `docs/specs/workstream-k-phase2-kickoff.md`.
 - [x] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
 - [ ] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.

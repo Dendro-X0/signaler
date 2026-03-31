@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-31T06:10:13.859Z",
+  "generatedAt": "2026-03-31T10:13:57.999Z",
   "status": "ok",
   "checks": [
     {
@@ -68,11 +68,17 @@
       "status": "ok",
       "details": "Workstream J overhead evidence is passing (median=1ms, p95=9ms).",
       "blocking": false
+    },
+    {
+      "id": "workstream-k-rust-benchmark-evidence",
+      "status": "ok",
+      "details": "Workstream K benchmark evidence is passing (median delta=359ms, p95 delta=396ms).",
+      "blocking": false
     }
   ],
   "summary": {
     "blockingFailures": 0,
     "warnings": 0,
-    "manualItems": 4
+    "manualItems": 5
   }
 }

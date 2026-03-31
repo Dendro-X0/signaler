@@ -61,6 +61,21 @@ type WorkstreamJOverheadEvidence = {
   };
 };
 
+type WorkstreamKRustBenchmarkEvidence = {
+  readonly schemaVersion?: unknown;
+  readonly status?: unknown;
+  readonly delta?: {
+    readonly medianMs?: unknown;
+    readonly p95Ms?: unknown;
+  };
+  readonly assertions?: {
+    readonly nodeOutputStable?: unknown;
+    readonly rustOutputStable?: unknown;
+    readonly parityMatched?: unknown;
+    readonly rustUsedEveryIteration?: unknown;
+  };
+};
+
 type CliArgs = {
   readonly outJsonPath: string;
   readonly outMarkdownPath: string;
@@ -408,6 +423,45 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
         }
       } catch {
         checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence is not valid JSON.", false));
+      }
+    }
+  }
+
+  const workstreamKPerfPath = resolve(root, "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json");
+  if (!(await fileExists(workstreamKPerfPath))) {
+    checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence not found (benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json).", false));
+  } else {
+    const rawWorkstreamK = await readText(workstreamKPerfPath);
+    if (rawWorkstreamK === undefined) {
+      checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence exists but could not be read.", false));
+    } else {
+      try {
+        const parsed = JSON.parse(rawWorkstreamK) as WorkstreamKRustBenchmarkEvidence;
+        const hasSchema = parsed.schemaVersion === 1;
+        const hasStatus = parsed.status === "pass" || parsed.status === "fail";
+        const hasDelta = typeof parsed.delta?.medianMs === "number"
+          && Number.isFinite(parsed.delta.medianMs)
+          && typeof parsed.delta?.p95Ms === "number"
+          && Number.isFinite(parsed.delta.p95Ms);
+        const assertions = parsed.assertions;
+        const assertionsValid = typeof assertions?.nodeOutputStable === "boolean"
+          && typeof assertions?.rustOutputStable === "boolean"
+          && typeof assertions?.parityMatched === "boolean"
+          && typeof assertions?.rustUsedEveryIteration === "boolean";
+        if (!hasSchema || !hasStatus || !hasDelta || !assertionsValid) {
+          checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence format is invalid.", false));
+        } else if (parsed.status === "pass") {
+          checks.push(check(
+            "workstream-k-rust-benchmark-evidence",
+            "ok",
+            `Workstream K benchmark evidence is passing (median delta=${Math.round(parsed.delta.medianMs as number)}ms, p95 delta=${Math.round(parsed.delta.p95Ms as number)}ms).`,
+            false,
+          ));
+        } else {
+          checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence exists but status is fail.", false));
+        }
+      } catch {
+        checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence is not valid JSON.", false));
       }
     }
   }

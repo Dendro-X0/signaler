@@ -1,13 +1,13 @@
 # V6.3 Success Gate
 
-Generated: 2026-03-31T06:10:13.859Z
+Generated: 2026-03-31T10:13:57.999Z
 Status: OK
 
 ## Summary
 
 - Blocking failures: 0
 - Warnings: 0
-- Manual items: 4
+- Manual items: 5
 
 ## Checks
 
@@ -24,4 +24,5 @@ Status: OK
 | loop-smoke-evidence | ok | no | Loop smoke passed in 14733ms. |
 | low-memory-evidence | ok | no | Low-memory evidence report is present and passing. |
 | workstream-j-overhead-evidence | ok | no | Workstream J overhead evidence is passing (median=1ms, p95=9ms). |
+| workstream-k-rust-benchmark-evidence | ok | no | Workstream K benchmark evidence is passing (median delta=359ms, p95 delta=396ms). |
 

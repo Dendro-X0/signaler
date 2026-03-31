@@ -39,6 +39,8 @@ const CROSS_PLATFORM_FILES = [
 ];
 const WORKSTREAM_J_OVERHEAD_FILE =
   "benchmarks/out/workstream-j-optional-input-overhead.json";
+const WORKSTREAM_K_BENCHMARK_FILE =
+  "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
 
 const PRE_FLIGHT_COMMANDS = [
   "pnpm run bench:v3:phase1",
@@ -278,6 +280,80 @@ function evaluateWorkstreamJOverheadEvidence(checks, warnings) {
   return { status: STATUS_WARN, details };
 }
 
+function evaluateWorkstreamKRustBenchmarkEvidence(checks, warnings) {
+  const benchmarkPath = resolve(WORKSTREAM_K_BENCHMARK_FILE);
+  if (!existsSync(benchmarkPath)) {
+    const details = `Workstream K benchmark evidence not found (${WORKSTREAM_K_BENCHMARK_FILE}).`;
+    checks.push({
+      id: "workstream-k-rust-benchmark-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Run \`pnpm run bench:workstream-k:rust-benchmark\` before release review.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  let parsed;
+  try {
+    parsed = readJson(WORKSTREAM_K_BENCHMARK_FILE);
+  } catch {
+    const details = `Workstream K benchmark evidence is unreadable (${WORKSTREAM_K_BENCHMARK_FILE}).`;
+    checks.push({
+      id: "workstream-k-rust-benchmark-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence with \`pnpm run bench:workstream-k:rust-benchmark\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  const hasSchema = parsed?.schemaVersion === 1;
+  const hasStatus = parsed?.status === "pass" || parsed?.status === "fail";
+  const hasMedian = typeof parsed?.delta?.medianMs === "number";
+  const hasP95 = typeof parsed?.delta?.p95Ms === "number";
+  const assertions = parsed?.assertions;
+  const hasAssertions = typeof assertions?.nodeOutputStable === "boolean"
+    && typeof assertions?.rustOutputStable === "boolean"
+    && typeof assertions?.parityMatched === "boolean"
+    && typeof assertions?.rustUsedEveryIteration === "boolean";
+  if (!hasSchema || !hasStatus || !hasMedian || !hasP95 || !hasAssertions) {
+    const details = "Workstream K benchmark evidence format is invalid.";
+    checks.push({
+      id: "workstream-k-rust-benchmark-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence with \`pnpm run bench:workstream-k:rust-benchmark\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  if (parsed.status === "pass") {
+    const details =
+      `Workstream K benchmark evidence is passing (median delta=${Math.round(parsed.delta.medianMs)}ms, ` +
+      `p95 delta=${Math.round(parsed.delta.p95Ms)}ms).`;
+    checks.push({
+      id: "workstream-k-rust-benchmark-evidence",
+      status: STATUS_OK,
+      blocking: false,
+      details,
+    });
+    return { status: STATUS_OK, details };
+  }
+
+  const details = "Workstream K benchmark evidence exists but status is fail.";
+  checks.push({
+    id: "workstream-k-rust-benchmark-evidence",
+    status: STATUS_WARN,
+    blocking: false,
+    details,
+  });
+  warnings.push(`${details} Investigate Rust sidecar parity/performance before release.`);
+  return { status: STATUS_WARN, details };
+}
+
 function runCommands(commands, dryRun, results, failures) {
   for (const command of commands) {
     if (dryRun) {
@@ -354,6 +430,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
   evaluateGateReports(REQUIRED_GATES, args.strict, checks, warnings, failures);
   evaluateCrossPlatformEvidence(args.requireCrossPlatform, checks, warnings, failures);
   const workstreamJOverhead = evaluateWorkstreamJOverheadEvidence(checks, warnings);
+  const workstreamKRustBenchmark = evaluateWorkstreamKRustBenchmarkEvidence(checks, warnings);
 
   const summary = {
     schemaVersion: 1,
@@ -371,6 +448,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
     failures,
     warnings,
     workstreamJOverhead,
+    workstreamKRustBenchmark,
     policy: {
       strict: args.strict,
       dryRun: args.dryRun,
@@ -389,6 +467,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
   console.log(`- failures: ${summary.summary.failures}`);
   console.log(`- warnings: ${summary.summary.warnings}`);
   console.log(`- workstream-j-overhead: ${summary.workstreamJOverhead.status}`);
+  console.log(`- workstream-k-rust-benchmark: ${summary.workstreamKRustBenchmark.status}`);
   console.log(`- report: ${args.reportPath}`);
 
   if (failures.length > 0) {

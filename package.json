@@ -115,6 +115,7 @@
     "bench:v63:lowmem": "tsx benchmarks/v63/low-memory-evidence.ts",
     "bench:v63:loop": "tsx benchmarks/v63/loop-smoke.ts",
     "bench:workstream-j:overhead": "tsx benchmarks/workstream-j/optional-input-overhead.ts",
+    "bench:workstream-k:rust-benchmark": "tsx benchmarks/workstream-k/rust-benchmark-normalizer-perf.ts",
     "bench:fixture:accessibility": "tsx scripts/build-accessibility-benchmark-fixture.ts",
     "bench:fixture:security": "tsx scripts/build-security-benchmark-fixture.ts",
     "bench:fixture:reliability": "tsx scripts/build-reliability-benchmark-fixture.ts",

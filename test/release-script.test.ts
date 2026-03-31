@@ -27,6 +27,7 @@ const REQUIRED_GATES = [
 ];
 
 const WORKSTREAM_J_OVERHEAD = "benchmarks/out/workstream-j-optional-input-overhead.json";
+const WORKSTREAM_K_RUST_BENCHMARK = "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
 
 const originalCwd = process.cwd();
 
@@ -44,10 +45,14 @@ async function setupRepoFixture(params: {
   readonly gateStatus?: "ok" | "warn";
   readonly includeWorkstreamJOverhead?: boolean;
   readonly workstreamJOverheadStatus?: "pass" | "fail";
+  readonly includeWorkstreamKRustBenchmark?: boolean;
+  readonly workstreamKRustBenchmarkStatus?: "pass" | "fail";
 } = {}): Promise<string> {
   const gateStatus = params.gateStatus ?? "ok";
   const includeWorkstreamJOverhead = params.includeWorkstreamJOverhead ?? true;
   const workstreamJOverheadStatus = params.workstreamJOverheadStatus ?? "pass";
+  const includeWorkstreamKRustBenchmark = params.includeWorkstreamKRustBenchmark ?? true;
+  const workstreamKRustBenchmarkStatus = params.workstreamKRustBenchmarkStatus ?? "pass";
   const root = await mkdtemp(join(tmpdir(), "signaler-release-script-"));
   await writeJson("package.json", { version: "3.0.0-rc.1" }, root);
   await writeJson("jsr.json", { version: "3.0.0-rc.1" }, root);
@@ -76,6 +81,23 @@ async function setupRepoFixture(params: {
           benchmarkHasAcceptedRecords: true,
           medianOverheadWithinBudget: true,
           p95OverheadWithinBudget: true,
+        },
+      },
+      root,
+    );
+  }
+  if (includeWorkstreamKRustBenchmark) {
+    await writeJson(
+      WORKSTREAM_K_RUST_BENCHMARK,
+      {
+        schemaVersion: 1,
+        status: workstreamKRustBenchmarkStatus,
+        delta: { medianMs: -6, p95Ms: -2 },
+        assertions: {
+          nodeOutputStable: true,
+          rustOutputStable: true,
+          parityMatched: true,
+          rustUsedEveryIteration: true,
         },
       },
       root,
@@ -153,6 +175,35 @@ describe("release script", () => {
       expect(summary.workstreamJOverhead?.status).toBe("warn");
       expect(summary.warnings.some((entry) => entry.includes("Workstream J overhead evidence"))).toBe(true);
       expect(summary.checks.some((entry) => entry.id === "workstream-j-overhead-evidence" && entry.status === "warn")).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("records workstream-k benchmark status in preflight summary", async () => {
+    const root = await setupRepoFixture({ gateStatus: "ok", workstreamKRustBenchmarkStatus: "pass" });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.workstreamKRustBenchmark?.status).toBe("ok");
+      expect(String(summary.workstreamKRustBenchmark?.details ?? "")).toContain("passing");
+      expect(summary.checks.some((entry) => entry.id === "workstream-k-rust-benchmark-evidence" && entry.status === "ok")).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("warns when workstream-k benchmark evidence is missing", async () => {
+    const root = await setupRepoFixture({ gateStatus: "ok", includeWorkstreamKRustBenchmark: false });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.status).toBe("warn");
+      expect(summary.workstreamKRustBenchmark?.status).toBe("warn");
+      expect(summary.warnings.some((entry) => entry.includes("Workstream K benchmark evidence"))).toBe(true);
+      expect(summary.checks.some((entry) => entry.id === "workstream-k-rust-benchmark-evidence" && entry.status === "warn")).toBe(true);
     } finally {
       process.chdir(originalCwd);
       await rm(root, { recursive: true, force: true });
