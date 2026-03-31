@@ -642,9 +642,9 @@ Release manifest generation:
 
 ```bash
 pnpm run v3:manifest generate \
-  --version 3.1.1 \
+  --version 3.1.2 \
   --channel rc \
-  --asset dist/signaler-3.1.1.tgz \
+  --asset dist/signaler-3.1.2.tgz \
   --gate benchmarks/out/v3-release-gate.json \
   --gate benchmarks/out/v63-success-gate.json \
   --out release/v3/release-manifest.generated.json
@@ -660,13 +660,13 @@ pnpm run v3:manifest:validate
 Push/release preflight (docs + gate + manifest readiness):
 
 ```bash
-pnpm run release -- --target-version 3.1.1
+pnpm run release -- --target-version 3.1.2
 ```
 
 Strict mode (fail if cross-platform smoke evidence is missing):
 
 ```bash
-pnpm run release -- --target-version 3.1.1 --require-cross-platform --strict
+pnpm run release -- --target-version 3.1.2 --require-cross-platform --strict
 ```
 
 ## 9. Success gate

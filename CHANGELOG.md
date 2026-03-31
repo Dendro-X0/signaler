@@ -2,12 +2,12 @@
 
 ## Unreleased
 
-## 3.1.1 - Unreleased
+## 3.1.2 - Unreleased
 
 ### Changed
 
-- Started the `v3.1.1` release line and updated versioned release/playbook targets.
-- Added `RELEASE-NOTES-v3.1.1.md` kickoff notes for the next patch cycle.
+- Started the `v3.1.2` release line and updated versioned release/playbook targets.
+- Added `RELEASE-NOTES-v3.1.2.md` kickoff notes for the next patch cycle.
 
 ## 3.1.0 - 2026-03-30
 
