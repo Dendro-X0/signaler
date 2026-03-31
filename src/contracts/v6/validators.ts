@@ -69,6 +69,29 @@ function isMultiBenchmarkMetadata(value: unknown): boolean {
   return true;
 }
 
+function isRustBenchmarkAccelerator(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.requested !== "boolean") return false;
+  if (typeof value.enabled !== "boolean") return false;
+  if (typeof value.used !== "boolean") return false;
+  if (value.fallbackReason !== undefined && !isNonEmptyString(value.fallbackReason)) return false;
+  if (value.sidecarElapsedMs !== undefined && (typeof value.sidecarElapsedMs !== "number" || value.sidecarElapsedMs < 0)) return false;
+  if (value.sidecarCommand !== undefined && value.sidecarCommand !== "normalize-benchmark" && value.sidecarCommand !== "normalize-benchmark-signals") {
+    return false;
+  }
+  if (value.recordsCount !== undefined && (typeof value.recordsCount !== "number" || value.recordsCount < 0)) return false;
+  if (value.inputRecordsCount !== undefined && (typeof value.inputRecordsCount !== "number" || value.inputRecordsCount < 0)) return false;
+  if (value.dedupedRecordsCount !== undefined && (typeof value.dedupedRecordsCount !== "number" || value.dedupedRecordsCount < 0)) return false;
+  if (value.recordsDigest !== undefined && !isNonEmptyString(value.recordsDigest)) return false;
+  return true;
+}
+
+function isAnalyzeAccelerators(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.rustBenchmark !== undefined && !isRustBenchmarkAccelerator(value.rustBenchmark)) return false;
+  return true;
+}
+
 export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
   if (!isRecord(value)) return false;
   if (value.schemaVersion !== 1) return false;
@@ -115,6 +138,7 @@ export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
   }
   if (value.externalSignals !== undefined && !isExternalSignalsMetadata(value.externalSignals)) return false;
   if (value.multiBenchmark !== undefined && !isMultiBenchmarkMetadata(value.multiBenchmark)) return false;
+  if (value.accelerators !== undefined && !isAnalyzeAccelerators(value.accelerators)) return false;
   if (!isRecord(value.summary)) return false;
   if (typeof value.summary.totalCandidates !== "number") return false;
   if (typeof value.summary.emittedActions !== "number") return false;

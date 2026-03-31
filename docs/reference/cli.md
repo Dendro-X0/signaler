@@ -185,9 +185,9 @@ Runtime accelerator flags (opt-in):
 - `SIGNALER_RUST_HEADERS=1` enables Rust worker for `headers`
 - `SIGNALER_RUST_LINKS=1` enables Rust worker for `links`
 - `SIGNALER_RUST_CONSOLE=1` enables Rust worker for `console`
-- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer/aggregator path (falls back to Node loader on failure)
+- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer/aggregator path (falls back to Node loader on failure; sidecar command supports `normalize-benchmark` and `normalize-benchmark-signals`)
 
-If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records the fallback reason in artifact metadata (`.signaler/run.json` and runner artifacts such as `.signaler/health.json`).
+If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records accelerator metadata (`requested`, `enabled`, `used`, fallback reason, sidecar command, elapsed time, and normalization stats) in `.signaler/run.json` and `.signaler/analyze.json`.
 
 Canonical outputs (v3):
 

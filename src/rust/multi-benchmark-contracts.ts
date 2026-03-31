@@ -33,6 +33,9 @@ export type RustBenchmarkNormalizeOutput = {
   readonly stats: {
     readonly elapsedMs: number;
     readonly recordsCount: number;
+    readonly inputRecordsCount?: number;
+    readonly dedupedRecordsCount?: number;
+    readonly recordsDigest?: string;
   };
   readonly errorMessage?: string;
 };
@@ -100,6 +103,9 @@ export function validateRustBenchmarkNormalizeOutput(raw: unknown): RustBenchmar
   if (!Array.isArray(raw.records) || !raw.records.every((row) => isNormalizeRecord(row))) return undefined;
   if (!isRecord(raw.stats)) return undefined;
   if (!isFiniteNumber(raw.stats.elapsedMs) || !isFiniteNumber(raw.stats.recordsCount)) return undefined;
+  if (raw.stats.inputRecordsCount !== undefined && !isFiniteNumber(raw.stats.inputRecordsCount)) return undefined;
+  if (raw.stats.dedupedRecordsCount !== undefined && !isFiniteNumber(raw.stats.dedupedRecordsCount)) return undefined;
+  if (raw.stats.recordsDigest !== undefined && !isNonEmptyString(raw.stats.recordsDigest)) return undefined;
   if (raw.errorMessage !== undefined && raw.errorMessage !== null && !isNonEmptyString(raw.errorMessage)) return undefined;
   return raw as RustBenchmarkNormalizeOutput;
 }

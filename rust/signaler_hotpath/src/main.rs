@@ -288,6 +288,9 @@ struct BenchmarkNormalizeRecord {
 struct BenchmarkNormalizeStats {
     elapsed_ms: u128,
     records_count: usize,
+    input_records_count: usize,
+    deduped_records_count: usize,
+    records_digest: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -310,6 +313,7 @@ fn usage() {
     eprintln!("  signaler_hotpath net-worker --mode <health|headers|links|console> --in <path> --out <path>");
     eprintln!("  signaler_hotpath run-core --in <path> --out <path>");
     eprintln!("  signaler_hotpath reduce-signals --in <path> --out <path>");
+    eprintln!("  signaler_hotpath normalize-benchmark --in <path> --out <path>");
     eprintln!("  signaler_hotpath normalize-benchmark-signals --in <path> --out <path>");
 }
 
@@ -385,6 +389,22 @@ fn parse_benchmark_evidence_rows(value: Option<&Value>) -> Result<Vec<BenchmarkN
             artifact_rel_path,
         });
     }
+    evidence.sort_by(|a, b| {
+        let source_delta = a.source_rel_path.cmp(&b.source_rel_path);
+        if source_delta != std::cmp::Ordering::Equal {
+            return source_delta;
+        }
+        let pointer_delta = a.pointer.cmp(&b.pointer);
+        if pointer_delta != std::cmp::Ordering::Equal {
+            return pointer_delta;
+        }
+        a.artifact_rel_path.as_deref().unwrap_or("").cmp(b.artifact_rel_path.as_deref().unwrap_or(""))
+    });
+    evidence.dedup_by(|a, b| {
+        a.source_rel_path == b.source_rel_path
+            && a.pointer == b.pointer
+            && a.artifact_rel_path == b.artifact_rel_path
+    });
     Ok(evidence)
 }
 
@@ -448,6 +468,84 @@ fn parse_benchmark_metrics(source_id: &str, value: Option<&Value>) -> Result<Opt
         return Ok(None);
     }
     Ok(Some(Value::Object(metrics_map)))
+}
+
+fn compare_benchmark_records(a: &BenchmarkNormalizeRecord, b: &BenchmarkNormalizeRecord) -> std::cmp::Ordering {
+    let source_delta = a.source_id.cmp(&b.source_id);
+    if source_delta != std::cmp::Ordering::Equal {
+        return source_delta;
+    }
+    let issue_delta = a.target.issue_id.cmp(&b.target.issue_id);
+    if issue_delta != std::cmp::Ordering::Equal {
+        return issue_delta;
+    }
+    let path_delta = a.target.path.cmp(&b.target.path);
+    if path_delta != std::cmp::Ordering::Equal {
+        return path_delta;
+    }
+    let device_delta = a
+        .target
+        .device
+        .as_deref()
+        .unwrap_or("")
+        .cmp(b.target.device.as_deref().unwrap_or(""));
+    if device_delta != std::cmp::Ordering::Equal {
+        return device_delta;
+    }
+    let collected_delta = a.collected_at_ms.cmp(&b.collected_at_ms);
+    if collected_delta != std::cmp::Ordering::Equal {
+        return collected_delta;
+    }
+    let collected_iso_delta = a.collected_at.cmp(&b.collected_at);
+    if collected_iso_delta != std::cmp::Ordering::Equal {
+        return collected_iso_delta;
+    }
+    let confidence_delta = a.confidence.cmp(&b.confidence);
+    if confidence_delta != std::cmp::Ordering::Equal {
+        return confidence_delta;
+    }
+    a.id.cmp(&b.id)
+}
+
+fn benchmark_metrics_key(metrics: &Option<Value>) -> String {
+    match metrics {
+        Some(value) => serde_json::to_string(value).unwrap_or_else(|_| String::new()),
+        None => String::new(),
+    }
+}
+
+fn benchmark_record_dedup_key(record: &BenchmarkNormalizeRecord) -> String {
+    let mut evidence_parts: Vec<String> = Vec::new();
+    for row in record.evidence.iter() {
+        evidence_parts.push(format!(
+            "{}|{}|{}",
+            row.source_rel_path,
+            row.pointer,
+            row.artifact_rel_path.as_deref().unwrap_or("")
+        ));
+    }
+    format!(
+        "{}::{}::{}::{}::{}::{}::{}::{}::{}::{}",
+        record.source_id,
+        record.collected_at,
+        record.collected_at_ms,
+        record.id,
+        record.target.issue_id,
+        record.target.path,
+        record.target.device.as_deref().unwrap_or(""),
+        record.confidence,
+        evidence_parts.join("||"),
+        benchmark_metrics_key(&record.metrics)
+    )
+}
+
+fn fnv1a_hex(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{:016x}", hash)
 }
 
 fn run_normalize_benchmark_signals(input_path: &str, out_path: &str) -> Result<(), String> {
@@ -569,8 +667,21 @@ fn run_normalize_benchmark_signals(input_path: &str, out_path: &str) -> Result<(
         }
     }
 
+    let input_records_count = records.len();
+    records.sort_by(compare_benchmark_records);
+    let mut deduped_records: Vec<BenchmarkNormalizeRecord> = Vec::new();
+    let mut seen_record_keys: HashSet<String> = HashSet::new();
+    for record in records.into_iter() {
+        let dedup_key = benchmark_record_dedup_key(&record);
+        if !seen_record_keys.insert(dedup_key) {
+            continue;
+        }
+        deduped_records.push(record);
+    }
+
     let mut source_ids: Vec<String> = source_set.into_iter().collect();
     source_ids.sort();
+    let records_digest = fnv1a_hex(&serde_json::to_string(&deduped_records).unwrap_or_else(|_| String::new()));
     let output = BenchmarkNormalizeOutput {
         schema_version: 1,
         status: "ok".to_string(),
@@ -578,9 +689,12 @@ fn run_normalize_benchmark_signals(input_path: &str, out_path: &str) -> Result<(
         source_ids,
         stats: BenchmarkNormalizeStats {
             elapsed_ms: started.elapsed().as_millis(),
-            records_count: records.len(),
+            records_count: deduped_records.len(),
+            input_records_count,
+            deduped_records_count: input_records_count.saturating_sub(deduped_records.len()),
+            records_digest,
         },
-        records,
+        records: deduped_records,
         error_message: None,
     };
     write_json_file(out_path, &output)
@@ -1771,7 +1885,7 @@ fn main() -> ExitCode {
             };
             run_reduce_signals(&input_path, &out)
         }
-        "normalize-benchmark-signals" => {
+        "normalize-benchmark" | "normalize-benchmark-signals" => {
             let input_path = match parse_flag(&args, "--in") {
                 Some(value) => value,
                 None => {

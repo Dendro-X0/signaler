@@ -410,6 +410,12 @@ function formatAnalyzeMarkdown(report: AnalyzeReportV6): string {
       `Benchmark signals: sources=${report.multiBenchmark.sources.join(",") || "-"}, accepted=${report.multiBenchmark.accepted}, rejected=${report.multiBenchmark.rejected}, digest=${report.multiBenchmark.digest}`,
     );
   }
+  if (report.accelerators?.rustBenchmark !== undefined) {
+    const rust = report.accelerators.rustBenchmark;
+    lines.push(
+      `Rust benchmark accelerator: requested=${rust.requested}, enabled=${rust.enabled}, used=${rust.used}, command=${rust.sidecarCommand ?? "-"}, elapsedMs=${rust.sidecarElapsedMs ?? "-"}`,
+    );
+  }
   lines.push("");
   lines.push("## Summary");
   lines.push("");
@@ -841,6 +847,18 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     return 1;
   }
   const hasBenchmarkBoost: boolean = (benchmarkSignalsEval?.acceptedRecords.length ?? 0) > 0;
+  const rustBenchmarkAccelerator = {
+    requested: args.benchmarkSignalsPaths.length > 0,
+    enabled: benchmarkRustAttempt.enabled,
+    used: benchmarkRustAttempt.used,
+    ...(typeof benchmarkRustAttempt.fallbackReason === "string" ? { fallbackReason: benchmarkRustAttempt.fallbackReason } : {}),
+    ...(typeof benchmarkRustAttempt.sidecarElapsedMs === "number" ? { sidecarElapsedMs: benchmarkRustAttempt.sidecarElapsedMs } : {}),
+    ...(benchmarkRustAttempt.sidecarCommand !== undefined ? { sidecarCommand: benchmarkRustAttempt.sidecarCommand } : {}),
+    ...(benchmarkRustAttempt.normalizeStats?.recordsCount !== undefined ? { recordsCount: benchmarkRustAttempt.normalizeStats.recordsCount } : {}),
+    ...(benchmarkRustAttempt.normalizeStats?.inputRecordsCount !== undefined ? { inputRecordsCount: benchmarkRustAttempt.normalizeStats.inputRecordsCount } : {}),
+    ...(benchmarkRustAttempt.normalizeStats?.dedupedRecordsCount !== undefined ? { dedupedRecordsCount: benchmarkRustAttempt.normalizeStats.dedupedRecordsCount } : {}),
+    ...(benchmarkRustAttempt.normalizeStats?.recordsDigest !== undefined ? { recordsDigest: benchmarkRustAttempt.normalizeStats.recordsDigest } : {}),
+  } as const;
 
   const report: AnalyzeReportV6 = {
     schemaVersion: 1,
@@ -865,6 +883,9 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
       },
     },
     actions: tokenTrimmedActions,
+    accelerators: {
+      rustBenchmark: rustBenchmarkAccelerator,
+    },
     externalSignals: externalSignalsMetadata,
     multiBenchmark: multiBenchmarkMetadata,
     summary: {

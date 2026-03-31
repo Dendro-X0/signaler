@@ -49,7 +49,18 @@ export type EngineRunIndex = {
       readonly rustCore?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
       readonly rustDiscovery?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
       readonly rustProcessor?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
-      readonly rustBenchmark?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
+      readonly rustBenchmark?: {
+        readonly requested?: boolean;
+        readonly enabled: boolean;
+        readonly used: boolean;
+        readonly fallbackReason?: string;
+        readonly sidecarElapsedMs?: number;
+        readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
+        readonly recordsCount?: number;
+        readonly inputRecordsCount?: number;
+        readonly dedupedRecordsCount?: number;
+        readonly recordsDigest?: string;
+      };
     };
   };
 };

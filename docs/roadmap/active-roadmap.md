@@ -31,7 +31,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 
 - [x] Phase K1 scaffold: add optional `SIGNALER_RUST_BENCHMARK=1` adapter path with deterministic Node fallback semantics and fallback tests.
 - [ ] Execute Phase K2 kickoff spec in `docs/specs/workstream-k-phase2-kickoff.md`.
-- [ ] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
+- [x] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
 - [ ] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.
 - [ ] Keep Node/TypeScript control plane for UX, contracts, migration messaging, and policy defaults.
 - [ ] Add parity/perf tests proving Rust and Node ranking equivalence under identical inputs.

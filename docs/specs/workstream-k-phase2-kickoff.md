@@ -21,6 +21,14 @@ Implement a Rust normalizer/aggregator for high-volume optional benchmark inputs
 4. Wire into both `run` and `analyze` optional benchmark merge path without changing no-flag behavior.
 5. Add parity + perf evidence checks and CI visibility.
 
+## Progress Notes
+
+1. Completed: Rust-first benchmark adapter path (`SIGNALER_RUST_BENCHMARK=1`) now attempts sidecar normalization first and only falls back to Node on failure.
+2. Completed: sidecar command alias support for `normalize-benchmark` and `normalize-benchmark-signals`.
+3. Completed: deterministic normalization hardening (sorted/deduped evidence + records) with emitted normalizer stats (`recordsCount`, `inputRecordsCount`, `dedupedRecordsCount`, `recordsDigest`).
+4. Completed: additive accelerator metadata wiring in `run` and `analyze` artifacts for Rust benchmark path (`requested`, `enabled`, `used`, fallback/elapsed/command/stats).
+5. Completed: parity/fallback test expansion for the new Rust benchmark adapter metadata surface.
+
 ## Non-Goals
 
 1. Live provider ingestion or remote fetch.

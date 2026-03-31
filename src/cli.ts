@@ -366,7 +366,18 @@ type RuntimeMeta = {
     readonly rustCore?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
     readonly rustDiscovery?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
     readonly rustProcessor?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string };
-    readonly rustBenchmark?: { readonly enabled: boolean; readonly used: boolean; readonly fallbackReason?: string; readonly sidecarElapsedMs?: number };
+    readonly rustBenchmark?: {
+      readonly requested?: boolean;
+      readonly enabled: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+      readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
+      readonly recordsCount?: number;
+      readonly inputRecordsCount?: number;
+      readonly dedupedRecordsCount?: number;
+      readonly recordsDigest?: string;
+    };
   };
 };
 
@@ -3768,10 +3779,16 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
         fallbackReason: rustReducerAttempt.fallbackReason ?? rustProcessorAttempt.fallbackReason,
       },
       rustBenchmark: {
+        requested: benchmarkRustAttempt.requested,
         enabled: benchmarkRustAttempt.enabled,
         used: benchmarkRustAttempt.used,
         fallbackReason: benchmarkRustAttempt.fallbackReason,
         sidecarElapsedMs: benchmarkRustAttempt.sidecarElapsedMs,
+        sidecarCommand: benchmarkRustAttempt.sidecarCommand,
+        recordsCount: benchmarkRustAttempt.normalizeStats?.recordsCount,
+        inputRecordsCount: benchmarkRustAttempt.normalizeStats?.inputRecordsCount,
+        dedupedRecordsCount: benchmarkRustAttempt.normalizeStats?.dedupedRecordsCount,
+        recordsDigest: benchmarkRustAttempt.normalizeStats?.recordsDigest,
       },
     },
   });

@@ -114,8 +114,11 @@ describeRust("Rust benchmark normalizer parity", () => {
       const viaRust = await loadMultiBenchmarkSignalsWithRust([fileA, fileB, fileA]);
 
       expect(expected).toBeDefined();
+      expect(viaRust.requested).toBe(true);
       expect(viaRust.enabled).toBe(true);
       expect(viaRust.used).toBe(true);
+      expect(viaRust.sidecarCommand === "normalize-benchmark" || viaRust.sidecarCommand === "normalize-benchmark-signals").toBe(true);
+      expect((viaRust.normalizeStats?.recordsCount ?? 0) >= 1).toBe(true);
       expect(viaRust.fallbackReason).toBeUndefined();
       expect(viaRust.loaded).toEqual(expected);
     } finally {

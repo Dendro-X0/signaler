@@ -74,6 +74,20 @@ export interface AnalyzeReportV6 {
     };
   };
   readonly actions: readonly AnalyzeActionV6[];
+  readonly accelerators?: {
+    readonly rustBenchmark?: {
+      readonly requested: boolean;
+      readonly enabled: boolean;
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+      readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
+      readonly recordsCount?: number;
+      readonly inputRecordsCount?: number;
+      readonly dedupedRecordsCount?: number;
+      readonly recordsDigest?: string;
+    };
+  };
   readonly externalSignals?: ExternalSignalsMetadataV1;
   readonly multiBenchmark?: MultiBenchmarkMetadataV1;
   readonly summary: {

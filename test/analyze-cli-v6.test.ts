@@ -308,6 +308,13 @@ describe("analyze-cli v6", () => {
         readonly policy: string;
         readonly rankingVersion: string;
       };
+      readonly accelerators?: {
+        readonly rustBenchmark?: {
+          readonly requested: boolean;
+          readonly enabled: boolean;
+          readonly used: boolean;
+        };
+      };
     };
     expect(isAnalyzeReportV6(firstReport)).toBe(true);
     expect(firstReport.externalSignals).toBeDefined();
@@ -326,6 +333,9 @@ describe("analyze-cli v6", () => {
     expect(firstReport.multiBenchmark?.digest).toBeNull();
     expect(firstReport.multiBenchmark?.policy).toBe("v1-conservative-high-30d-route-issue");
     expect(firstReport.multiBenchmark?.rankingVersion).toBe("j3-composite-ranking");
+    expect(firstReport.accelerators?.rustBenchmark?.requested).toBe(false);
+    expect(firstReport.accelerators?.rustBenchmark?.enabled).toBe(false);
+    expect(firstReport.accelerators?.rustBenchmark?.used).toBe(false);
     const firstActions = JSON.stringify(firstReport.actions);
 
     const exitCodeSecond = await invokeAnalyze(["--contract", "v6", "--dir", outDir, "--artifact-profile", "lean", "--top-actions", "12"]);
@@ -596,6 +606,13 @@ describe("analyze-cli v6", () => {
         readonly sources: readonly string[];
         readonly rankingVersion: string;
       };
+      readonly accelerators?: {
+        readonly rustBenchmark?: {
+          readonly requested: boolean;
+          readonly enabled: boolean;
+          readonly used: boolean;
+        };
+      };
     };
     expect(firstReport.multiBenchmark?.accepted).toBe(2);
     expect(firstReport.multiBenchmark?.rejected).toBe(1);
@@ -603,6 +620,8 @@ describe("analyze-cli v6", () => {
     expect(firstReport.multiBenchmark?.sources).toEqual(["accessibility-extended", "seo-technical"]);
     expect(firstReport.multiBenchmark?.rankingVersion).toBe("j3-composite-ranking");
     expect(firstReport.multiBenchmark?.digest.length).toBeGreaterThan(0);
+    expect(firstReport.accelerators?.rustBenchmark?.requested).toBe(true);
+    expect(firstReport.accelerators?.rustBenchmark?.used).toBe(false);
     expect(firstReport.rankingPolicy.version).toBe("v6.3");
     expect(firstReport.rankingPolicy.formula).toBe("priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))");
     const firstActionRanking = firstReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }));

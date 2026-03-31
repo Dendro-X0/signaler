@@ -35,6 +35,20 @@ async function writeBenchmarkFile(root: string): Promise<string> {
 }
 
 describe("rust benchmark adapter fallback behavior", () => {
+  it("returns unrequested state when no benchmark files are passed", async () => {
+    const previous = process.env.SIGNALER_RUST_BENCHMARK;
+    try {
+      process.env.SIGNALER_RUST_BENCHMARK = "1";
+      const result = await loadMultiBenchmarkSignalsWithRust([]);
+      expect(result.requested).toBe(false);
+      expect(result.enabled).toBe(false);
+      expect(result.used).toBe(false);
+      expect(result.loaded).toBeUndefined();
+    } finally {
+      process.env.SIGNALER_RUST_BENCHMARK = previous;
+    }
+  });
+
   it("returns disabled state when benchmark rust flag is off", async () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-rust-benchmark-off-"));
     const filePath = await writeBenchmarkFile(root);
@@ -42,6 +56,7 @@ describe("rust benchmark adapter fallback behavior", () => {
     try {
       process.env.SIGNALER_RUST_BENCHMARK = "";
       const result = await loadMultiBenchmarkSignalsWithRust([filePath]);
+      expect(result.requested).toBe(true);
       expect(result.enabled).toBe(false);
       expect(result.used).toBe(false);
       expect(result.loaded?.records.length).toBe(1);
@@ -60,6 +75,7 @@ describe("rust benchmark adapter fallback behavior", () => {
       process.env.SIGNALER_RUST_BENCHMARK = "1";
       process.env.PATH = "";
       const result = await loadMultiBenchmarkSignalsWithRust([filePath]);
+      expect(result.requested).toBe(true);
       expect(result.enabled).toBe(true);
       expect(result.used).toBe(false);
       expect(typeof result.fallbackReason).toBe("string");

@@ -128,7 +128,86 @@ function parseEvidenceRows(value: unknown): readonly MultiBenchmarkEvidenceV1[] 
       ...(isNonEmptyString(row.artifactRelPath) ? { artifactRelPath: row.artifactRelPath } : {}),
     });
   }
-  return rows;
+  return normalizeEvidenceRows(rows);
+}
+
+function compareEvidenceRows(a: MultiBenchmarkEvidenceV1, b: MultiBenchmarkEvidenceV1): number {
+  const sourceDelta = a.sourceRelPath.localeCompare(b.sourceRelPath);
+  if (sourceDelta !== 0) return sourceDelta;
+  const pointerDelta = a.pointer.localeCompare(b.pointer);
+  if (pointerDelta !== 0) return pointerDelta;
+  return (a.artifactRelPath ?? "").localeCompare(b.artifactRelPath ?? "");
+}
+
+function normalizeEvidenceRows(rows: readonly MultiBenchmarkEvidenceV1[]): readonly MultiBenchmarkEvidenceV1[] {
+  const sorted = [...rows].sort(compareEvidenceRows);
+  const deduped: MultiBenchmarkEvidenceV1[] = [];
+  let lastKey = "";
+  for (const row of sorted) {
+    const key = `${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`;
+    if (key === lastKey) continue;
+    deduped.push(row);
+    lastKey = key;
+  }
+  return deduped;
+}
+
+function compareLoadedRecords(a: MultiBenchmarkLoadedRecord, b: MultiBenchmarkLoadedRecord): number {
+  const sourceDelta = a.sourceId.localeCompare(b.sourceId);
+  if (sourceDelta !== 0) return sourceDelta;
+  const issueDelta = a.target.issueId.localeCompare(b.target.issueId);
+  if (issueDelta !== 0) return issueDelta;
+  const pathDelta = a.target.path.localeCompare(b.target.path);
+  if (pathDelta !== 0) return pathDelta;
+  const deviceDelta = (a.target.device ?? "").localeCompare(b.target.device ?? "");
+  if (deviceDelta !== 0) return deviceDelta;
+  const collectedDelta = a.collectedAtMs - b.collectedAtMs;
+  if (collectedDelta !== 0) return collectedDelta;
+  const isoDelta = a.collectedAt.localeCompare(b.collectedAt);
+  if (isoDelta !== 0) return isoDelta;
+  const confidenceDelta = a.confidence.localeCompare(b.confidence);
+  if (confidenceDelta !== 0) return confidenceDelta;
+  return a.id.localeCompare(b.id);
+}
+
+function metricsSortKey(value: MultiBenchmarkLoadedRecord["metrics"]): string {
+  if (value === undefined) return "";
+  const entries = Object.entries(value as Record<string, number>).sort((a, b) => a[0].localeCompare(b[0]));
+  return JSON.stringify(entries);
+}
+
+function recordDedupKey(value: MultiBenchmarkLoadedRecord): string {
+  const evidenceKey = value.evidence
+    .map((row) => `${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`)
+    .join("||");
+  return [
+    value.sourceId,
+    value.collectedAt,
+    String(value.collectedAtMs),
+    value.id,
+    value.target.issueId,
+    value.target.path,
+    value.target.device ?? "",
+    value.confidence,
+    evidenceKey,
+    metricsSortKey(value.metrics),
+  ].join("::");
+}
+
+function normalizeLoadedRecords(records: readonly MultiBenchmarkLoadedRecord[]): readonly MultiBenchmarkLoadedRecord[] {
+  const sorted = [...records].sort(compareLoadedRecords).map((row) => ({
+    ...row,
+    evidence: normalizeEvidenceRows(row.evidence),
+  }));
+  const deduped: MultiBenchmarkLoadedRecord[] = [];
+  const seen = new Set<string>();
+  for (const row of sorted) {
+    const key = recordDedupKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+  }
+  return deduped;
 }
 
 function parseMetricsBySource(params: {
@@ -327,7 +406,7 @@ export async function loadMultiBenchmarkSignalsFromFiles(paths: readonly string[
   return {
     inputFiles: dedupedPaths,
     sourceIds: [...sourceSet].sort((a, b) => a.localeCompare(b)),
-    records,
+    records: normalizeLoadedRecords(records),
   };
 }
 
