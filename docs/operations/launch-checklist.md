@@ -30,7 +30,7 @@ pnpm run bench:v3:phase1
 pnpm run bench:v3:phase2
 pnpm run bench:v3:gate
 pnpm run bench:v3:validate
-pnpm run release -- --target-version 3.1.2
+pnpm run release -- --target-version 3.1.3
 ```
 
 Cross-platform note:

@@ -5,7 +5,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 ## Release Readiness (Current)
 
 1. Complete cross-platform smoke evidence in CI for GA (`Windows/macOS/Linux` artifacts).
-2. Publish `@signaler/cli@3.1.2` to JSR from a browser-authenticated environment.
+2. Publish `@signaler/cli@3.1.3` to JSR from a browser-authenticated environment.
 3. Confirm launch checklist completion in production-like CI context.
 
 ## Product Roadmap (Open)
