@@ -25,7 +25,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 - [x] Add technical SEO checks aligned to Google Search Essentials and structured-data validity.
 - [x] Add reliability/SLO metrics (availability, error-rate, backend latency) as optional ranking context.
 - [x] Add cross-browser/cross-device comparability snapshots for parity-sensitive routes.
-- [ ] Execute the phased implementation plan in `docs/specs/workstream-j-implementation-plan.md`.
+- [x] Execute the phased implementation plan in `docs/specs/workstream-j-implementation-plan.md`.
 
 ### Workstream K: Rust Performance Path for New Signals
 

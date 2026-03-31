@@ -77,6 +77,18 @@ Outputs:
 - `benchmarks/out/workstream-j-optional-input-overhead.json`
 - `benchmarks/out/workstream-j-optional-input-overhead.md`
 
+## Workstream J Gate
+
+```bash
+pnpm run bench:workstream-j:gate
+pnpm run bench:workstream-j:validate
+```
+
+Outputs:
+
+- `benchmarks/out/workstream-j-gate.json`
+- `benchmarks/out/workstream-j-gate.md`
+
 ## Profile Contract
 
 Profiles live under:

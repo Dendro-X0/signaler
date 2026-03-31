@@ -30,6 +30,7 @@ const REQUIRED_GATES = [
   "benchmarks/out/v3-release-gate.json",
   "benchmarks/out/phase6-release-gate.json",
   "benchmarks/out/v63-success-gate.json",
+  "benchmarks/out/workstream-j-gate.json",
 ];
 
 const CROSS_PLATFORM_FILES = [
@@ -50,6 +51,8 @@ const PRE_FLIGHT_COMMANDS = [
   "pnpm run bench:phase6:validate",
   "pnpm run bench:v63:gate",
   "pnpm run bench:v63:validate",
+  "pnpm run bench:workstream-j:gate",
+  "pnpm run bench:workstream-j:validate",
 ];
 
 function readJson(path) {

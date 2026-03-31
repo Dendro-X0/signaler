@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-31T11:53:18.507Z",
+  "status": "ok",
+  "checks": [
+    {
+      "id": "workstream-j-source-adapters",
+      "status": "ok",
+      "details": "All benchmark signal adapter sources are present.",
+      "blocking": true
+    },
+    {
+      "id": "workstream-j-helpers-and-benchmarks",
+      "status": "ok",
+      "details": "Fixture helper scripts and overhead benchmark runner are present.",
+      "blocking": true
+    },
+    {
+      "id": "workstream-j-test-coverage",
+      "status": "ok",
+      "details": "Adapter and overhead evidence tests are present.",
+      "blocking": true
+    },
+    {
+      "id": "workstream-j-package-scripts",
+      "status": "ok",
+      "details": "All Workstream J package scripts are present.",
+      "blocking": true
+    },
+    {
+      "id": "workstream-j-docs-fixtures",
+      "status": "ok",
+      "details": "CLI/getting-started/testing docs include all benchmark fixture helper commands.",
+      "blocking": true
+    },
+    {
+      "id": "workstream-j-plan-progress",
+      "status": "ok",
+      "details": "Workstream J implementation plan includes parity adapter progress notes.",
+      "blocking": false
+    },
+    {
+      "id": "workstream-j-overhead-evidence",
+      "status": "ok",
+      "details": "Workstream J overhead evidence is present and passing.",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "blockingFailures": 0,
+    "warnings": 0,
+    "manualItems": 2
+  }
+}

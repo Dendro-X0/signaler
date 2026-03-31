@@ -400,6 +400,14 @@ jobs:
       if: always()
       run: pnpm run bench:v63:validate
 
+    - name: Evaluate Workstream J benchmark-coverage gate
+      if: always()
+      run: pnpm run bench:workstream-j:gate
+
+    - name: Validate Workstream J gate report schema
+      if: always()
+      run: pnpm run bench:workstream-j:validate
+
     - name: Upload Phase 6 release gate artifacts
       if: always()
       uses: actions/upload-artifact@v4
@@ -413,6 +421,8 @@ jobs:
           release/v3/release-manifest.generated.json
           benchmarks/out/v63-success-gate.json
           benchmarks/out/v63-success-gate.md
+          benchmarks/out/workstream-j-gate.json
+          benchmarks/out/workstream-j-gate.md
           benchmarks/out/v63-loop-smoke.json
           benchmarks/out/v63-loop-smoke.md
           benchmarks/out/v63-low-memory-evidence.json

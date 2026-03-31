@@ -40,6 +40,8 @@ pnpm run bench:phase6:validate
 
 # V6.3 success gate
 pnpm run bench:workstream-j:overhead
+pnpm run bench:workstream-j:gate
+pnpm run bench:workstream-j:validate
 pnpm run bench:workstream-k:rust-benchmark
 pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
 pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json

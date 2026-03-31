@@ -676,6 +676,18 @@ pnpm run release -- --target-version 3.1.3 --require-cross-platform --strict
 
 ## 9. Success gate
 
+Workstream J benchmark-coverage gate:
+
+```bash
+pnpm run bench:workstream-j:gate
+pnpm run bench:workstream-j:validate
+```
+
+Outputs:
+
+- `benchmarks/out/workstream-j-gate.json`
+- `benchmarks/out/workstream-j-gate.md`
+
 Success gate evaluator:
 
 ```bash

@@ -24,6 +24,7 @@ const REQUIRED_GATES = [
   "benchmarks/out/v3-release-gate.json",
   "benchmarks/out/phase6-release-gate.json",
   "benchmarks/out/v63-success-gate.json",
+  "benchmarks/out/workstream-j-gate.json",
 ];
 
 const WORKSTREAM_J_OVERHEAD = "benchmarks/out/workstream-j-optional-input-overhead.json";
