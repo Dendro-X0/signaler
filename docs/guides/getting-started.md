@@ -22,6 +22,7 @@ CLI onboarding shortcut:
 - Optional benchmark fixture helper: `pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json`
 - Optional benchmark fixture helper: `pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json`
 - Optional benchmark fixture helper: `pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json`
+- Optional benchmark fixture helper: `pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json`
 
 Legacy aliases remain supported:
 
@@ -127,6 +128,13 @@ SEO benchmark fixture helper (results + optional crawl signals from links):
 ```bash
 pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
 node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-seo.json --json
+```
+
+Cross-browser parity benchmark fixture helper (browser/device snapshots):
+
+```bash
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-parity.json --json
 ```
 
 ## 2. Discover routes and create config

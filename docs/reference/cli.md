@@ -16,6 +16,7 @@ Command help is side-effect free:
 - `pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json` converts local headers output into `security-baseline` benchmark input for `--benchmark-signals`.
 - `pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json` converts local health output into `reliability-slo` benchmark input for `--benchmark-signals`.
 - `pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json` converts local results/links output into `seo-technical` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json` converts local cross-browser/cross-device snapshots into `cross-browser-parity` benchmark input for `--benchmark-signals`.
 
 Unpublished local workspace flow:
 
@@ -173,6 +174,8 @@ pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .s
 signaler run --contract v3 --benchmark-signals .signaler/benchmark-reliability.json
 pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
 signaler run --contract v3 --benchmark-signals .signaler/benchmark-seo.json
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-parity.json
 ```
 
 Runtime accelerator flags (opt-in):
@@ -257,6 +260,8 @@ pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .s
 signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-reliability.json --json
 pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
 signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-seo.json --json
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-parity.json --json
 ```
 - `--strict` (missing/invalid required artifact => exit `2`)
 - `--json` (compact command summary JSON)

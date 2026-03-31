@@ -1,6 +1,6 @@
 # Spec: Workstream J Implementation Plan
 
-Status: In Progress (Phase J1+J2 complete, J3 composite ranking complete on run+analyze, J4 Rust benchmark normalizer + parity harness complete, overhead evidence integrated, accessibility fixture adapter path in place)
+Status: In Progress (Phase J1+J2 complete, J3 composite ranking complete on run+analyze, J4 Rust benchmark normalizer + parity harness complete, overhead evidence integrated, fixture adapters in place for accessibility/security/reliability/SEO/parity)
 Date: 2026-03-29
 Owners: CLI core, contracts, benchmarks
 Depends on: V3.0.0 release line and Workstream D external-signal foundation
@@ -59,6 +59,8 @@ Progress notes:
 16. Completed: local security fixture adapter (`scripts/build-security-benchmark-fixture.ts`) that converts `.signaler/headers.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`security-baseline`) with deterministic OWASP/ASVS-lite header-policy metrics (`missingHeaderCount`, `tlsConfigIssueCount`, `cookiePolicyIssueCount`, `mixedContentCount`) and evidence pointers.
 17. Completed: local reliability fixture adapter (`scripts/build-reliability-benchmark-fixture.ts`) that converts `.signaler/health.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`reliability-slo`) with deterministic availability/error/latency metrics (`availabilityPct`, `errorRatePct`, `latencyP95Ms`) and evidence pointers.
 18. Completed: local SEO fixture adapter (`scripts/build-seo-benchmark-fixture.ts`) that converts `.signaler/results.json` (+ optional `.signaler/links.json` crawlability augmentation and optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`seo-technical`) with deterministic SEO metrics (`indexabilityIssueCount`, `canonicalMismatchCount`, `structuredDataErrorCount`, `crawlabilityIssueCount`) and evidence pointers.
+19. Completed: local cross-browser parity fixture adapter (`scripts/build-cross-browser-benchmark-fixture.ts`) that converts local snapshot reports (`.signaler/cross-browser-snapshots.json`) into `MultiBenchmarkSignalsFileV1` (`cross-browser-parity`) with deterministic route/device variance metrics (`scoreVariancePct`, `lcpDeltaMs`, `clsDelta`) and evidence pointers for parity-sensitive ranking.
+19. Completed: local cross-browser parity fixture adapter (`scripts/build-cross-browser-benchmark-fixture.ts`) that converts `.signaler/cross-browser-snapshots.json` (+ optional `issues.json` route mapping) into `MultiBenchmarkSignalsFileV1` (`cross-browser-parity`) with deterministic route/device variance metrics (`scoreVariancePct`, `lcpDeltaMs`, `clsDelta`) and evidence pointers.
 
 ### Phase J2: Reliability/SLO and Cross-Browser Snapshot Inputs
 
