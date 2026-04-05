@@ -19,17 +19,23 @@ function rustBinaryName(): string {
   return process.platform === "win32" ? "signaler_hotpath.exe" : "signaler_hotpath";
 }
 
-function buildDebugRustSidecarOrThrow(): string {
+function buildRustSidecarOrThrow(): string {
   const manifestPath = resolve(process.cwd(), "rust", "Cargo.toml");
   const buildResult = spawnSync(
     cargoCommand(),
-    ["build", "--manifest-path", manifestPath, "-p", "signaler_hotpath"],
-    { stdio: "ignore" },
+    ["build", "--release", "--manifest-path", manifestPath, "-p", "signaler_hotpath"],
+    {
+      stdio: "ignore",
+      env: {
+        ...process.env,
+        CARGO_PROFILE_DEV_DEBUG: "0",
+      },
+    },
   );
   if (buildResult.status !== 0) {
-    throw new Error("Failed to build debug Rust sidecar for benchmark parity test.");
+    throw new Error("Failed to build release Rust sidecar for benchmark parity test.");
   }
-  return resolve(process.cwd(), "rust", "target", "debug", rustBinaryName());
+  return resolve(process.cwd(), "rust", "target", "release", rustBinaryName());
 }
 
 const describeRust = hasCargo() ? describe : describe.skip;
@@ -108,8 +114,8 @@ describeRust("Rust benchmark normalizer parity", () => {
     const previousBin = process.env.SIGNALER_RUST_SIDECAR_BIN;
     try {
       const expected = await loadMultiBenchmarkSignalsFromFiles([fileA, fileB, fileA]);
-      const debugSidecarPath = buildDebugRustSidecarOrThrow();
-      process.env.SIGNALER_RUST_SIDECAR_BIN = debugSidecarPath;
+      const releaseSidecarPath = buildRustSidecarOrThrow();
+      process.env.SIGNALER_RUST_SIDECAR_BIN = releaseSidecarPath;
       process.env.SIGNALER_RUST_BENCHMARK = "1";
       const viaRust = await loadMultiBenchmarkSignalsWithRust([fileA, fileB, fileA]);
 

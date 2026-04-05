@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-31T11:58:21.467Z",
+  "generatedAt": "2026-04-05T15:55:57.566Z",
   "status": "ok",
   "checks": [
     {
@@ -54,7 +54,7 @@
     {
       "id": "loop-smoke-evidence",
       "status": "ok",
-      "details": "Loop smoke passed in 14733ms.",
+      "details": "Loop smoke passed in 14636ms.",
       "blocking": false
     },
     {
@@ -66,19 +66,25 @@
     {
       "id": "workstream-j-overhead-evidence",
       "status": "ok",
-      "details": "Workstream J overhead evidence is passing (median=1ms, p95=9ms).",
+      "details": "Workstream J overhead evidence is passing (median=2ms, p95=3ms).",
       "blocking": false
     },
     {
       "id": "workstream-k-rust-benchmark-evidence",
       "status": "ok",
-      "details": "Workstream K benchmark evidence is passing (median delta=359ms, p95 delta=396ms).",
+      "details": "Workstream K benchmark evidence is passing (median delta=-446ms, p95 delta=-446ms).",
+      "blocking": false
+    },
+    {
+      "id": "repo-validation-evidence",
+      "status": "ok",
+      "details": "Repo validation evidence complete for 2 repos (signaler > lighthouse on high-impact resolutions).",
       "blocking": false
     }
   ],
   "summary": {
     "blockingFailures": 0,
     "warnings": 0,
-    "manualItems": 5
+    "manualItems": 6
   }
 }

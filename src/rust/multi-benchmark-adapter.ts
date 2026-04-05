@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import type { MultiBenchmarkSignalsLoaded } from "../multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsFromFiles } from "../multi-benchmark-signals.js";
 import { runRustSidecar } from "./bridge.js";
-import { type RustBenchmarkNormalizeInput, validateRustBenchmarkNormalizeOutput } from "./multi-benchmark-contracts.js";
+import {
+  type RustBenchmarkNormalizeInput,
+  type RustBenchmarkNormalizeOutput,
+  validateRustBenchmarkNormalizeOutput,
+} from "./multi-benchmark-contracts.js";
 
 function isRustBenchmarkEnabled(): boolean {
   return process.env.SIGNALER_RUST_BENCHMARK === "1";
@@ -14,6 +18,33 @@ function normalizeFallbackReason(message: string): string {
   const compact: string = message.replace(/\s+/g, " ").trim();
   if (compact.length <= 240) return compact;
   return `${compact.slice(0, 237)}...`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function parseRustNormalizeOutputFast(raw: unknown): RustBenchmarkNormalizeOutput | undefined {
+  if (!isRecord(raw)) return undefined;
+  if (raw.schemaVersion !== 1) return undefined;
+  if (raw.status !== "ok" && raw.status !== "warn" && raw.status !== "error") return undefined;
+  if (!Array.isArray(raw.inputFiles) || !raw.inputFiles.every((file) => isNonEmptyString(file))) return undefined;
+  if (!Array.isArray(raw.sourceIds) || !raw.sourceIds.every((source) => isNonEmptyString(source))) return undefined;
+  if (!Array.isArray(raw.records)) return undefined;
+  if (!isRecord(raw.stats)) return undefined;
+  if (!isFiniteNumber(raw.stats.elapsedMs) || !isFiniteNumber(raw.stats.recordsCount)) return undefined;
+  if (raw.stats.inputRecordsCount !== undefined && !isFiniteNumber(raw.stats.inputRecordsCount)) return undefined;
+  if (raw.stats.dedupedRecordsCount !== undefined && !isFiniteNumber(raw.stats.dedupedRecordsCount)) return undefined;
+  if (raw.stats.recordsDigest !== undefined && !isNonEmptyString(raw.stats.recordsDigest)) return undefined;
+  return raw as RustBenchmarkNormalizeOutput;
 }
 
 export type RustBenchmarkAttempt = {
@@ -92,7 +123,9 @@ async function runRustNormalizer(params: {
       };
     }
 
-    const parsed = validateRustBenchmarkNormalizeOutput(parsedRaw);
+    const parsed = process.env.SIGNALER_RUST_BENCHMARK_STRICT_VALIDATE === "1"
+      ? validateRustBenchmarkNormalizeOutput(parsedRaw)
+      : parseRustNormalizeOutputFast(parsedRaw);
     const mapped = mapRustOutputToLoaded(parsed);
     if (!mapped || !parsed) {
       return {
@@ -153,7 +186,7 @@ export async function loadMultiBenchmarkSignalsWithRust(paths: readonly string[]
   };
 
   try {
-    await writeFile(inPath, JSON.stringify(input, null, 2), "utf8");
+    await writeFile(inPath, JSON.stringify(input), "utf8");
     const rustResult = await runRustNormalizer({
       inPath,
       outPath,

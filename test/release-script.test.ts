@@ -29,6 +29,7 @@ const REQUIRED_GATES = [
 
 const WORKSTREAM_J_OVERHEAD = "benchmarks/out/workstream-j-optional-input-overhead.json";
 const WORKSTREAM_K_RUST_BENCHMARK = "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
+const REPO_VALIDATION = "release/v3/repo-validation-evidence.json";
 
 const originalCwd = process.cwd();
 
@@ -48,12 +49,18 @@ async function setupRepoFixture(params: {
   readonly workstreamJOverheadStatus?: "pass" | "fail";
   readonly includeWorkstreamKRustBenchmark?: boolean;
   readonly workstreamKRustBenchmarkStatus?: "pass" | "fail";
+  readonly workstreamKRustBenchmarkMedianDeltaMs?: number;
+  readonly workstreamKRustBenchmarkP95DeltaMs?: number;
+  readonly includeRepoValidation?: boolean;
 } = {}): Promise<string> {
   const gateStatus = params.gateStatus ?? "ok";
   const includeWorkstreamJOverhead = params.includeWorkstreamJOverhead ?? true;
   const workstreamJOverheadStatus = params.workstreamJOverheadStatus ?? "pass";
   const includeWorkstreamKRustBenchmark = params.includeWorkstreamKRustBenchmark ?? true;
   const workstreamKRustBenchmarkStatus = params.workstreamKRustBenchmarkStatus ?? "pass";
+  const workstreamKRustBenchmarkMedianDeltaMs = params.workstreamKRustBenchmarkMedianDeltaMs ?? -6;
+  const workstreamKRustBenchmarkP95DeltaMs = params.workstreamKRustBenchmarkP95DeltaMs ?? -2;
+  const includeRepoValidation = params.includeRepoValidation ?? true;
   const root = await mkdtemp(join(tmpdir(), "signaler-release-script-"));
   await writeJson("package.json", { version: "3.0.0-rc.1" }, root);
   await writeJson("jsr.json", { version: "3.0.0-rc.1" }, root);
@@ -93,13 +100,46 @@ async function setupRepoFixture(params: {
       {
         schemaVersion: 1,
         status: workstreamKRustBenchmarkStatus,
-        delta: { medianMs: -6, p95Ms: -2 },
+        delta: {
+          medianMs: workstreamKRustBenchmarkMedianDeltaMs,
+          p95Ms: workstreamKRustBenchmarkP95DeltaMs,
+        },
         assertions: {
           nodeOutputStable: true,
           rustOutputStable: true,
           parityMatched: true,
           rustUsedEveryIteration: true,
         },
+      },
+      root,
+    );
+  }
+  if (includeRepoValidation) {
+    await writeJson(
+      REPO_VALIDATION,
+      {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        entries: [
+          {
+            repo: "next-blogkit-pro",
+            owner: "Dendro-X0",
+            publicRepoUrl: "https://github.com/Dendro-X0/next-blogkit-pro",
+            comparedAt: "2026-03-20",
+            lighthouseResolvedHighImpact: 7,
+            signalerResolvedHighImpact: 11,
+            notes: "improved",
+          },
+          {
+            repo: "next-ecommercekit-monorepo",
+            owner: "Dendro-X0",
+            publicRepoUrl: "https://github.com/Dendro-X0/next-ecommercekit-monorepo",
+            comparedAt: "2026-03-22",
+            lighthouseResolvedHighImpact: 9,
+            signalerResolvedHighImpact: 13,
+            notes: "improved",
+          },
+        ],
       },
       root,
     );
@@ -196,6 +236,27 @@ describe("release script", () => {
     }
   });
 
+  it("warns when workstream-k evidence exists but median speedup is not met", async () => {
+    const root = await setupRepoFixture({
+      gateStatus: "ok",
+      workstreamKRustBenchmarkStatus: "pass",
+      workstreamKRustBenchmarkMedianDeltaMs: 18,
+      workstreamKRustBenchmarkP95DeltaMs: 44,
+    });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.status).toBe("warn");
+      expect(summary.workstreamKRustBenchmark?.status).toBe("warn");
+      expect(String(summary.workstreamKRustBenchmark?.details ?? "")).toContain("speedup is not met");
+      expect(summary.warnings.some((entry) => entry.includes("Workstream K benchmark evidence is present but median speedup is not met yet"))).toBe(true);
+      expect(summary.checks.some((entry) => entry.id === "workstream-k-rust-benchmark-evidence" && entry.status === "warn")).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("warns when workstream-k benchmark evidence is missing", async () => {
     const root = await setupRepoFixture({ gateStatus: "ok", includeWorkstreamKRustBenchmark: false });
     try {
@@ -205,6 +266,21 @@ describe("release script", () => {
       expect(summary.workstreamKRustBenchmark?.status).toBe("warn");
       expect(summary.warnings.some((entry) => entry.includes("Workstream K benchmark evidence"))).toBe(true);
       expect(summary.checks.some((entry) => entry.id === "workstream-k-rust-benchmark-evidence" && entry.status === "warn")).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("warns when repo validation evidence is missing", async () => {
+    const root = await setupRepoFixture({ gateStatus: "ok", includeRepoValidation: false });
+    try {
+      process.chdir(root);
+      const summary = runPreflight(["--skip-commands", "--dry-run"]);
+      expect(summary.status).toBe("warn");
+      expect(summary.repoValidation?.status).toBe("warn");
+      expect(summary.warnings.some((entry) => entry.includes("Repo validation evidence"))).toBe(true);
+      expect(summary.checks.some((entry) => entry.id === "repo-validation-evidence" && entry.status === "warn")).toBe(true);
     } finally {
       process.chdir(originalCwd);
       await rm(root, { recursive: true, force: true });

@@ -98,4 +98,40 @@ describe("v6.3 success gate workstream-k benchmark evidence check", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("marks check warn when evidence exists but median speedup is not met", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-v63-gate-k-evidence-no-speedup-"));
+    try {
+      await scaffoldGateRoot(root);
+      await writeText(
+        resolve(root, "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json"),
+        JSON.stringify(
+          {
+            schemaVersion: 1,
+            status: "pass",
+            delta: { medianMs: 22, p95Ms: 104 },
+            assertions: {
+              nodeOutputStable: true,
+              rustOutputStable: true,
+              parityMatched: true,
+              rustUsedEveryIteration: true,
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const report = await evaluateSuccessGate({
+        rootDir: root,
+        outJsonPath: resolve(root, "out.json"),
+        outMarkdownPath: resolve(root, "out.md"),
+      });
+      const check = checkStatus(report.checks, "workstream-k-rust-benchmark-evidence");
+      expect(check.status).toBe("warn");
+      expect(check.details).toContain("speedup is not met");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

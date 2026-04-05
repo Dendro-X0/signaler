@@ -42,6 +42,8 @@ const WORKSTREAM_J_OVERHEAD_FILE =
   "benchmarks/out/workstream-j-optional-input-overhead.json";
 const WORKSTREAM_K_BENCHMARK_FILE =
   "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
+const REPO_VALIDATION_FILE =
+  "release/v3/repo-validation-evidence.json";
 
 const PRE_FLIGHT_COMMANDS = [
   "pnpm run bench:v3:phase1",
@@ -334,16 +336,31 @@ function evaluateWorkstreamKRustBenchmarkEvidence(checks, warnings) {
   }
 
   if (parsed.status === "pass") {
+    const medianDelta = parsed.delta.medianMs;
+    const p95Delta = parsed.delta.p95Ms;
+    if (medianDelta < 0) {
+      const details =
+        `Workstream K benchmark evidence is passing (median delta=${Math.round(medianDelta)}ms, ` +
+        `p95 delta=${Math.round(p95Delta)}ms).`;
+      checks.push({
+        id: "workstream-k-rust-benchmark-evidence",
+        status: STATUS_OK,
+        blocking: false,
+        details,
+      });
+      return { status: STATUS_OK, details };
+    }
     const details =
-      `Workstream K benchmark evidence is passing (median delta=${Math.round(parsed.delta.medianMs)}ms, ` +
-      `p95 delta=${Math.round(parsed.delta.p95Ms)}ms).`;
+      `Workstream K benchmark evidence is present but median speedup is not met yet ` +
+      `(median delta=${Math.round(medianDelta)}ms, p95 delta=${Math.round(p95Delta)}ms).`;
     checks.push({
       id: "workstream-k-rust-benchmark-evidence",
-      status: STATUS_OK,
+      status: STATUS_WARN,
       blocking: false,
       details,
     });
-    return { status: STATUS_OK, details };
+    warnings.push(`${details} Continue Rust-side optimization before GA release.`);
+    return { status: STATUS_WARN, details };
   }
 
   const details = "Workstream K benchmark evidence exists but status is fail.";
@@ -354,6 +371,84 @@ function evaluateWorkstreamKRustBenchmarkEvidence(checks, warnings) {
     details,
   });
   warnings.push(`${details} Investigate Rust sidecar parity/performance before release.`);
+  return { status: STATUS_WARN, details };
+}
+
+function isPublicRepoUrl(value) {
+  return typeof value === "string" && /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+$/i.test(value.trim());
+}
+
+function evaluateRepoValidationEvidence(checks, warnings) {
+  const evidencePath = resolve(REPO_VALIDATION_FILE);
+  if (!existsSync(evidencePath)) {
+    const details = `Repo validation evidence not found (${REPO_VALIDATION_FILE}).`;
+    checks.push({
+      id: "repo-validation-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Run \`pnpm run v3:repo-validation:list\` and upsert at least two qualifying public repos.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  let parsed;
+  try {
+    parsed = readJson(REPO_VALIDATION_FILE);
+  } catch {
+    const details = `Repo validation evidence is unreadable (${REPO_VALIDATION_FILE}).`;
+    checks.push({
+      id: "repo-validation-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence entries with \`pnpm run v3:repo-validation\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  if (parsed?.schemaVersion !== 1 || !Array.isArray(parsed?.entries)) {
+    const details = "Repo validation evidence format is invalid.";
+    checks.push({
+      id: "repo-validation-evidence",
+      status: STATUS_WARN,
+      blocking: false,
+      details,
+    });
+    warnings.push(`${details} Re-generate evidence entries with \`pnpm run v3:repo-validation\`.`);
+    return { status: STATUS_WARN, details };
+  }
+
+  let qualified = 0;
+  for (const entry of parsed.entries) {
+    if (!entry || typeof entry !== "object") continue;
+    if (!isPublicRepoUrl(entry.publicRepoUrl)) continue;
+    if (typeof entry.lighthouseResolvedHighImpact !== "number" || entry.lighthouseResolvedHighImpact < 0) continue;
+    if (typeof entry.signalerResolvedHighImpact !== "number" || entry.signalerResolvedHighImpact < 0) continue;
+    if (entry.signalerResolvedHighImpact > entry.lighthouseResolvedHighImpact) {
+      qualified += 1;
+    }
+  }
+
+  if (qualified >= 2) {
+    const details = `Repo validation evidence is passing (${qualified} qualifying public repos).`;
+    checks.push({
+      id: "repo-validation-evidence",
+      status: STATUS_OK,
+      blocking: false,
+      details,
+    });
+    return { status: STATUS_OK, details };
+  }
+
+  const details = `Repo validation evidence incomplete (${qualified}/2 qualifying public repos).`;
+  checks.push({
+    id: "repo-validation-evidence",
+    status: STATUS_WARN,
+    blocking: false,
+    details,
+  });
+  warnings.push(`${details} Add public-repo comparison entries via \`pnpm run v3:repo-validation upsert ...\`.`);
   return { status: STATUS_WARN, details };
 }
 
@@ -434,6 +529,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
   evaluateCrossPlatformEvidence(args.requireCrossPlatform, checks, warnings, failures);
   const workstreamJOverhead = evaluateWorkstreamJOverheadEvidence(checks, warnings);
   const workstreamKRustBenchmark = evaluateWorkstreamKRustBenchmarkEvidence(checks, warnings);
+  const repoValidation = evaluateRepoValidationEvidence(checks, warnings);
 
   const summary = {
     schemaVersion: 1,
@@ -452,6 +548,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
     warnings,
     workstreamJOverhead,
     workstreamKRustBenchmark,
+    repoValidation,
     policy: {
       strict: args.strict,
       dryRun: args.dryRun,
@@ -471,6 +568,7 @@ export function runPreflight(rawArgs = process.argv.slice(2)) {
   console.log(`- warnings: ${summary.summary.warnings}`);
   console.log(`- workstream-j-overhead: ${summary.workstreamJOverhead.status}`);
   console.log(`- workstream-k-rust-benchmark: ${summary.workstreamKRustBenchmark.status}`);
+  console.log(`- repo-validation: ${summary.repoValidation.status}`);
   console.log(`- report: ${args.reportPath}`);
 
   if (failures.length > 0) {

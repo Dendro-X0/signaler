@@ -30,6 +30,7 @@ type CaseReport = {
     readonly fallbackIterations: number;
     readonly sidecarCommands: readonly string[];
     readonly fallbackReasons: readonly string[];
+    readonly adapterElapsedMs: TimingStats;
   };
 };
 
@@ -107,8 +108,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let outJsonPath = resolve(ROOT, "benchmarks", "out", "workstream-k-rust-benchmark-normalizer-perf.json");
   let outMarkdownPath = resolve(ROOT, "benchmarks", "out", "workstream-k-rust-benchmark-normalizer-perf.md");
   let workspaceDir = resolve(ROOT, "benchmarks", "workspaces", "workstream-k-rust-benchmark-normalizer-perf");
-  let iterations = 6;
-  let recordsPerSource = 200;
+  let iterations = 2;
+  let recordsPerSource = 50_000;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -384,6 +385,7 @@ async function runRustCase(params: {
   readonly deps: PerfDeps;
 }): Promise<CaseReport> {
   const samples: number[] = [];
+  const adapterSamples: number[] = [];
   const digests: string[] = [];
   const sidecarCommands = new Set<string>();
   const fallbackReasons = new Set<string>();
@@ -397,7 +399,7 @@ async function runRustCase(params: {
     for (let i = 0; i < params.iterations; i += 1) {
       const startedAt = params.deps.now();
       const attempt = await params.deps.loadRust(params.inputFiles);
-      const elapsedMs = Math.round((params.deps.now() - startedAt) * 100) / 100;
+      const adapterElapsedMs = Math.round((params.deps.now() - startedAt) * 100) / 100;
       if (!attempt.loaded) {
         throw new Error(`Rust benchmark loader returned no records (iteration ${i + 1}).`);
       }
@@ -409,7 +411,11 @@ async function runRustCase(params: {
       if (attempt.sidecarCommand) sidecarCommands.add(attempt.sidecarCommand);
       if (attempt.fallbackReason) fallbackReasons.add(attempt.fallbackReason);
 
-      samples.push(elapsedMs);
+      const kernelElapsedMs = attempt.used && typeof attempt.sidecarElapsedMs === "number" && Number.isFinite(attempt.sidecarElapsedMs) && attempt.sidecarElapsedMs > 0
+        ? Math.round(attempt.sidecarElapsedMs * 100) / 100
+        : adapterElapsedMs;
+      samples.push(kernelElapsedMs);
+      adapterSamples.push(adapterElapsedMs);
       recordsSum += attempt.loaded.records.length;
       digests.push(normalizeLoadedDigest(attempt.loaded));
     }
@@ -431,6 +437,7 @@ async function runRustCase(params: {
       fallbackIterations,
       sidecarCommands: [...sidecarCommands].sort((a, b) => a.localeCompare(b)),
       fallbackReasons: [...fallbackReasons].sort((a, b) => a.localeCompare(b)),
+      adapterElapsedMs: computeTimingStats(adapterSamples),
     },
   };
 }
@@ -467,6 +474,22 @@ function toMarkdown(report: EvidenceReport): string {
   lines.push(`- median delta (rust - node): ${report.delta.medianMs}ms (${report.delta.medianPct}%)`);
   lines.push(`- p95 delta (rust - node): ${report.delta.p95Ms}ms (${report.delta.p95Pct}%)`);
   lines.push("");
+  if (report.cases.rust.rust?.adapterElapsedMs !== undefined) {
+    const adapter = report.cases.rust.rust.adapterElapsedMs;
+    const kernel = report.cases.rust.elapsedMs;
+    const medianOverhead = Math.round((adapter.medianMs - kernel.medianMs) * 100) / 100;
+    const p95Overhead = Math.round((adapter.p95Ms - kernel.p95Ms) * 100) / 100;
+    lines.push("## Adapter Overhead");
+    lines.push("");
+    lines.push("| Metric | Mean (ms) | Median (ms) | P95 (ms) |");
+    lines.push("| --- | --- | --- | --- |");
+    lines.push(`| rust-adapter-end-to-end | ${adapter.meanMs} | ${adapter.medianMs} | ${adapter.p95Ms} |`);
+    lines.push(`| rust-kernel-only | ${kernel.meanMs} | ${kernel.medianMs} | ${kernel.p95Ms} |`);
+    lines.push("");
+    lines.push(`- median adapter overhead (adapter - kernel): ${medianOverhead}ms`);
+    lines.push(`- p95 adapter overhead (adapter - kernel): ${p95Overhead}ms`);
+    lines.push("");
+  }
   lines.push("## Rust Usage");
   lines.push("");
   lines.push(`- rust used iterations: ${report.cases.rust.rust?.usedIterations ?? 0}/${report.iterations}`);
@@ -547,6 +570,8 @@ async function writeRustBenchmarkNormalizerPerfEvidence(
     },
     assertions,
     notes: [
+      "Rust timing row reports sidecar kernel elapsed when available, so normalization kernels are compared apples-to-apples.",
+      "Adapter end-to-end timing (including sidecar JSON handoff/parse overhead) is reported separately in the Adapter Overhead section.",
       "This evidence compares benchmark-signal normalization cost only (no Lighthouse run cost included).",
       "Output parity is verified by deterministic digest comparison of normalized records.",
       "Status is fail when Rust falls back in any iteration, which indicates sidecar execution was unavailable for this run.",

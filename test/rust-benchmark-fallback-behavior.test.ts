@@ -70,10 +70,10 @@ describe("rust benchmark adapter fallback behavior", () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-rust-benchmark-fallback-"));
     const filePath = await writeBenchmarkFile(root);
     const previousFlag = process.env.SIGNALER_RUST_BENCHMARK;
-    const previousPath = process.env.PATH;
+    const previousSidecarBin = process.env.SIGNALER_RUST_SIDECAR_BIN;
     try {
       process.env.SIGNALER_RUST_BENCHMARK = "1";
-      process.env.PATH = "";
+      process.env.SIGNALER_RUST_SIDECAR_BIN = root;
       const result = await loadMultiBenchmarkSignalsWithRust([filePath]);
       expect(result.requested).toBe(true);
       expect(result.enabled).toBe(true);
@@ -83,7 +83,7 @@ describe("rust benchmark adapter fallback behavior", () => {
       expect(result.loaded?.records.length).toBe(1);
     } finally {
       process.env.SIGNALER_RUST_BENCHMARK = previousFlag;
-      process.env.PATH = previousPath;
+      process.env.SIGNALER_RUST_SIDECAR_BIN = previousSidecarBin;
       await rm(root, { recursive: true, force: true });
     }
   });

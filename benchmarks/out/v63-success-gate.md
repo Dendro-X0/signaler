@@ -1,13 +1,13 @@
 # V6.3 Success Gate
 
-Generated: 2026-03-31T11:58:21.467Z
+Generated: 2026-04-05T15:55:57.566Z
 Status: OK
 
 ## Summary
 
 - Blocking failures: 0
 - Warnings: 0
-- Manual items: 5
+- Manual items: 6
 
 ## Checks
 
@@ -21,8 +21,9 @@ Status: OK
 | low-memory-guidance | ok | yes | Low-memory throughput guidance is present in run output path. |
 | v63-regression-tests | ok | yes | V6.3 regression tests cover timing metadata and runtime budget planning. |
 | success-gate-progress | ok | no | Success gate checklist complete (4/4). |
-| loop-smoke-evidence | ok | no | Loop smoke passed in 14733ms. |
+| loop-smoke-evidence | ok | no | Loop smoke passed in 14636ms. |
 | low-memory-evidence | ok | no | Low-memory evidence report is present and passing. |
-| workstream-j-overhead-evidence | ok | no | Workstream J overhead evidence is passing (median=1ms, p95=9ms). |
-| workstream-k-rust-benchmark-evidence | ok | no | Workstream K benchmark evidence is passing (median delta=359ms, p95 delta=396ms). |
+| workstream-j-overhead-evidence | ok | no | Workstream J overhead evidence is passing (median=2ms, p95=3ms). |
+| workstream-k-rust-benchmark-evidence | ok | no | Workstream K benchmark evidence is passing (median delta=-446ms, p95 delta=-446ms). |
+| repo-validation-evidence | ok | no | Repo validation evidence complete for 2 repos (signaler > lighthouse on high-impact resolutions). |
 

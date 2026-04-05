@@ -76,6 +76,17 @@ type WorkstreamKRustBenchmarkEvidence = {
   };
 };
 
+type RepoValidationEvidenceEntry = {
+  readonly publicRepoUrl?: unknown;
+  readonly lighthouseResolvedHighImpact?: unknown;
+  readonly signalerResolvedHighImpact?: unknown;
+};
+
+type RepoValidationEvidence = {
+  readonly schemaVersion?: unknown;
+  readonly entries?: unknown;
+};
+
 type CliArgs = {
   readonly outJsonPath: string;
   readonly outMarkdownPath: string;
@@ -185,6 +196,44 @@ function containsCanonicalV63Flow(text: string): boolean {
     return true;
   }
   return false;
+}
+
+function isPublicRepoUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+$/i.test(value.trim());
+}
+
+function isRepoValidationEntry(value: unknown): value is RepoValidationEvidenceEntry {
+  return typeof value === "object" && value !== null;
+}
+
+function countQualifiedRepoValidationEntries(rawFile: string): {
+  readonly ok: boolean;
+  readonly qualified: number;
+  readonly total: number;
+  readonly reason?: string;
+} {
+  try {
+    const parsed = JSON.parse(rawFile) as RepoValidationEvidence;
+    if (parsed.schemaVersion !== 1) {
+      return { ok: false, qualified: 0, total: 0, reason: "schemaVersion must be 1" };
+    }
+    if (!Array.isArray(parsed.entries)) {
+      return { ok: false, qualified: 0, total: 0, reason: "entries must be an array" };
+    }
+    const entries = parsed.entries.filter(isRepoValidationEntry);
+    let qualified = 0;
+    for (const entry of entries) {
+      const lighthouse = entry.lighthouseResolvedHighImpact;
+      const signaler = entry.signalerResolvedHighImpact;
+      if (!isPublicRepoUrl(entry.publicRepoUrl)) continue;
+      if (typeof lighthouse !== "number" || !Number.isFinite(lighthouse) || lighthouse < 0) continue;
+      if (typeof signaler !== "number" || !Number.isFinite(signaler) || signaler < 0) continue;
+      if (signaler > lighthouse) qualified += 1;
+    }
+    return { ok: true, qualified, total: entries.length };
+  } catch {
+    return { ok: false, qualified: 0, total: 0, reason: "not valid JSON" };
+  }
 }
 
 function countSuccessGateChecks(markdown: string): { readonly total: number; readonly completed: number } {
@@ -451,17 +500,57 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
         if (!hasSchema || !hasStatus || !hasDelta || !assertionsValid) {
           checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence format is invalid.", false));
         } else if (parsed.status === "pass") {
-          checks.push(check(
-            "workstream-k-rust-benchmark-evidence",
-            "ok",
-            `Workstream K benchmark evidence is passing (median delta=${Math.round(parsed.delta.medianMs as number)}ms, p95 delta=${Math.round(parsed.delta.p95Ms as number)}ms).`,
-            false,
-          ));
+          const medianDelta = parsed.delta.medianMs as number;
+          const p95Delta = parsed.delta.p95Ms as number;
+          if (medianDelta < 0) {
+            checks.push(check(
+              "workstream-k-rust-benchmark-evidence",
+              "ok",
+              `Workstream K benchmark evidence is passing (median delta=${Math.round(medianDelta)}ms, p95 delta=${Math.round(p95Delta)}ms).`,
+              false,
+            ));
+          } else {
+            checks.push(check(
+              "workstream-k-rust-benchmark-evidence",
+              "warn",
+              `Workstream K benchmark evidence is present but median speedup is not met yet (median delta=${Math.round(medianDelta)}ms, p95 delta=${Math.round(p95Delta)}ms).`,
+              false,
+            ));
+          }
         } else {
           checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence exists but status is fail.", false));
         }
       } catch {
         checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence is not valid JSON.", false));
+      }
+    }
+  }
+
+  const repoValidationPath = resolve(root, "release/v3/repo-validation-evidence.json");
+  if (!(await fileExists(repoValidationPath))) {
+    checks.push(check("repo-validation-evidence", "warn", "Repo validation evidence not found (release/v3/repo-validation-evidence.json).", false));
+  } else {
+    const rawRepoValidation = await readText(repoValidationPath);
+    if (rawRepoValidation === undefined) {
+      checks.push(check("repo-validation-evidence", "warn", "Repo validation evidence exists but could not be read.", false));
+    } else {
+      const parsedRepoValidation = countQualifiedRepoValidationEntries(rawRepoValidation);
+      if (!parsedRepoValidation.ok) {
+        checks.push(check("repo-validation-evidence", "warn", `Repo validation evidence format is invalid (${parsedRepoValidation.reason ?? "unknown reason"}).`, false));
+      } else if (parsedRepoValidation.qualified >= 2) {
+        checks.push(check(
+          "repo-validation-evidence",
+          "ok",
+          `Repo validation evidence complete for ${parsedRepoValidation.qualified} repos (signaler > lighthouse on high-impact resolutions).`,
+          false,
+        ));
+      } else {
+        checks.push(check(
+          "repo-validation-evidence",
+          "warn",
+          `Repo validation evidence incomplete (${parsedRepoValidation.qualified}/2 repos; entries=${parsedRepoValidation.total}).`,
+          false,
+        ));
       }
     }
   }

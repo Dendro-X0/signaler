@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-31T10:13:43.104Z",
+  "generatedAt": "2026-04-05T15:50:25.320Z",
   "status": "pass",
   "workspaceDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf",
-  "iterations": 6,
-  "recordsPerSource": 200,
+  "iterations": 2,
+  "recordsPerSource": 50000,
   "fixture": {
     "inputFiles": [
       "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-accessibility-extended.json",
@@ -15,67 +15,70 @@
       "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-k-rust-benchmark-normalizer-perf\\benchmark-accessibility-extended.json"
     ],
     "sourceCount": 5,
-    "inputRecordsCount": 1000
+    "inputRecordsCount": 250000
   },
   "cases": {
     "node": {
       "id": "node",
       "elapsedMs": {
         "samples": [
-          29.97,
-          12.54,
-          16.31,
-          11.38,
-          12.54,
-          15.26
+          2663.68,
+          2674.88
         ],
-        "minMs": 11.38,
-        "maxMs": 29.97,
-        "meanMs": 16.33,
-        "medianMs": 12.54,
-        "p95Ms": 29.97
+        "minMs": 2663.68,
+        "maxMs": 2674.88,
+        "meanMs": 2669.28,
+        "medianMs": 2663.68,
+        "p95Ms": 2674.88
       },
-      "recordsCountMean": 1000,
+      "recordsCountMean": 250000,
       "uniqueOutputDigests": [
-        "2ebad149da522ee7e7184e98d461a3499deaffff781b6cacd44761f0fa6d6883"
+        "561442f19a1077ea8fd1a3ef8a6be139fe77fc10066103ee8ec6f434642d08e7"
       ]
     },
     "rust": {
       "id": "rust",
       "elapsedMs": {
         "samples": [
-          426.03,
-          371.05,
-          370.71,
-          400.06,
-          355.68,
-          373.4
+          2229,
+          2218
         ],
-        "minMs": 355.68,
-        "maxMs": 426.03,
-        "meanMs": 382.82,
-        "medianMs": 371.05,
-        "p95Ms": 426.03
+        "minMs": 2218,
+        "maxMs": 2229,
+        "meanMs": 2223.5,
+        "medianMs": 2218,
+        "p95Ms": 2229
       },
-      "recordsCountMean": 1000,
+      "recordsCountMean": 250000,
       "uniqueOutputDigests": [
-        "2ebad149da522ee7e7184e98d461a3499deaffff781b6cacd44761f0fa6d6883"
+        "561442f19a1077ea8fd1a3ef8a6be139fe77fc10066103ee8ec6f434642d08e7"
       ],
       "rust": {
-        "usedIterations": 6,
+        "usedIterations": 2,
         "fallbackIterations": 0,
         "sidecarCommands": [
           "normalize-benchmark"
         ],
-        "fallbackReasons": []
+        "fallbackReasons": [],
+        "adapterElapsedMs": {
+          "samples": [
+            3095.3,
+            3180.72
+          ],
+          "minMs": 3095.3,
+          "maxMs": 3180.72,
+          "meanMs": 3138.01,
+          "medianMs": 3095.3,
+          "p95Ms": 3180.72
+        }
       }
     }
   },
   "delta": {
-    "medianMs": 358.51,
-    "p95Ms": 396.06,
-    "medianPct": 2858.93,
-    "p95Pct": 1321.52
+    "medianMs": -445.68,
+    "p95Ms": -445.88,
+    "medianPct": -16.73,
+    "p95Pct": -16.67
   },
   "assertions": {
     "nodeOutputStable": true,
@@ -84,6 +87,8 @@
     "rustUsedEveryIteration": true
   },
   "notes": [
+    "Rust timing row reports sidecar kernel elapsed when available, so normalization kernels are compared apples-to-apples.",
+    "Adapter end-to-end timing (including sidecar JSON handoff/parse overhead) is reported separately in the Adapter Overhead section.",
     "This evidence compares benchmark-signal normalization cost only (no Lighthouse run cost included).",
     "Output parity is verified by deterministic digest comparison of normalized records.",
     "Status is fail when Rust falls back in any iteration, which indicates sidecar execution was unavailable for this run."
