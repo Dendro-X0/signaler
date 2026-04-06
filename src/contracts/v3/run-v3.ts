@@ -54,15 +54,18 @@ export interface RunV3 {
       readonly rustBenchmark?: {
         readonly requested?: boolean;
         readonly enabled: boolean;
-        readonly used: boolean;
-        readonly fallbackReason?: string;
-        readonly sidecarElapsedMs?: number;
-        readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
-        readonly recordsCount?: number;
-        readonly inputRecordsCount?: number;
-        readonly dedupedRecordsCount?: number;
-        readonly recordsDigest?: string;
-      };
+      readonly used: boolean;
+      readonly fallbackReason?: string;
+      readonly sidecarElapsedMs?: number;
+      readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
+      readonly scoreSidecarElapsedMs?: number;
+      readonly scoreSidecarCommand?: "score-benchmark" | "score-benchmark-signals";
+      readonly scoreMatchedRecordsCount?: number;
+      readonly recordsCount?: number;
+      readonly inputRecordsCount?: number;
+      readonly dedupedRecordsCount?: number;
+      readonly recordsDigest?: string;
+    };
     };
   };
 }

@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://signaler.dev/schemas/v3-repo-validation-evidence.schema.json",
+  "title": "V3RepoValidationEvidence",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "repo",
+          "owner",
+          "publicRepoUrl",
+          "comparedAt",
+          "lighthouseResolvedHighImpact",
+          "signalerResolvedHighImpact",
+          "notes"
+        ],
+        "properties": {
+          "repo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publicRepoUrl": {
+            "type": "string",
+            "pattern": "^https://github\\.com/[^/\\s]+/[^/\\s]+$"
+          },
+          "comparedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "lighthouseResolvedHighImpact": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "signalerResolvedHighImpact": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+

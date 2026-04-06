@@ -8,14 +8,16 @@ Recommended placeholder:
 
 ## 1) Preflight (Local)
 
-From the `signaler` repository root:
+From the `signaler` repository root (`.../apex-auditor-workspace/signaler`):
 
 ```bash
 corepack pnpm install
 corepack pnpm run build
 corepack pnpm run bench:workstream-j:overhead
+corepack pnpm run bench:workstream-k:rust-benchmark
 corepack pnpm run bench:v63:gate
 corepack pnpm run release -- --target-version <version>
+corepack pnpm run jsr:publish -- --dry-run
 ```
 
 What this does:
@@ -23,6 +25,7 @@ What this does:
 1. Runs release gate checks (v3 contract, phase6, and success-gate evaluators).
 2. Validates required docs and release manifest assets.
 3. Writes machine-readable output to `release/v3/release-preflight.json`.
+4. Confirms the JSR publish helper can run from the package root before the authenticated publish step.
 
 Optional strict CI-equivalent check:
 
@@ -72,11 +75,20 @@ git tag v<version>
 git push origin v<version>
 ```
 
-Then publish from local repo root:
+Then publish from the `signaler` package directory (where `jsr.json` is present):
 
 ```bash
-npx jsr publish --allow-slow-types
+pnpm run jsr:publish
 ```
+
+Optional sanity check first:
+
+```bash
+pnpm run jsr:publish -- --dry-run
+```
+
+If you run from the parent workspace root by mistake, JSR will fail with:
+`Couldn't find a deno.json, deno.jsonc, jsr.json or jsr.jsonc configuration file`.
 
 ## 5) Post-Publish Validation
 

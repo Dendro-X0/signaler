@@ -56,11 +56,11 @@ import {
   loadExternalSignalsFromFiles,
 } from "./external-signals.js";
 import {
-  applyBenchmarkBoostToSuggestions,
   buildDefaultMultiBenchmarkMetadata,
   evaluateConservativeMultiBenchmarkSignals,
 } from "./multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
+import { scoreMultiBenchmarkWithRust } from "./rust/multi-benchmark-scoring-adapter.js";
 import {
   buildTopSuggestionRefs,
   estimateTokens,
@@ -373,6 +373,9 @@ type RuntimeMeta = {
       readonly fallbackReason?: string;
       readonly sidecarElapsedMs?: number;
       readonly sidecarCommand?: "normalize-benchmark" | "normalize-benchmark-signals";
+      readonly scoreSidecarElapsedMs?: number;
+      readonly scoreSidecarCommand?: "score-benchmark" | "score-benchmark-signals";
+      readonly scoreMatchedRecordsCount?: number;
       readonly recordsCount?: number;
       readonly inputRecordsCount?: number;
       readonly dedupedRecordsCount?: number;
@@ -3716,11 +3719,42 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       accepted: externalSignalsEval.acceptedRecords,
     });
   }
+  const benchmarkScoreAttempt = await scoreMultiBenchmarkWithRust({
+    accepted: benchmarkSignalsEval?.acceptedRecords ?? [],
+    candidates: rankedSuggestions
+      .map((row) => {
+        const issueId = extractIssueIdFromSuggestionId(row.id);
+        if (typeof issueId !== "string" || issueId.length === 0) return undefined;
+        return {
+          candidateId: row.id,
+          issueId,
+        };
+      })
+      .filter((row): row is { readonly candidateId: string; readonly issueId: string } => row !== undefined),
+  });
+  if (benchmarkScoreAttempt.enabled && !benchmarkScoreAttempt.used && typeof benchmarkScoreAttempt.fallbackReason === "string") {
+    // eslint-disable-next-line no-console
+    console.log(`Rust benchmark scoring fallback: ${benchmarkScoreAttempt.fallbackReason}`);
+  }
   if (benchmarkSignalsEval !== undefined) {
-    rankedSuggestions = applyBenchmarkBoostToSuggestions({
-      suggestions: rankedSuggestions,
-      accepted: benchmarkSignalsEval.acceptedRecords,
-    });
+    rankedSuggestions = rankedSuggestions
+      .map((suggestion) => {
+        const matched = benchmarkScoreAttempt.scores.get(suggestion.id);
+        if (!matched || matched.totalBoost <= 0) return suggestion;
+        const mergedEvidence = [...new Map(
+          [...suggestion.evidence, ...matched.evidence]
+            .map((row) => [`${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`, row] as const),
+        ).values()];
+        return {
+          ...suggestion,
+          priorityScore: Math.round(suggestion.priorityScore * (1 + matched.totalBoost)),
+          evidence: mergedEvidence,
+        };
+      })
+      .sort((a, b) => {
+        if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+        return a.id.localeCompare(b.id);
+      });
   }
   suggestionsV3 = {
     ...suggestionsV3,
@@ -3780,11 +3814,14 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       },
       rustBenchmark: {
         requested: benchmarkRustAttempt.requested,
-        enabled: benchmarkRustAttempt.enabled,
-        used: benchmarkRustAttempt.used,
-        fallbackReason: benchmarkRustAttempt.fallbackReason,
+        enabled: benchmarkRustAttempt.enabled || benchmarkScoreAttempt.enabled,
+        used: benchmarkRustAttempt.used || benchmarkScoreAttempt.used,
+        fallbackReason: benchmarkScoreAttempt.fallbackReason ?? benchmarkRustAttempt.fallbackReason,
         sidecarElapsedMs: benchmarkRustAttempt.sidecarElapsedMs,
         sidecarCommand: benchmarkRustAttempt.sidecarCommand,
+        scoreSidecarElapsedMs: benchmarkScoreAttempt.sidecarElapsedMs,
+        scoreSidecarCommand: benchmarkScoreAttempt.sidecarCommand,
+        scoreMatchedRecordsCount: benchmarkScoreAttempt.matchedRecordsCount,
         recordsCount: benchmarkRustAttempt.normalizeStats?.recordsCount,
         inputRecordsCount: benchmarkRustAttempt.normalizeStats?.inputRecordsCount,
         dedupedRecordsCount: benchmarkRustAttempt.normalizeStats?.dedupedRecordsCount,

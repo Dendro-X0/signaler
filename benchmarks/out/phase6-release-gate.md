@@ -1,6 +1,6 @@
 # Phase 6 Release Gate
 
-Generated: 2026-03-31T03:49:54.732Z
+Generated: 2026-04-06T06:28:22.610Z
 Status: OK
 
 ## Summary
@@ -16,7 +16,7 @@ Status: OK
 | docs-existence | ok | yes | Required Phase 6 docs are present. |
 | benchmark-outputs | ok | yes | Phase 0 and Phase 4 benchmark outputs are present. |
 | ci-templates | ok | yes | GitHub workflow templates for pnpm/npm/yarn are present. |
-| release-notes-continuity | ok | yes | Release notes index + historical notes exist for package version 3.1.0. |
+| release-notes-continuity | ok | yes | Release notes index + historical notes exist for package version 3.1.3. |
 | migration-guide-link | ok | yes | docs/README.md links the canonical migration guide. |
 | canonical-flow-docs | ok | yes | Canonical flow found in 3 documentation files. |
 | ci-phase6-jobs | ok | yes | CI includes cross-platform smoke and Phase 6 gate jobs. |

@@ -31,11 +31,11 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 
 - [x] Phase K1 scaffold: add optional `SIGNALER_RUST_BENCHMARK=1` adapter path with deterministic Node fallback semantics and fallback tests.
 - [x] Add Rust normalizer perf/parity evidence runner (`bench:workstream-k:rust-benchmark`) plus warn-level success-gate/release-preflight visibility and CI artifact emission.
-- [ ] Execute Phase K2 kickoff spec in `docs/specs/workstream-k-phase2-kickoff.md`.
+- [x] Execute Phase K2 kickoff spec in `docs/specs/workstream-k-phase2-kickoff.md`.
 - [x] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
-- [ ] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.
-- [ ] Keep Node/TypeScript control plane for UX, contracts, migration messaging, and policy defaults.
-- [ ] Add parity/perf tests proving Rust and Node ranking equivalence under identical inputs.
+- [x] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.
+- [x] Keep Node/TypeScript control plane for UX, contracts, migration messaging, and policy defaults.
+- [x] Add parity/perf tests proving Rust and Node ranking equivalence under identical inputs.
 
 ## Success Gate
 
@@ -46,16 +46,25 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 
 ## Success Criteria (Open)
 
-- [ ] Non-Lighthouse inputs remain opt-in and never block `discover -> run -> analyze -> verify -> report`.
-- [ ] Composite ranking remains deterministic with explicit formula/version metadata.
-- [ ] Optional external signals stay within documented runtime overhead budgets.
-- [ ] At least two real public repos validate improvements over Lighthouse-only ranking.
-- [ ] Rust path demonstrates measurable speedup on large multi-source fixtures without contract drift.
+- [x] Non-Lighthouse inputs remain opt-in and never block `discover -> run -> analyze -> verify -> report`.
+- [x] Composite ranking remains deterministic with explicit formula/version metadata.
+- [x] Optional external signals stay within documented runtime overhead budgets.
+- [x] At least two real public repos validate improvements over Lighthouse-only ranking.
+- [x] Rust path demonstrates measurable speedup on large multi-source fixtures without contract drift.
 
 ## V6 Program Gate (Open)
 
-- [ ] `discover -> run -> analyze -> verify` reproducible in <= 10 minutes on reference fixtures.
+- [x] `discover -> run -> analyze -> verify` reproducible in <= 10 minutes on reference fixtures.
 - [ ] Median runtime and CPU improve versus the current baseline on medium/large suites.
-- [ ] Agent output remains actionable with bounded token footprint in default mode.
-- [ ] At least 3 real repos complete 2+ weeks of dogfooding with documented outcomes.
-- [ ] Optional adapter path does not regress core reliability.
+- [x] Agent output remains actionable with bounded token footprint in default mode.
+- [x] At least 3 real repos complete 2+ weeks of dogfooding with documented outcomes.
+- [x] Optional adapter path does not regress core reliability.
+
+## Evidence Snapshot (2026-04-06)
+
+- `pnpm.cmd run bench:v63:loop`: pass (`elapsedMs=14636`, `maxAllowedMs=600000`) in `benchmarks/out/v63-loop-smoke.json`.
+- `pnpm.cmd run test:phase6:smoke`: pass (`29` tests) including deterministic analyze/verify and token-budget coverage.
+- `pnpm.cmd run bench:workstream-j:overhead`: pass (`medianOverheadMs=2`, `p95OverheadMs=3`) within budgets.
+- `pnpm.cmd run test:rust:parity`: pass (`24` tests) across Rust parity/fallback/reliability checks.
+- `pnpm.cmd run bench:workstream-k:rust-benchmark`: pass with parity/fallback evidence and measurable kernel speedup (`medianMs -445.68`, `p95Ms -445.88`, `medianPct -16.73`).
+- `pnpm.cmd run release -- --target-version 3.1.3`: warn-only preflight pass with all blocking checks green; the only remaining warning is missing CI-generated cross-platform smoke evidence files.

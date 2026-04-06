@@ -79,6 +79,11 @@ function isRustBenchmarkAccelerator(value: unknown): boolean {
   if (value.sidecarCommand !== undefined && value.sidecarCommand !== "normalize-benchmark" && value.sidecarCommand !== "normalize-benchmark-signals") {
     return false;
   }
+  if (value.scoreSidecarElapsedMs !== undefined && (typeof value.scoreSidecarElapsedMs !== "number" || value.scoreSidecarElapsedMs < 0)) return false;
+  if (value.scoreSidecarCommand !== undefined && value.scoreSidecarCommand !== "score-benchmark" && value.scoreSidecarCommand !== "score-benchmark-signals") {
+    return false;
+  }
+  if (value.scoreMatchedRecordsCount !== undefined && (typeof value.scoreMatchedRecordsCount !== "number" || value.scoreMatchedRecordsCount < 0)) return false;
   if (value.recordsCount !== undefined && (typeof value.recordsCount !== "number" || value.recordsCount < 0)) return false;
   if (value.inputRecordsCount !== undefined && (typeof value.inputRecordsCount !== "number" || value.inputRecordsCount < 0)) return false;
   if (value.dedupedRecordsCount !== undefined && (typeof value.dedupedRecordsCount !== "number" || value.dedupedRecordsCount < 0)) return false;

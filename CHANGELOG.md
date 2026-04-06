@@ -4,10 +4,28 @@
 
 ## 3.1.3 - Unreleased
 
+### Added
+
+- Public repo validation evidence and schema for V3 release readiness:
+  - `release/v3/repo-validation-evidence.json`
+  - `release/v3/repo-validation-evidence.schema.json`
+- Repo-validation evidence helper CLI:
+  - `scripts/v3-repo-validation-evidence.ts`
+  - package scripts `v3:repo-validation` and `v3:repo-validation:list`
+- JSR publish helper with package-root/version-sync validation and dry-run support:
+  - `scripts/jsr-publish.js`
+  - package scripts `jsr:publish` and `jsr:publish:skip-build`
+- Rust benchmark scoring adapter path and contract validation:
+  - `src/rust/multi-benchmark-scoring-adapter.ts`
+  - scoring payload types/validators in `src/rust/multi-benchmark-contracts.ts`
+- Regression coverage for repo validation, JSR publish helper, and Rust benchmark scoring parity/fallback behavior.
+
 ### Changed
 
 - Started the `v3.1.3` release line and updated versioned release/playbook targets.
 - Added `RELEASE-NOTES-v3.1.3.md` kickoff notes for the next patch cycle.
+- `run` and `analyze` now record additive Rust benchmark scoring telemetry (`scoreSidecarCommand`, `scoreSidecarElapsedMs`, `scoreMatchedRecordsCount`) alongside existing normalization metadata.
+- Release readiness docs and success-gate inputs now include public repo validation evidence and the current Rust benchmark speedup snapshot.
 
 ## 3.1.0 - 2026-03-30
 

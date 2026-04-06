@@ -12,7 +12,9 @@ Playbook:
 - [x] Phase 0/2/4 benchmark and soft gates are green.
 - [x] Phase 6 release gate report status is `ok` or `warn` (no blocking failures).
 - [x] Release-standardization gate report status is `ok` or `warn` (no blocking failures).
-- [ ] Workstream J optional-input overhead evidence is refreshed and passing.
+- [x] Workstream J optional-input overhead evidence is refreshed and passing.
+- [x] Workstream K Rust benchmark evidence is refreshed and passing.
+- [x] Public repo validation evidence is refreshed and passing.
 - [x] Canonical workflow (`discover -> run -> report`) is verified end-to-end.
 
 Run:
@@ -30,6 +32,8 @@ pnpm run bench:v3:phase1
 pnpm run bench:v3:phase2
 pnpm run bench:v3:gate
 pnpm run bench:v3:validate
+pnpm run bench:workstream-k:rust-benchmark
+pnpm run v3:repo-validation:list
 pnpm run release -- --target-version 3.1.3
 ```
 
@@ -65,4 +69,24 @@ pnpm run v3:dogfood upsert --repo <repo> --owner <owner> --start <YYYY-MM-DD> --
 | next-blogkit-pro | Dendro-X0 | 2026-02-20 | 2026-03-12 | Local unpublished build dogfood discover run analyze verify report |
 | next-ecommercekit-monorepo | Dendro-X0 | 2026-02-18 | 2026-03-09 | Monorepo audit loops with baseline versus current checks and report artifacts |
 | nuxt-t | Dendro-X0 | 2026-02-22 | 2026-03-14 | Cross framework smoke and analyzer ranking validation using local dist bin |
+
+## Public Repo Validation (Manual, Warn-Only)
+
+Track at least 2 public repos showing better high-impact resolution outcomes than Lighthouse-only ranking.
+
+Primary source:
+
+- `release/v3/repo-validation-evidence.json`
+
+Helpers:
+
+```bash
+pnpm run v3:repo-validation:list
+pnpm run v3:repo-validation upsert --repo <repo> --owner <owner> --url <https://github.com/org/repo> --date <YYYY-MM-DD> --lighthouse-resolved <n> --signaler-resolved <n> --notes "<notes>"
+```
+
+| Repo | Owner | Compared At | Lighthouse Resolved | Signaler Resolved | Delta | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| next-blogkit-pro | Dendro-X0 | 2026-03-20 | 7 | 11 | +4 | Signaler action ranking surfaced route-specific blockers earlier than Lighthouse-only triage. |
+| next-ecommercekit-monorepo | Dendro-X0 | 2026-03-22 | 9 | 13 | +4 | Composite benchmark context reduced triage churn and improved fix-first ordering. |
 

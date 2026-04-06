@@ -188,9 +188,9 @@ Runtime accelerator flags (opt-in):
 - `SIGNALER_RUST_HEADERS=1` enables Rust worker for `headers`
 - `SIGNALER_RUST_LINKS=1` enables Rust worker for `links`
 - `SIGNALER_RUST_CONSOLE=1` enables Rust worker for `console`
-- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer/aggregator path (falls back to Node loader on failure; sidecar command supports `normalize-benchmark` and `normalize-benchmark-signals`)
+- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer + scoring path (falls back to Node on failure; sidecar commands support `normalize-benchmark|normalize-benchmark-signals` and `score-benchmark|score-benchmark-signals`)
 
-If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records accelerator metadata (`requested`, `enabled`, `used`, fallback reason, sidecar command, elapsed time, and normalization stats) in `.signaler/run.json` and `.signaler/analyze.json`.
+If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records accelerator metadata (`requested`, `enabled`, `used`, fallback reason, normalization/scoring sidecar commands, sidecar elapsed times, scoring matched-record count, and normalization stats) in `.signaler/run.json` and `.signaler/analyze.json`.
 
 Canonical outputs (v3):
 
@@ -637,11 +637,14 @@ Dogfood evidence helper:
 ```bash
 pnpm run v3:dogfood:list
 pnpm run v3:dogfood upsert --repo <repo> --owner <owner> --start <YYYY-MM-DD> --end <YYYY-MM-DD> --notes "<notes>"
+pnpm run v3:repo-validation:list
+pnpm run v3:repo-validation upsert --repo <repo> --owner <owner> --url <https://github.com/org/repo> --date <YYYY-MM-DD> --lighthouse-resolved <n> --signaler-resolved <n> --notes "<notes>"
 ```
 
-Machine-readable dogfood source:
+Machine-readable evidence sources:
 
 - `release/v3/dogfood-evidence.json`
+- `release/v3/repo-validation-evidence.json`
 
 Release manifest generation:
 
@@ -672,6 +675,12 @@ Strict mode (fail if cross-platform smoke evidence is missing):
 
 ```bash
 pnpm run release -- --target-version 3.1.3 --require-cross-platform --strict
+```
+
+JSR publish helper (runs build + validates package/jsr context before publish):
+
+```bash
+pnpm run jsr:publish
 ```
 
 ## 9. Success gate

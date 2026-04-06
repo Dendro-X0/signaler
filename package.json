@@ -108,6 +108,8 @@
     "bench:v3:phase2": "pnpm run v3:manifest:smoke && pnpm run test:v3:manifest:validate && pnpm run v3:manifest:validate",
     "v3:dogfood": "tsx scripts/v3-dogfood-evidence.ts",
     "v3:dogfood:list": "tsx scripts/v3-dogfood-evidence.ts list",
+    "v3:repo-validation": "tsx scripts/v3-repo-validation-evidence.ts",
+    "v3:repo-validation:list": "tsx scripts/v3-repo-validation-evidence.ts list",
     "v3:manifest": "tsx scripts/v3-release-manifest.ts",
     "v3:manifest:smoke": "tsx scripts/v3-release-manifest-smoke.ts",
     "v3:manifest:validate": "tsx scripts/v3-release-manifest-validate.ts --manifest release/v3/release-manifest.generated.json --root .",
@@ -132,13 +134,15 @@
     "test:v3:gate": "vitest run test/v3-release-gate-validation.test.ts",
     "test:phase6:cross-platform-evidence": "vitest run test/phase6-cross-platform-evidence-script.test.ts",
     "test:v63:gate": "vitest run test/v63-success-gate-validation.test.ts",
-    "test:rust:parity": "vitest run test/route-detectors-rust-parity.test.ts test/rust-processor-parity.test.ts test/rust-fallback-behavior.test.ts test/rust-core-policy.test.ts test/rust-reducer-parity.test.ts test/rust-network-adapter-flags.test.ts test/rust-network-fallback-behavior.test.ts",
+    "test:rust:parity": "vitest run test/route-detectors-rust-parity.test.ts test/rust-processor-parity.test.ts test/rust-fallback-behavior.test.ts test/rust-core-policy.test.ts test/rust-reducer-parity.test.ts test/rust-network-adapter-flags.test.ts test/rust-network-fallback-behavior.test.ts test/rust-benchmark-parity.test.ts test/rust-benchmark-fallback-behavior.test.ts test/rust-benchmark-scoring-parity.test.ts test/rust-benchmark-scoring-fallback-behavior.test.ts",
     "start": "node dist/bin.js",
     "prepublishOnly": "pnpm run build:optimized",
     "postinstall": "node scripts/postinstall.js",
     "release": "node scripts/release.js",
     "release:preflight": "node scripts/release.js",
-    "release:preflight:strict": "node scripts/release.js --require-cross-platform --strict"
+    "release:preflight:strict": "node scripts/release.js --require-cross-platform --strict",
+    "jsr:publish": "node scripts/jsr-publish.js",
+    "jsr:publish:skip-build": "node scripts/jsr-publish.js --skip-build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-31T03:49:24.916Z",
+  "generatedAt": "2026-04-03T04:36:06.959Z",
   "status": "pass",
   "workspaceDir": "E:\\Web Project\\experimental-workspace\\apex-auditor-workspace\\signaler\\benchmarks\\workspaces\\workstream-j-optional-input-overhead",
   "iterations": 5,
@@ -17,17 +17,17 @@
       "id": "baseline",
       "elapsedMs": {
         "samples": [
-          7,
-          3,
-          3,
-          3,
-          3
+          22,
+          17,
+          10,
+          8,
+          8
         ],
-        "minMs": 3,
-        "maxMs": 7,
-        "meanMs": 3.8,
-        "medianMs": 3,
-        "p95Ms": 7
+        "minMs": 8,
+        "maxMs": 22,
+        "meanMs": 13,
+        "medianMs": 10,
+        "p95Ms": 22
       },
       "emittedActionsMean": 2,
       "multiBenchmark": {
@@ -43,34 +43,34 @@
       "id": "benchmark",
       "elapsedMs": {
         "samples": [
-          16,
-          4,
-          4,
-          3,
-          4
+          25,
+          15,
+          12,
+          11,
+          7
         ],
-        "minMs": 3,
-        "maxMs": 16,
-        "meanMs": 6.2,
-        "medianMs": 4,
-        "p95Ms": 16
+        "minMs": 7,
+        "maxMs": 25,
+        "meanMs": 14,
+        "medianMs": 12,
+        "p95Ms": 25
       },
       "emittedActionsMean": 2,
       "multiBenchmark": {
         "enabled": true,
         "accepted": 2,
         "rejected": 1,
-        "digest": "03f7ab49d0f2fbc850bd1f876b80f4c25278d9424fa907c5e42b1e17cf603fe2",
+        "digest": "b7ccc8bc5a07f22a8c184af8a8b530b75368d3ea41115a7589d7723bf6a46038",
         "policy": "v1-conservative-high-30d-route-issue",
         "rankingVersion": "j3-composite-ranking"
       }
     }
   },
   "overhead": {
-    "medianMs": 1,
-    "p95Ms": 9,
-    "medianPct": 33.33,
-    "p95Pct": 128.57
+    "medianMs": 2,
+    "p95Ms": 3,
+    "medianPct": 20,
+    "p95Pct": 13.64
   },
   "assertions": {
     "baselineHasNoBenchmarkMerge": true,

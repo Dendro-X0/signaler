@@ -1,6 +1,6 @@
 # Workstream J Optional-Input Overhead Evidence
 
-Generated: 2026-03-31T03:49:24.916Z
+Generated: 2026-04-03T04:36:06.959Z
 Status: PASS
 Workspace: E:\Web Project\experimental-workspace\apex-auditor-workspace\signaler\benchmarks\workspaces\workstream-j-optional-input-overhead
 Iterations per case: 5
@@ -9,13 +9,13 @@ Iterations per case: 5
 
 | Case | Mean (ms) | Median (ms) | P95 (ms) | Min (ms) | Max (ms) |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 3.8 | 3 | 7 | 3 | 7 |
-| benchmark-signals | 6.2 | 4 | 16 | 3 | 16 |
+| baseline | 13 | 10 | 22 | 8 | 22 |
+| benchmark-signals | 14 | 12 | 25 | 7 | 25 |
 
 ## Overhead
 
-- median overhead: 1ms (33.33%)
-- p95 overhead: 9ms (128.57%)
+- median overhead: 2ms (20%)
+- p95 overhead: 3ms (13.64%)
 - budget max median overhead: 30ms
 - budget max p95 overhead: 60ms
 
@@ -25,7 +25,7 @@ Iterations per case: 5
 - benchmark enabled: true
 - benchmark accepted: 2
 - benchmark rejected: 1
-- benchmark digest: 03f7ab49d0f2fbc850bd1f876b80f4c25278d9424fa907c5e42b1e17cf603fe2
+- benchmark digest: b7ccc8bc5a07f22a8c184af8a8b530b75368d3ea41115a7589d7723bf6a46038
 
 ## Assertions
 

@@ -17,9 +17,9 @@ import {
 import {
   buildDefaultMultiBenchmarkMetadata,
   evaluateConservativeMultiBenchmarkSignals,
-  matchAcceptedMultiBenchmarkSignals,
 } from "./multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
+import { scoreMultiBenchmarkWithRust } from "./rust/multi-benchmark-scoring-adapter.js";
 
 type AnalyzeExitCode = 0 | 1 | 2;
 
@@ -55,6 +55,28 @@ type CandidateAction = {
   readonly evidence: AnalyzeActionV6["evidence"];
   readonly action: AnalyzeActionV6["action"];
   readonly verifyPlan: AnalyzeActionV6["verifyPlan"];
+};
+
+type CandidateDraft = {
+  readonly sourceSuggestionId: string;
+  readonly title: string;
+  readonly category: AnalyzeActionV6["category"];
+  readonly confidence: AnalyzeConfidenceV6;
+  readonly estimatedImpact: AnalyzeActionV6["estimatedImpact"];
+  readonly affectedCombos: AnalyzeActionV6["affectedCombos"];
+  readonly baseEvidence: AnalyzeActionV6["evidence"];
+  readonly action: AnalyzeActionV6["action"];
+  readonly verifyPlan: AnalyzeActionV6["verifyPlan"];
+  readonly basePriority: number;
+  readonly externalBoost: {
+    readonly totalBoost: number;
+    readonly evidence: readonly AnalyzeActionV6["evidence"][number][];
+  };
+  readonly benchmarkQuery?: {
+    readonly candidateId: string;
+    readonly issueId: string;
+    readonly allowedPaths?: readonly string[];
+  };
 };
 
 class StrictValidationError extends Error {}
@@ -413,7 +435,7 @@ function formatAnalyzeMarkdown(report: AnalyzeReportV6): string {
   if (report.accelerators?.rustBenchmark !== undefined) {
     const rust = report.accelerators.rustBenchmark;
     lines.push(
-      `Rust benchmark accelerator: requested=${rust.requested}, enabled=${rust.enabled}, used=${rust.used}, command=${rust.sidecarCommand ?? "-"}, elapsedMs=${rust.sidecarElapsedMs ?? "-"}`,
+      `Rust benchmark accelerator: requested=${rust.requested}, enabled=${rust.enabled}, used=${rust.used}, normalizeCommand=${rust.sidecarCommand ?? "-"}, normalizeElapsedMs=${rust.sidecarElapsedMs ?? "-"}, scoreCommand=${rust.scoreSidecarCommand ?? "-"}, scoreElapsedMs=${rust.scoreSidecarElapsedMs ?? "-"}, scoreMatchedRecords=${rust.scoreMatchedRecordsCount ?? "-"}`,
     );
   }
   lines.push("");
@@ -693,7 +715,12 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     knownPaths,
   });
   const multiBenchmarkMetadata = benchmarkSignalsEval?.metadata ?? buildDefaultMultiBenchmarkMetadata();
-  const candidates: CandidateAction[] = [];
+  const candidateDrafts: CandidateDraft[] = [];
+  const benchmarkScoreQueries: {
+    candidateId: string;
+    issueId: string;
+    allowedPaths?: readonly string[];
+  }[] = [];
   const dedupeSet = new Set<string>();
 
   let droppedZeroImpact = 0;
@@ -738,23 +765,6 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
         allowedPaths: matchedPaths,
       })
       : { totalBoost: 0, evidence: [] as const };
-    const matchedBenchmarkSignals = typeof issueId === "string"
-      ? matchAcceptedMultiBenchmarkSignals({
-        accepted: benchmarkSignalsEval?.acceptedRecords ?? [],
-        issueId,
-        allowedPaths: matchedPaths,
-      })
-      : {
-        totalBoost: 0,
-        sourceBoosts: {
-          "accessibility-extended": 0,
-          "security-baseline": 0,
-          "seo-technical": 0,
-          "reliability-slo": 0,
-          "cross-browser-parity": 0,
-        },
-        evidence: [] as const,
-      };
     const comboMap: Map<string, ResultsV3Line> = new Map(allResults.map((row) => [`${row.label}|${row.path}|${row.device}`, row] as const));
     const matchedRows: ResultsV3Line[] = matchedCombos
       .map((combo) => comboMap.get(`${combo.label}|${combo.path}|${combo.device}`))
@@ -762,13 +772,10 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     const effectiveCoverage = Math.max(1, matchedCombos.length);
     const coverageWeight: number = Math.min(2, Math.max(1, 1 + Math.log10(Math.max(1, effectiveCoverage))));
     const basePriority: number = Math.round(suggestion.priorityScore * confidenceWeight(suggestion.confidence) * coverageWeight);
-    const rankedPriority: number = Math.round(basePriority * (1 + matchedExternalSignals.totalBoost + matchedBenchmarkSignals.totalBoost));
-
-    candidates.push({
+    candidateDrafts.push({
       sourceSuggestionId: suggestion.id,
       title: suggestion.title,
       category: suggestion.category,
-      priorityScore: rankedPriority,
       confidence: suggestion.confidence,
       estimatedImpact: {
         ...(typeof suggestion.estimatedImpact.timeMs === "number" ? { timeMs: suggestion.estimatedImpact.timeMs } : {}),
@@ -776,9 +783,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
         affectedCombos: Math.max(1, matchedCombos.length),
       },
       affectedCombos: matchedCombos,
-      evidence: [...new Map(
-        [...evidence, ...matchedExternalSignals.evidence, ...matchedBenchmarkSignals.evidence].map((row) => [`${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`, row] as const),
-      ).values()].slice(0, profileCaps.evidencePerAction),
+      baseEvidence: evidence,
       action: {
         summary: suggestion.action.summary,
         steps: [...suggestion.action.steps],
@@ -789,8 +794,69 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
         targetRoutes: deriveVerifyRoutes(matchedCombos),
         expectedDirection: buildExpectedDirection({ combos: matchedRows, suggestion }),
       },
+      basePriority,
+      externalBoost: matchedExternalSignals,
+      ...(typeof issueId === "string"
+        ? {
+          benchmarkQuery: {
+            candidateId: suggestion.id,
+            issueId,
+            ...(matchedPaths.length > 0 ? { allowedPaths: matchedPaths } : {}),
+          },
+        }
+        : {}),
     });
+    if (typeof issueId === "string") {
+      benchmarkScoreQueries.push({
+        candidateId: suggestion.id,
+        issueId,
+        ...(matchedPaths.length > 0 ? { allowedPaths: matchedPaths } : {}),
+      });
+    }
   }
+
+  const benchmarkScoreAttempt = await scoreMultiBenchmarkWithRust({
+    accepted: benchmarkSignalsEval?.acceptedRecords ?? [],
+    candidates: benchmarkScoreQueries,
+  });
+  if (benchmarkScoreAttempt.enabled && !benchmarkScoreAttempt.used && typeof benchmarkScoreAttempt.fallbackReason === "string") {
+    warnings.push(`Rust benchmark scoring fallback: ${benchmarkScoreAttempt.fallbackReason}`);
+  }
+
+  const zeroBenchmarkMatch = {
+    totalBoost: 0,
+    sourceBoosts: {
+      "accessibility-extended": 0,
+      "security-baseline": 0,
+      "seo-technical": 0,
+      "reliability-slo": 0,
+      "cross-browser-parity": 0,
+    },
+    evidence: [] as const,
+  };
+  const candidates: CandidateAction[] = candidateDrafts.map((draft) => {
+    const benchmarkMatch = draft.benchmarkQuery
+      ? (benchmarkScoreAttempt.scores.get(draft.benchmarkQuery.candidateId) ?? zeroBenchmarkMatch)
+      : zeroBenchmarkMatch;
+    const rankedPriority: number = Math.round(
+      draft.basePriority * (1 + draft.externalBoost.totalBoost + benchmarkMatch.totalBoost),
+    );
+    return {
+      sourceSuggestionId: draft.sourceSuggestionId,
+      title: draft.title,
+      category: draft.category,
+      priorityScore: rankedPriority,
+      confidence: draft.confidence,
+      estimatedImpact: draft.estimatedImpact,
+      affectedCombos: draft.affectedCombos,
+      evidence: [...new Map(
+        [...draft.baseEvidence, ...draft.externalBoost.evidence, ...benchmarkMatch.evidence]
+          .map((row) => [`${row.sourceRelPath}|${row.pointer}|${row.artifactRelPath ?? ""}`, row] as const),
+      ).values()].slice(0, profileCaps.evidencePerAction),
+      action: draft.action,
+      verifyPlan: draft.verifyPlan,
+    };
+  });
 
   const ranked: CandidateAction[] = [...candidates].sort((a, b) => {
     if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
@@ -849,11 +915,16 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const hasBenchmarkBoost: boolean = (benchmarkSignalsEval?.acceptedRecords.length ?? 0) > 0;
   const rustBenchmarkAccelerator = {
     requested: args.benchmarkSignalsPaths.length > 0,
-    enabled: benchmarkRustAttempt.enabled,
-    used: benchmarkRustAttempt.used,
-    ...(typeof benchmarkRustAttempt.fallbackReason === "string" ? { fallbackReason: benchmarkRustAttempt.fallbackReason } : {}),
+    enabled: benchmarkRustAttempt.enabled || benchmarkScoreAttempt.enabled,
+    used: benchmarkRustAttempt.used || benchmarkScoreAttempt.used,
+    ...(typeof benchmarkScoreAttempt.fallbackReason === "string"
+      ? { fallbackReason: benchmarkScoreAttempt.fallbackReason }
+      : (typeof benchmarkRustAttempt.fallbackReason === "string" ? { fallbackReason: benchmarkRustAttempt.fallbackReason } : {})),
     ...(typeof benchmarkRustAttempt.sidecarElapsedMs === "number" ? { sidecarElapsedMs: benchmarkRustAttempt.sidecarElapsedMs } : {}),
     ...(benchmarkRustAttempt.sidecarCommand !== undefined ? { sidecarCommand: benchmarkRustAttempt.sidecarCommand } : {}),
+    ...(typeof benchmarkScoreAttempt.sidecarElapsedMs === "number" ? { scoreSidecarElapsedMs: benchmarkScoreAttempt.sidecarElapsedMs } : {}),
+    ...(benchmarkScoreAttempt.sidecarCommand !== undefined ? { scoreSidecarCommand: benchmarkScoreAttempt.sidecarCommand } : {}),
+    ...(typeof benchmarkScoreAttempt.matchedRecordsCount === "number" ? { scoreMatchedRecordsCount: benchmarkScoreAttempt.matchedRecordsCount } : {}),
     ...(benchmarkRustAttempt.normalizeStats?.recordsCount !== undefined ? { recordsCount: benchmarkRustAttempt.normalizeStats.recordsCount } : {}),
     ...(benchmarkRustAttempt.normalizeStats?.inputRecordsCount !== undefined ? { inputRecordsCount: benchmarkRustAttempt.normalizeStats.inputRecordsCount } : {}),
     ...(benchmarkRustAttempt.normalizeStats?.dedupedRecordsCount !== undefined ? { dedupedRecordsCount: benchmarkRustAttempt.normalizeStats.dedupedRecordsCount } : {}),
