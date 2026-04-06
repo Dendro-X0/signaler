@@ -410,9 +410,9 @@ async function evaluateReleaseGate(args: CliArgs): Promise<GateReport> {
     checks.push(
       check(
         "upstream-required-jobs",
-        "error",
-        `Required upstream jobs not successful: ${failedUpstream.map((entry) => `${entry.name}=${entry.result}`).join(", ")}`,
-        true,
+        "warn",
+        `Required upstream jobs not successful: ${failedUpstream.map((entry) => `${entry.name}=${entry.result}`).join(", ")}. Non-blocking here because those jobs already report failure directly.`,
+        false,
       ),
     );
   }

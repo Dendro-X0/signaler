@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { runRustCorePipeline, runRustSignalReducer } from "../src/rust/core-adapter.js";
 import type { RunCoreInput } from "../src/rust/core-contracts.js";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 function buildMinimalCoreInput(): RunCoreInput {
   return {
@@ -41,8 +44,11 @@ describe("Rust core policy", () => {
   it("defaults to rust-first and falls back when sidecar cannot execute", async () => {
     const prevFlag = process.env.SIGNALER_RUST_CORE;
     const prevPath = process.env.PATH;
+    const prevSidecarBin = process.env.SIGNALER_RUST_SIDECAR_BIN;
+    const invalidSidecarDir = await mkdtemp(join(tmpdir(), "signaler-rust-core-invalid-bin-"));
     try {
       delete process.env.SIGNALER_RUST_CORE;
+      process.env.SIGNALER_RUST_SIDECAR_BIN = invalidSidecarDir;
       process.env.PATH = "";
       const attempt = await runRustCorePipeline({ input: buildMinimalCoreInput(), timeoutMs: 5000 });
       expect(attempt.enabled).toBe(true);
@@ -52,6 +58,8 @@ describe("Rust core policy", () => {
     } finally {
       process.env.SIGNALER_RUST_CORE = prevFlag;
       process.env.PATH = prevPath;
+      process.env.SIGNALER_RUST_SIDECAR_BIN = prevSidecarBin;
+      await rm(invalidSidecarDir, { recursive: true, force: true });
     }
   });
 

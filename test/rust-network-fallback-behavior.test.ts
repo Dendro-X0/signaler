@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { runRustNetworkWorker } from "../src/rust/network-adapter.js";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 describe("Rust network fallback behavior", () => {
   it("returns disabled when flags are off", async () => {
@@ -29,9 +32,12 @@ describe("Rust network fallback behavior", () => {
     const previousModeFlag = process.env.SIGNALER_RUST_HEALTH;
     const previousGlobal = process.env.SIGNALER_RUST_NETWORK;
     const previousPath = process.env.PATH;
+    const previousSidecarBin = process.env.SIGNALER_RUST_SIDECAR_BIN;
+    const invalidSidecarDir = await mkdtemp(join(tmpdir(), "signaler-rust-network-invalid-bin-"));
     try {
       process.env.SIGNALER_RUST_HEALTH = "1";
       delete process.env.SIGNALER_RUST_NETWORK;
+      process.env.SIGNALER_RUST_SIDECAR_BIN = invalidSidecarDir;
       process.env.PATH = "";
       const result = await runRustNetworkWorker({
         mode: "health",
@@ -50,6 +56,8 @@ describe("Rust network fallback behavior", () => {
       process.env.SIGNALER_RUST_HEALTH = previousModeFlag;
       process.env.SIGNALER_RUST_NETWORK = previousGlobal;
       process.env.PATH = previousPath;
+      process.env.SIGNALER_RUST_SIDECAR_BIN = previousSidecarBin;
+      await rm(invalidSidecarDir, { recursive: true, force: true });
     }
   });
 });
