@@ -105,6 +105,22 @@ async function readText(pathToFile: string): Promise<string | undefined> {
   }
 }
 
+async function readCrossPlatformEvidence(root: string, os: string): Promise<string | undefined> {
+  const fileName = `cross-platform-smoke-${os}.json`;
+  const candidatePaths = [
+    resolve(root, "benchmarks/out", fileName),
+    resolve(root, fileName),
+    resolve(root, `cross-platform-smoke-${os}`, "benchmarks/out", fileName),
+  ];
+  for (const candidate of candidatePaths) {
+    const raw = await readText(candidate);
+    if (raw !== undefined) {
+      return raw;
+    }
+  }
+  return undefined;
+}
+
 function check(id: string, status: GateStatus, details: string, blocking: boolean): GateCheck {
   return { id, status, details, blocking };
 }
@@ -409,8 +425,7 @@ async function evaluateReleaseGate(args: CliArgs): Promise<GateReport> {
   const missingCrossPlatformEvidence: string[] = [];
   const invalidCrossPlatformEvidence: string[] = [];
   for (const os of expectedCrossPlatformOs) {
-    const evidencePath = resolve(root, `benchmarks/out/cross-platform-smoke-${os}.json`);
-    const raw = await readText(evidencePath);
+    const raw = await readCrossPlatformEvidence(root, os);
     if (raw === undefined) {
       missingCrossPlatformEvidence.push(os);
       continue;

@@ -193,6 +193,26 @@ async function writeCrossPlatformEvidence(root: string, os: string): Promise<voi
   );
 }
 
+async function writeCrossPlatformEvidenceInArtifactFolder(root: string, os: string): Promise<void> {
+  await writeText(
+    root,
+    `cross-platform-smoke-${os}/benchmarks/out/cross-platform-smoke-${os}.json`,
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        os,
+        smoke: {
+          testSmokePassed: true,
+          phase6SmokePassed: true,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 describe("phase6 cross-platform evidence gate behavior", () => {
   it("passes in local mode without cross-platform evidence files", async () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-phase6-local-"));
@@ -240,6 +260,29 @@ describe("phase6 cross-platform evidence gate behavior", () => {
     await writeCrossPlatformEvidence(root, "ubuntu-latest");
     await writeCrossPlatformEvidence(root, "windows-latest");
     await writeCrossPlatformEvidence(root, "macos-latest");
+
+    const report = await evaluateReleaseGate({
+      rootDir: root,
+      outJsonPath: resolve(root, "out/report.json"),
+      outMarkdownPath: resolve(root, "out/report.md"),
+    });
+
+    expect(report.status).toBe("ok");
+    const crossPlatformCheck = findCheck(report.checks as readonly GateCheck[], "cross-platform-smoke-evidence");
+    expect(crossPlatformCheck?.status).toBe("ok");
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("passes in CI mode when evidence is downloaded under artifact subfolders", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-phase6-ci-artifact-layout-"));
+    await seedPhase6Fixture(root);
+    process.env.PHASE6_NEED_TEST = "success";
+    process.env.PHASE6_NEED_QUALITY = "success";
+    process.env.PHASE6_NEED_PHASE0_BENCHMARK = "success";
+    process.env.PHASE6_NEED_CROSS_PLATFORM = "success";
+    await writeCrossPlatformEvidenceInArtifactFolder(root, "ubuntu-latest");
+    await writeCrossPlatformEvidenceInArtifactFolder(root, "windows-latest");
+    await writeCrossPlatformEvidenceInArtifactFolder(root, "macos-latest");
 
     const report = await evaluateReleaseGate({
       rootDir: root,

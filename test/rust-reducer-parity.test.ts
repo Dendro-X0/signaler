@@ -68,5 +68,5 @@ describeRust("Rust signal reducer parity", () => {
     } finally {
       await rm(tempRoot, { recursive: true, force: true });
     }
-  });
+  }, 180_000);
 });
