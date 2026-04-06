@@ -38,6 +38,7 @@ import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
 import { runAnalyzeCli } from "./analyze-cli.js";
 import { runVerifyCli } from "./verify-cli.js";
+import { runInstallShimCli } from "./install-shim-cli.js";
 import { runFolderCli } from "./folder-cli.js";
 import { runCortexCli } from "./cortex-cli.js";
 import { runTuiCli } from "./tui-cli.js";
@@ -77,7 +78,8 @@ type ApexCommandId =
   | "export"
   | "ai"
   | "cortex"
-  | "version";
+  | "version"
+  | "install-shim";
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -127,7 +129,8 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "config" ||
     rawCommand === "export" ||
     rawCommand === "ai" ||
-    rawCommand === "cortex"
+    rawCommand === "cortex" ||
+    rawCommand === "install-shim"
   ) {
     const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
     return { command: rawCommand as ApexCommandId, argv: commandArgv };
@@ -152,12 +155,12 @@ async function printVersion(): Promise<void> {
       `  npx jsr add @signaler/cli@${version}`,
       "",
       "Quick Start:",
-      "  signaler discover    # Primary setup/discovery",
-      "  signaler run         # Primary runner",
-      "  signaler analyze     # V6 action packet",
-      "  signaler verify      # V6 focused verification loop",
-      "  signaler report      # Primary report/review",
-      "  signaler help        # Show all commands",
+      "  npx jsr run @signaler/cli discover    # Primary setup/discovery",
+      "  npx jsr run @signaler/cli run         # Primary runner",
+      "  npx jsr run @signaler/cli analyze     # V6 action packet",
+      "  npx jsr run @signaler/cli verify      # V6 focused verification loop",
+      "  npx jsr run @signaler/cli report      # Primary report/review",
+      "  npx jsr run @signaler/cli install-shim # Optional direct `signaler` command",
       "",
       "Documentation:",
       "  https://jsr.io/@signaler/cli",
@@ -280,7 +283,7 @@ function printCommandHelp(topic: string): boolean {
     return true;
   }
 
-  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "uninstall" || normalizedTopic === "clear-screenshots" || normalizedTopic === "upgrade" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell") {
+  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "uninstall" || normalizedTopic === "clear-screenshots" || normalizedTopic === "upgrade" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell" || normalizedTopic === "install-shim") {
     print([
       "Usage:",
       `  signaler ${normalizedTopic} [flags]`,
@@ -561,6 +564,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "    clean      Remove Signaler artifacts (reports/cache and optionally config)",
       "    uninstall  One-click uninstall (removes .signaler/ and signaler.config.json)",
       "    clear-screenshots  Remove .signaler/screenshots/",
+      "    install-shim  Install a shell shim so direct `signaler` works after JSR install",
       "",
       "  Configuration and Export:",
       "    config     Manage configuration files (create, validate, show)",
@@ -732,13 +736,19 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  --yes, -y              Skip confirmation prompt",
       "  --json                 Print JSON report to stdout",
       "",
+      "Options (install-shim):",
+      "  --dir <path>           Target directory for shim files",
+      "  --force                Overwrite existing shim files",
+      "  --dry-run              Print target files without writing",
+      "  --json                 Print machine-readable output",
+      "",
       "Outputs:",
       "  - Writes .signaler/summary.json, summary.md, report.html",
       "  - Prints a file:// link to the HTML report after completion",
       "",
       "Quick start:",
-      "  pnpm dlx signaler@latest wizard      # guided setup",
-      "  pnpm dlx signaler@latest audit       # run with signaler.config.json",
+      "  npx jsr run @signaler/cli discover   # guided setup",
+      "  npx jsr run @signaler/cli run        # run with signaler.config.json",
       "",
       "Defaults:",
       "  - Parallel auto-tunes from CPU/memory (up to 3 by default)",
@@ -951,6 +961,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "cortex") {
       await runCortexCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "install-shim") {
+      await runInstallShimCli(parsed.argv);
       return;
     }
   };

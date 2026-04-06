@@ -34,7 +34,7 @@ pnpm run bench:v3:gate
 pnpm run bench:v3:validate
 pnpm run bench:workstream-k:rust-benchmark
 pnpm run v3:repo-validation:list
-pnpm run release -- --target-version 3.1.3
+pnpm run release -- --target-version 3.1.4
 ```
 
 Cross-platform note:

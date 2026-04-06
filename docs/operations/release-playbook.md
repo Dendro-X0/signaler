@@ -4,7 +4,7 @@ Use this playbook to push and publish release candidates and GA builds with dete
 
 Recommended placeholder:
 
-- `<version>` (for example `3.1.3-rc.1` or `3.1.3`)
+- `<version>` (for example `3.1.4-rc.1` or `3.1.4`)
 
 ## 1) Preflight (Local)
 
@@ -109,5 +109,5 @@ npx jsr run @signaler/cli --version
 ## 6) Rollback Rules
 
 1. Never republish an existing version number.
-2. If post-publish issues are found, publish a new patch/rc (`3.1.3-rc.2` or `3.1.4`) with the same preflight steps.
+2. If post-publish issues are found, publish a new patch/rc (`3.1.4-rc.2` or `3.1.5`) with the same preflight steps.
 

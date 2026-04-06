@@ -29,7 +29,8 @@ export type HelpRoutableCommand =
   | "export"
   | "ai"
   | "cortex"
-  | "version";
+  | "version"
+  | "install-shim";
 
 export function hasHelpFlag(args: readonly string[]): boolean {
   return args.some((arg) => arg === "--help" || arg === "-h");
@@ -66,7 +67,8 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
     command === "config" ||
     command === "export" ||
     command === "ai" ||
-    command === "cortex"
+    command === "cortex" ||
+    command === "install-shim"
   ) {
     return command;
   }

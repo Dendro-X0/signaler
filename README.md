@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-3.1.3-blue.svg)
+![Version](http://img.shields.io/badge/version-3.1.4-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -12,6 +12,9 @@ Signaler is distributed via JSR (JavaScript Registry), the modern package regist
 ```bash
 # Add to your project
 npx jsr add @signaler/cli
+
+# Optional (recommended): install a shell shim so `signaler` works directly
+npx jsr run @signaler/cli install-shim
 
 # Or run directly without installation
 npx jsr run @signaler/cli run --mode throughput
@@ -25,22 +28,32 @@ Get up and running in minutes with the canonical workflow. Start by discovering 
 
 ```bash
 # Discover routes and create config (full scope, v4 target)
-npx signaler discover --scope full
+npx jsr run @signaler/cli discover --scope full
 
 # Run your first canonical audit
-npx signaler run --mode throughput
+npx jsr run @signaler/cli run --mode throughput
 
 # Generate machine-facing action packets (V6-gated)
-npx signaler analyze --contract v6
+npx jsr run @signaler/cli analyze --contract v6
 
 # Run focused verify loop (V6-gated)
-npx signaler verify --contract v6
+npx jsr run @signaler/cli verify --contract v6
 
 # Generate report/review outputs
-npx signaler report
+npx jsr run @signaler/cli report
 
 # View all available commands
-npx signaler --help
+npx jsr run @signaler/cli --help
+```
+
+If you installed the shim once (`npx jsr run @signaler/cli install-shim`), you can use the shorter form:
+
+```bash
+signaler discover --scope full
+signaler run --mode throughput
+signaler analyze --contract v6
+signaler verify --contract v6
+signaler report
 ```
 
 Discovery/setup auto-detects your framework and project root, resolves base URL defaults, and writes `.signaler/discovery.json` with selected/excluded route counts, scope details, and route strategy metadata so runs are transparent and reproducible.

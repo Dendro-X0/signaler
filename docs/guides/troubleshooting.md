@@ -18,24 +18,28 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 
 **Solutions:**
 
-1. **Restart your terminal** to refresh PATH variables
-2. **Check installation location:**
+1. **Install the Signaler shell shim (recommended for JSR installs):**
    ```bash
-   # On Windows
-   $env:LOCALAPPDATA\signaler\signaler.cmd --version
-   
-   # On Unix/macOS
-   ~/.local/bin/signaler --version
+   npx jsr run @signaler/cli install-shim
    ```
-3. **Verify Node.js installation:**
+2. **Use JSR direct run (works without shim):**
+   ```bash
+   npx jsr run @signaler/cli --version
+   npx jsr run @signaler/cli run --mode throughput
+   ```
+3. **Restart your terminal** to refresh PATH variables
+4. **Verify Node.js installation:**
    ```bash
    node --version  # Should be 18.0.0 or higher
    npm --version
    ```
-4. **Reinstall globally:**
+5. **Check shim location and PATH:**
    ```bash
-   npm uninstall -g @signaler/cli
-   npm install -g @signaler/cli
+   # Windows (default shim target)
+   %APPDATA%\npm\signaler.cmd
+
+   # Unix/macOS (default shim target)
+   ~/.local/bin/signaler
    ```
 
 ### Permission Errors on Unix/macOS
@@ -74,9 +78,9 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 
 **Problem:** Signaler doesn't work properly in Git Bash on Windows.
 
-**Solution:** Run the one-time setup script:
+**Solution:** Install shim directly from the published package:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/Dendro-X0/signaler/main/scripts/setup-bash-wrapper.sh)
+npx jsr run @signaler/cli install-shim
 ```
 
 ### Node.js Version Compatibility

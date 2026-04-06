@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-## 3.1.3 - Unreleased
+## 3.1.4 - Unreleased
+
+### Fixed
+
+- Added a first-class `install-shim` command to install direct `signaler` shell wrappers after JSR installs:
+  - `npx jsr run @signaler/cli install-shim`
+- Updated shell shim scripts to use a registry-backed proxy (`npx jsr run @signaler/cli`) instead of stale local install-path assumptions.
+- Corrected installation/help docs so JSR workflows no longer imply direct `signaler` availability before shim setup.
+
+## 3.1.3 - 2026-04-06
 
 ### Added
 

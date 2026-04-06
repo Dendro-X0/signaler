@@ -6,6 +6,18 @@ This document describes non-interactive CLI usage (for scripts/CI) and budget en
 
 The CLI binary is `signaler`.
 
+When using JSR without a shell shim, run commands as:
+
+```bash
+npx jsr run @signaler/cli <command> [flags]
+```
+
+Install the shim once to enable direct `signaler` usage:
+
+```bash
+npx jsr run @signaler/cli install-shim
+```
+
 Command help is side-effect free:
 
 - `signaler <command> --help` prints command-scoped help and exits `0`.

@@ -100,7 +100,14 @@ export function validatePublishContext(cwd = process.cwd()) {
 }
 
 function runOrFail(command, args) {
-  const result = spawnSync(command, args, { stdio: "inherit" });
+  const result = spawnSync(command, args, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  if (result.error) {
+    console.error(`[jsr-publish] Failed to execute ${command}: ${result.error.message}`);
+    process.exit(1);
+  }
   if (result.status !== 0) {
     const code = typeof result.status === "number" ? result.status : 1;
     process.exit(code);
