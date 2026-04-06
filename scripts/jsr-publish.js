@@ -107,6 +107,10 @@ function runOrFail(command, args) {
   }
 }
 
+function npmCommand(base) {
+  return process.platform === "win32" ? `${base}.cmd` : base;
+}
+
 export function runPublish(rawArgs = process.argv.slice(2)) {
   const args = parseArgs(rawArgs);
   const context = validatePublishContext(process.cwd());
@@ -132,13 +136,13 @@ export function runPublish(rawArgs = process.argv.slice(2)) {
 
   if (!args.skipBuild) {
     console.log("[jsr-publish] building package...");
-    runOrFail("pnpm", ["build"]);
+    runOrFail(npmCommand("pnpm"), ["build"]);
   } else {
     console.log("[jsr-publish] skipping build (--skip-build).");
   }
 
   console.log("[jsr-publish] publishing to JSR...");
-  runOrFail("npx", publishArgs);
+  runOrFail(npmCommand("npx"), publishArgs);
   console.log(`[jsr-publish] publish completed for @signaler/cli@${context.version}`);
 }
 
