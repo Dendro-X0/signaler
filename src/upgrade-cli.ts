@@ -5,11 +5,15 @@ import { execFile } from "node:child_process";
 import { request } from "node:https";
 import { DownloadManager, type DownloadResult } from "./infrastructure/network/download.js";
 
+const DEFAULT_SIGNALER_REPO = "Dendro-X0/signaler" as const;
+
 type UpgradeArgs = {
   readonly repo: string;
   readonly version: string;
   readonly installDir: string;
   readonly binDir: string;
+  readonly dryRun: boolean;
+  readonly json: boolean;
 };
 
 type GitHubAsset = {
@@ -28,6 +32,8 @@ type ParsedArgs = {
   readonly version?: string;
   readonly installDir?: string;
   readonly binDir?: string;
+  readonly dryRun: boolean;
+  readonly json: boolean;
 };
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
@@ -35,6 +41,8 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
   let version: string | undefined;
   let installDir: string | undefined;
   let binDir: string | undefined;
+  let dryRun = false;
+  let json = false;
   for (let i: number = 2; i < argv.length; i += 1) {
     const arg: string = argv[i] ?? "";
     if (arg === "--repo" && i + 1 < argv.length) {
@@ -57,21 +65,37 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
       i += 1;
       continue;
     }
+    if (arg === "--dry-run") {
+      dryRun = true;
+      continue;
+    }
+    if (arg === "--json") {
+      json = true;
+      continue;
+    }
   }
-  return { argv, repo, version, installDir, binDir };
+  return { argv, repo, version, installDir, binDir, dryRun, json };
+}
+
+function resolveGlobalInstallPaths(): { readonly baseDir: string; readonly installDir: string; readonly binDir: string } {
+  const baseDir: string = process.platform === "win32"
+    ? resolve(process.env.LOCALAPPDATA ?? ".", "signaler")
+    : resolve(process.env.XDG_DATA_HOME ?? resolve(process.env.HOME ?? ".", ".local/share"), "signaler");
+  return {
+    baseDir,
+    installDir: resolve(baseDir, "current"),
+    binDir: resolve(baseDir, "bin"),
+  };
 }
 
 function resolveDefaults(parsed: ParsedArgs): UpgradeArgs {
   const envRepo: string | undefined = process.env.SIGNALER_REPO;
-  const repo: string | undefined = parsed.repo ?? envRepo;
-  if (!repo || repo.trim().length === 0) {
-    throw new Error("Missing repo. Pass --repo owner/name or set SIGNALER_REPO.");
-  }
+  const repo: string = parsed.repo ?? envRepo ?? DEFAULT_SIGNALER_REPO;
   const version: string = parsed.version ?? "latest";
-  const baseDir: string = process.platform === "win32" ? resolve(process.env.LOCALAPPDATA ?? ".", "signaler") : resolve(process.env.XDG_DATA_HOME ?? resolve(process.env.HOME ?? ".", ".local/share"), "signaler");
-  const installDir: string = parsed.installDir ?? resolve(baseDir, "current");
-  const binDir: string = parsed.binDir ?? resolve(baseDir, "bin");
-  return { repo, version, installDir, binDir };
+  const paths = resolveGlobalInstallPaths();
+  const installDir: string = parsed.installDir ?? paths.installDir;
+  const binDir: string = parsed.binDir ?? paths.binDir;
+  return { repo, version, installDir, binDir, dryRun: parsed.dryRun, json: parsed.json };
 }
 
 function requestJson(url: string): Promise<GitHubRelease> {
@@ -190,6 +214,26 @@ async function writeLauncher(params: { readonly binDir: string; readonly install
   }
 }
 
+function buildResult(params: {
+  readonly releaseTag: string;
+  readonly installDir: string;
+  readonly binDir: string;
+  readonly repo: string;
+  readonly version: string;
+  readonly dryRun: boolean;
+}): Record<string, unknown> {
+  return {
+    ok: true,
+    repo: params.repo,
+    requestedVersion: params.version,
+    installedVersion: params.releaseTag,
+    installDir: params.installDir,
+    binDir: params.binDir,
+    dryRun: params.dryRun,
+    nextCommand: "signaler --help",
+  };
+}
+
 function getApiUrl(repo: string, version: string): string {
   if (version === "latest") {
     return `https://api.github.com/repos/${repo}/releases/latest`;
@@ -205,6 +249,25 @@ function getApiUrl(repo: string, version: string): string {
 export async function runUpgradeCli(argv: readonly string[]): Promise<void> {
   const parsed: ParsedArgs = parseArgs(argv);
   const args: UpgradeArgs = resolveDefaults(parsed);
+  if (args.dryRun) {
+    const preview = buildResult({
+      releaseTag: args.version === "latest" ? "latest" : args.version,
+      installDir: args.installDir,
+      binDir: args.binDir,
+      repo: args.repo,
+      version: args.version,
+      dryRun: true,
+    });
+    if (args.json) {
+      process.stdout.write(`${JSON.stringify(preview)}\n`);
+      return;
+    }
+    process.stdout.write(`Planned global install/update from ${args.repo}@${args.version}\n`);
+    process.stdout.write(`Install directory: ${args.installDir}\n`);
+    process.stdout.write(`Bin directory: ${args.binDir}\n`);
+    process.stdout.write("Next command after install: signaler --help\n");
+    return;
+  }
   const apiUrl: string = getApiUrl(args.repo, args.version);
   const release: GitHubRelease = await requestJson(apiUrl);
   const asset: GitHubAsset = pickPortableAsset(release);
@@ -225,9 +288,26 @@ export async function runUpgradeCli(argv: readonly string[]): Promise<void> {
   await writeLauncher({ binDir: args.binDir, installDir: args.installDir });
   await rm(stagingDir, { recursive: true, force: true });
   await rm(zipPath, { force: true });
+  const result = buildResult({
+    releaseTag: release.tag_name,
+    installDir: args.installDir,
+    binDir: args.binDir,
+    repo: args.repo,
+    version: args.version,
+    dryRun: false,
+  });
+  if (args.json) {
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    return;
+  }
   process.stdout.write(`Installed ${release.tag_name} to ${args.installDir}\n`);
+  process.stdout.write(`Global launcher directory: ${args.binDir}\n`);
   process.stdout.write("Run from anywhere: signaler --help\n");
+  process.stdout.write(`Update later with: signaler upgrade${args.version !== "latest" ? " --version latest" : ""}\n`);
+  process.stdout.write("Remove later with: signaler uninstall --global\n");
   if (process.platform !== "win32") {
     process.stdout.write(`Ensure this is in your PATH: ${args.binDir}\n`);
   }
 }
+
+export { DEFAULT_SIGNALER_REPO, parseArgs as parseUpgradeArgs, resolveDefaults as resolveUpgradeDefaults, resolveGlobalInstallPaths };

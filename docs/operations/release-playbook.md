@@ -97,8 +97,8 @@ If you run from the parent workspace root by mistake, JSR will fail with:
 2. Run clean install smoke in a sample project:
 
 ```bash
-npx jsr add @signaler/cli
-npx jsr run @signaler/cli --version
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+signaler --version
 ```
 
 3. Update:

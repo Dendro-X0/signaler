@@ -1,25 +1,29 @@
 # Release Notes - v3.1.4
 
 Release date: 2026-04-06  
-Status: Published patch (JSR)
+Status: Published patch
 
 ## Highlights
 
 - Added `install-shim` command to restore direct `signaler` command ergonomics after JSR installs.
-- Updated wrapper helper scripts to use `npx jsr run @signaler/cli` proxy behavior.
-- Corrected installation and troubleshooting docs for JSR-first usage.
+- Added portable installer scripts for direct global installation:
+  - `release-assets/install.ps1`
+  - `release-assets/install.sh`
+- Corrected installation and troubleshooting docs so global install now points to the portable installer path, with `install-shim` retained as a fallback.
 
-## Quick Start (JSR)
+## Quick Start (Global Install)
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
 
 ```bash
-npx jsr add @signaler/cli
-npx jsr run @signaler/cli install-shim
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 signaler --version
 ```
 
-If you prefer no shim:
+If you need a lightweight JSR-oriented wrapper instead:
 
 ```bash
-npx jsr run @signaler/cli --version
+npx jsr run @signaler/cli install-shim
 ```
-

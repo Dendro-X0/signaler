@@ -48,6 +48,7 @@ import { readEngineVersion } from "./engine-version.js";
 import { hasHelpFlag, resolveCommandHelpTopic } from "./help-routing.js";
 
 type ApexCommandId =
+  | "install"
   | "run"
   | "review"
   | "audit"
@@ -103,6 +104,7 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
   }
   if (
     rawCommand === "run" ||
+    rawCommand === "install" ||
     rawCommand === "review" ||
     rawCommand === "audit" ||
     rawCommand === "quick" ||
@@ -149,21 +151,25 @@ async function printVersion(): Promise<void> {
       `Version: ${version}`,
       `Node.js: ${nodeVersion}`,
       `Platform: ${platform}`,
-      "Package Manager: JSR (@signaler/cli)",
+      "Distribution: portable GitHub Release installers",
       "",
-      "Installation:",
-      `  npx jsr add @signaler/cli@${version}`,
+      "Install:",
+      "  PowerShell: irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex",
+      "  Bash:       curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash",
       "",
       "Quick Start:",
-      "  npx jsr run @signaler/cli discover    # Primary setup/discovery",
-      "  npx jsr run @signaler/cli run         # Primary runner",
-      "  npx jsr run @signaler/cli analyze     # V6 action packet",
-      "  npx jsr run @signaler/cli verify      # V6 focused verification loop",
-      "  npx jsr run @signaler/cli report      # Primary report/review",
-      "  npx jsr run @signaler/cli install-shim # Optional direct `signaler` command",
+      "  signaler discover    # Primary setup/discovery",
+      "  signaler run         # Primary runner",
+      "  signaler analyze     # V6 action packet",
+      "  signaler verify      # V6 focused verification loop",
+      "  signaler report      # Primary report/review",
+      "",
+      "Maintenance:",
+      "  signaler upgrade     # Update the global install",
+      "  signaler uninstall --global",
       "",
       "Documentation:",
-      "  https://jsr.io/@signaler/cli",
+      "  https://github.com/Dendro-X0/signaler",
     ].join("\n"),
   );
 }
@@ -283,7 +289,60 @@ function printCommandHelp(topic: string): boolean {
     return true;
   }
 
-  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "uninstall" || normalizedTopic === "clear-screenshots" || normalizedTopic === "upgrade" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell" || normalizedTopic === "install-shim") {
+  if (normalizedTopic === "install") {
+    print([
+      "Usage:",
+      "  signaler install [flags]",
+      "",
+      "Description:",
+      "  Install the portable Signaler release globally and create a direct `signaler` launcher.",
+      "",
+      "Key flags:",
+      "  --version <tag|latest>",
+      "  --repo <owner/name>",
+      "  --install-dir <path>",
+      "  --bin-dir <path>",
+      "  --dry-run --json",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "upgrade") {
+    print([
+      "Usage:",
+      "  signaler upgrade [flags]",
+      "",
+      "Description:",
+      "  Update the global portable Signaler install in place.",
+      "",
+      "Key flags:",
+      "  --version <tag|latest>",
+      "  --repo <owner/name>",
+      "  --install-dir <path>",
+      "  --bin-dir <path>",
+      "  --dry-run --json",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "uninstall") {
+    print([
+      "Usage:",
+      "  signaler uninstall [flags]",
+      "",
+      "Description:",
+      "  Remove Signaler project artifacts by default, or remove the global install with --global.",
+      "",
+      "Key flags:",
+      "  --global",
+      "  --project-root <path>",
+      "  --config-path <path>",
+      "  --dry-run --yes --json",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "clear-screenshots" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell" || normalizedTopic === "install-shim") {
     print([
       "Usage:",
       `  signaler ${normalizedTopic} [flags]`,
@@ -513,6 +572,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "",
       "Usage:",
       "  signaler                 # interactive shell (default)",
+      "  signaler install         # install the portable release globally",
       "  signaler discover        # primary route discovery/setup",
       "  signaler run --mode <fidelity|throughput> [flags]   # canonical runner",
       "  signaler analyze --contract v6 [flags]   # canonical machine action packet",
@@ -530,7 +590,8 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  signaler audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
       "  signaler audit --flags    # print audit flags/options and exit",
       "  signaler guide  (alias of wizard) interactive flow with tips for non-technical users",
-      "  signaler upgrade --repo <owner/name>  # self-update from GitHub Releases",
+      "  signaler upgrade [--version <tag|latest>]  # update the portable global install",
+      "  signaler uninstall --global  # remove the portable global install",
       "  signaler shell           # same as default entrypoint",
       "",
       "Commands:",
@@ -553,7 +614,8 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
       "    discover   Primary setup/discovery flow",
       "    folder     Audit a local folder by serving it with a static server",
-      "    upgrade    Self-update the CLI from GitHub Releases",
+      "    install    Install the portable CLI globally from GitHub Releases",
+      "    upgrade    Update the portable global CLI from GitHub Releases",
       "    bundle     Bundle size audit (Next.js .next/ or dist/ build output)",
       "    health     HTTP status + latency checks for configured routes",
       "    links      Broken links audit (sitemap + HTML link extraction)",
@@ -562,7 +624,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "",
       "  Maintenance:",
       "    clean      Remove Signaler artifacts (reports/cache and optionally config)",
-      "    uninstall  One-click uninstall (removes .signaler/ and signaler.config.json)",
+      "    uninstall  Remove project artifacts by default, or the global install with --global",
       "    clear-screenshots  Remove .signaler/screenshots/",
       "    install-shim  Install a shell shim so direct `signaler` works after JSR install",
       "",
@@ -712,6 +774,14 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  --max-events <n>       Cap captured events per combo (default 50)",
       "  --json                 Print JSON report to stdout",
       "",
+      "Options (install/upgrade):",
+      "  --version <tag|latest>  Release tag to install (default latest)",
+      "  --repo <owner/name>     GitHub repo used for portable release lookup (default Dendro-X0/signaler)",
+      "  --install-dir <path>    Override install directory",
+      "  --bin-dir <path>        Override launcher directory",
+      "  --dry-run               Print the plan without downloading",
+      "  --json                  Print machine-readable output",
+      "",
       "Options (clean):",
       "  --project-root <path>  Project root (default cwd)",
       "  --config-path <path>   Config file path relative to project root (default signaler.config.json)",
@@ -724,6 +794,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  --json                 Print JSON report to stdout",
       "",
       "Options (uninstall):",
+      "  --global               Remove the portable global install instead of project artifacts",
       "  --project-root <path>  Project root (default cwd)",
       "  --config-path <path>   Config file path relative to project root (default signaler.config.json)",
       "  --dry-run              Print planned removals without deleting",
@@ -747,8 +818,10 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  - Prints a file:// link to the HTML report after completion",
       "",
       "Quick start:",
-      "  npx jsr run @signaler/cli discover   # guided setup",
-      "  npx jsr run @signaler/cli run        # run with signaler.config.json",
+      "  PowerShell: irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex",
+      "  Bash:       curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash",
+      "  signaler discover                    # guided setup after install",
+      "  signaler run                         # run with signaler.config.json",
       "",
       "Defaults:",
       "  - Parallel auto-tunes from CPU/memory (up to 3 by default)",
@@ -866,6 +939,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "run") {
       await runAuditCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "install") {
+      await runUpgradeCli(parsed.argv);
       return;
     }
     if (parsed.command === "quick") {

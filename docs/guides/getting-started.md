@@ -45,9 +45,7 @@ Optional audits:
 
 ## 1. Install / run
 
-Registry-free installation (recommended):
-
-Install the latest tagged GitHub Release in a single command:
+Recommended global install:
 
 Windows (PowerShell):
 
@@ -61,10 +59,22 @@ macOS/Linux:
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-Upgrade later (no registry):
+Verify after install:
+
+```bash
+signaler --version
+```
+
+Update later:
 
 ```bash
 signaler upgrade
+```
+
+Remove the global install later:
+
+```bash
+signaler uninstall --global
 ```
 
 Prerequisites:

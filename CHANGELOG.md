@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Changed
+
+- Promoted portable global install as the primary non-npm distribution flow:
+  - `irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex`
+  - `curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash`
+  - `signaler upgrade`
+  - `signaler uninstall --global`
+- Added default portable-release repo resolution for install/upgrade so users no longer need `--repo` or `SIGNALER_REPO` for the standard Signaler distribution path.
+- Added first-class release installer scripts under `release-assets/`.
+- Updated CLI help and docs to position `install-shim` as a lightweight fallback instead of the main install path.
+
 ## 3.1.4 - Unreleased
 
 ### Fixed

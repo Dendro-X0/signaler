@@ -1,4 +1,5 @@
 export type HelpRoutableCommand =
+  | "install"
   | "run"
   | "review"
   | "audit"
@@ -61,6 +62,7 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
     command === "clean" ||
     command === "uninstall" ||
     command === "clear-screenshots" ||
+    command === "install" ||
     command === "upgrade" ||
     command === "shell" ||
     command === "tui" ||

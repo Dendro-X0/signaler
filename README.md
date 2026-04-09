@@ -7,46 +7,35 @@
 
 ## Installation
 
-Signaler is distributed via JSR (JavaScript Registry), the modern package registry for JavaScript and TypeScript. JSR provides better performance, native TypeScript support, and improved security compared to traditional npm packages.
+Signaler is distributed through portable GitHub Release installers. The recommended path is a one-time install script that creates a direct global `signaler` launcher.
 
-```bash
-# Add to your project
-npx jsr add @signaler/cli
+Windows (PowerShell):
 
-# Optional (recommended): install a shell shim so `signaler` works directly
-npx jsr run @signaler/cli install-shim
-
-# Or run directly without installation
-npx jsr run @signaler/cli run --mode throughput
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-**Requirements**: Node.js 18.x or higher. Compatible with npm, pnpm, yarn, and Deno package managers.
+macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+After install:
+
+```bash
+signaler --version
+signaler upgrade
+signaler uninstall --global
+```
+
+JSR remains useful as a package source for project dependencies and publishing, but it is not a direct global CLI bootstrap mechanism for Signaler.
+
+**Requirements**: Node.js 18.x or higher on the target machine.
 
 ## Quick Start
 
 Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
-
-```bash
-# Discover routes and create config (full scope, v4 target)
-npx jsr run @signaler/cli discover --scope full
-
-# Run your first canonical audit
-npx jsr run @signaler/cli run --mode throughput
-
-# Generate machine-facing action packets (V6-gated)
-npx jsr run @signaler/cli analyze --contract v6
-
-# Run focused verify loop (V6-gated)
-npx jsr run @signaler/cli verify --contract v6
-
-# Generate report/review outputs
-npx jsr run @signaler/cli report
-
-# View all available commands
-npx jsr run @signaler/cli --help
-```
-
-If you installed the shim once (`npx jsr run @signaler/cli install-shim`), you can use the shorter form:
 
 ```bash
 signaler discover --scope full
@@ -54,6 +43,7 @@ signaler run --mode throughput
 signaler analyze --contract v6
 signaler verify --contract v6
 signaler report
+signaler --help
 ```
 
 Discovery/setup auto-detects your framework and project root, resolves base URL defaults, and writes `.signaler/discovery.json` with selected/excluded route counts, scope details, and route strategy metadata so runs are transparent and reproducible.
@@ -238,9 +228,10 @@ jobs:
       - run: pnpm install
       - run: pnpm start &
       - run: npx wait-on http://127.0.0.1:3000
-      - run: npx jsr run @signaler/cli discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-      - run: npx jsr run @signaler/cli run --contract v3 --mode throughput --ci --no-color --yes
-      - run: npx jsr run @signaler/cli report --dir .signaler
+      - run: curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+      - run: signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
+      - run: signaler run --contract v3 --mode throughput --ci --no-color --yes
+      - run: signaler report --dir .signaler
 ```
 
 Reusable templates:

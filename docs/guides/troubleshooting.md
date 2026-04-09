@@ -18,25 +18,42 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 
 **Solutions:**
 
-1. **Install the Signaler shell shim (recommended for JSR installs):**
+1. **Install Signaler globally using the release installer:**
+   ```powershell
+   irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+   ```
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   ```
+2. **If you already have Signaler installed and only need to repair the launcher, use the built-in global lifecycle commands:**
+   ```bash
+   signaler upgrade
+   signaler uninstall --global
+   ```
+3. **If you only need a lightweight wrapper in a JSR-driven workflow, install the Signaler shell shim:**
    ```bash
    npx jsr run @signaler/cli install-shim
    ```
-2. **Use JSR direct run (works without shim):**
+4. **Use JSR direct run only when you are inside a project workflow that already installs the package locally:**
    ```bash
-   npx jsr run @signaler/cli --version
-   npx jsr run @signaler/cli run --mode throughput
+   npx jsr run @signaler/cli <command>
    ```
-3. **Restart your terminal** to refresh PATH variables
-4. **Verify Node.js installation:**
+5. **Restart your terminal** to refresh PATH variables
+6. **Verify Node.js installation:**
    ```bash
    node --version  # Should be 18.0.0 or higher
    npm --version
    ```
-5. **Check shim location and PATH:**
+7. **Check launcher/shim location and PATH:**
    ```bash
-   # Windows (default shim target)
+   # Windows portable install launcher
+   %LOCALAPPDATA%\signaler\bin\signaler.cmd
+
+   # Windows shim target
    %APPDATA%\npm\signaler.cmd
+
+   # Unix/macOS portable install launcher
+   ~/.local/share/signaler/bin/signaler
 
    # Unix/macOS (default shim target)
    ~/.local/bin/signaler
@@ -78,10 +95,7 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 
 **Problem:** Signaler doesn't work properly in Git Bash on Windows.
 
-**Solution:** Install shim directly from the published package:
-```bash
-npx jsr run @signaler/cli install-shim
-```
+**Solution:** Use the global installer first, then verify `%LOCALAPPDATA%\signaler\bin` is reachable from Git Bash. If you still only want a wrapper, use `install-shim`.
 
 ### Node.js Version Compatibility
 

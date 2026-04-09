@@ -6,16 +6,36 @@ This document describes non-interactive CLI usage (for scripts/CI) and budget en
 
 The CLI binary is `signaler`.
 
-When using JSR without a shell shim, run commands as:
+Recommended global install:
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Update later:
+
+```bash
+signaler upgrade
+```
+
+Remove the global install later:
+
+```bash
+signaler uninstall --global
+```
+
+JSR remains useful for package distribution and publishing, but it is not the primary global CLI bootstrap path:
 
 ```bash
 npx jsr run @signaler/cli <command> [flags]
-```
-
-Install the shim once to enable direct `signaler` usage:
-
-```bash
-npx jsr run @signaler/cli install-shim
 ```
 
 Command help is side-effect free:

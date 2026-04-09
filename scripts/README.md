@@ -2,21 +2,37 @@
 
 This directory contains helper scripts for agent bootstrap, release preflight, and shell shims.
 
-## Recommended Path (JSR Install)
+## Recommended Path (Global Install)
 
-After installing via JSR:
+Windows (PowerShell):
 
-```bash
-npx jsr add @signaler/cli
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-install a direct `signaler` command once:
+macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Then use:
+
+```bash
+signaler <args>
+signaler upgrade
+signaler uninstall --global
+```
+
+## Lightweight Shim Fallback
+
+If you do not want the portable global install, you can still install a small wrapper in a JSR-driven environment:
 
 ```bash
 npx jsr run @signaler/cli install-shim
 ```
 
-This installs lightweight shims that proxy to:
+This shim proxies to:
 
 ```bash
 npx jsr run @signaler/cli <args>
@@ -78,4 +94,3 @@ Usage:
 pnpm run jsr:publish -- --dry-run
 pnpm run jsr:publish
 ```
-
