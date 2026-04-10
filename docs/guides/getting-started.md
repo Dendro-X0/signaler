@@ -4,7 +4,7 @@ Signaler is a **reliable web lab runner** with an agent-first artifact contract.
 
 If you are using an editor or terminal agent, start with [`agent-quickstart.md`](agent-quickstart.md).
 
-This remastered release is designed to be installed and run as a CLI (`signaler`).
+This remastered release is designed to be installed and run as a CLI (`signaler`, with `signalar` as a compatibility alias).
 
 Canonical workflow:
 
@@ -63,6 +63,7 @@ Verify after install:
 
 ```bash
 signaler --version
+signalar --version
 ```
 
 Update later:
@@ -76,6 +77,12 @@ Remove the global install later:
 ```bash
 signaler uninstall --global
 ```
+
+Built-in lifecycle commands:
+
+- `signaler upgrade`
+- `signaler uninstall --global`
+- `signalar <command>` if you prefer the compatibility alias
 
 Prerequisites:
 

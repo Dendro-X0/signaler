@@ -4,11 +4,11 @@ This guide helps resolve common issues when using Signaler for web performance a
 
 Canonical commands:
 
-- `init` (setup)
+- `discover` (setup)
 - `run` (primary Lighthouse runner)
-- `review` (report regeneration from artifacts)
+- `report` (report regeneration from artifacts)
 
-Legacy aliases remain supported: `wizard`, `audit`, `report`.
+Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
 
 ## Installation Issues
 
@@ -25,11 +25,12 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
    ```bash
    curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
    ```
-2. **If you already have Signaler installed and only need to repair the launcher, use the built-in global lifecycle commands:**
+2. **If you already have Signaler installed and only need to repair or refresh the portable global install, use the built-in global lifecycle commands:**
    ```bash
    signaler upgrade
    signaler uninstall --global
    ```
+   `signalar` is also installed as a compatibility alias by the portable release flow.
 3. **If you only need a lightweight wrapper in a JSR-driven workflow, install the Signaler shell shim:**
    ```bash
    npx jsr run @signaler/cli install-shim
@@ -48,15 +49,19 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
    ```bash
    # Windows portable install launcher
    %LOCALAPPDATA%\signaler\bin\signaler.cmd
+   %LOCALAPPDATA%\signaler\bin\signalar.cmd
 
    # Windows shim target
    %APPDATA%\npm\signaler.cmd
+   %APPDATA%\npm\signalar.cmd
 
    # Unix/macOS portable install launcher
    ~/.local/share/signaler/bin/signaler
+   ~/.local/share/signaler/bin/signalar
 
    # Unix/macOS (default shim target)
    ~/.local/bin/signaler
+   ~/.local/bin/signalar
    ```
 
 ### Permission Errors on Unix/macOS
@@ -65,9 +70,9 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 
 **Solutions:**
 
-1. **Use sudo (not recommended):**
+1. **Use the portable release installer instead of a global npm install:**
    ```bash
-   sudo npm install -g @signaler/cli
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
    ```
 
 2. **Use Node Version Manager (recommended):**
@@ -80,14 +85,13 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
    nvm use node
    
    # Now install Signaler
-   npm install -g @signaler/cli
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
    ```
 
-3. **Configure npm to use different directory:**
+3. **Ensure your launcher directory is writable and in PATH:**
    ```bash
-   mkdir ~/.npm-global
-   npm config set prefix '~/.npm-global'
-   echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+   mkdir -p ~/.local/share/signaler/bin
+   echo 'export PATH=~/.local/share/signaler/bin:$PATH' >> ~/.bashrc
    source ~/.bashrc
    ```
 
@@ -242,9 +246,9 @@ Legacy aliases remain supported: `wizard`, `audit`, `report`.
 4. **Check Chrome installation:**
    ```bash
    # Chrome should be auto-installed by Lighthouse
-   # If issues persist, try reinstalling
-   npm uninstall -g @signaler/cli
-   npm install -g @signaler/cli
+   # If issues persist, refresh the portable global install
+   signaler uninstall --global
+   irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
    ```
 
 ### Memory Issues
@@ -628,7 +632,7 @@ signaler run --log-level verbose > debug.log 2>&1
 
 1. **Update to latest version:**
    ```bash
-   npm update -g @signaler/cli
+   signaler upgrade
    ```
 
 2. **Try with minimal config:**

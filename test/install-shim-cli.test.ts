@@ -34,14 +34,17 @@ describe("install-shim cli", () => {
       });
       expect(result.ok).toBe(true);
       await stat(resolve(targetDir, "signaler"));
+      await stat(resolve(targetDir, "signalar"));
       const bashShim = await readFile(resolve(targetDir, "signaler"), "utf8");
       expect(bashShim).toContain("npx jsr run @signaler/cli");
+      const bashAliasShim = await readFile(resolve(targetDir, "signalar"), "utf8");
+      expect(bashAliasShim).toContain("npx jsr run @signaler/cli");
       if (process.platform === "win32") {
         await stat(resolve(targetDir, "signaler.cmd"));
+        await stat(resolve(targetDir, "signalar.cmd"));
       }
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 });
-

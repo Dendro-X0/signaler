@@ -144,9 +144,11 @@ function buildPlan(args: UninstallArgs): readonly UninstallAction[] {
     const actions: UninstallAction[] = [
       { kind: "rm", path: paths.installDir, existsByAssumption: false },
       { kind: "rm", path: resolve(paths.binDir, "signaler"), existsByAssumption: false },
+      { kind: "rm", path: resolve(paths.binDir, "signalar"), existsByAssumption: false },
     ];
     if (process.platform === "win32") {
       actions.push({ kind: "rm", path: resolve(paths.binDir, "signaler.cmd"), existsByAssumption: false });
+      actions.push({ kind: "rm", path: resolve(paths.binDir, "signalar.cmd"), existsByAssumption: false });
     }
     return actions;
   }

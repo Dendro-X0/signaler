@@ -203,14 +203,22 @@ async function extractZip(params: { readonly zipPath: string; readonly destDir: 
 async function writeLauncher(params: { readonly binDir: string; readonly installDir: string }): Promise<void> {
   await mkdir(params.binDir, { recursive: true });
   if (process.platform === "win32") {
-    const launcherPath: string = join(params.binDir, "signaler.cmd");
     const content: string = `@echo off\r\nsetlocal\r\nset \"ROOT=${params.installDir}\"\r\nnode \"%ROOT%\\dist\\bin.js\" %*\r\n`;
-    await writeFile(launcherPath, content, "ascii");
+    await writeFile(join(params.binDir, "signaler.cmd"), content, "ascii");
+    await writeFile(join(params.binDir, "signalar.cmd"), content, "ascii");
+    const bashContent: string = `#!/usr/bin/env bash\nROOT_DIR="${params.installDir}"\nexec node "$ROOT_DIR/dist/bin.js" "$@"\n`;
+    await writeFile(join(params.binDir, "signaler"), bashContent, "utf8");
+    await writeFile(join(params.binDir, "signalar"), bashContent, "utf8");
   } else {
-    const launcherPath: string = join(params.binDir, "signaler");
     const content: string = `#!/usr/bin/env bash\nset -euo pipefail\nROOT_DIR=\"$(cd \"$(dirname \"\${BASH_SOURCE[0]}\")/../current\" && pwd)\"\nnode \"$ROOT_DIR/dist/bin.js\" \"$@\"\n`;
-    await writeFile(launcherPath, content, "utf8");
-    await execFileAsync("chmod", ["+x", launcherPath]);
+    const launcherPaths: readonly string[] = [
+      join(params.binDir, "signaler"),
+      join(params.binDir, "signalar"),
+    ];
+    for (const launcherPath of launcherPaths) {
+      await writeFile(launcherPath, content, "utf8");
+      await execFileAsync("chmod", ["+x", launcherPath]);
+    }
   }
 }
 

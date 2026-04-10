@@ -14,6 +14,7 @@ fi
 
 mkdir -p "$BIN_DIR"
 WRAPPER_PATH="$BIN_DIR/signaler"
+ALIAS_PATH="$BIN_DIR/signalar"
 
 cat > "$WRAPPER_PATH" <<'WRAPPER_EOF'
 #!/usr/bin/env bash
@@ -22,10 +23,13 @@ exec npx jsr run @signaler/cli "$@"
 WRAPPER_EOF
 
 chmod +x "$WRAPPER_PATH"
+cp "$WRAPPER_PATH" "$ALIAS_PATH"
+chmod +x "$ALIAS_PATH"
 
 echo ""
 echo "Created shim: $WRAPPER_PATH"
-echo "Try: signaler --version"
+echo "Created shim: $ALIAS_PATH"
+echo "Try: signaler --version (or: signalar --version)"
 echo ""
 echo "If command is still not found, ensure this path is in PATH:"
 echo "  $BIN_DIR"

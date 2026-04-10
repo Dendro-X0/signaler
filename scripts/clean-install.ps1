@@ -45,6 +45,6 @@ Write-Host "=== Installation Complete ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal if it was already open." -ForegroundColor White
-Write-Host "  2. Test with: signaler --version" -ForegroundColor White
+Write-Host "  2. Test with: signaler --version  (or: signalar --version)" -ForegroundColor White
 Write-Host "  3. Update later with: signaler upgrade" -ForegroundColor White
 Write-Host "  4. Remove later with: signaler uninstall --global" -ForegroundColor White

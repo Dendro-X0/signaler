@@ -59,7 +59,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../current" && pwd)"
 exec node "$ROOT_DIR/dist/bin.js" "$@"
 EOF
 
+cat > "$BIN_DIR/signalar" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../current" && pwd)"
+exec node "$ROOT_DIR/dist/bin.js" "$@"
+EOF
+
 chmod +x "$BIN_DIR/signaler"
+chmod +x "$BIN_DIR/signalar"
 rm -rf "$TMP_ROOT"
 
 printf '\nInstalled %s to %s\n' "$RELEASE_TAG" "$INSTALL_DIR"
@@ -67,6 +75,6 @@ printf 'Launcher directory: %s\n' "$BIN_DIR"
 printf '\nNext steps:\n'
 printf '  1. Add "%s" to PATH if needed.\n' "$BIN_DIR"
 printf '  2. Restart your terminal if it was already open.\n'
-printf '  3. Run: signaler --version\n'
+printf '  3. Run: signaler --version (or: signalar --version)\n'
 printf '  4. Update later with: signaler upgrade\n'
 printf '  5. Remove later with: signaler uninstall --global\n'

@@ -59,7 +59,8 @@
     "LICENSE"
   ],
   "bin": {
-    "signaler": "./dist/bin.js"
+    "signaler": "./dist/bin.js",
+    "signalar": "./dist/bin.js"
   },
   "exports": {
     ".": {

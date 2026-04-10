@@ -4,7 +4,8 @@ $ErrorActionPreference = "Stop"
 
 $Repo = if ($env:SIGNALER_REPO) { $env:SIGNALER_REPO } else { "Dendro-X0/signaler" }
 $Version = if ($env:SIGNALER_VERSION) { $env:SIGNALER_VERSION } else { "latest" }
-$BaseDir = Join-Path ($env:LOCALAPPDATA ?? (Join-Path $HOME "AppData\\Local")) "signaler"
+$LocalAppData = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME "AppData\\Local" }
+$BaseDir = Join-Path $LocalAppData "signaler"
 $InstallDir = Join-Path $BaseDir "current"
 $BinDir = Join-Path $BaseDir "bin"
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("signaler-install-" + [guid]::NewGuid().ToString("N"))
@@ -51,11 +52,15 @@ function Write-Launcher {
 
   New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
   $cmdPath = Join-Path $BinDir "signaler.cmd"
+  $cmdAliasPath = Join-Path $BinDir "signalar.cmd"
   $bashPath = Join-Path $BinDir "signaler"
+  $bashAliasPath = Join-Path $BinDir "signalar"
   $cmdContent = "@echo off`r`nsetlocal`r`nset `"ROOT=$InstallDir`"`r`nnode `"%ROOT%\dist\bin.js`" %*`r`n"
   $bashContent = "#!/usr/bin/env bash`nROOT_DIR=""$InstallDir""`nexec node ""$ROOT_DIR/dist/bin.js"" ""`$@""`n"
   Set-Content -Path $cmdPath -Value $cmdContent -Encoding Ascii -NoNewline
+  Set-Content -Path $cmdAliasPath -Value $cmdContent -Encoding Ascii -NoNewline
   Set-Content -Path $bashPath -Value $bashContent -Encoding Utf8 -NoNewline
+  Set-Content -Path $bashAliasPath -Value $bashContent -Encoding Utf8 -NoNewline
 }
 
 Write-Host "Installing Signaler..." -ForegroundColor Cyan
@@ -91,6 +96,6 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Add '$BinDir' to PATH if needed." -ForegroundColor White
 Write-Host "  2. Restart your terminal if it was already open." -ForegroundColor White
-Write-Host "  3. Run: signaler --version" -ForegroundColor White
+Write-Host "  3. Run: signaler --version  (or: signalar --version)" -ForegroundColor White
 Write-Host "  4. Update later with: signaler upgrade" -ForegroundColor White
 Write-Host "  5. Remove later with: signaler uninstall --global" -ForegroundColor White

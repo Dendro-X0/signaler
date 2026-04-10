@@ -20,13 +20,14 @@ Then use:
 
 ```bash
 signaler <args>
+signalar <args>
 signaler upgrade
 signaler uninstall --global
 ```
 
 ## Lightweight Shim Fallback
 
-If you do not want the portable global install, you can still install a small wrapper in a JSR-driven environment:
+If you do not want the portable global install, you can still install small wrappers in a JSR-driven environment:
 
 ```bash
 npx jsr run @signaler/cli install-shim
@@ -42,7 +43,7 @@ npx jsr run @signaler/cli <args>
 
 ### `setup-bash-wrapper.sh`
 
-Creates `signaler` shim in a PATH-friendly directory for Git Bash.
+Creates `signaler` and `signalar` shims in a PATH-friendly directory for Git Bash.
 
 Usage:
 
@@ -52,7 +53,7 @@ bash setup-bash-wrapper.sh
 
 ### `setup-bash-wrapper.ps1`
 
-Creates `signaler` and `signaler.cmd` shims in `%APPDATA%\npm`.
+Creates `signaler`, `signalar`, `signaler.cmd`, and `signalar.cmd` shims in `%APPDATA%\npm`.
 
 Usage:
 

@@ -7,7 +7,7 @@
 
 ## Installation
 
-Signaler is distributed through portable GitHub Release installers. The recommended path is a one-time install script that creates a direct global `signaler` launcher.
+Signaler is distributed through portable GitHub Release installers. The recommended path is a one-time install script that creates direct global `signaler` and `signalar` launchers without trying to bundle the entire package into a native binary.
 
 Windows (PowerShell):
 
@@ -25,11 +25,18 @@ After install:
 
 ```bash
 signaler --version
+signalar --version
 signaler upgrade
 signaler uninstall --global
 ```
 
-JSR remains useful as a package source for project dependencies and publishing, but it is not a direct global CLI bootstrap mechanism for Signaler.
+Built-in lifecycle commands:
+
+- `signaler upgrade` updates the portable global install in place
+- `signaler uninstall --global` removes the portable global install
+- `signalar` is a compatibility alias that launches the same CLI
+
+JSR remains useful as a package source for project dependencies and publishing, but it is not the primary direct global CLI bootstrap mechanism for Signaler.
 
 **Requirements**: Node.js 18.x or higher on the target machine.
 

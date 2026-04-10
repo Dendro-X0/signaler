@@ -77,7 +77,7 @@ function defaultTargetDir(): string {
 function buildBashShim(): string {
   return [
     "#!/usr/bin/env bash",
-    "# Signaler shim: allows direct `signaler` command from shell",
+    "# Signaler shim: allows direct `signaler` and `signalar` commands from shell",
     "exec npx jsr run @signaler/cli \"$@\"",
     "",
   ].join("\n");
@@ -86,7 +86,7 @@ function buildBashShim(): string {
 function buildCmdShim(): string {
   return [
     "@echo off",
-    "REM Signaler shim: allows direct `signaler` command from shell",
+    "REM Signaler shim: allows direct `signaler` and `signalar` commands from shell",
     "npx jsr run @signaler/cli %*",
     "",
   ].join("\r\n");
@@ -110,7 +110,7 @@ function printHelp(): void {
       "  signaler install-shim [--dir <path>] [--force] [--dry-run] [--json]",
       "",
       "Description:",
-      "  Installs a lightweight shell wrapper so `signaler` works directly after JSR installs.",
+      "  Installs lightweight shell wrappers so `signaler` and `signalar` work directly after JSR installs.",
       "",
       "Defaults:",
       `  Windows: ${join("%APPDATA%", "npm")}`,
@@ -130,24 +130,31 @@ async function installShim(args: InstallShimArgs): Promise<InstallShimResult> {
   const targetDir = args.targetDir;
   const files: string[] = [];
   const bashPath = resolve(targetDir, "signaler");
+  const bashAliasPath = resolve(targetDir, "signalar");
   const cmdPath = resolve(targetDir, "signaler.cmd");
+  const cmdAliasPath = resolve(targetDir, "signalar.cmd");
 
   files.push(bashPath);
+  files.push(bashAliasPath);
   if (process.platform === "win32") {
     files.push(cmdPath);
+    files.push(cmdAliasPath);
   }
 
   if (!args.dryRun) {
     await mkdir(targetDir, { recursive: true });
     await writeFile(bashPath, buildBashShim(), { encoding: "utf8", flag: args.force ? "w" : "wx" });
+    await writeFile(bashAliasPath, buildBashShim(), { encoding: "utf8", flag: args.force ? "w" : "wx" });
     try {
       await chmod(bashPath, 0o755);
+      await chmod(bashAliasPath, 0o755);
     } catch {
       // Non-fatal on environments that do not support chmod.
     }
 
     if (process.platform === "win32") {
       await writeFile(cmdPath, buildCmdShim(), { encoding: "utf8", flag: args.force ? "w" : "wx" });
+      await writeFile(cmdAliasPath, buildCmdShim(), { encoding: "utf8", flag: args.force ? "w" : "wx" });
     }
   }
 
@@ -182,7 +189,7 @@ export async function runInstallShimCli(argv: readonly string[]): Promise<void> 
     if (result.pathHint) {
       console.log(result.pathHint);
     }
-    console.log("Try: signaler --version");
+    console.log("Try: signaler --version (or: signalar --version)");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (args.json) {

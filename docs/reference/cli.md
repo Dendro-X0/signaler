@@ -4,7 +4,7 @@ This document describes non-interactive CLI usage (for scripts/CI) and budget en
 
 ## 1. Commands
 
-The CLI binary is `signaler`.
+The primary CLI binary is `signaler`. A compatibility alias, `signalar`, is also installed by the portable release flow and points to the same CLI.
 
 Recommended global install:
 
@@ -24,6 +24,7 @@ Update later:
 
 ```bash
 signaler upgrade
+signalar upgrade
 ```
 
 Remove the global install later:
@@ -90,6 +91,11 @@ Upgrade later:
 ```bash
 signaler upgrade
 ```
+
+This portable installer creates both:
+
+- `signaler` as the primary launcher
+- `signalar` as a compatibility alias
 
 ### `shell`
 
