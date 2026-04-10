@@ -16,6 +16,10 @@ type SuggestionFixture = {
   readonly actionSummary?: string;
 };
 
+function recentCollectedAt(): string {
+  return new Date(Date.now() - (6 * 24 * 60 * 60 * 1000)).toISOString();
+}
+
 async function invokeAnalyze(args: readonly string[]): Promise<number> {
   process.exitCode = 0;
   await runAnalyzeCli(["node", "signaler", ...args]);
@@ -174,7 +178,7 @@ async function writeExternalSignalsFile(params: {
         adapters: [
           {
             adapterId: "custom",
-            collectedAt: params.collectedAt ?? "2026-03-10T00:00:00.000Z",
+            collectedAt: params.collectedAt ?? recentCollectedAt(),
             records: params.records.map((record, index) => ({
               id: record.id,
               target: {
@@ -222,7 +226,7 @@ async function writeBenchmarkSignalsFile(params: {
         sources: [
           {
             sourceId: params.sourceId,
-            collectedAt: params.collectedAt ?? "2026-03-10T00:00:00.000Z",
+            collectedAt: params.collectedAt ?? recentCollectedAt(),
             records: params.records.map((record, index) => ({
               id: record.id,
               target: {
