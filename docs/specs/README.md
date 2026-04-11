@@ -7,3 +7,5 @@ Active specification documents.
 - `workstream-k-phase2-kickoff.md`
 - `v6-blueprint.md`
 - `rust-network-workers.md`
+- `distribution-policy.md`
+- `distribution-implementation-plan.md`

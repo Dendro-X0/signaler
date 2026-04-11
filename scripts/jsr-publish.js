@@ -14,6 +14,7 @@ function printHelp() {
   console.log("Options:");
   console.log("  --skip-build           Skip `pnpm build` before publish");
   console.log("  --dry-run              Validate environment and print publish command without executing it");
+  console.log("  --allow-dirty          Pass through to `jsr publish` when the worktree is intentionally dirty");
   console.log("  --allow-slow-types     Pass through to `jsr publish` (enabled by default)");
   console.log("  --help                 Show this help");
 }
@@ -22,6 +23,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
   const parsed = {
     skipBuild: false,
     dryRun: false,
+    allowDirty: false,
     allowSlowTypes: true,
   };
   for (const token of argv) {
@@ -34,6 +36,10 @@ export function parseArgs(argv = process.argv.slice(2)) {
     }
     if (token === "--dry-run") {
       parsed.dryRun = true;
+      continue;
+    }
+    if (token === "--allow-dirty") {
+      parsed.allowDirty = true;
       continue;
     }
     if (token === "--allow-slow-types") {
@@ -102,7 +108,6 @@ export function validatePublishContext(cwd = process.cwd()) {
 function runOrFail(command, args) {
   const result = spawnSync(command, args, {
     stdio: "inherit",
-    shell: process.platform === "win32",
   });
   if (result.error) {
     console.error(`[jsr-publish] Failed to execute ${command}: ${result.error.message}`);
@@ -118,6 +123,17 @@ function npmCommand(base) {
   return process.platform === "win32" ? `${base}.cmd` : base;
 }
 
+export function buildPublishArgs(options) {
+  const publishArgs = ["jsr", "publish"];
+  if (options.allowDirty) {
+    publishArgs.push("--allow-dirty");
+  }
+  if (options.allowSlowTypes) {
+    publishArgs.push("--allow-slow-types");
+  }
+  return publishArgs;
+}
+
 export function runPublish(rawArgs = process.argv.slice(2)) {
   const args = parseArgs(rawArgs);
   const context = validatePublishContext(process.cwd());
@@ -127,17 +143,14 @@ export function runPublish(rawArgs = process.argv.slice(2)) {
     process.exit(1);
   }
 
-  const publishArgs = ["jsr", "publish"];
-  if (args.allowSlowTypes) {
-    publishArgs.push("--allow-slow-types");
-  }
+  const publishArgs = buildPublishArgs(args);
 
   console.log(`[jsr-publish] package version: ${context.version}`);
   console.log(`[jsr-publish] working dir: ${process.cwd()}`);
+  console.log(`[jsr-publish] publish command: npx ${publishArgs.join(" ")}`);
 
   if (args.dryRun) {
     console.log("[jsr-publish] dry-run enabled; skipping build/publish execution.");
-    console.log(`[jsr-publish] publish command: npx ${publishArgs.join(" ")}`);
     return;
   }
 

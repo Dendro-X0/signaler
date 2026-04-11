@@ -2,14 +2,29 @@ import { describe, expect, it } from "vitest";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { parseArgs, validatePublishContext } from "../scripts/jsr-publish.js";
+import { buildPublishArgs, parseArgs, validatePublishContext } from "../scripts/jsr-publish.js";
 
 describe("jsr publish helper script", () => {
   it("parses publish helper args", () => {
-    const parsed = parseArgs(["--", "--skip-build", "--dry-run"]);
+    const parsed = parseArgs(["--", "--skip-build", "--dry-run", "--allow-dirty"]);
     expect(parsed.skipBuild).toBe(true);
     expect(parsed.dryRun).toBe(true);
+    expect(parsed.allowDirty).toBe(true);
     expect(parsed.allowSlowTypes).toBe(true);
+  });
+
+  it("builds jsr publish args with explicit dirty-worktree support", () => {
+    expect(buildPublishArgs({ allowDirty: false, allowSlowTypes: true })).toEqual([
+      "jsr",
+      "publish",
+      "--allow-slow-types",
+    ]);
+    expect(buildPublishArgs({ allowDirty: true, allowSlowTypes: true })).toEqual([
+      "jsr",
+      "publish",
+      "--allow-dirty",
+      "--allow-slow-types",
+    ]);
   });
 
   it("validates publish context when package/jsr versions match", async () => {

@@ -94,4 +94,5 @@ Usage:
 ```bash
 pnpm run jsr:publish -- --dry-run
 pnpm run jsr:publish
+pnpm run jsr:publish -- --allow-dirty
 ```

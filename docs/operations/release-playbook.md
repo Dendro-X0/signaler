@@ -87,6 +87,12 @@ Optional sanity check first:
 pnpm run jsr:publish -- --dry-run
 ```
 
+If you are intentionally testing a publish from a dirty worktree, the helper can pass through JSR's dirty-worktree override:
+
+```bash
+pnpm run jsr:publish -- --allow-dirty
+```
+
 If you run from the parent workspace root by mistake, JSR will fail with:
 `Couldn't find a deno.json, deno.jsonc, jsr.json or jsr.jsonc configuration file`.
 
