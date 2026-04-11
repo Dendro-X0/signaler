@@ -1,0 +1,40 @@
+# Release Notes - v3.1.5
+
+Release date: 2026-04-11  
+Status: Published patch
+
+## Highlights
+
+- Added GitHub Release automation for tag-driven or manually dispatched release asset publishing.
+- Added a portable release asset builder that produces:
+  - `signaler-<version>-portable.zip`
+- Updated installers and upgrade flow to install runtime dependencies after extracting the portable bundle.
+- Kept direct global launchers for:
+  - `signaler`
+  - `signalar`
+
+## Quick Start (Global Install)
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+signaler --version
+```
+
+After install:
+
+```bash
+signaler --version
+signalar --version
+signaler upgrade
+signaler uninstall --global
+```
+
+## Notes
+
+- GitHub Releases are the primary global distribution channel for Signaler.
+- JSR remains useful for publishing and package consumption, but it is not the primary global bootstrap path.
+- The portable installer requires the release to include a `*-portable.zip` asset.

@@ -13,7 +13,7 @@
 - Added first-class release installer scripts under `release-assets/`.
 - Updated CLI help and docs to position `install-shim` as a lightweight fallback instead of the main install path.
 
-## 3.1.4 - Unreleased
+## 3.1.5 - Unreleased
 
 ### Fixed
 

@@ -5,7 +5,7 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 ## Release Readiness (Current)
 
 1. Complete cross-platform smoke evidence in CI for GA (`Windows/macOS/Linux` artifacts).
-2. Publish `@signaler/cli@3.1.4` to JSR from a browser-authenticated environment.
+2. Publish `@signaler/cli@3.1.5` to JSR from a browser-authenticated environment.
 3. Confirm launch checklist completion in production-like CI context.
 
 ## Product Roadmap (Open)
@@ -67,4 +67,4 @@ This roadmap lists only unfinished or in-progress work. Completed phases/workstr
 - `pnpm.cmd run bench:workstream-j:overhead`: pass (`medianOverheadMs=2`, `p95OverheadMs=3`) within budgets.
 - `pnpm.cmd run test:rust:parity`: pass (`24` tests) across Rust parity/fallback/reliability checks.
 - `pnpm.cmd run bench:workstream-k:rust-benchmark`: pass with parity/fallback evidence and measurable kernel speedup (`medianMs -445.68`, `p95Ms -445.88`, `medianPct -16.73`).
-- `pnpm.cmd run release -- --target-version 3.1.4`: warn-only preflight pass with all blocking checks green; the only remaining warning is missing CI-generated cross-platform smoke evidence files.
+- `pnpm.cmd run release -- --target-version 3.1.5`: warn-only preflight pass with all blocking checks green; the only remaining warning is missing CI-generated cross-platform smoke evidence files.
