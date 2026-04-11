@@ -1,43 +1,36 @@
-# DISABLED: JSR publish workflow - package is published manually via local npx jsr publish
-# This workflow requires GitHub repository to be linked in JSR settings
-# To re-enable: remove the 'if: false' condition below
-
-name: Publish to JSR
+name: GitHub Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (e.g., 2.1.0)'
-        required: true
-        default: '2.1.0'
-      force:
-        description: 'Force publish even if version exists'
-        required: false
-        default: false
-        type: boolean
   push:
     tags:
-      - 'v2.*'
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to package and publish (for example v3.1.4)"
+        required: true
+        default: "v3.1.4"
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22.x"
 
-      - name: Setup pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -64,59 +57,34 @@ jobs:
       - name: Run smoke tests
         run: pnpm test:smoke
 
-      - name: Build package
-        run: pnpm build
-
-      - name: Verify documentation
+      - name: Resolve version and release notes
+        id: release_meta
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "Verifying v$VERSION documentation exists..."
-          ls -la docs/
-          test -f docs/FEATURES.md
-          test -f docs/MIGRATION.md
-          
-          # Try exact version first, then fallback to version without trailing .0
-          if [ -f "docs/RELEASE-NOTES-v$VERSION.md" ]; then
-            echo "✅ Found docs/RELEASE-NOTES-v$VERSION.md"
-          else
-            SHORT_VERSION=$(echo $VERSION | sed 's/\.0$//')
-            if [ -f "docs/RELEASE-NOTES-v$SHORT_VERSION.md" ]; then
-              echo "✅ Found docs/RELEASE-NOTES-v$SHORT_VERSION.md"
-              # Create a symlink or copy to the full version if needed for consistency, 
-              # but here we just pass the check
-            else
-              echo "❌ Could not find RELEASE-NOTES-v$VERSION.md or RELEASE-NOTES-v$SHORT_VERSION.md"
-              exit 1
-            fi
+          TAG_NAME=${GITHUB_REF_NAME}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ inputs.tag }}"
           fi
-          echo "✅ All v$VERSION documentation verified"
-
-      - name: Check if version already exists
-        id: version_check
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "Checking if @signaler/cli@$VERSION already exists on JSR..."
-          
-          # Try to get package info from JSR API
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://jsr.io/@signaler/cli/$VERSION" || echo "000")
-          
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "⚠️  Version $VERSION already exists on JSR"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "✅ Version $VERSION does not exist, proceeding with publish"
+          NOTES_PATH="docs/archive/release-notes/RELEASE-NOTES-v${VERSION}.md"
+          if [ ! -f "$NOTES_PATH" ]; then
+            echo "Missing release notes file: $NOTES_PATH" >&2
+            exit 1
           fi
+          if [ "$TAG_NAME" != "v$VERSION" ]; then
+            echo "Tag/version mismatch: tag=$TAG_NAME package=v$VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "notes_path=$NOTES_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Publish to JSR
-        if: steps.version_check.outputs.exists == 'false' || github.event.inputs.force == 'true'
-        run: npx jsr publish --allow-slow-types
+      - name: Build portable release assets
+        run: pnpm run release:portable -- --version ${{ steps.release_meta.outputs.version }}
 
-      - name: Skip publish (already exists)
-        if: steps.version_check.outputs.exists == 'true' && github.event.inputs.force != 'true'
-        run: |
-          echo "✅ Version ${{ steps.version_check.outputs.version }} already published to JSR"
-          echo "Skipping publish step to avoid conflicts"
-          echo "Use workflow_dispatch with force=true to republish if needed"
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          body_path: ${{ steps.release_meta.outputs.notes_path }}
+          files: |
+            release/signaler-${{ steps.release_meta.outputs.version }}-portable.zip

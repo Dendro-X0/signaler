@@ -96,6 +96,31 @@ pnpm run jsr:publish -- --allow-dirty
 If you run from the parent workspace root by mistake, JSR will fail with:
 `Couldn't find a deno.json, deno.jsonc, jsr.json or jsr.jsonc configuration file`.
 
+## 4.1 GitHub Release Assets
+
+GitHub Releases are the primary global distribution channel for Signaler.
+
+Required release assets:
+
+1. `signaler-<version>-portable.zip`
+
+Build them locally:
+
+```bash
+pnpm run release:portable -- --version <version>
+```
+
+Automated path:
+
+- pushing tag `v<version>` triggers `.github/workflows/publish.yml`
+- the workflow builds the assets and uploads them to the GitHub Release
+
+Manual recovery path for an existing tag/release:
+
+- run the `GitHub Release` workflow via `workflow_dispatch`
+- pass `tag=v<version>`
+- the workflow will build and upload the release assets to the existing GitHub Release
+
 ## 5) Post-Publish Validation
 
 1. Confirm package visibility:

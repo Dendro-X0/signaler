@@ -27,6 +27,7 @@ require_cmd() {
 require_cmd curl
 require_cmd unzip
 require_cmd node
+require_cmd npm
 
 printf 'Installing Signaler...\n'
 printf 'Repo: %s\n' "$REPO"
@@ -51,6 +52,12 @@ fi
 rm -rf "$INSTALL_DIR"
 mkdir -p "$(dirname "$INSTALL_DIR")" "$BIN_DIR"
 mv "$EXTRACTED_ROOT" "$INSTALL_DIR"
+
+printf 'Installing runtime dependencies...\n'
+(
+  cd "$INSTALL_DIR"
+  npm install --omit=dev --ignore-scripts --no-audit --no-fund
+)
 
 cat > "$BIN_DIR/signaler" <<'EOF'
 #!/usr/bin/env bash

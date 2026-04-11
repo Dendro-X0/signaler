@@ -84,6 +84,7 @@
     "build": "tsc -p tsconfig.build.json",
     "build:optimized": "pnpm run build && node scripts/optimize-build.js",
     "prepare:jsr": "pnpm run build:optimized && node scripts/prepare-jsr.js",
+    "release:portable": "node scripts/create-portable-release.js",
     "dev": "tsx src/bin.ts",
     "agent:bootstrap:sh": "bash scripts/agent-bootstrap.sh",
     "agent:bootstrap:ps": "powershell -ExecutionPolicy Bypass -File scripts/agent-bootstrap.ps1",

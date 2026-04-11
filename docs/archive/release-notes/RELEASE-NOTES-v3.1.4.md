@@ -5,11 +5,14 @@ Status: Published patch
 
 ## Highlights
 
+- GitHub Releases are now the primary global distribution channel for Signaler.
 - Added `install-shim` command to restore direct `signaler` command ergonomics after JSR installs.
 - Added portable installer scripts for direct global installation:
   - `release-assets/install.ps1`
   - `release-assets/install.sh`
 - Corrected installation and troubleshooting docs so global install now points to the portable installer path, with `install-shim` retained as a fallback.
+- Added compatibility launcher alias:
+  - `signalar`
 
 ## Quick Start (Global Install)
 

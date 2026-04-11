@@ -11,6 +11,23 @@ $BinDir = Join-Path $BaseDir "bin"
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("signaler-install-" + [guid]::NewGuid().ToString("N"))
 $ZipPath = Join-Path ([System.IO.Path]::GetTempPath()) ("signaler-portable-" + [guid]::NewGuid().ToString("N") + ".zip")
 
+function Install-RuntimeDependencies {
+  param(
+    [string]$InstallDir
+  )
+
+  Write-Host "Installing runtime dependencies..." -ForegroundColor Yellow
+  Push-Location $InstallDir
+  try {
+    & npm install --omit=dev --ignore-scripts --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) {
+      throw "npm install failed with exit code $LASTEXITCODE."
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
 function Get-ReleaseApiUrl {
   param(
     [string]$Repo,
@@ -84,6 +101,7 @@ if (Test-Path $InstallDir) {
 
 New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir -Parent) | Out-Null
 Move-Item -LiteralPath $root.FullName -Destination $InstallDir
+Install-RuntimeDependencies -InstallDir $InstallDir
 Write-Launcher -BinDir $BinDir -InstallDir $InstallDir
 
 Remove-Item $TempRoot -Recurse -Force

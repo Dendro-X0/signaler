@@ -178,9 +178,9 @@ function downloadToFile(params: { readonly url: string; readonly destPath: strin
   });
 }
 
-function execFileAsync(file: string, args: readonly string[]): Promise<void> {
+function execFileAsync(file: string, args: readonly string[], cwd?: string): Promise<void> {
   return new Promise<void>((resolveExec, rejectExec) => {
-    execFile(file, [...args], (error) => {
+    execFile(file, [...args], { cwd }, (error) => {
       if (error) {
         rejectExec(error);
         return;
@@ -188,6 +188,10 @@ function execFileAsync(file: string, args: readonly string[]): Promise<void> {
       resolveExec();
     });
   });
+}
+
+function nodeToolCommand(base: "npm"): string {
+  return process.platform === "win32" ? `${base}.cmd` : base;
 }
 
 async function extractZip(params: { readonly zipPath: string; readonly destDir: string }): Promise<void> {
@@ -220,6 +224,16 @@ async function writeLauncher(params: { readonly binDir: string; readonly install
       await execFileAsync("chmod", ["+x", launcherPath]);
     }
   }
+}
+
+async function installRuntimeDependencies(installDir: string): Promise<void> {
+  await execFileAsync(nodeToolCommand("npm"), [
+    "install",
+    "--omit=dev",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+  ], installDir);
 }
 
 function buildResult(params: {
@@ -293,6 +307,7 @@ export async function runUpgradeCli(argv: readonly string[]): Promise<void> {
   await rm(args.installDir, { recursive: true, force: true });
   await mkdir(resolve(args.installDir, ".."), { recursive: true });
   await rename(extractedRoot, args.installDir);
+  await installRuntimeDependencies(args.installDir);
   await writeLauncher({ binDir: args.binDir, installDir: args.installDir });
   await rm(stagingDir, { recursive: true, force: true });
   await rm(zipPath, { force: true });

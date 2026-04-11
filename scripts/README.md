@@ -96,3 +96,17 @@ pnpm run jsr:publish -- --dry-run
 pnpm run jsr:publish
 pnpm run jsr:publish -- --allow-dirty
 ```
+
+### `create-portable-release.js`
+
+Builds the GitHub Release assets required by the portable installer flow.
+
+Usage:
+
+```bash
+pnpm run release:portable -- --version 3.1.4
+```
+
+Outputs:
+
+- `release/signaler-<version>-portable.zip`
