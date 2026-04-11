@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-3.1.5-blue.svg)
+![Version](http://img.shields.io/badge/version-3.1.6-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation

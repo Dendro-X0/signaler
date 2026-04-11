@@ -4,7 +4,7 @@ Use this playbook to push and publish release candidates and GA builds with dete
 
 Recommended placeholder:
 
-- `<version>` (for example `3.1.5-rc.1` or `3.1.5`)
+- `<version>` (for example `3.1.6-rc.1` or `3.1.6`)
 
 ## 1) Preflight (Local)
 
@@ -140,5 +140,5 @@ signaler --version
 ## 6) Rollback Rules
 
 1. Never republish an existing version number.
-2. If post-publish issues are found, publish a new patch/rc (`3.1.5-rc.2` or `3.1.6`) with the same preflight steps.
+2. If post-publish issues are found, publish a new patch/rc (`3.1.6-rc.2` or `3.1.7`) with the same preflight steps.
 

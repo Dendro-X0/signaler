@@ -104,7 +104,7 @@ Builds the GitHub Release assets required by the portable installer flow.
 Usage:
 
 ```bash
-pnpm run release:portable -- --version 3.1.5
+pnpm run release:portable -- --version 3.1.6
 ```
 
 Outputs:
