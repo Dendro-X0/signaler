@@ -110,3 +110,17 @@ pnpm run release:portable -- --version 3.1.6
 Outputs:
 
 - `release/signaler-<version>-portable.zip`
+
+### `build-windows-installer.ps1`
+
+Builds the Windows installer wrapper around the portable payload using Inno Setup.
+
+Usage:
+
+```powershell
+pnpm run release:windows-installer
+```
+
+Output:
+
+- `release/signaler-<version>-windows-setup.exe`

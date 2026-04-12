@@ -103,6 +103,7 @@ GitHub Releases are the primary global distribution channel for Signaler.
 Required release assets:
 
 1. `signaler-<version>-portable.zip`
+2. `signaler-<version>-windows-setup.exe`
 
 Build them locally:
 
@@ -114,6 +115,9 @@ Automated path:
 
 - pushing tag `v<version>` triggers `.github/workflows/publish.yml`
 - the workflow builds the assets and uploads them to the GitHub Release
+- release artifacts now come from two jobs:
+  - `release-portable` on Ubuntu
+  - `release-windows-installer` on Windows
 
 Manual recovery path for an existing tag/release:
 

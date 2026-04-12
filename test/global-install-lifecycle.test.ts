@@ -61,5 +61,12 @@ describe("global install lifecycle", () => {
     expect(script).toContain("signalar.cmd");
     expect(script).toContain("signaler.cmd");
     expect(script).toContain("npm.cmd install");
+    expect(script).toContain("SetEnvironmentVariable(\"Path\",");
+  });
+
+  it("updates shell PATH in the unix installer", async () => {
+    const script = await readFile(resolve("release-assets", "install.sh"), "utf8");
+    expect(script).toContain("export PATH=\"$BIN_DIR:$PATH\"");
+    expect(script).toContain(".bashrc");
   });
 });

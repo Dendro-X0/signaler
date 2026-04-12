@@ -9,3 +9,4 @@ Active specification documents.
 - `rust-network-workers.md`
 - `distribution-policy.md`
 - `distribution-implementation-plan.md`
+- `windows-installer-spec.md`

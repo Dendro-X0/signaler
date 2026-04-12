@@ -11,6 +11,30 @@ $BinDir = Join-Path $BaseDir "bin"
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("signaler-install-" + [guid]::NewGuid().ToString("N"))
 $ZipPath = Join-Path ([System.IO.Path]::GetTempPath()) ("signaler-portable-" + [guid]::NewGuid().ToString("N") + ".zip")
 
+function Ensure-UserPathContains {
+  param(
+    [string]$PathEntry
+  )
+
+  $currentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+  if (-not $currentUserPath) {
+    $currentUserPath = ""
+  }
+
+  $entries = $currentUserPath -split ';' | Where-Object { $_ -and $_.Trim().Length -gt 0 }
+  $alreadyPresent = $entries | Where-Object { $_.TrimEnd('\') -ieq $PathEntry.TrimEnd('\') } | Select-Object -First 1
+  if (-not $alreadyPresent) {
+    $newUserPath = if ($currentUserPath.Trim().Length -eq 0) { $PathEntry } else { "$currentUserPath;$PathEntry" }
+    [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+  }
+
+  $sessionEntries = $env:Path -split ';' | Where-Object { $_ -and $_.Trim().Length -gt 0 }
+  $sessionPresent = $sessionEntries | Where-Object { $_.TrimEnd('\') -ieq $PathEntry.TrimEnd('\') } | Select-Object -First 1
+  if (-not $sessionPresent) {
+    $env:Path = if ($env:Path.Trim().Length -eq 0) { $PathEntry } else { "$env:Path;$PathEntry" }
+  }
+}
+
 function Install-RuntimeDependencies {
   param(
     [string]$InstallDir
@@ -103,6 +127,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir -Parent) | Out
 Move-Item -LiteralPath $root.FullName -Destination $InstallDir
 Install-RuntimeDependencies -InstallDir $InstallDir
 Write-Launcher -BinDir $BinDir -InstallDir $InstallDir
+Ensure-UserPathContains -PathEntry $BinDir
 
 Remove-Item $TempRoot -Recurse -Force
 Remove-Item $ZipPath -Force
@@ -112,8 +137,8 @@ Write-Host "Installed $($asset.tag) to $InstallDir" -ForegroundColor Green
 Write-Host "Launcher directory: $BinDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Add '$BinDir' to PATH if needed." -ForegroundColor White
-Write-Host "  2. Restart your terminal if it was already open." -ForegroundColor White
+Write-Host "  1. PATH was updated for the current user and this session." -ForegroundColor White
+Write-Host "  2. Restart your terminal if it was already open in another window." -ForegroundColor White
 Write-Host "  3. Run: signaler --version  (or: signalar --version)" -ForegroundColor White
 Write-Host "  4. Update later with: signaler upgrade" -ForegroundColor White
 Write-Host "  5. Remove later with: signaler uninstall --global" -ForegroundColor White

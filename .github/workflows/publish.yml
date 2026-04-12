@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  release-portable:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -81,10 +81,82 @@ jobs:
       - name: Build portable release assets
         run: pnpm run release:portable -- --version ${{ steps.release_meta.outputs.version }}
 
-      - name: Upload assets to GitHub Release
+      - name: Upload portable asset to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
           body_path: ${{ steps.release_meta.outputs.notes_path }}
           files: |
             release/signaler-${{ steps.release_meta.outputs.version }}-portable.zip
+
+  release-windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Ensure pnpm
+        run: |
+          corepack prepare pnpm@10 --activate
+          pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\pnpm\store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Resolve version and release notes
+        id: release_meta
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG_NAME=${GITHUB_REF_NAME}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ inputs.tag }}"
+          fi
+          NOTES_PATH="docs/archive/release-notes/RELEASE-NOTES-v${VERSION}.md"
+          if [ ! -f "$NOTES_PATH" ]; then
+            echo "Missing release notes file: $NOTES_PATH" >&2
+            exit 1
+          fi
+          if [ "$TAG_NAME" != "v$VERSION" ]; then
+            echo "Tag/version mismatch: tag=$TAG_NAME package=v$VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "notes_path=$NOTES_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Build Windows installer
+        run: pnpm run release:windows-installer
+
+      - name: Upload Windows installer to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          files: |
+            release/signaler-${{ steps.release_meta.outputs.version }}-windows-setup.exe

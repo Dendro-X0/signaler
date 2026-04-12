@@ -9,6 +9,17 @@ BIN_DIR="$BASE_DIR/bin"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/signaler-install-XXXXXX")"
 ZIP_PATH="${TMP_ROOT}/signaler-portable.zip"
 
+ensure_path_line() {
+  local shell_rc="$1"
+  local path_line="export PATH=\"$BIN_DIR:\$PATH\""
+  if [ -f "$shell_rc" ]; then
+    if grep -F "$path_line" "$shell_rc" >/dev/null 2>&1; then
+      return
+    fi
+  fi
+  printf '\n# Signaler CLI\n%s\n' "$path_line" >> "$shell_rc"
+}
+
 get_release_api_url() {
   if [ "$VERSION" = "latest" ]; then
     printf 'https://api.github.com/repos/%s/releases/latest\n' "$REPO"
@@ -77,11 +88,22 @@ chmod +x "$BIN_DIR/signaler"
 chmod +x "$BIN_DIR/signalar"
 rm -rf "$TMP_ROOT"
 
+case "${SHELL:-}" in
+  */zsh)
+    ensure_path_line "${ZDOTDIR:-$HOME}/.zshrc"
+    ;;
+  *)
+    ensure_path_line "$HOME/.bashrc"
+    ;;
+esac
+
+export PATH="$BIN_DIR:$PATH"
+
 printf '\nInstalled %s to %s\n' "$RELEASE_TAG" "$INSTALL_DIR"
 printf 'Launcher directory: %s\n' "$BIN_DIR"
 printf '\nNext steps:\n'
-printf '  1. Add "%s" to PATH if needed.\n' "$BIN_DIR"
-printf '  2. Restart your terminal if it was already open.\n'
+printf '  1. PATH was updated for this shell and appended to your shell profile.\n'
+printf '  2. Restart your terminal if it was already open in another window.\n'
 printf '  3. Run: signaler --version (or: signalar --version)\n'
 printf '  4. Update later with: signaler upgrade\n'
 printf '  5. Remove later with: signaler uninstall --global\n'
