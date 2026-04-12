@@ -10,3 +10,6 @@ Active specification documents.
 - `distribution-policy.md`
 - `distribution-implementation-plan.md`
 - `windows-installer-spec.md`
+- `agent-engine-protocol.md`
+- `desktop-successor-spec.md`
+- `desktop-implementation-plan.md`
