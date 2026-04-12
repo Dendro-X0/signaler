@@ -60,5 +60,6 @@ describe("global install lifecycle", () => {
     expect(script).not.toContain("??");
     expect(script).toContain("signalar.cmd");
     expect(script).toContain("signaler.cmd");
+    expect(script).toContain("npm.cmd install");
   });
 });

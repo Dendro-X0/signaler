@@ -19,7 +19,7 @@ function Install-RuntimeDependencies {
   Write-Host "Installing runtime dependencies..." -ForegroundColor Yellow
   Push-Location $InstallDir
   try {
-    & npm install --omit=dev --ignore-scripts --no-audit --no-fund
+    & npm.cmd install --omit=dev --ignore-scripts --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) {
       throw "npm install failed with exit code $LASTEXITCODE."
     }
