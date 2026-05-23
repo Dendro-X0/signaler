@@ -16,7 +16,12 @@ function printHelp() {
   console.log("  --dry-run              Validate environment and print publish command without executing it");
   console.log("  --allow-dirty          Pass through to `jsr publish` when the worktree is intentionally dirty");
   console.log("  --allow-slow-types     Pass through to `jsr publish` (enabled by default)");
+  console.log("  --token <token>        JSR publish token (default: JSR_TOKEN env var)");
   console.log("  --help                 Show this help");
+  console.log("");
+  console.log("Auth:");
+  console.log("  There is no `jsr login`. Running publish opens a browser URL to authorize.");
+  console.log("  CI/non-interactive: create a token at https://jsr.io/account/tokens and set JSR_TOKEN.");
 }
 
 export function parseArgs(argv = process.argv.slice(2)) {
@@ -25,9 +30,16 @@ export function parseArgs(argv = process.argv.slice(2)) {
     dryRun: false,
     allowDirty: false,
     allowSlowTypes: true,
+    token: process.env.JSR_TOKEN,
   };
-  for (const token of argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const token = argv[i] ?? "";
     if (token === "--") {
+      continue;
+    }
+    if (token === "--token" && i + 1 < argv.length) {
+      parsed.token = argv[i + 1];
+      i += 1;
       continue;
     }
     if (token === "--skip-build") {
@@ -106,9 +118,26 @@ export function validatePublishContext(cwd = process.cwd()) {
 }
 
 function runOrFail(command, args) {
-  const result = spawnSync(command, args, {
-    stdio: "inherit",
-  });
+  const isWindows = process.platform === "win32";
+  let result;
+  if (isWindows) {
+    const executable =
+      command.toLowerCase().endsWith(".cmd") ? command.slice(0, -4) : command;
+    const quotedArgs = args
+      .map((arg) => {
+        const value = String(arg);
+        return /\s/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+      })
+      .join(" ");
+    result = spawnSync(`${executable} ${quotedArgs}`, [], {
+      stdio: "inherit",
+      shell: true,
+    });
+  } else {
+    result = spawnSync(command, args, {
+      stdio: "inherit",
+    });
+  }
   if (result.error) {
     console.error(`[jsr-publish] Failed to execute ${command}: ${result.error.message}`);
     process.exit(1);
@@ -130,6 +159,9 @@ export function buildPublishArgs(options) {
   }
   if (options.allowSlowTypes) {
     publishArgs.push("--allow-slow-types");
+  }
+  if (typeof options.token === "string" && options.token.length > 0) {
+    publishArgs.push("--token", options.token);
   }
   return publishArgs;
 }
