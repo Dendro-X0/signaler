@@ -35,8 +35,9 @@ describe("bin help short-circuit", () => {
     await runBin(["node", "signaler", "help", "agent"]);
     const rendered = logSpy.mock.calls.map((call) => String(call[0] ?? "")).join("\n");
     expect(rendered).toContain("Agent guide:");
-    expect(rendered).toContain("Canonical workflow");
-    expect(rendered).toContain(".signaler/analyze.json");
+    expect(rendered).toContain("One-shot job");
+    expect(rendered).toContain("signaler job run --preset agent");
+    expect(rendered).toContain("signaler query --view perf");
     expect(runWizardCliMock).not.toHaveBeenCalled();
     expect(runAuditCliMock).not.toHaveBeenCalled();
     logSpy.mockRestore();
@@ -51,16 +52,20 @@ describe("bin help short-circuit", () => {
       readonly schemaVersion?: number;
       readonly goal?: string;
       readonly workflows?: {
+        readonly oneShotJob?: readonly string[];
         readonly installedCli?: readonly string[];
         readonly localDist?: readonly string[];
       };
+      readonly projections?: readonly string[];
       readonly artifactOrder?: readonly string[];
     };
     expect(payload.schemaVersion).toBe(1);
     expect(payload.goal).toContain("deterministic");
+    expect(payload.workflows?.oneShotJob?.[0]).toContain("signaler job run --preset agent");
     expect(payload.workflows?.installedCli?.[0]).toContain("signaler discover");
-    expect(payload.workflows?.localDist?.[0]).toContain("node ./dist/bin.js discover");
-    expect(payload.artifactOrder?.[0]).toBe(".signaler/analyze.json");
+    expect(payload.workflows?.localDist?.[0]).toContain("node ./dist/bin.js job run");
+    expect(payload.projections?.[0]).toContain("signaler query --view agent");
+    expect(payload.artifactOrder?.[0]).toContain("signaler query --view agent");
     expect(runWizardCliMock).not.toHaveBeenCalled();
     expect(runAuditCliMock).not.toHaveBeenCalled();
     logSpy.mockRestore();

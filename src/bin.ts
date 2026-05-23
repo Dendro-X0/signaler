@@ -517,11 +517,11 @@ function buildAgentHelpJson(): AgentHelpJson {
 }
 
 function printHelp(topic?: string, options: HelpRenderOptions = { json: false }): void {
-  if (typeof topic === "string" && topic.length > 0 && printCommandHelp(topic)) {
-    return;
-  }
   if (options.json && topic === "agent") {
     console.log(JSON.stringify(buildAgentHelpJson()));
+    return;
+  }
+  if (typeof topic === "string" && topic.length > 0 && printCommandHelp(topic)) {
     return;
   }
   if (topic === "topics") {
@@ -974,6 +974,10 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     const helpArgs: readonly string[] = argv.slice(3);
     const topic: string | undefined = helpArgs.find((arg) => !arg.startsWith("-"));
     const json: boolean = helpArgs.includes("--json");
+    if (json && topic === "agent") {
+      console.log(JSON.stringify(buildAgentHelpJson()));
+      return;
+    }
     printHelp(topic, { json });
     return;
   }
