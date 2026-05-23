@@ -7,6 +7,9 @@ export type HelpRoutableCommand =
   | "report"
   | "analyze"
   | "verify"
+  | "query"
+  | "explain"
+  | "job"
   | "upgrade"
   | "measure"
   | "bundle"
@@ -50,6 +53,9 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
   if (
     command === "analyze" ||
     command === "verify" ||
+    command === "query" ||
+    command === "explain" ||
+    command === "job" ||
     command === "quickstart" ||
     command === "quick" ||
     command === "measure" ||

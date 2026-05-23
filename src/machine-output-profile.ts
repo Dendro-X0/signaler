@@ -1,4 +1,4 @@
-import type { SuggestionV3 } from "./contracts/v3/suggestions-v3.js";
+import type { SuggestionV3 } from "./engine-contracts/artifacts/v3/index.js";
 
 export type MachineArtifactProfile = "lean" | "standard" | "diagnostics";
 

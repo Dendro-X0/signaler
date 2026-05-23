@@ -7,8 +7,8 @@ import type {
   ExternalSignalMetricsV1,
   ExternalSignalsFileV1,
   ExternalSignalsMetadataV1,
-} from "./contracts/external-signals-v1.js";
-import type { SuggestionV3 } from "./contracts/v3/suggestions-v3.js";
+} from "./engine-contracts/signals/index.js";
+import type { SuggestionV3 } from "./engine-contracts/artifacts/v3/index.js";
 
 const DEFAULT_EXTERNAL_WEIGHT = 0.1;
 const MAX_EXTERNAL_WEIGHT = 0.3;

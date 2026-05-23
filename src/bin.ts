@@ -38,6 +38,9 @@ import { runQuickCli } from "./quick-cli.js";
 import { runReportCli } from "./report-cli.js";
 import { runAnalyzeCli } from "./analyze-cli.js";
 import { runVerifyCli } from "./verify-cli.js";
+import { runQueryCli } from "./query-cli.js";
+import { runExplainCli } from "./explain-cli.js";
+import { runJobCli } from "./job-cli.js";
 import { runInstallShimCli } from "./install-shim-cli.js";
 import { runFolderCli } from "./folder-cli.js";
 import { runCortexCli } from "./cortex-cli.js";
@@ -56,6 +59,9 @@ type ApexCommandId =
   | "report"
   | "analyze"
   | "verify"
+  | "query"
+  | "explain"
+  | "job"
   | "upgrade"
   | "measure"
   | "bundle"
@@ -111,6 +117,9 @@ function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
     rawCommand === "report" ||
     rawCommand === "analyze" ||
     rawCommand === "verify" ||
+    rawCommand === "query" ||
+    rawCommand === "explain" ||
+    rawCommand === "job" ||
     rawCommand === "upgrade" ||
     rawCommand === "measure" ||
     rawCommand === "bundle" ||
@@ -244,6 +253,55 @@ function printCommandHelp(topic: string): boolean {
     return true;
   }
 
+  if (normalizedTopic === "job") {
+    print([
+      "Usage:",
+      "  signaler job run --preset <agent|ci|pr> [--base-url <url>] [--config <path>] [--scope <quick|full|file>] [--cwd <path>] [--dir <path>]",
+      "  signaler job show --preset <agent|ci|pr> [--json]",
+      "  signaler job status [--dir <path>] [--json]",
+      "  signaler job run --file <job.json>",
+      "",
+      "Presets:",
+      "  agent  discover → run (v3 lean) → analyze (v6)",
+      "  ci     agent preset + --fail-on-budget on run",
+      "  pr     run --changed-only → analyze (optional --incremental --build-id)",
+      "",
+      "PR incremental:",
+      "  --incremental --build-id <id>  (or SIGNALER_BUILD_ID / git HEAD)",
+      "",
+      "Discover scope (agent/ci presets):",
+      "  --scope <quick|full|file>  (or SIGNALER_DISCOVER_SCOPE)",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "query") {
+    print([
+      "Usage:",
+      "  signaler query --view <agent|actions|perf|run|evidence|delta> [--dir <path>] [--json]",
+      "",
+      "Views:",
+      "  agent     compact agent-index projection",
+      "  actions   ranked actions from analyze.json",
+      "  perf      performance triage (issue counts, not headline scores)",
+      "  run       run metadata",
+      "  evidence  evidence pointers only",
+      "  delta     verify before/after from verify.json or --baseline-dir + --compare-dir",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "explain") {
+    print([
+      "Usage:",
+      "  signaler explain --id <issue-or-suggestion-id> [--dir <path>] [--json]",
+      "",
+      "Description:",
+      "  Lazy-expand one issue or suggestion without loading full results.json.",
+    ]);
+    return true;
+  }
+
   if (normalizedTopic === "verify") {
     print([
       "Usage:",
@@ -366,9 +424,11 @@ type AgentHelpJson = {
   readonly generatedAt: string;
   readonly goal: string;
   readonly workflows: {
+    readonly oneShotJob: readonly string[];
     readonly installedCli: readonly string[];
     readonly localDist: readonly string[];
   };
+  readonly projections: readonly string[];
   readonly artifactOrder: readonly string[];
   readonly highSignalFlags: readonly string[];
   readonly exitCodes: {
@@ -392,28 +452,42 @@ function buildAgentHelpJson(): AgentHelpJson {
     generatedAt: new Date().toISOString(),
     goal: "deterministic detect -> prioritize -> verify loop with machine-readable artifacts",
     workflows: {
+      oneShotJob: [
+        "signaler job run --preset agent --base-url http://127.0.0.1:3000",
+        "signaler query --view perf --dir .signaler",
+        "signaler explain --id <issue-id> --dir .signaler",
+        "signaler verify --contract v6",
+        "signaler query --view delta --dir .signaler",
+      ],
       installedCli: [
         "signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
-        "signaler run --contract v3 --mode throughput --yes --no-color",
-        "signaler analyze --contract v6 --json",
-        "signaler verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
-        "signaler report",
+        "signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes",
+        "signaler analyze --contract v6 --artifact-profile lean --json",
+        "signaler query --view agent --dir .signaler",
+        "signaler verify --contract v6 --runtime-budget-ms 90000 --json",
+        "signaler query --view delta --dir .signaler",
       ],
       localDist: [
-        "node ./dist/bin.js discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
-        "node ./dist/bin.js run --contract v3 --mode throughput --yes --no-color",
-        "node ./dist/bin.js analyze --contract v6 --json",
-        "node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
-        "node ./dist/bin.js report",
+        "node ./dist/bin.js job run --preset agent --base-url http://127.0.0.1:3000",
+        "node ./dist/bin.js query --view perf --dir .signaler",
+        "node ./dist/bin.js explain --id <issue-id> --dir .signaler",
       ],
     },
+    projections: [
+      "signaler query --view agent",
+      "signaler query --view perf",
+      "signaler query --view actions",
+      "signaler query --view delta",
+      "signaler explain --id <issue-id>",
+    ],
     artifactOrder: [
+      "signaler query --view agent (preferred)",
+      "signaler query --view perf (performance issue-count triage)",
       ".signaler/analyze.json",
+      ".signaler/performance-triage.json",
       ".signaler/verify.json",
       ".signaler/agent-index.json",
-      ".signaler/suggestions.json",
-      ".signaler/results.json",
-      ".signaler/run.json",
+      "signaler explain --id <id> before loading full results.json",
     ],
     highSignalFlags: [
       "--artifact-profile <lean|standard|diagnostics>",
@@ -528,27 +602,29 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
         "Agent guide:",
         "  Goal: deterministic detect -> prioritize -> verify loop with machine-readable artifacts.",
         "",
-        "Canonical workflow (installed CLI):",
+        "One-shot job (recommended):",
+        "  signaler job run --preset agent --base-url http://127.0.0.1:3000",
+        "  signaler query --view perf",
+        "  signaler explain --id <issue-id>",
+        "  signaler verify --contract v6",
+        "  signaler query --view delta",
+        "",
+        "PR / changed-files:",
+        "  signaler job run --preset pr",
+        "  signaler job run --preset pr --incremental --build-id $(git rev-parse --short HEAD)",
+        "",
+        "Manual workflow:",
         "  signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
-        "  signaler run --contract v3 --mode throughput --yes --no-color",
-        "  signaler analyze --contract v6 --json",
-        "  signaler verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
-        "  signaler report",
+        "  signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes",
+        "  signaler analyze --contract v6 --artifact-profile lean --json",
         "",
-        "Local unpublished build workflow:",
-        "  node ./dist/bin.js discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
-        "  node ./dist/bin.js run --contract v3 --mode throughput --yes --no-color",
-        "  node ./dist/bin.js analyze --contract v6 --json",
-        "  node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json",
-        "  node ./dist/bin.js report",
+        "Read API (prefer over raw .signaler/ trees):",
+        "  signaler query --view agent|perf|actions|delta",
+        "  signaler explain --id <issue-id>",
         "",
-        "Artifact ingestion order for agents:",
-        "  1) .signaler/analyze.json",
-        "  2) .signaler/verify.json",
-        "  3) .signaler/agent-index.json",
-        "  4) .signaler/suggestions.json",
-        "  5) .signaler/results.json",
-        "  6) .signaler/run.json",
+        "Bootstrap scripts:",
+        "  bash scripts/agent-bootstrap.sh",
+        "  corepack pnpm run agent:bootstrap:sh",
         "",
         "High-signal flags:",
         "  --artifact-profile <lean|standard|diagnostics>",
@@ -961,6 +1037,18 @@ export async function runBin(argv: readonly string[]): Promise<void> {
     }
     if (parsed.command === "verify") {
       await runVerifyCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "query") {
+      await runQueryCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "explain") {
+      await runExplainCli(parsed.argv);
+      return;
+    }
+    if (parsed.command === "job") {
+      await runJobCli(parsed.argv);
       return;
     }
     if (parsed.command === "review") {

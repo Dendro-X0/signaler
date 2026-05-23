@@ -24,4 +24,10 @@ describe("windows installer scaffold", () => {
     expect(workflow).toContain("pnpm run release:windows-installer");
     expect(workflow).toContain("signaler-${{ steps.release_meta.outputs.version }}-windows-setup.exe");
   });
+
+  it("uses a valid PowerShell path resolver in the build helper", async () => {
+    const script = await readFile(resolve("scripts", "build-windows-installer.ps1"), "utf8");
+    expect(script).toContain("Resolve-Path");
+    expect(script).not.toContain("$root = Resolve \".\"");
+  });
 });

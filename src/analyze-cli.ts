@@ -1,11 +1,20 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { AgentIndexV3 } from "./contracts/v3/agent-index-v3.js";
-import type { ResultsV3, ResultsV3Line } from "./contracts/v3/results-v3.js";
-import type { SuggestionV3, SuggestionsV3 } from "./contracts/v3/suggestions-v3.js";
-import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./contracts/v3/validators.js";
-import type { AnalyzeActionV6, AnalyzeArtifactProfileV6, AnalyzeConfidenceV6, AnalyzeReportV6 } from "./contracts/v6/analyze-v6.js";
-import { isAnalyzeReportV6 } from "./contracts/v6/validators.js";
+import type {
+  AgentIndexV3,
+  ResultsV3,
+  ResultsV3Line,
+  SuggestionV3,
+  SuggestionsV3,
+} from "./engine-contracts/artifacts/v3/index.js";
+import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./engine-contracts/artifacts/v3/index.js";
+import type {
+  AnalyzeActionV6,
+  AnalyzeArtifactProfileV6,
+  AnalyzeConfidenceV6,
+  AnalyzeReportV6,
+} from "./engine-contracts/artifacts/v6/index.js";
+import { isAnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { getMachineProfileCaps } from "./machine-output-profile.js";
 import {
   buildDefaultExternalSignalsMetadata,
@@ -20,6 +29,13 @@ import {
 } from "./multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
 import { scoreMultiBenchmarkWithRust } from "./rust/multi-benchmark-scoring-adapter.js";
+import type { PerformanceTriageV3 } from "./contracts/v3/performance-triage-v3.js";
+import { isPerformanceTriageV3 } from "./performance-triage.js";
+import {
+  buildCandidateDraftsFromPerformanceTriage,
+  mergeAnalyzeCandidateDrafts,
+  type AnalyzeCandidateDraft,
+} from "./analyze-performance-triage.js";
 
 type AnalyzeExitCode = 0 | 1 | 2;
 
@@ -57,27 +73,7 @@ type CandidateAction = {
   readonly verifyPlan: AnalyzeActionV6["verifyPlan"];
 };
 
-type CandidateDraft = {
-  readonly sourceSuggestionId: string;
-  readonly title: string;
-  readonly category: AnalyzeActionV6["category"];
-  readonly confidence: AnalyzeConfidenceV6;
-  readonly estimatedImpact: AnalyzeActionV6["estimatedImpact"];
-  readonly affectedCombos: AnalyzeActionV6["affectedCombos"];
-  readonly baseEvidence: AnalyzeActionV6["evidence"];
-  readonly action: AnalyzeActionV6["action"];
-  readonly verifyPlan: AnalyzeActionV6["verifyPlan"];
-  readonly basePriority: number;
-  readonly externalBoost: {
-    readonly totalBoost: number;
-    readonly evidence: readonly AnalyzeActionV6["evidence"][number][];
-  };
-  readonly benchmarkQuery?: {
-    readonly candidateId: string;
-    readonly issueId: string;
-    readonly allowedPaths?: readonly string[];
-  };
-};
+type CandidateDraft = AnalyzeCandidateDraft;
 
 class StrictValidationError extends Error {}
 
@@ -667,7 +663,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     return 1;
   }
 
-  const optionalFiles: readonly string[] = ["issues.json", "discovery.json", "analyze.json"] as const;
+  const optionalFiles: readonly string[] = ["issues.json", "discovery.json", "analyze.json", "performance-triage.json"] as const;
   for (const file of optionalFiles) {
     const path: string = artifactPath(file);
     if (!(await fileExists(path))) continue;
@@ -815,6 +811,36 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     }
   }
 
+  let performanceTriage: PerformanceTriageV3 | undefined;
+  try {
+    const triagePath = artifactPath("performance-triage.json");
+    if (await fileExists(triagePath)) {
+      const parsed = await readJson(triagePath);
+      if (isPerformanceTriageV3(parsed)) {
+        performanceTriage = parsed;
+      } else {
+        warnings.push("performance-triage.json present but invalid; ignored.");
+      }
+    } else {
+      warnings.push("performance-triage.json missing; performance actions rely on suggestions.json only.");
+    }
+  } catch {
+    warnings.push("performance-triage.json could not be read; performance actions rely on suggestions.json only.");
+  }
+
+  const triageDrafts: CandidateDraft[] = performanceTriage
+    ? buildCandidateDraftsFromPerformanceTriage({ triage: performanceTriage, results: allResults })
+    : [];
+  const mergedCandidateDrafts: CandidateDraft[] = [...mergeAnalyzeCandidateDrafts({
+    suggestionDrafts: candidateDrafts,
+    triageDrafts,
+  })];
+  for (const draft of triageDrafts) {
+    if (draft.benchmarkQuery) {
+      benchmarkScoreQueries.push(draft.benchmarkQuery);
+    }
+  }
+
   const benchmarkScoreAttempt = await scoreMultiBenchmarkWithRust({
     accepted: benchmarkSignalsEval?.acceptedRecords ?? [],
     candidates: benchmarkScoreQueries,
@@ -834,7 +860,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     },
     evidence: [] as const,
   };
-  const candidates: CandidateAction[] = candidateDrafts.map((draft) => {
+  const candidates: CandidateAction[] = mergedCandidateDrafts.map((draft) => {
     const benchmarkMatch = draft.benchmarkQuery
       ? (benchmarkScoreAttempt.scores.get(draft.benchmarkQuery.candidateId) ?? zeroBenchmarkMatch)
       : zeroBenchmarkMatch;
@@ -913,6 +939,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     return 1;
   }
   const hasBenchmarkBoost: boolean = (benchmarkSignalsEval?.acceptedRecords.length ?? 0) > 0;
+  const usesPerformanceTriage: boolean = triageDrafts.length > 0;
   const rustBenchmarkAccelerator = {
     requested: args.benchmarkSignalsPaths.length > 0,
     enabled: benchmarkRustAttempt.enabled || benchmarkScoreAttempt.enabled,
@@ -943,10 +970,12 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     artifactProfile: args.artifactProfile,
     tokenBudget: args.tokenBudget,
     rankingPolicy: {
-      version: hasBenchmarkBoost ? "v6.3" : "v6.2",
-      formula: hasBenchmarkBoost
-        ? "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
-        : "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))",
+      version: usesPerformanceTriage ? "v6.4" : hasBenchmarkBoost ? "v6.3" : "v6.2",
+      formula: usesPerformanceTriage
+        ? "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight)); performance-triage merge"
+        : hasBenchmarkBoost
+          ? "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
+          : "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))",
       confidenceWeights: {
         high: 1.0,
         medium: 0.7,
@@ -960,7 +989,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     externalSignals: externalSignalsMetadata,
     multiBenchmark: multiBenchmarkMetadata,
     summary: {
-      totalCandidates: suggestions.suggestions.length,
+      totalCandidates: mergedCandidateDrafts.length,
       emittedActions: tokenTrimmedActions.length,
       droppedZeroImpact,
       droppedLowConfidence,

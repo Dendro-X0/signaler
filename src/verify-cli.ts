@@ -3,11 +3,10 @@ import { resolve } from "node:path";
 import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
 import { runAuditCli } from "./cli.js";
 import { loadConfig } from "./core/config.js";
-import type { ResultsV3, ResultsV3Line } from "./contracts/v3/results-v3.js";
-import { isResultsV3 } from "./contracts/v3/validators.js";
-import type { AnalyzeActionV6, AnalyzeReportV6 } from "./contracts/v6/analyze-v6.js";
-import type { VerifyCheckV6, VerifyReportV6, VerifyThresholdsV6 } from "./contracts/v6/verify-v6.js";
-import { isAnalyzeReportV6, isVerifyReportV6, isVerifyThresholdsV6 } from "./contracts/v6/validators.js";
+import type { ResultsV3, ResultsV3Line } from "./engine-contracts/artifacts/v3/index.js";
+import { isResultsV3 } from "./engine-contracts/artifacts/v3/index.js";
+import type { AnalyzeActionV6, AnalyzeReportV6, VerifyCheckV6, VerifyReportV6, VerifyThresholdsV6 } from "./engine-contracts/artifacts/v6/index.js";
+import { isAnalyzeReportV6, isVerifyReportV6, isVerifyThresholdsV6 } from "./engine-contracts/artifacts/v6/index.js";
 
 type VerifyExitCode = 0 | 1 | 2 | 3;
 
@@ -58,6 +57,7 @@ type VerifyRoutePlan = {
 
 const DEFAULT_THRESHOLDS: Required<VerifyThresholdsV6> = {
   minScoreDelta: 1,
+  minIssueCountDelta: 1,
   minLcpDeltaMs: 100,
   minTbtDeltaMs: 25,
   minClsDelta: 0.01,
@@ -234,6 +234,9 @@ function isBaselineRunInput(value: unknown): value is BaselineRunInput {
 
 function parseIssueIdFromSuggestion(sourceSuggestionId: string | undefined): string | undefined {
   if (typeof sourceSuggestionId !== "string" || sourceSuggestionId.length === 0) return undefined;
+  if (sourceSuggestionId.startsWith("triage-")) {
+    return sourceSuggestionId.slice("triage-".length);
+  }
   const matched: RegExpMatchArray | null = sourceSuggestionId.match(/^sugg-(.+)-\d+$/);
   if (!matched || matched.length < 2) return undefined;
   return matched[1];
@@ -384,6 +387,30 @@ function buildVerifyRoutePlan(params: {
   };
 }
 
+function countIssueOccurrences(params: {
+  readonly rows: readonly ResultsV3Line[];
+  readonly issueId?: string;
+  readonly title: string;
+}): number {
+  let count = 0;
+  const titleNorm: string = normalizeText(params.title);
+  for (const row of params.rows) {
+    const matched: boolean =
+      row.opportunities.some(
+        (opportunity) =>
+          (typeof params.issueId === "string" && opportunity.id === params.issueId)
+          || normalizeText(opportunity.title) === titleNorm,
+      )
+      || row.failedAudits.some(
+        (audit) => (typeof params.issueId === "string" && audit.id === params.issueId) || normalizeText(audit.title) === titleNorm,
+      );
+    if (matched) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 function sumOpportunityBytes(params: {
   readonly rows: readonly ResultsV3Line[];
   readonly issueId?: string;
@@ -410,6 +437,7 @@ function sumOpportunityBytes(params: {
 function resolveThresholds(input: VerifyThresholdsV6 | undefined): Required<VerifyThresholdsV6> {
   return {
     minScoreDelta: input?.minScoreDelta ?? DEFAULT_THRESHOLDS.minScoreDelta,
+    minIssueCountDelta: input?.minIssueCountDelta ?? DEFAULT_THRESHOLDS.minIssueCountDelta,
     minLcpDeltaMs: input?.minLcpDeltaMs ?? DEFAULT_THRESHOLDS.minLcpDeltaMs,
     minTbtDeltaMs: input?.minTbtDeltaMs ?? DEFAULT_THRESHOLDS.minTbtDeltaMs,
     minClsDelta: input?.minClsDelta ?? DEFAULT_THRESHOLDS.minClsDelta,
@@ -418,7 +446,7 @@ function resolveThresholds(input: VerifyThresholdsV6 | undefined): Required<Veri
 }
 
 function compareMetric(params: {
-  readonly metric: "score" | "lcpMs" | "tbtMs" | "cls" | "bytes";
+  readonly metric: "score" | "issueCount" | "lcpMs" | "tbtMs" | "cls" | "bytes";
   readonly delta: number | undefined;
   readonly thresholds: Required<VerifyThresholdsV6>;
 }): { readonly comparable: boolean; readonly improved: boolean; readonly regressed: boolean } {
@@ -430,6 +458,13 @@ function compareMetric(params: {
       comparable: true,
       improved: params.delta >= params.thresholds.minScoreDelta,
       regressed: params.delta <= -params.thresholds.minScoreDelta,
+    };
+  }
+  if (params.metric === "issueCount") {
+    return {
+      comparable: true,
+      improved: params.delta <= -params.thresholds.minIssueCountDelta,
+      regressed: params.delta >= params.thresholds.minIssueCountDelta,
     };
   }
   if (params.metric === "lcpMs") {
@@ -846,21 +881,25 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
     const beforeCls = metricMedian(beforeRows, (row) => row.metrics.cls);
     const issueId = parseIssueIdFromSuggestion(action.sourceSuggestionId);
     const beforeBytes = sumOpportunityBytes({ rows: beforeRows, issueId, title: action.title });
+    const beforeIssueCount = countIssueOccurrences({ rows: beforeRows, issueId, title: action.title });
 
     const afterScore = metricMedian(afterRows, (row) => row.scores.performance);
     const afterLcp = metricMedian(afterRows, (row) => row.metrics.lcpMs);
     const afterTbt = metricMedian(afterRows, (row) => row.metrics.tbtMs);
     const afterCls = metricMedian(afterRows, (row) => row.metrics.cls);
     const afterBytes = sumOpportunityBytes({ rows: afterRows, issueId, title: action.title });
+    const afterIssueCount = countIssueOccurrences({ rows: afterRows, issueId, title: action.title });
 
     const deltaScore = typeof beforeScore === "number" && typeof afterScore === "number" ? afterScore - beforeScore : undefined;
     const deltaLcp = typeof beforeLcp === "number" && typeof afterLcp === "number" ? afterLcp - beforeLcp : undefined;
     const deltaTbt = typeof beforeTbt === "number" && typeof afterTbt === "number" ? afterTbt - beforeTbt : undefined;
     const deltaCls = typeof beforeCls === "number" && typeof afterCls === "number" ? afterCls - beforeCls : undefined;
     const deltaBytes = typeof beforeBytes === "number" && typeof afterBytes === "number" ? afterBytes - beforeBytes : undefined;
+    const deltaIssueCount = afterIssueCount - beforeIssueCount;
 
     const expected = action.verifyPlan.expectedDirection;
-    const expectedMetrics: readonly ("score" | "lcpMs" | "tbtMs" | "cls" | "bytes")[] = [
+    const expectedMetrics: readonly ("score" | "issueCount" | "lcpMs" | "tbtMs" | "cls" | "bytes")[] = [
+      ...(expected.issueCount === "down" ? ["issueCount"] as const : []),
       ...(expected.score === "up" ? ["score"] as const : []),
       ...(expected.lcpMs === "down" ? ["lcpMs"] as const : []),
       ...(expected.tbtMs === "down" ? ["tbtMs"] as const : []),
@@ -887,13 +926,15 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
       for (const metric of expectedMetrics) {
         const delta = metric === "score"
           ? deltaScore
-          : metric === "lcpMs"
-            ? deltaLcp
-            : metric === "tbtMs"
-              ? deltaTbt
-              : metric === "cls"
-                ? deltaCls
-                : deltaBytes;
+          : metric === "issueCount"
+            ? deltaIssueCount
+            : metric === "lcpMs"
+              ? deltaLcp
+              : metric === "tbtMs"
+                ? deltaTbt
+                : metric === "cls"
+                  ? deltaCls
+                  : deltaBytes;
         const result = compareMetric({ metric, delta, thresholds });
         if (!result.comparable) continue;
         comparableCount += 1;
@@ -919,6 +960,7 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
       ...(reason ? { reason } : {}),
       before: {
         ...(typeof beforeScore === "number" ? { score: beforeScore } : {}),
+        ...(beforeIssueCount > 0 ? { issueCount: beforeIssueCount } : {}),
         ...(typeof beforeLcp === "number" ? { lcpMs: beforeLcp } : {}),
         ...(typeof beforeTbt === "number" ? { tbtMs: beforeTbt } : {}),
         ...(typeof beforeCls === "number" ? { cls: beforeCls } : {}),
@@ -926,6 +968,7 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
       },
       after: {
         ...(typeof afterScore === "number" ? { score: afterScore } : {}),
+        ...(afterIssueCount > 0 ? { issueCount: afterIssueCount } : {}),
         ...(typeof afterLcp === "number" ? { lcpMs: afterLcp } : {}),
         ...(typeof afterTbt === "number" ? { tbtMs: afterTbt } : {}),
         ...(typeof afterCls === "number" ? { cls: afterCls } : {}),
@@ -933,6 +976,7 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
       },
       delta: {
         ...(typeof deltaScore === "number" ? { score: deltaScore } : {}),
+        ...(beforeIssueCount > 0 || afterIssueCount > 0 ? { issueCount: deltaIssueCount } : {}),
         ...(typeof deltaLcp === "number" ? { lcpMs: deltaLcp } : {}),
         ...(typeof deltaTbt === "number" ? { tbtMs: deltaTbt } : {}),
         ...(typeof deltaCls === "number" ? { cls: deltaCls } : {}),
@@ -940,6 +984,7 @@ async function runVerifyCliInternal(argv: readonly string[]): Promise<VerifyExit
       },
       threshold: {
         minScoreDelta: thresholds.minScoreDelta,
+        minIssueCountDelta: thresholds.minIssueCountDelta,
         minLcpDeltaMs: thresholds.minLcpDeltaMs,
         minTbtDeltaMs: thresholds.minTbtDeltaMs,
         minClsDelta: thresholds.minClsDelta,

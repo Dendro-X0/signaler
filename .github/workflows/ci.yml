@@ -178,11 +178,57 @@ jobs:
           benchmarks/out/cross-platform-smoke-${{ matrix.os }}.json
           benchmarks/out/cross-platform-smoke-${{ matrix.os }}.md
         if-no-files-found: warn
+
+  phase6-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [cross-platform-smoke]
+    if: always() && !cancelled()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Download cross-platform smoke evidence
+      uses: actions/download-artifact@v4
+      with:
+        pattern: cross-platform-smoke-*
+        path: benchmarks/out
+        merge-multiple: true
+
+    - name: Evaluate Phase 6 release gate
+      run: pnpm run bench:phase6:gate
+
+    - name: Validate Phase 6 release gate report
+      run: pnpm run bench:phase6:validate
+
+    - name: Upload Phase 6 release gate report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase6-release-gate
+        path: |
+          benchmarks/out/phase6-release-gate.json
+          benchmarks/out/phase6-release-gate.md
+        if-no-files-found: warn
       
   publish-dry-run:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [test, quality, cross-platform-smoke]
+    needs: [test, quality, cross-platform-smoke, phase6-release-gate]
     if: github.event_name == 'pull_request'
     
     steps:

@@ -2,25 +2,36 @@
 
 ## Unreleased
 
+## 3.2.0 - 2026-05-22
+
+### Added
+
+- **Agent job protocol**: `signaler job run --preset agent|ci|pr` (discover → run v3 lean → analyze v6; PR preset uses `--changed-only`).
+- **Token-conscious projections**: `signaler query --view agent|perf|actions|delta|run|evidence` and `signaler explain --id <issue-id>`.
+- **Performance issue-count triage**: `performance-triage.json` and `query --view perf` (red/yellow; not headline Lighthouse score parity).
+- **Analyze v6.4**: merges `performance-triage.json` with suggestions; verify supports `issueCount: down`.
+- **Rust launcher** (`signaler_launcher`): native wrapper delegates to bundled Node CLI for portable releases.
+- **`src/engine-contracts/`** boundary with compatibility re-exports for v3/v6 artifacts and signals.
+- Release helpers: `scripts/create-release-package.sh` / `.ps1` delegate to portable release builder.
+
 ### Changed
 
-- Promoted portable global install as the primary non-npm distribution flow:
-  - `irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex`
-  - `curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash`
-  - `signaler upgrade`
-  - `signaler uninstall --global`
-- Added default portable-release repo resolution for install/upgrade so users no longer need `--repo` or `SIGNALER_REPO` for the standard Signaler distribution path.
-- Added first-class release installer scripts under `release-assets/`.
-- Updated CLI help and docs to position `install-shim` as a lightweight fallback instead of the main install path.
-
-## 3.1.6 - Unreleased
+- Agent bootstrap scripts default to `job run --preset agent`; `JOB_PRESET=manual` for step-by-step flow.
+- GitHub workflow templates use `job run --preset ci` (+ optional `job_preset` / `routes_scope`).
+- `signaler help agent` and `help agent --json` document job/query/explain workflows.
+- Removed circular `package.json` dependency on published `@jsr/signaler__cli`.
+- Portable global install remains the primary distribution path (`install.ps1` / `install.sh`, `upgrade`, `uninstall --global`).
 
 ### Fixed
 
-- Added a first-class `install-shim` command to install direct `signaler` shell wrappers after JSR installs:
-  - `npx jsr run @signaler/cli install-shim`
-- Updated shell shim scripts to use a registry-backed proxy (`npx jsr run @signaler/cli`) instead of stale local install-path assumptions.
-- Corrected installation/help docs so JSR workflows no longer imply direct `signaler` availability before shim setup.
+- `install-shim` and JSR proxy docs for registry-backed `npx jsr run @signaler/cli` workflows.
+
+## 3.1.6 - 2026-04-12
+
+### Fixed
+
+- Added a first-class `install-shim` command to install direct `signaler` shell wrappers after JSR installs.
+- Updated shell shim scripts to use a registry-backed proxy instead of stale local install-path assumptions.
 
 ## 3.1.3 - 2026-04-06
 

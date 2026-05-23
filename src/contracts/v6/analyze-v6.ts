@@ -42,6 +42,7 @@ export interface AnalyzeActionV6 {
     readonly targetRoutes: readonly string[];
     readonly expectedDirection: {
       readonly score?: "up";
+      readonly issueCount?: "down";
       readonly lcpMs?: "down";
       readonly tbtMs?: "down";
       readonly cls?: "down";
@@ -62,11 +63,12 @@ export interface AnalyzeReportV6 {
   readonly artifactProfile: AnalyzeArtifactProfileV6;
   readonly tokenBudget: number;
   readonly rankingPolicy: {
-    readonly version: "v6.1" | "v6.2" | "v6.3";
+    readonly version: "v6.1" | "v6.2" | "v6.3" | "v6.4";
     readonly formula:
     | "priority = round(basePriority * confidenceWeight * coverageWeight)"
     | "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))"
-    | "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))";
+    | "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
+    | "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight)); performance-triage merge";
     readonly confidenceWeights: {
       readonly high: 1.0;
       readonly medium: 0.7;

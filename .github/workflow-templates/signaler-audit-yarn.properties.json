@@ -1,6 +1,6 @@
 {
   "name": "Signaler Audit (yarn)",
-  "description": "Run Signaler discover -> run -> report in CI for yarn projects.",
+  "description": "Run Signaler job (discover -> run v3 -> analyze v6) with optional HTML report for yarn projects.",
   "iconName": "terminal",
   "categories": [
     "JavaScript",

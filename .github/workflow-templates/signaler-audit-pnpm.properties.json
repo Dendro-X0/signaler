@@ -1,6 +1,6 @@
 {
   "name": "Signaler Audit (pnpm)",
-  "description": "Run Signaler discover -> run -> report in CI for pnpm projects.",
+  "description": "Run Signaler job (discover -> run v3 -> analyze v6) with optional HTML report for pnpm projects.",
   "iconName": "terminal",
   "categories": [
     "JavaScript",

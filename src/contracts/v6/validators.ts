@@ -109,12 +109,23 @@ export function isAnalyzeReportV6(value: unknown): value is AnalyzeReportV6 {
   if (value.artifactProfile !== "lean" && value.artifactProfile !== "standard" && value.artifactProfile !== "diagnostics") return false;
   if (typeof value.tokenBudget !== "number") return false;
   if (!isRecord(value.rankingPolicy)) return false;
-  if (value.rankingPolicy.version !== "v6.1" && value.rankingPolicy.version !== "v6.2" && value.rankingPolicy.version !== "v6.3") return false;
+  if (
+    value.rankingPolicy.version !== "v6.1"
+    && value.rankingPolicy.version !== "v6.2"
+    && value.rankingPolicy.version !== "v6.3"
+    && value.rankingPolicy.version !== "v6.4"
+  ) {
+    return false;
+  }
   if (
     value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight)"
     && value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight))"
     && value.rankingPolicy.formula !== "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight))"
-  ) return false;
+    && value.rankingPolicy.formula
+      !== "priority = round(basePriority * confidenceWeight * coverageWeight * (1 + externalBoostWeight + benchmarkBoostWeight)); performance-triage merge"
+  ) {
+    return false;
+  }
   if (!Array.isArray(value.actions)) return false;
   for (const action of value.actions) {
     if (!isRecord(action)) return false;
@@ -169,6 +180,7 @@ function isNonNegativeNumberOrUndefined(value: unknown): boolean {
 export function isVerifyThresholdsV6(value: unknown): value is VerifyThresholdsV6 {
   if (!isRecord(value)) return false;
   if (!isNonNegativeNumberOrUndefined(value.minScoreDelta)) return false;
+  if (!isNonNegativeNumberOrUndefined(value.minIssueCountDelta)) return false;
   if (!isNonNegativeNumberOrUndefined(value.minLcpDeltaMs)) return false;
   if (!isNonNegativeNumberOrUndefined(value.minTbtDeltaMs)) return false;
   if (!isNonNegativeNumberOrUndefined(value.minClsDelta)) return false;
@@ -179,6 +191,7 @@ export function isVerifyThresholdsV6(value: unknown): value is VerifyThresholdsV
 function isMetricBlock(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (value.score !== undefined && typeof value.score !== "number") return false;
+  if (value.issueCount !== undefined && typeof value.issueCount !== "number") return false;
   if (value.lcpMs !== undefined && typeof value.lcpMs !== "number") return false;
   if (value.tbtMs !== undefined && typeof value.tbtMs !== "number") return false;
   if (value.cls !== undefined && typeof value.cls !== "number") return false;

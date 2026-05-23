@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-3.1.6-blue.svg)
+![Version](http://img.shields.io/badge/version-3.2.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -30,6 +30,8 @@ signaler upgrade
 signaler uninstall --global
 ```
 
+Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
+
 Built-in lifecycle commands:
 
 - `signaler upgrade` updates the portable global install in place
@@ -44,13 +46,33 @@ JSR remains useful as a package source for project dependencies and publishing, 
 
 Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
 
+**One-shot agent job** (discover → run v3 lean → analyze v6):
+
+```bash
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler query --view perf
+signaler explain --id <issue-id>
+```
+
+**PR / changed-files** (skip discover; audit only routes touched in git):
+
+```bash
+signaler job run --preset pr
+# optional cache between CI runs:
+signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
+```
+
+Manual step-by-step:
+
 ```bash
 signaler discover --scope full
-signaler run --mode throughput
+signaler run --contract v3 --mode throughput
 signaler analyze --contract v6
 signaler verify --contract v6
+signaler query --view delta
 signaler report
-signaler --help
+signaler job --help
+signaler query --help
 ```
 
 Discovery/setup auto-detects your framework and project root, resolves base URL defaults, and writes `.signaler/discovery.json` with selected/excluded route counts, scope details, and route strategy metadata so runs are transparent and reproducible.
@@ -160,12 +182,11 @@ Signaler generates comprehensive reports in `.signaler/`:
 
 Recommended agent read order:
 
-1. `analyze.json` (after `signaler analyze --contract v6`)
-2. `verify.json` (after `signaler verify --contract v6`)
-3. `agent-index.json`
-4. `suggestions.json`
-5. `issues.json`
-6. `results.json`
+1. `signaler query --view agent` or `analyze.json` (after analyze v6)
+2. `signaler query --view perf` or `performance-triage.json` (performance issue-count triage)
+3. `signaler query --view delta` or `verify.json` (after verify v6)
+4. `agent-index.json`, then `suggestions.json` / `issues.json` as needed
+5. `signaler explain --id <id>` for one issue—avoid loading full `results.json` by default
 
 ## API
 
@@ -236,8 +257,7 @@ jobs:
       - run: pnpm start &
       - run: npx wait-on http://127.0.0.1:3000
       - run: curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-      - run: signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-      - run: signaler run --contract v3 --mode throughput --ci --no-color --yes
+      - run: signaler job run --preset ci --base-url http://127.0.0.1:3000 --scope full --dir .signaler
       - run: signaler report --dir .signaler
 ```
 

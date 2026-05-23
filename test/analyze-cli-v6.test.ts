@@ -157,6 +157,60 @@ async function writeBaseArtifacts(params: { readonly root: string; readonly sugg
   return outDir;
 }
 
+async function writePerformanceTriageFixture(params: {
+  readonly outDir: string;
+  readonly issues?: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly severity?: "red" | "yellow";
+    readonly affectedCombos?: number;
+    readonly totalEstimatedSavingsMs?: number;
+  }[];
+}): Promise<void> {
+  const issues = params.issues ?? [
+    {
+      id: "unused-javascript",
+      title: "Reduce unused JavaScript",
+      severity: "red" as const,
+      affectedCombos: 2,
+      totalEstimatedSavingsMs: 900,
+    },
+  ];
+  await writeFile(
+    resolve(params.outDir, "performance-triage.json"),
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        contractVersion: "v3",
+        reportingModel: "issue-count",
+        comparabilityHash: "cmp-hash-1",
+        mode: "throughput",
+        options: { includeYellow: false },
+        disclaimer: "fixture",
+        categoryScores: { note: "fixture" },
+        totals: {
+          red: issues.filter((issue) => issue.severity !== "yellow").length,
+          yellow: issues.filter((issue) => issue.severity === "yellow").length,
+          green: 0,
+          actionable: issues.length,
+        },
+        uniqueIssues: issues.map((issue, index) => ({
+          id: issue.id,
+          title: issue.title,
+          severity: issue.severity ?? "red",
+          kind: "opportunity",
+          affectedCombos: issue.affectedCombos ?? 1,
+          totalEstimatedSavingsMs: issue.totalEstimatedSavingsMs ?? 100,
+          pointer: `performance-triage.json#/uniqueIssues/${index}`,
+        })),
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+}
+
 async function writeExternalSignalsFile(params: {
   readonly root: string;
   readonly name: string;
@@ -655,6 +709,65 @@ describe("analyze-cli v6", () => {
     expect(
       JSON.stringify(secondReport.actions.map((row) => ({ id: row.id, priorityScore: row.priorityScore }))),
     ).toBe(JSON.stringify(firstActionRanking));
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("merges performance-triage.json with v6.4 ranking and issueCount verify direction", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-analyze-triage-"));
+    const outDir = await writeBaseArtifacts({
+      root,
+      suggestions: [
+        {
+          id: "sugg-unused-javascript-1",
+          title: "Reduce unused JavaScript",
+          priorityScore: 800,
+          confidence: "high",
+          estimatedImpact: { timeMs: 900, affectedCombos: 2 },
+        },
+        {
+          id: "sugg-server-response-time-2",
+          title: "Reduce server response times (TTFB)",
+          priorityScore: 400,
+          confidence: "medium",
+          estimatedImpact: { timeMs: 300, affectedCombos: 1 },
+        },
+      ],
+    });
+    await writePerformanceTriageFixture({
+      outDir,
+      issues: [
+        {
+          id: "unused-javascript",
+          title: "Reduce unused JavaScript",
+          severity: "red",
+          affectedCombos: 2,
+          totalEstimatedSavingsMs: 900,
+        },
+      ],
+    });
+
+    const exitCode = await invokeAnalyze(["--contract", "v6", "--dir", outDir, "--artifact-profile", "lean", "--json"]);
+    expect(exitCode).toBe(0);
+
+    const report = JSON.parse(await readFile(resolve(outDir, "analyze.json"), "utf8")) as {
+      readonly rankingPolicy: { readonly version: string; readonly formula: string };
+      readonly actions: readonly {
+        readonly id: string;
+        readonly verifyPlan: { readonly expectedDirection: { readonly issueCount?: string; readonly score?: string } };
+      }[];
+    };
+    expect(report.rankingPolicy.version).toBe("v6.4");
+    expect(report.rankingPolicy.formula).toContain("performance-triage merge");
+
+    const merged = report.actions.find(
+      (action) =>
+        action.id === "action-triage-unused-javascript" ||
+        action.id === "action-sugg-unused-javascript-1",
+    );
+    expect(merged).toBeDefined();
+    expect(merged?.verifyPlan.expectedDirection.issueCount).toBe("down");
+    expect(merged?.verifyPlan.expectedDirection.score).toBeUndefined();
 
     await rm(root, { recursive: true, force: true });
   });

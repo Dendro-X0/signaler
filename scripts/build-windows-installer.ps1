@@ -30,7 +30,7 @@ function Resolve-IsccPath {
 }
 
 $version = Get-PackageVersion
-$root = Resolve "."
+$root = (Resolve-Path ".").Path
 $releaseDir = Join-Path $root "release"
 $portableZip = Join-Path $releaseDir "signaler-$version-portable.zip"
 

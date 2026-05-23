@@ -105,6 +105,22 @@ export function isAgentIndexV3(value: unknown): value is AgentIndexV3 {
   if (value.entrypoints.run !== "run.json") return false;
   if (value.entrypoints.results !== "results.json") return false;
   if (value.entrypoints.suggestions !== "suggestions.json") return false;
+  if (
+    value.entrypoints.performanceTriage !== undefined
+    && value.entrypoints.performanceTriage !== "performance-triage.json"
+  ) {
+    return false;
+  }
+  if (value.entrypoints.analyze !== undefined && value.entrypoints.analyze !== "analyze.json") {
+    return false;
+  }
+  if (
+    value.performanceReporting !== undefined
+    && value.performanceReporting !== "issue-count"
+    && value.performanceReporting !== "score"
+  ) {
+    return false;
+  }
   if (value.compatibility !== undefined) {
     if (!isRecord(value.compatibility)) return false;
     const mapping = value.compatibility.legacyToCanonical;

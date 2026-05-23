@@ -1,0 +1,14 @@
+[package]
+name = "signaler_launcher"
+version = "0.1.0"
+edition = "2021"
+description = "Signaler portable launcher: resolves install root and delegates to the bundled Node CLI."
+license = "MIT"
+
+[[bin]]
+name = "signaler"
+path = "src/main.rs"
+
+[[bin]]
+name = "signalar"
+path = "src/main.rs"

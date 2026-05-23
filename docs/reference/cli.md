@@ -57,10 +57,9 @@ When the latest changes are not yet published, run the local build directly:
 
 ```bash
 corepack pnpm run build
-node ./dist/bin.js discover --scope full
-node ./dist/bin.js run --contract v3 --mode throughput --yes
-node ./dist/bin.js analyze --contract v6 --json
-node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json
+node ./dist/bin.js job run --preset agent --base-url http://127.0.0.1:3000
+node ./dist/bin.js query --view perf --dir .signaler
+node ./dist/bin.js explain --id <issue-id> --dir .signaler
 ```
 
 Install from GitHub Releases:
@@ -236,6 +235,7 @@ Canonical outputs (v3):
 - `.signaler/results.json`
 - `.signaler/suggestions.json`
 - `.signaler/agent-index.json`
+- `.signaler/performance-triage.json` (issue-count performance triage from v3 run)
 - `.signaler/analyze.json` (when `analyze --contract v6` is run)
 - `.signaler/analyze.md` (when `analyze --contract v6` is run)
 - `.signaler/verify.json` (when `verify --contract v6` is run)
@@ -357,6 +357,52 @@ Exit codes:
 - `1`: runtime/processing error
 - `2`: verify checks completed with failures
 - `3`: dry-run completed
+
+### `job` (one-shot workflows)
+
+Run preset step sequences and write `.signaler/jobs/<jobId>/job.json`:
+
+```bash
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler job run --preset ci --base-url http://127.0.0.1:3000
+signaler job run --preset pr
+signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
+signaler job show --preset agent --json
+signaler job status --dir .signaler
+```
+
+Presets:
+
+- `agent` — discover → run (v3 lean) → analyze (v6)
+- `ci` — agent + `--fail-on-budget` on run
+- `pr` — run `--changed-only` → analyze (skips discover; needs existing config)
+
+Flags: `--config <path>`, `--cwd <path>`, `--dir <path>`, `--file <job.json>`.
+
+See [`../specs/engine-job-protocol.md`](../specs/engine-job-protocol.md).
+
+### `query` (agent projections)
+
+Small JSON views instead of loading all of `.signaler/`:
+
+```bash
+signaler query --view agent --dir .signaler
+signaler query --view perf --dir .signaler
+signaler query --view actions --dir .signaler
+signaler query --view delta --dir .signaler
+signaler query --view run --dir .signaler
+signaler query --view evidence --dir .signaler
+```
+
+`delta` reads `verify.json` or `--baseline-dir` + `--compare-dir` for before/after triage.
+
+### `explain` (lazy issue expand)
+
+```bash
+signaler explain --id <issue-or-suggestion-id> --dir .signaler
+```
+
+Expands one issue without ingesting full `results.json`.
 
 ## 1.1 Recommended speed workflows
 
@@ -566,9 +612,8 @@ jobs:
       - run: pnpm build
       - run: pnpm start &
       - run: npx wait-on http://localhost:3000
-      - run: pnpm exec signaler discover --scope full --non-interactive --yes --base-url http://localhost:3000
-      - run: pnpm exec signaler run --contract v3 --mode throughput --ci --no-color --yes
-      - run: pnpm exec signaler report
+      - run: npx jsr run @signaler/cli job run --preset ci --base-url http://localhost:3000 --scope full --dir .signaler
+      - run: npx jsr run @signaler/cli report --dir .signaler
 ```
 
 ## 4. Baseline benchmark harness (observe-only)
@@ -772,44 +817,62 @@ Each template runs canonical CI flow:
 
 1. start app
 2. wait for base URL
-3. `discover`
-4. `run --contract v3 --mode throughput`
-5. `report`
-6. upload `.signaler/*` artifacts
+3. `job run --preset ci` (discover → run v3 lean + `--fail-on-budget` → analyze v6)
+4. `report` (HTML digest)
+5. upload `.signaler/*` artifacts
+
+`workflow_dispatch` supports `job_preset` (`ci`|`agent`|`pr`) and `routes_scope` (`quick`|`full`|`file`).
 
 ## 11. Agent bootstrap (copy/paste)
 
-Use this block to bootstrap a coding agent quickly:
+**Recommended: one-shot job**
 
 ```bash
-# 1) Produce canonical artifacts
-signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --ci --no-color --yes
-signaler analyze --contract v6
-signaler verify --contract v6
-signaler report
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler query --view perf --dir .signaler
+signaler explain --id <issue-id> --dir .signaler
+```
 
-# 2) Feed these files to the agent in order
-# .signaler/analyze.json
-# .signaler/verify.json
-# .signaler/agent-index.json
-# .signaler/suggestions.json
-# .signaler/issues.json
-# .signaler/results.json
-# .signaler/run.json
+After a fix:
+
+```bash
+signaler verify --contract v6
+signaler query --view delta --dir .signaler
+```
+
+**PR / changed files** (requires existing `signaler.config.json`):
+
+```bash
+signaler job run --preset pr
+```
+
+**Machine-readable onboarding** (for agent bootstrap scripts):
+
+```bash
+signaler help agent --json
+```
+
+**Manual steps** (equivalent to agent job):
+
+```bash
+signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
+signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler analyze --contract v6 --artifact-profile lean
+signaler query --view agent --dir .signaler
 ```
 
 Agent rules:
 
-1. Start from `agent-index.json` and follow evidence pointers.
-2. Prioritize high-confidence, high-impact suggestions.
-3. Implement one small fix at a time, then rerun Signaler.
-4. Use focused `--mode fidelity --focus-worst <n>` reruns only when parity-sensitive validation is required.
+1. Prefer `query` / `explain` over reading all of `.signaler/`.
+2. Performance triage uses **issue counts** (red/yellow), not headline Lighthouse performance scores.
+3. Implement one small fix, then `verify` and `query --view delta`.
+4. Use focused `--mode fidelity --focus-worst <n>` only for parity-sensitive validation.
 
-One-command script variants:
+One-command script variants (default `JOB_PRESET=agent`):
 
 - `bash scripts/agent-bootstrap.sh`
 - `powershell -ExecutionPolicy Bypass -File scripts/agent-bootstrap.ps1`
 - `corepack pnpm run agent:bootstrap:sh`
 - `corepack pnpm run agent:bootstrap:ps`
+- `JOB_PRESET=manual bash scripts/agent-bootstrap.sh` for step-by-step discover/run/analyze
 

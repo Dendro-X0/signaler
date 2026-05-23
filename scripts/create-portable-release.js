@@ -108,11 +108,36 @@ export function createRuntimePackageJson(packageJson) {
   };
 }
 
-function createLauncherFiles(packageRoot) {
+function buildRustLauncherIfAvailable(root, packageRoot) {
+  const workspacePath = resolve(root, "rust", "Cargo.toml");
+  if (!existsSync(workspacePath)) {
+    console.log("[portable-release] rust workspace not found; skipping native launcher build.");
+    return false;
+  }
+  try {
+    console.log("[portable-release] building rust launcher...");
+    runOrFail("cargo", ["build", "--release", "-p", "signaler_launcher"], { cwd: resolve(root, "rust") });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[portable-release] rust launcher build skipped: ${message}`);
+    return false;
+  }
+
+  const ext = process.platform === "win32" ? ".exe" : "";
+  const builtPath = resolve(root, "rust", "target", "release", `signaler${ext}`);
+  ensureExists(builtPath, "rust launcher binary");
+  cpSync(builtPath, resolve(packageRoot, `signaler-native${ext}`));
+  cpSync(builtPath, resolve(packageRoot, `signalar-native${ext}`));
+  return true;
+}
+
+function createLauncherFiles(packageRoot, options = {}) {
+  const hasNativeLauncher = options.hasNativeLauncher === true;
   const bashLauncher = [
     "#!/usr/bin/env bash",
     "set -euo pipefail",
     "ROOT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"",
+    hasNativeLauncher ? `if [ -x \"$ROOT_DIR/signaler-native\" ]; then exec \"$ROOT_DIR/signaler-native\" \"$@\"; fi` : "",
     "exec node \"$ROOT_DIR/dist/bin.js\" \"$@\"",
     "",
   ].join("\n");
@@ -120,6 +145,10 @@ function createLauncherFiles(packageRoot) {
   const cmdLauncher = [
     "@echo off",
     "setlocal",
+    hasNativeLauncher ? `if exist \"%~dp0signaler-native.exe\" (` : "",
+    hasNativeLauncher ? `  \"%~dp0signaler-native.exe\" %*` : "",
+    hasNativeLauncher ? `  exit /b %ERRORLEVEL%` : "",
+    hasNativeLauncher ? `)` : "",
     "node \"%~dp0dist\\bin.js\" %*",
     "",
   ].join("\r\n");
@@ -197,7 +226,8 @@ function buildPortablePackage({ root, version, outDir, skipBuild }) {
 
   writeFileSync(resolve(packageRoot, "package.json"), `${JSON.stringify(runtimePackageJson, null, 2)}\n`, "utf8");
 
-  createLauncherFiles(packageRoot);
+  const hasNativeLauncher = buildRustLauncherIfAvailable(root, packageRoot);
+  createLauncherFiles(packageRoot, { hasNativeLauncher });
   createInstallReadme(packageRoot, version);
 
   console.log("[portable-release] creating portable zip...");

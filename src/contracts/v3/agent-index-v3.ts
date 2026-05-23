@@ -20,6 +20,15 @@ export interface AgentIndexV3 {
     readonly run: "run.json";
     readonly results: "results.json";
     readonly suggestions: "suggestions.json";
+    readonly performanceTriage?: "performance-triage.json";
+    readonly analyze?: "analyze.json";
+  };
+  readonly performanceReporting?: "issue-count" | "score";
+  readonly agentProtocol?: {
+    readonly mandatoryReads: readonly string[];
+    readonly optionalReads: readonly string[];
+    readonly queryCommand: string;
+    readonly explainCommand: string;
   };
   readonly compatibility?: {
     readonly legacyToCanonical: readonly {

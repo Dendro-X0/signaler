@@ -611,6 +611,9 @@ const HELP_CORE_COMMANDS: readonly HelpLine[] = [
   { command: "run [flags]", description: "Canonical runner (defaults: --contract v3 --mode throughput)" },
   { command: "analyze [flags]", description: "V6 machine packet generation from v3 artifacts (requires --contract v6)" },
   { command: "verify [flags]", description: "V6 focused rerun and pass/fail checks (requires --contract v6)" },
+  { command: "job run --preset agent|ci|pr", description: "One-shot workflows (discover/run/analyze presets)" },
+  { command: "query --view agent|perf|delta", description: "Token-conscious artifact projections for agents" },
+  { command: "explain --id <id>", description: "Lazy-expand one issue/suggestion without full results.json" },
   { command: "report [flags]", description: "Primary report/review from existing .signaler artifacts" },
 ] as const;
 
@@ -677,18 +680,16 @@ function pushAgentGuide(lines: string[]): void {
   lines.push(theme.bold("Agent quickstart"));
   lines.push(`${theme.cyan("Goal")} deterministic detect -> prioritize -> verify loop with machine artifacts`);
   lines.push("");
-  lines.push(theme.bold("Canonical loop"));
-  lines.push(`${theme.cyan("discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000")}`);
-  lines.push(`${theme.cyan("run --contract v3 --mode throughput --yes --no-color")}`);
-  lines.push(`${theme.cyan("analyze --contract v6 --json")}`);
-  lines.push(`${theme.cyan("verify --contract v6 --runtime-budget-ms 90000 --dry-run --json")}`);
-  lines.push(`${theme.cyan("report")}`);
+  lines.push(theme.bold("One-shot job"));
+  lines.push(`${theme.cyan("job run --preset agent --base-url http://127.0.0.1:3000")}`);
+  lines.push(`${theme.cyan("query --view perf")} | ${theme.cyan("explain --id <issue-id>")}`);
+  lines.push(`${theme.cyan("verify --contract v6")} -> ${theme.cyan("query --view delta")}`);
   lines.push("");
-  lines.push(theme.bold("Local unpublished build"));
-  lines.push(`${theme.cyan("node ./dist/bin.js <command>")} (same sequence as above)`);
+  lines.push(theme.bold("PR preset"));
+  lines.push(`${theme.cyan("job run --preset pr")} (changed-files only)`);
   lines.push("");
-  lines.push(theme.bold("Artifact order"));
-  lines.push(".signaler/analyze.json -> .signaler/verify.json -> .signaler/agent-index.json -> .signaler/suggestions.json -> .signaler/results.json -> .signaler/run.json");
+  lines.push(theme.bold("Bootstrap"));
+  lines.push("bash scripts/agent-bootstrap.sh | corepack pnpm run agent:bootstrap:sh");
   lines.push("");
   lines.push(theme.bold("Automation exit codes"));
   lines.push("verify: 0 pass | 1 runtime error | 2 checks failed | 3 dry-run");

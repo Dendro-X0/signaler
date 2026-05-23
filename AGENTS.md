@@ -12,49 +12,68 @@ Run this sequence unless project docs define a specific variant:
 
 ```bash
 signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --ci --no-color --yes
+signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler analyze --contract v6 --artifact-profile lean
+signaler verify --contract v6
 signaler report
+
+# Or one-shot job (writes .signaler/jobs/<id>/job.json)
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+
+# PR / changed-files only (requires existing signaler.config.json)
+signaler job run --preset pr
+signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
 ```
 
-## Canonical Artifact Read Order
+## Agent read API (preferred over raw files)
 
-Read these files in order:
+```bash
+signaler query --view agent --dir .signaler
+signaler query --view perf --dir .signaler
+signaler query --view delta --dir .signaler
+signaler explain --id <issue-id> --dir .signaler
+```
 
-1. `.signaler/agent-index.json`
-2. `.signaler/suggestions.json`
-3. `.signaler/issues.json`
-4. `.signaler/results.json`
-5. `.signaler/run.json`
+Do not read the entire `.signaler/` directory. Use projections only.
 
-Do not ingest the entire `.signaler/` directory by default.
+## Canonical Artifact Read Order (when files are used directly)
+
+1. `analyze.json` (after `signaler analyze --contract v6`)
+2. `performance-triage.json` (issue-count performance triage; not score parity)
+3. `agent-index.json`
+4. `suggestions.json` only when `explain` or evidence pointers require it
+
+## Performance reporting
+
+- Performance: **issue-count triage** (red/yellow). Scores are lab-trend signals only.
+- Accessibility / SEO / best practices: category scores (usually DevTools-aligned).
 
 ## Analysis Rules
 
-1. Start from `agent-index.json`.
-2. Follow evidence pointers before proposing fixes.
-3. Prioritize suggestions with:
-   - high confidence
-   - broad combo impact
-   - non-zero time or bytes impact
-4. Treat throughput performance scores as trend-oriented.
-5. Use focused fidelity reruns only for parity-sensitive verification.
+1. Start from `signaler query --view agent` or `analyze.json`.
+2. Use `signaler query --view perf` for performance prioritization.
+3. Call `signaler explain --id ...` before editing code.
+4. Prioritize red issues and high-confidence suggestions with non-zero impact.
+5. Use `verify` for pass/fail after fixes.
 
 ## Fix Loop
 
 1. Pick one high-confidence issue.
 2. Implement the smallest credible fix.
 3. Re-run Signaler.
-4. Compare updated canonical artifacts.
-5. Stop and report if evidence does not support the fix.
+4. Compare `query --view perf` and `verify.json`.
+5. Stop if evidence does not support the fix.
 
 ## Defaults and Boundaries
 
-- Prefer canonical v3 artifacts over legacy outputs.
-- Keep changes focused; do not rewrite broad unrelated areas.
-- Use Rust flags only when explicitly requested or when benchmarking accelerator behavior.
+- Prefer canonical v3/v6 artifacts over legacy outputs.
+- Lean artifact profile is the default for agents (`--artifact-profile lean`).
+- Use `--perf-include-yellow` when you need yellow performance issues in triage.
 - Cortex is optional and not required for agent operation in this repository.
 
 ## Quick References
 
+- `docs/specs/agent-artifact-protocol.md`
+- `docs/guides/lab-semantics.md`
 - `docs/guides/agent-quickstart.md`
 - `docs/examples/agent-prompt-pack.md`

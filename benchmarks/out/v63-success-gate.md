@@ -1,12 +1,12 @@
 # V6.3 Success Gate
 
-Generated: 2026-04-06T06:28:24.392Z
-Status: OK
+Generated: 2026-05-23T11:22:49.517Z
+Status: WARN
 
 ## Summary
 
 - Blocking failures: 0
-- Warnings: 0
+- Warnings: 1
 - Manual items: 6
 
 ## Checks
@@ -20,7 +20,7 @@ Status: OK
 | timing-metadata | ok | yes | Compact JSON summaries include orchestration timing/planning fields. |
 | low-memory-guidance | ok | yes | Low-memory throughput guidance is present in run output path. |
 | v63-regression-tests | ok | yes | V6.3 regression tests cover timing metadata and runtime budget planning. |
-| success-gate-progress | ok | no | Success gate checklist complete (4/4). |
+| success-gate-progress | warn | no | Success Gate section not found in v6.3 roadmap. |
 | loop-smoke-evidence | ok | no | Loop smoke passed in 14636ms. |
 | low-memory-evidence | ok | no | Low-memory evidence report is present and passing. |
 | workstream-j-overhead-evidence | ok | no | Workstream J overhead evidence is passing (median=2ms, p95=3ms). |

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-04-06T06:28:14.103Z",
-  "status": "ok",
+  "generatedAt": "2026-05-23T11:22:38.484Z",
+  "status": "warn",
   "checks": [
     {
       "id": "v3-core-docs",
@@ -65,8 +65,8 @@
     },
     {
       "id": "loop-smoke-evidence",
-      "status": "ok",
-      "details": "Loop smoke evidence exists and is recent (<=30 days).",
+      "status": "warn",
+      "details": "Loop smoke evidence exists but appears stale (>30 days) or missing generatedAt.",
       "blocking": false
     },
     {
@@ -78,7 +78,7 @@
   ],
   "summary": {
     "blockingFailures": 0,
-    "warnings": 0,
+    "warnings": 1,
     "manualItems": 3
   }
 }

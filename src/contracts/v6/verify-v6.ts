@@ -1,5 +1,6 @@
 export interface VerifyThresholdsV6 {
   readonly minScoreDelta?: number;
+  readonly minIssueCountDelta?: number;
   readonly minLcpDeltaMs?: number;
   readonly minTbtDeltaMs?: number;
   readonly minClsDelta?: number;
@@ -13,6 +14,7 @@ export interface VerifyCheckV6 {
   readonly reason?: string;
   readonly before: {
     readonly score?: number;
+    readonly issueCount?: number;
     readonly lcpMs?: number;
     readonly tbtMs?: number;
     readonly cls?: number;
@@ -20,6 +22,7 @@ export interface VerifyCheckV6 {
   };
   readonly after: {
     readonly score?: number;
+    readonly issueCount?: number;
     readonly lcpMs?: number;
     readonly tbtMs?: number;
     readonly cls?: number;
@@ -27,6 +30,7 @@ export interface VerifyCheckV6 {
   };
   readonly delta: {
     readonly score?: number;
+    readonly issueCount?: number;
     readonly lcpMs?: number;
     readonly tbtMs?: number;
     readonly cls?: number;
@@ -34,6 +38,7 @@ export interface VerifyCheckV6 {
   };
   readonly threshold: {
     readonly minScoreDelta?: number;
+    readonly minIssueCountDelta?: number;
     readonly minLcpDeltaMs?: number;
     readonly minTbtDeltaMs?: number;
     readonly minClsDelta?: number;

@@ -20,6 +20,10 @@ on:
         description: "Route discovery scope: quick|full|file"
         required: false
         default: "full"
+      job_preset:
+        description: "Signaler job preset: ci|agent|pr"
+        required: false
+        default: "ci"
 
 jobs:
   signaler:
@@ -29,6 +33,7 @@ jobs:
       SIGNALER_START_COMMAND: ${{ inputs.start_command || 'npm start' }}
       SIGNALER_CONFIG_PATH: ${{ inputs.config_path || 'signaler.config.json' }}
       SIGNALER_ROUTES_SCOPE: ${{ inputs.routes_scope || 'full' }}
+      SIGNALER_JOB_PRESET: ${{ inputs.job_preset || 'ci' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,25 +54,14 @@ jobs:
       - name: Wait for app
         run: npx wait-on "${SIGNALER_BASE_URL}"
 
-      - name: Discover routes
+      - name: Run Signaler job
         run: >
-          npx jsr run @signaler/cli discover
-          --config "${SIGNALER_CONFIG_PATH}"
+          npx jsr run @signaler/cli job run
+          --preset "${SIGNALER_JOB_PRESET}"
           --base-url "${SIGNALER_BASE_URL}"
-          --project-root "."
-          --scope "${SIGNALER_ROUTES_SCOPE}"
-          --non-interactive
-          --yes
-
-      - name: Run audit
-        run: >
-          npx jsr run @signaler/cli run
           --config "${SIGNALER_CONFIG_PATH}"
-          --contract v3
-          --mode throughput
-          --ci
-          --no-color
-          --yes
+          --scope "${SIGNALER_ROUTES_SCOPE}"
+          --dir ".signaler"
 
       - name: Generate report
         run: npx jsr run @signaler/cli report --dir ".signaler"

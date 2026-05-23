@@ -1,12 +1,12 @@
 # V3 Release Gate (Phase 1)
 
-Generated: 2026-04-06T06:28:14.103Z
-Status: OK
+Generated: 2026-05-23T11:22:38.484Z
+Status: WARN
 
 ## Summary
 
 - Blocking failures: 0
-- Warnings: 0
+- Warnings: 1
 - Manual items: 3
 
 ## Checks
@@ -23,6 +23,6 @@ Status: OK
 | release-manifest-contract | ok | yes | V3 release manifest schema/example files are present. |
 | release-checklist-v3-gate | ok | yes | Launch checklist references V3 release gate commands. |
 | dogfood-evidence | ok | no | Dogfood evidence complete for 3 repos (>=14 days each). |
-| loop-smoke-evidence | ok | no | Loop smoke evidence exists and is recent (<=30 days). |
+| loop-smoke-evidence | warn | no | Loop smoke evidence exists but appears stale (>30 days) or missing generatedAt. |
 | release-notes-draft | ok | no | V3 release notes draft/candidate exists. |
 

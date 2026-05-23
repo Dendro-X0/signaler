@@ -11,8 +11,8 @@ import type {
   ReliabilitySloMetricsV1,
   SeoTechnicalMetricsV1,
   SecurityBaselineMetricsV1,
-} from "./contracts/multi-benchmark-v1.js";
-import type { SuggestionV3 } from "./contracts/v3/suggestions-v3.js";
+} from "./engine-contracts/signals/index.js";
+import type { SuggestionV3 } from "./engine-contracts/artifacts/v3/index.js";
 
 const DEFAULT_MAX_AGE_DAYS = 30;
 const POLICY_ID: MultiBenchmarkMetadataV1["policy"] = "v1-conservative-high-30d-route-issue";

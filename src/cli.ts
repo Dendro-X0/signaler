@@ -68,6 +68,7 @@ import {
   type MachineArtifactProfile,
 } from "./machine-output-profile.js";
 import { buildRunSuggestionCommand } from "./cli-invocation.js";
+import { buildPerformanceTriageV3, isPerformanceTriageV3, trimResultsLineForMachineProfile } from "./performance-triage.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -143,6 +144,7 @@ interface CliArgs {
   readonly benchmarkSignalsPaths: readonly string[];
   readonly artifactProfile: MachineArtifactProfile;
   readonly machineTokenBudgetOverride: number | undefined;
+  readonly perfIncludeYellow: boolean | undefined;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -2379,6 +2381,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   const benchmarkSignalsPaths: string[] = [];
   let artifactProfile: MachineArtifactProfile = "lean";
   let machineTokenBudgetOverride: number | undefined;
+  let perfIncludeYellow: boolean | undefined;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2609,6 +2612,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
     } else if (arg === "--baseline" && i + 1 < argv.length) {
       baselinePath = argv[i + 1];
       i += 1;
+    } else if (arg === "--perf-include-yellow") {
+      perfIncludeYellow = true;
+    } else if (arg === "--no-perf-include-yellow") {
+      perfIncludeYellow = false;
     } else if (arg === "--artifact-profile" && i + 1 < argv.length) {
       const value: string = argv[i + 1] ?? "";
       if (value === "lean" || value === "standard" || value === "diagnostics") {
@@ -2708,6 +2715,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     benchmarkSignalsPaths,
     artifactProfile,
     machineTokenBudgetOverride,
+    perfIncludeYellow,
   };
 }
 
@@ -2904,6 +2912,8 @@ function printAuditFlags(): void {
       "  --legacy-artifacts Keep legacy artifacts when --contract v3 is enabled",
       "  --baseline <path>  Baseline run.json path to compare compat hash against",
       "  --artifact-profile <p> Machine output profile: lean | standard | diagnostics (default lean)",
+      "  --perf-include-yellow     Include yellow performance issues in triage (default: on except lean profile)",
+      "  --no-perf-include-yellow  Emit red performance issues only in triage/results caps",
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
@@ -3994,17 +4004,34 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     });
   }
 
-  const resultsV3: ResultsV3 = buildResultsV3({ summary, outputDir, protocol });
+  const effectivePerfIncludeYellow: boolean = args.perfIncludeYellow ?? args.artifactProfile !== "lean";
+  const resultsV3: ResultsV3 = buildResultsV3({
+    summary,
+    outputDir,
+    protocol,
+    artifactProfile: args.artifactProfile,
+    perfIncludeYellow: effectivePerfIncludeYellow,
+  });
   if (!isResultsV3(resultsV3)) {
     throw new Error("Internal contract error: results.json failed validation.");
   }
   await writeJsonWithOptionalGzip(resolve(outputDir, "results.json"), resultsV3);
   await writeJsonWithOptionalGzip(resolve(outputDir, "suggestions.json"), suggestionsV3, { pretty: false });
+  const performanceTriageV3 = buildPerformanceTriageV3({
+    results: summary.results,
+    protocol,
+    includeYellow: effectivePerfIncludeYellow,
+  });
+  if (!isPerformanceTriageV3(performanceTriageV3)) {
+    throw new Error("Internal contract error: performance-triage.json failed validation.");
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "performance-triage.json"), performanceTriageV3, { pretty: false });
   const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({
     protocol,
     suggestions: suggestionsV3,
     tokenBudget: effectiveMachineTokenBudget,
     artifactProfile: args.artifactProfile,
+    includePerformanceTriage: true,
   });
   if (!isAgentIndexV3(agentIndexV3)) {
     throw new Error("Internal contract error: agent-index.json failed validation.");
@@ -4150,7 +4177,10 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       `V3 contract enabled (${protocol.mode}/${protocol.profile}) • comparabilityHash ${protocol.comparabilityHash.slice(0, 12)}…`,
     );
     // eslint-disable-next-line no-console
-    console.log("Primary machine artifacts: run.json, results.json, suggestions.json, agent-index.json");
+    console.log(
+      "Primary machine artifacts: agent-index.json, performance-triage.json (issue-count perf triage), suggestions.json",
+    );
+    console.log("Agent API: signaler query --view agent | signaler explain --id <issue-id>");
     if (!writeFullLegacyArtifacts) {
       // eslint-disable-next-line no-console
       console.log("Legacy heavy artifacts suppressed. Use --legacy-artifacts to emit full legacy AI/report payloads.");
@@ -6011,13 +6041,23 @@ function buildResultsV3(params: {
   readonly summary: RunSummary;
   readonly outputDir: string;
   readonly protocol: RunProtocolV3;
+  readonly artifactProfile: MachineArtifactProfile;
+  readonly perfIncludeYellow: boolean;
 }): ResultsV3 {
   return {
     generatedAt: new Date().toISOString(),
     outputDir: params.outputDir,
     protocol: params.protocol,
     meta: params.summary.meta,
-    results: params.summary.results.map(toResultsV3Line),
+    results: params.summary.results
+      .map(toResultsV3Line)
+      .map((line) =>
+        trimResultsLineForMachineProfile({
+          line,
+          artifactProfile: params.artifactProfile,
+          perfIncludeYellow: params.perfIncludeYellow,
+        }),
+      ),
   };
 }
 
@@ -6128,6 +6168,7 @@ function buildAgentIndexV3(params: {
   readonly suggestions: SuggestionsV3;
   readonly tokenBudget: number;
   readonly artifactProfile: MachineArtifactProfile;
+  readonly includePerformanceTriage: boolean;
 }): AgentIndexV3 {
   const caps = getMachineProfileCaps(params.artifactProfile);
   const baseRefs: AgentIndexSuggestionRefV3[] = [...buildTopSuggestionRefs(params.suggestions.suggestions, caps.topSuggestionsCap)];
@@ -6143,6 +6184,16 @@ function buildAgentIndexV3(params: {
       run: "run.json" as const,
       results: "results.json" as const,
       suggestions: "suggestions.json" as const,
+      ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
+    },
+    performanceReporting: "issue-count" as const,
+    agentProtocol: {
+      mandatoryReads: params.includePerformanceTriage
+        ? ["agent-index.json", "performance-triage.json"]
+        : ["agent-index.json"],
+      optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
+      queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
+      explainCommand: "signaler explain --id <suggestion-or-issue-id>",
     },
     compatibility: {
       legacyToCanonical: [
@@ -6192,6 +6243,16 @@ function buildAgentIndexV3(params: {
       run: "run.json",
       results: "results.json",
       suggestions: "suggestions.json",
+      ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
+    },
+    performanceReporting: "issue-count",
+    agentProtocol: {
+      mandatoryReads: params.includePerformanceTriage
+        ? ["agent-index.json", "performance-triage.json"]
+        : ["agent-index.json"],
+      optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
+      queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
+      explainCommand: "signaler explain --id <suggestion-or-issue-id>",
     },
     compatibility: {
       legacyToCanonical: [
