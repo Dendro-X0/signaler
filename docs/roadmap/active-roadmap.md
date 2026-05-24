@@ -5,19 +5,23 @@ Updated: 2026-05-24
 
 ## Current focus
 
-**Phase 2 — v3.4.x: Production serve hardening** (in progress)
+**Phase 3 — v3.5.x: Discover and scope honesty** (in progress)
 
 Canonical plan: [`version-roadmap.md`](./version-roadmap.md)
 
-### Phase 2 deliverables
+### Phase 3 deliverables
 
 | ID | Item | Status |
 |----|------|--------|
-| 3.4.1 | Webpack build fallback after primary build failure | Done |
-| 3.4.2 | Monorepo `nextAppRoot` (`apps/web`) for BUILD_ID + fallback | Done |
-| 3.4.3 | `--managed-serve-reuse` for non-2xx servers | Done |
-| 3.4.4 | Fresh build detection (BUILD_ID vs package.json mtime) | Done |
-| 3.4.5 | Serve plan + probe tests | Done |
+| 3.5.1 | Discover coverage % + excludedReasons + full-scope recommendation | Done |
+| 3.5.2 | App Router MDX page detection | Done |
+| 3.5.3 | `signaler report --summary` one-screen view | Done |
+| 3.5.4 | `agent-index.json` job exit codes + `partialSuccess` | Done |
+
+### Phase 2 (v3.4.x) — shipped
+
+- Webpack fallback, monorepo `nextAppRoot`, `--managed-serve-reuse`, fresh build skip
+- Commit: `a42fdfc`
 
 ### Phase 1 (v3.3.x) — shipped
 
@@ -27,7 +31,7 @@ Canonical plan: [`version-roadmap.md`](./version-roadmap.md)
 
 ## Next
 
-Phase 3 (v3.5): discover coverage %, `report --summary`, MDX route improvements
+Phase 4 (v3.6): distribution polish, JSR/npm publish smoke, installer validation
 
 ## North-star (stable)
 

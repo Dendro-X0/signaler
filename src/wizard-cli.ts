@@ -6,6 +6,7 @@ import { request as httpsRequest } from "node:https";
 import prompts, { type PromptObject } from "prompts";
 import { detectRoutes, type DetectedRoute, type RouteDetectionLogEntry, type RouteDetectorId } from "./route-detectors.js";
 import { discoverRuntimeRoutes } from "./sitemap-discovery.js";
+import { buildDiscoveryCoverage, formatDiscoveryCoverageLine, type DiscoveryCoverage } from "./discovery-coverage.js";
 import { pathExists } from "./infrastructure/filesystem/utils.js";
 import { discoverNextProjects, type DiscoveredProject } from "./project-discovery.js";
 import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
@@ -39,6 +40,7 @@ export interface DiscoverySummary {
     readonly excludedByFilter: number;
     readonly excludedByScope: number;
   };
+  readonly coverage: DiscoveryCoverage;
   readonly routes: {
     readonly selected: readonly string[];
     readonly excludedDynamic: readonly string[];
@@ -1220,6 +1222,14 @@ export function buildDiscoverySummary(params: {
   readonly routeCap: number;
   readonly source: "filesystem" | "runtime" | "mixed" | "file";
 }): DiscoverySummary {
+  const coverage = buildDiscoveryCoverage({
+    detected: params.detectedTotal,
+    selected: params.pages.length,
+    excludedDynamic: params.excludedDynamic.length,
+    excludedByFilter: params.excludedByFilter,
+    excludedByScope: params.excludedByScope,
+    scopeResolved: params.scopeUsed,
+  });
   return {
     generatedAt: new Date().toISOString(),
     scope: params.scopeUsed,
@@ -1236,6 +1246,7 @@ export function buildDiscoverySummary(params: {
       excludedByFilter: params.excludedByFilter,
       excludedByScope: params.excludedByScope,
     },
+    coverage,
     routes: {
       selected: params.pages.map((page) => page.path),
       excludedDynamic: params.excludedDynamic,
@@ -1263,6 +1274,13 @@ function printDiscoveryStrategySummary(summary: DiscoverySummary): void {
   console.log(`  - scope: requested=${summary.scopeRequested}, resolved=${summary.scopeResolved}`);
   console.log(`  - status: ${summary.status}`);
   console.log(`  - totals: detected=${summary.totals.detected}, selected=${summary.totals.selected}, excludedDynamic=${summary.totals.excludedDynamic}, excludedByFilter=${summary.totals.excludedByFilter}, excludedByScope=${summary.totals.excludedByScope}`);
+  console.log(`  - coverage: ${formatDiscoveryCoverageLine({ detected: summary.totals.detected, selected: summary.totals.selected, coverage: summary.coverage })}`);
+  console.log(
+    `  - excluded: scope=${summary.coverage.excludedReasons.scope}, filter=${summary.coverage.excludedReasons.filter}, dynamic=${summary.coverage.excludedReasons.dynamic}`,
+  );
+  if (summary.coverage.recommendFullScope) {
+    console.log("  - recommendation: quick scope covers less than half of detected routes; rerun with --scope full for representative audits");
+  }
   console.log(`  - strategy: source=${summary.strategy.source}, routeCap=${summary.strategy.routeCap}`);
   console.log(`  - warnings: ${warningText}`);
 }
@@ -1290,6 +1308,14 @@ async function writeDiscoveryFailureSummary(params: {
       excludedByFilter: 0,
       excludedByScope: 0,
     },
+    coverage: buildDiscoveryCoverage({
+      detected: 0,
+      selected: 0,
+      excludedDynamic: 0,
+      excludedByFilter: 0,
+      excludedByScope: 0,
+      scopeResolved: params.scopeRequested,
+    }),
     routes: {
       selected: [],
       excludedDynamic: [],

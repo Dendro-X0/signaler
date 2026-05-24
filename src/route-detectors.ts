@@ -71,7 +71,7 @@ interface RouteDetector {
   detect(options: InternalDetectOptions): Promise<DetectedRoute[]>;
 }
 
-const PAGE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"] as const;
+const PAGE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mdx"] as const;
 const NUXT_PAGE_EXTENSIONS = [".vue"] as const;
 const DEFAULT_LIMIT: number = 200;
 const SOURCE_NEXT_APP: RouteDetectorId = "next-app";

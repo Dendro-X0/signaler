@@ -29,6 +29,11 @@ export interface AgentIndexV3 {
     readonly optionalReads: readonly string[];
     readonly queryCommand: string;
     readonly explainCommand: string;
+    readonly jobExitCodes?: {
+      readonly "0": string;
+      readonly "1": string;
+      readonly "2": string;
+    };
   };
   readonly compatibility?: {
     readonly legacyToCanonical: readonly {
@@ -44,4 +49,9 @@ export interface AgentIndexV3 {
     readonly topSuggestionsCap: number;
   };
   readonly topSuggestions: readonly AgentIndexSuggestionRefV3[];
+  readonly partialSuccess?: {
+    readonly reason: "analyze-failed";
+    readonly message: string;
+    readonly fallbackArtifacts: readonly string[];
+  };
 }

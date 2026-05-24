@@ -6237,6 +6237,11 @@ function buildAgentIndexV3(params: {
       optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
       queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
       explainCommand: "signaler explain --id <suggestion-or-issue-id>",
+      jobExitCodes: {
+        "0": "All job steps succeeded",
+        "1": "Discover or run failed",
+        "2": "Run succeeded; analyze failed — use performance-triage.json",
+      },
     },
     compatibility: {
       legacyToCanonical: [
@@ -6296,6 +6301,11 @@ function buildAgentIndexV3(params: {
       optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
       queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
       explainCommand: "signaler explain --id <suggestion-or-issue-id>",
+      jobExitCodes: {
+        "0": "All job steps succeeded",
+        "1": "Discover or run failed",
+        "2": "Run succeeded; analyze failed — use performance-triage.json",
+      },
     },
     compatibility: {
       legacyToCanonical: [

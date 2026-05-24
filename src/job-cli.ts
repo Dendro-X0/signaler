@@ -12,6 +12,7 @@ import {
   type BuildPresetJobParams,
   type EngineJobPreset,
 } from "./engine/index.js";
+import { markAgentIndexPartialSuccess } from "./agent-artifacts.js";
 
 type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
@@ -242,6 +243,9 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     }
 
     process.exitCode = outcome.exitCode;
+    if (outcome.exitCode === 2) {
+      await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
+    }
     if (!args.json && outcome.exitCode === 2) {
       console.log(
         "Job partial success: run completed; analyze failed. Use performance-triage.json and signaler query --view perf.",

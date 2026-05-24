@@ -17,6 +17,13 @@ function createLogger(): { logger: RouteDetectionLogger; entries: RouteDetection
 }
 
 describe("detectRoutes", () => {
+  it("detects App Router MDX page files", async () => {
+    const { logger } = createLogger();
+    const routes = await detectRoutes({ projectRoot: fixturesPath("next-app-mdx"), logger });
+    const paths = routes.map((route) => route.path).sort();
+    expect(paths).toEqual(["/", "/docs"]);
+  });
+
   it("detects routes from a Next.js app directory", async () => {
     const { logger, entries } = createLogger();
     const routes = await detectRoutes({ projectRoot: fixturesPath("next-app"), logger });

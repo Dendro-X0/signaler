@@ -84,3 +84,30 @@ export function findSuggestionById(suggestions: SuggestionsV3, id: string): Sugg
 export function findPerformanceIssueById(triage: PerformanceTriageV3, id: string): PerformanceTriageV3["uniqueIssues"][number] | undefined {
   return triage.uniqueIssues.find((issue) => issue.id === id);
 }
+
+export async function markAgentIndexPartialSuccess(outputDir: string): Promise<void> {
+  const agentIndexPath = resolve(outputDir, "agent-index.json");
+  let parsed: unknown;
+  try {
+    parsed = await readJson(agentIndexPath);
+  } catch {
+    return;
+  }
+  if (!isAgentIndexV3(parsed)) {
+    return;
+  }
+  const agentIndex = parsed as AgentIndexV3;
+  if (agentIndex.partialSuccess) {
+    return;
+  }
+  const updated: AgentIndexV3 = {
+    ...agentIndex,
+    partialSuccess: {
+      reason: "analyze-failed",
+      message: "Run completed; analyze step failed. Use performance-triage.json and signaler query --view perf.",
+      fallbackArtifacts: ["performance-triage.json", "results.json"],
+    },
+  };
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(agentIndexPath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+}

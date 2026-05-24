@@ -1,6 +1,7 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
+import { printAuditSummary } from "./report-summary.js";
 
 type ApexSeverity = "info" | "yellow" | "red";
 
@@ -98,16 +99,19 @@ type GlobalRedReport = {
   readonly fixPlan: AiLedger["fixPlan"];
 };
 
-function parseArgs(argv: readonly string[]): { readonly outputDir: string } {
+function parseArgs(argv: readonly string[]): { readonly outputDir: string; readonly summary: boolean } {
   let outputDir: string = resolve(".signaler");
+  let summary = false;
   for (let i: number = 2; i < argv.length; i += 1) {
     const arg: string = argv[i] ?? "";
     if ((arg === "--dir" || arg === "--output-dir") && i + 1 < argv.length) {
       outputDir = resolve(argv[i + 1] ?? outputDir);
       i += 1;
+    } else if (arg === "--summary") {
+      summary = true;
     }
   }
-  return { outputDir };
+  return { outputDir, summary };
 }
 
 async function readJson<T extends object>(absolutePath: string): Promise<T> {
@@ -214,10 +218,15 @@ function toRedIssues(ledger: AiLedger): readonly GlobalRedReport["redIssues"][nu
 }
 
 export async function runReportCli(argv: readonly string[]): Promise<void> {
-  const args: { readonly outputDir: string } = parseArgs(argv);
-  const issuesPath: string = resolve(args.outputDir, "issues.json");
-  const ledgerPath: string = resolve(args.outputDir, "ai-ledger.json");
-  const suggestionsPath: string = resolve(args.outputDir, "suggestions.json");
+  const args = parseArgs(argv);
+  if (args.summary) {
+    await printAuditSummary({ outputDir: args.outputDir });
+    return;
+  }
+  const outputDir: string = args.outputDir;
+  const issuesPath: string = resolve(outputDir, "issues.json");
+  const ledgerPath: string = resolve(outputDir, "ai-ledger.json");
+  const suggestionsPath: string = resolve(outputDir, "suggestions.json");
   const issues: IssuesFile = await readJson<IssuesFile>(issuesPath);
   const generatedAt: string = new Date().toISOString();
 
