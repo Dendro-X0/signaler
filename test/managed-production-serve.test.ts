@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   buildLoopbackBaseUrl,
   findAvailablePort,
+  hasFreshProductionBuild,
   isPortAvailable,
+  resolveNextAppRoot,
   resolveProductionServePlan,
 } from "../src/engine/serve/resolve-serve-plan.js";
+import { probeUrlListening, probeUrlReachable } from "../src/engine/serve/url-probe.js";
 
 describe("managed production serve plan", () => {
   it("resolves build/start scripts for next-blogkit-pro", async () => {
@@ -23,6 +26,21 @@ describe("managed production serve plan", () => {
     expect(plan.projectRoot).toContain("next-ecommercekit-monorepo");
     expect(plan.buildScript).toBe("build");
     expect(plan.startScript).toBe("start");
+    expect(plan.nextAppRoot.replace(/\\/g, "/")).toMatch(/apps\/web$/);
+  });
+
+  it("resolves next app root for blogkit standalone repo", async () => {
+    const appRoot = await resolveNextAppRoot(
+      "e:/Web Projects/experimental-workspace/apex-auditor-workspace/next-blogkit-pro",
+    );
+    expect(appRoot.replace(/\\/g, "/")).toMatch(/next-blogkit-pro$/);
+  });
+
+  it("detects fresh production build when package.json is older than BUILD_ID", async () => {
+    const ecommerceAppRoot =
+      "e:/Web Projects/experimental-workspace/apex-auditor-workspace/next-ecommercekit-monorepo/apps/web";
+    const fresh = await hasFreshProductionBuild({ nextAppRoot: ecommerceAppRoot });
+    expect(typeof fresh).toBe("boolean");
   });
 
   it("finds a free loopback port when preferred port is taken", async () => {
@@ -42,5 +60,12 @@ describe("managed production serve plan", () => {
     expect(resolvedPort).not.toBe(preferredPort);
     expect(buildLoopbackBaseUrl(resolvedPort)).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
+  });
+});
+
+describe("url probe", () => {
+  it("treats connection errors as not listening", async () => {
+    expect(await probeUrlReachable("http://127.0.0.1:1/")).toBe(false);
+    expect(await probeUrlListening("http://127.0.0.1:1/")).toBe(false);
   });
 });

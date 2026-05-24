@@ -152,6 +152,7 @@ interface CliArgs {
   readonly perfIncludeYellow: boolean | undefined;
   readonly managedServe: boolean;
   readonly managedServeSkipBuild: boolean;
+  readonly managedServeReuse: boolean;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -2391,6 +2392,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let perfIncludeYellow: boolean | undefined;
   let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
   let managedServeSkipBuild = false;
+  let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2629,6 +2631,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
       managedServe = true;
     } else if (arg === "--managed-serve-skip-build") {
       managedServeSkipBuild = true;
+    } else if (arg === "--managed-serve-reuse") {
+      managedServeReuse = true;
     } else if (arg === "--artifact-profile" && i + 1 < argv.length) {
       const value: string = argv[i + 1] ?? "";
       if (value === "lean" || value === "standard" || value === "diagnostics") {
@@ -2731,6 +2735,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     perfIncludeYellow,
     managedServe,
     managedServeSkipBuild,
+    managedServeReuse,
   };
 }
 
@@ -2934,6 +2939,7 @@ function printAuditFlags(): void {
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
       "  --managed-serve | --auto-serve  Build and start production server when base URL is down (or SIGNALER_MANAGED_SERVE=1)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
+      "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
     ].join("\n"),
   );
 }
@@ -3599,6 +3605,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       projectRoot: dirname(configPath),
       baseUrl: auditConfig.baseUrl ?? "http://127.0.0.1:3000",
       skipBuild: args.managedServeSkipBuild,
+      reuseUnhealthy: args.managedServeReuse,
     });
     auditConfig = { ...auditConfig, baseUrl: managedServer.baseUrl };
     if (managedServer.startedBySignaler) {

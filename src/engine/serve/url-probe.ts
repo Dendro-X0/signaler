@@ -1,18 +1,43 @@
 import { get } from "node:http";
 
-export async function probeUrlReachable(url: string, timeoutMs = 5000): Promise<boolean> {
+export type UrlProbeResult = {
+  readonly reachable: boolean;
+  readonly statusCode?: number;
+};
+
+export async function probeUrl(params: {
+  readonly url: string;
+  readonly timeoutMs?: number;
+}): Promise<UrlProbeResult> {
+  const timeoutMs = params.timeoutMs ?? 5000;
   return new Promise((resolve) => {
-    const request = get(url, { timeout: timeoutMs }, (response) => {
+    const request = get(params.url, { timeout: timeoutMs }, (response) => {
       response.resume();
-      const statusCode = response.statusCode ?? 0;
-      resolve(statusCode >= 200 && statusCode < 400);
+      resolve({
+        reachable: true,
+        statusCode: response.statusCode ?? 0,
+      });
     });
     request.on("timeout", () => {
       request.destroy();
-      resolve(false);
+      resolve({ reachable: false });
     });
-    request.on("error", () => resolve(false));
+    request.on("error", () => resolve({ reachable: false }));
   });
+}
+
+export async function probeUrlReachable(url: string, timeoutMs = 5000): Promise<boolean> {
+  const result = await probeUrl({ url, timeoutMs });
+  if (!result.reachable || result.statusCode === undefined) {
+    return false;
+  }
+  return result.statusCode >= 200 && result.statusCode < 400;
+}
+
+/** True when something responds on the URL (including HTTP 4xx/5xx). */
+export async function probeUrlListening(url: string, timeoutMs = 5000): Promise<boolean> {
+  const result = await probeUrl({ url, timeoutMs });
+  return result.reachable;
 }
 
 export async function waitForUrlReachable(params: {

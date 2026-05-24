@@ -1,20 +1,23 @@
+import { existsSync } from "node:fs";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { join } from "node:path";
-import { pathExists } from "../../infrastructure/filesystem/utils.js";
 import {
   buildLoopbackBaseUrl,
   findAvailablePort,
+  hasFreshProductionBuild,
   normalizeLoopbackBaseUrl,
   parseBaseUrlPort,
   resolveProductionServePlan,
   type PackageManagerId,
+  type ProductionServePlan,
 } from "./resolve-serve-plan.js";
-import { probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
+import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedProductionServerOptions = {
   readonly projectRoot: string;
   readonly baseUrl?: string;
   readonly skipBuild?: boolean;
+  readonly reuseUnhealthy?: boolean;
   readonly buildTimeoutMs?: number;
   readonly startTimeoutMs?: number;
 };
@@ -54,7 +57,7 @@ function packageManagerCommand(packageManager: PackageManagerId): string {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
-function runBuild(params: {
+function runPackageScript(params: {
   readonly cwd: string;
   readonly packageManager: PackageManagerId;
   readonly script: string;
@@ -76,7 +79,79 @@ function runBuild(params: {
   }
 }
 
-function formatProductionBuildFailureMessage(params: { readonly exitCode: number }): string {
+function runNextWebpackBuild(params: {
+  readonly cwd: string;
+  readonly packageManager: PackageManagerId;
+  readonly timeoutMs: number;
+}): void {
+  const command = packageManagerCommand(params.packageManager);
+  const appPackageManager = params.packageManager;
+  const result = spawnSync(command, ["exec", "next", "build", "--webpack"], {
+    cwd: params.cwd,
+    stdio: "inherit",
+    env: process.env,
+    shell: process.platform === "win32",
+    timeout: params.timeoutMs,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      formatProductionBuildFailureMessage({
+        exitCode: result.status ?? 1,
+        webpackAttempted: true,
+        packageManager: appPackageManager,
+      }),
+    );
+  }
+}
+
+function runProductionBuild(plan: ProductionServePlan, timeoutMs: number): void {
+  try {
+    runPackageScript({
+      cwd: plan.projectRoot,
+      packageManager: plan.packageManager,
+      script: plan.buildScript,
+      timeoutMs,
+    });
+  } catch (primaryError) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Managed serve: primary build failed in ${plan.projectRoot}; retrying with next build --webpack in ${plan.nextAppRoot} ...`,
+    );
+    try {
+      runNextWebpackBuild({
+        cwd: plan.nextAppRoot,
+        packageManager: detectPackageManagerForRoot(plan.nextAppRoot, plan.packageManager),
+        timeoutMs,
+      });
+    } catch (fallbackError) {
+      const primaryMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
+      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      throw new Error(`${primaryMessage}\n\nWebpack fallback also failed:\n${fallbackMessage}`);
+    }
+  }
+}
+
+function detectPackageManagerForRoot(directory: string, fallback: PackageManagerId): PackageManagerId {
+  if (existsSync(join(directory, "pnpm-lock.yaml"))) {
+    return "pnpm";
+  }
+  if (existsSync(join(directory, "yarn.lock"))) {
+    return "yarn";
+  }
+  if (existsSync(join(directory, "package-lock.json"))) {
+    return "npm";
+  }
+  return fallback;
+}
+
+function formatProductionBuildFailureMessage(params: {
+  readonly exitCode: number;
+  readonly webpackAttempted?: boolean;
+  readonly packageManager?: PackageManagerId;
+}): string {
   const lines: string[] = [
     `Production build failed with exit code ${params.exitCode}.`,
     "",
@@ -86,6 +161,11 @@ function formatProductionBuildFailureMessage(params: { readonly exitCode: number
     "  - For pnpm: shamefully-hoist=true in .npmrc or install missing @radix-ui peers",
     "  - Build manually: pnpm run build && signaler run --managed-serve-skip-build ...",
   ];
+  if (params.webpackAttempted) {
+    lines.push("", "Signaler already retried with `next build --webpack`.");
+  } else {
+    lines.push("", "Signaler will retry automatically with `next build --webpack` when possible.");
+  }
   return lines.join("\n");
 }
 
@@ -110,13 +190,6 @@ function spawnStartProcess(params: {
   });
 }
 
-async function shouldSkipBuild(projectRoot: string, skipBuild?: boolean): Promise<boolean> {
-  if (skipBuild) {
-    return true;
-  }
-  return pathExists(join(projectRoot, ".next", "BUILD_ID"));
-}
-
 /**
  * Ensure a production-like server is reachable. Starts `build` + `start` when needed and
  * stops the child on cleanup (audit completion or CLI termination).
@@ -139,28 +212,41 @@ export async function ensureManagedProductionServer(
     };
   }
 
+  if (options.reuseUnhealthy && (await probeUrlListening(healthUrl))) {
+    const probe = await probeUrl({ url: healthUrl });
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Managed serve: reusing server at ${baseUrl} (HTTP ${probe.statusCode ?? "?"}; not healthy). Audits may reflect a broken app.`,
+    );
+    return {
+      baseUrl,
+      startedBySignaler: false,
+      builtBySignaler: false,
+      stop: async () => {},
+    };
+  }
+
   const preferredPort = parseBaseUrlPort(requestedBaseUrl);
   const port = await findAvailablePort(preferredPort);
   if (port !== preferredPort) {
+    // eslint-disable-next-line no-console
     console.log(`Managed serve: port ${preferredPort} unavailable; using ${port} instead.`);
     baseUrl = buildLoopbackBaseUrl(port);
     healthUrl = `${baseUrl}/`;
   }
 
   let builtBySignaler = false;
-  if (!(await shouldSkipBuild(plan.projectRoot, options.skipBuild))) {
-    console.log(`Managed serve: building production bundle in ${plan.projectRoot} ...`);
-    runBuild({
-      cwd: plan.projectRoot,
-      packageManager: plan.packageManager,
-      script: plan.buildScript,
-      timeoutMs: options.buildTimeoutMs ?? 900_000,
-    });
+  if (!(await hasFreshProductionBuild({ nextAppRoot: plan.nextAppRoot, skipBuild: options.skipBuild }))) {
+    // eslint-disable-next-line no-console
+    console.log(`Managed serve: building production bundle in ${plan.projectRoot} (app: ${plan.nextAppRoot}) ...`);
+    runProductionBuild(plan, options.buildTimeoutMs ?? 900_000);
     builtBySignaler = true;
   } else {
-    console.log(`Managed serve: reusing existing production build in ${plan.projectRoot}.`);
+    // eslint-disable-next-line no-console
+    console.log(`Managed serve: reusing existing production build in ${plan.nextAppRoot}.`);
   }
 
+  // eslint-disable-next-line no-console
   console.log(`Managed serve: starting production server at ${baseUrl} ...`);
   const child = spawnStartProcess({
     cwd: plan.projectRoot,

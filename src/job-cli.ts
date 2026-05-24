@@ -20,6 +20,7 @@ type JobCliArgs = BuildPresetJobParams & {
   readonly inProcess: boolean;
   readonly managedServe: boolean;
   readonly managedServeSkipBuild: boolean;
+  readonly managedServeReuse: boolean;
   readonly json: boolean;
 };
 
@@ -44,6 +45,7 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
   let inProcess = process.env.SIGNALER_JOB_IN_PROCESS === "1";
   let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
   let managedServeSkipBuild = false;
+  let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   let parallel: number | undefined;
   let json = false;
 
@@ -114,6 +116,10 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
       managedServeSkipBuild = true;
       continue;
     }
+    if (arg === "--managed-serve-reuse") {
+      managedServeReuse = true;
+      continue;
+    }
     if (arg === "--parallel" && i + 1 < argv.length) {
       const value = Number.parseInt(argv[i + 1] ?? "", 10);
       if (!Number.isFinite(value) || value < 1 || value > 10) {
@@ -142,6 +148,7 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     inProcess,
     managedServe,
     managedServeSkipBuild,
+    managedServeReuse,
     parallel,
     json,
   };
@@ -192,6 +199,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
       projectRoot: job.cwd,
       baseUrl: args.baseUrl ?? "http://127.0.0.1:3000",
       skipBuild: args.managedServeSkipBuild,
+      reuseUnhealthy: args.managedServeReuse,
     });
     if (managedServer.startedBySignaler) {
       job = {

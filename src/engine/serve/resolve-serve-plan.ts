@@ -1,5 +1,5 @@
 import { createServer } from "node:net";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { discoverNextProjects } from "../../project-discovery.js";
 import { pathExists } from "../../infrastructure/filesystem/utils.js";
@@ -7,7 +7,10 @@ import { pathExists } from "../../infrastructure/filesystem/utils.js";
 export type PackageManagerId = "pnpm" | "npm" | "yarn";
 
 export type ProductionServePlan = {
+  /** Directory where `pnpm run build` / `start` execute (monorepo root or app root). */
   readonly projectRoot: string;
+  /** Next.js app directory where `.next/` is written (may differ in monorepos). */
+  readonly nextAppRoot: string;
   readonly packageManager: PackageManagerId;
   readonly buildScript: string;
   readonly startScript: string;
@@ -34,6 +37,62 @@ async function readScripts(projectRoot: string): Promise<PackageJsonScripts> {
   return parsed.scripts ?? {};
 }
 
+async function hasNextConfigAt(root: string): Promise<boolean> {
+  return (
+    (await pathExists(join(root, "next.config.ts")))
+    || (await pathExists(join(root, "next.config.js")))
+    || (await pathExists(join(root, "next.config.mjs")))
+  );
+}
+
+/**
+ * Resolve the Next.js app directory (where `.next/` lives). For monorepos this is
+ * often `apps/web` while build scripts run from the repository root.
+ */
+export async function resolveNextAppRoot(projectRoot: string): Promise<string> {
+  if (await hasNextConfigAt(projectRoot)) {
+    return projectRoot;
+  }
+  const discovered = await discoverNextProjects({ repoRoot: projectRoot, maxDepth: 4 });
+  if (discovered.length === 0) {
+    return projectRoot;
+  }
+  const normalizedRoot = projectRoot.replace(/\\/g, "/").toLowerCase();
+  const webApp = discovered.find((project) => {
+    const normalized = project.root.replace(/\\/g, "/").toLowerCase();
+    return project.name === "web" || normalized.endsWith("/apps/web");
+  });
+  if (webApp) {
+    return webApp.root;
+  }
+  const outsideRoot = discovered
+    .filter((project) => project.root.replace(/\\/g, "/").toLowerCase() !== normalizedRoot)
+    .sort((a, b) => a.root.length - b.root.length);
+  return outsideRoot[0]?.root ?? discovered[0]!.root;
+}
+
+/**
+ * True when a production build output exists and package.json has not changed since BUILD_ID.
+ */
+export async function hasFreshProductionBuild(params: {
+  readonly nextAppRoot: string;
+  readonly skipBuild?: boolean;
+}): Promise<boolean> {
+  if (params.skipBuild) {
+    return true;
+  }
+  const buildIdPath = join(params.nextAppRoot, ".next", "BUILD_ID");
+  if (!(await pathExists(buildIdPath))) {
+    return false;
+  }
+  const packageJsonPath = join(params.nextAppRoot, "package.json");
+  if (!(await pathExists(packageJsonPath))) {
+    return true;
+  }
+  const [buildStat, packageStat] = await Promise.all([stat(buildIdPath), stat(packageJsonPath)]);
+  return packageStat.mtimeMs <= buildStat.mtimeMs;
+}
+
 /**
  * Resolve how to build and start a production-like server for the target project.
  */
@@ -55,8 +114,10 @@ export async function resolveProductionServePlan(params: {
   for (const root of rootsToTry) {
     const candidateScripts = root === params.projectRoot ? scripts : await readScripts(root);
     if (candidateScripts.build && candidateScripts.start) {
+      const nextAppRoot = await resolveNextAppRoot(root);
       return {
         projectRoot: root,
+        nextAppRoot,
         packageManager: await detectPackageManager(root),
         buildScript: "build",
         startScript: "start",
