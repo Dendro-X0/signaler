@@ -5,10 +5,10 @@ export type {
   AnalyzeConfidenceV6,
   AnalyzeEvidenceV6,
   AnalyzeReportV6,
-} from "../../../contracts/v6/analyze-v6.js";
-export type { VerifyCheckV6, VerifyReportV6, VerifyThresholdsV6 } from "../../../contracts/v6/verify-v6.js";
+} from "./analyze-v6.js";
+export type { VerifyCheckV6, VerifyReportV6, VerifyThresholdsV6 } from "./verify-v6.js";
 export {
   isAnalyzeReportV6,
   isVerifyReportV6,
   isVerifyThresholdsV6,
-} from "../../../contracts/v6/validators.js";
+} from "./validators.js";

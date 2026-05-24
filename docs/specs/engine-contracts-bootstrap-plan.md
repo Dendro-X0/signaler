@@ -1,8 +1,8 @@
 # Engine Contracts Bootstrap Plan
 
-Status: In progress (B1–B3 landed; B4+ pending)
+Status: In progress (B1–B3 complete; B4 prep complete; runtime helper relocation pending)
 Owner: Signaler core
-Last updated: 2026-04-12
+Last updated: 2026-05-22
 
 ## Goal
 
@@ -95,6 +95,19 @@ Do not move these into the first bootstrap slice if they still contain runtime s
 3. helpers that assume CLI process context
 
 These should remain legacy-adjacent until a shell-agnostic home is clear.
+
+### B4 prep (complete)
+
+Engine event/manifest/run-index/export-bundle **schemas** now live under `src/engine-contracts/events/`.
+Legacy top-level `src/engine-*.ts` paths are thin re-export shims.
+Runtime helpers relocated under `src/shell/` (event sink) and `src/engine/` (artifact writers).
+Legacy top-level `engine-events.ts` and `write-engine-run-index.ts` are shims.
+
+### Jobs contract (complete)
+
+`engine-job-v1` schema + validators live under `src/engine-contracts/jobs/`.
+Legacy `src/contracts/jobs/engine-job-v1.ts` is a thin re-export shim.
+`job-cli.ts` imports from `engine-contracts/jobs`.
 
 ## Proposed First File Moves/Re-Exports
 

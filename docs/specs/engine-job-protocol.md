@@ -68,6 +68,14 @@ signaler job status --dir .signaler
 
 Portable releases attempt to bundle `signaler-native` / `signalar-native` when `cargo` is available at build time. Shell launchers prefer the native binary when present.
 
+## Engine entry surface
+
+Shell-agnostic API: `docs/specs/engine-entry-surface.md` (`src/engine/index.ts`).
+
+- Build: `buildAgentPresetJob`, `buildPresetJob`, …
+- Run: `executeEngineJob({ job, stepRunner? })`
+- In-process: `signaler job run --in-process` or `SIGNALER_JOB_IN_PROCESS=1`
+
 ## Agent integration
 
 Agents should prefer:

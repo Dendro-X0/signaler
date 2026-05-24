@@ -1,7 +1,1 @@
-/**
-  * Artifact entry for an engine run index.
-  */
-export type EngineRunIndexArtifact = {
-  readonly kind: "file" | "dir";
-  readonly relativePath: string;
-};
+export * from "./engine-contracts/events/engine-run-index-artifact.js";

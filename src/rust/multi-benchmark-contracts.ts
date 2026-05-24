@@ -1,4 +1,4 @@
-import type { MultiBenchmarkSourceIdV1 } from "../contracts/multi-benchmark-v1.js";
+import type { MultiBenchmarkSourceIdV1 } from "../engine-contracts/signals/index.js";
 
 export type RustBenchmarkNormalizeInput = {
   readonly schemaVersion: 1;

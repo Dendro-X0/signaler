@@ -1,6 +1,5 @@
 import { relative, resolve } from "node:path";
-import type { MultiBenchmarkSignalsFileV1 } from "./contracts/multi-benchmark-v1.js";
-import type { ReliabilitySloMetricsV1 } from "./contracts/multi-benchmark-v1.js";
+import type { MultiBenchmarkSignalsFileV1, ReliabilitySloMetricsV1 } from "./engine-contracts/signals/index.js";
 
 type HealthReportLike = {
   readonly meta?: {

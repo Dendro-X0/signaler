@@ -4,7 +4,7 @@ import type { AgentIndexV3, ResultsV3, SuggestionV3, SuggestionsV3 } from "./eng
 import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./engine-contracts/artifacts/v3/index.js";
 import type { AnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isAnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
-import type { PerformanceTriageV3 } from "./contracts/v3/performance-triage-v3.js";
+import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
 
 export type LoadedAgentArtifacts = {

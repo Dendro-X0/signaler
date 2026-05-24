@@ -1,5 +1,5 @@
 import { relative, resolve } from "node:path";
-import type { CrossBrowserParityMetricsV1, MultiBenchmarkSignalsFileV1 } from "./contracts/multi-benchmark-v1.js";
+import type { CrossBrowserParityMetricsV1, MultiBenchmarkSignalsFileV1 } from "./engine-contracts/signals/index.js";
 
 type CrossBrowserSnapshotReportLike = {
   readonly generatedAt?: unknown;

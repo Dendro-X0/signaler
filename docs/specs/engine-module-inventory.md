@@ -1,6 +1,6 @@
 # Engine Module Inventory
 
-Status: Proposed
+Status: In progress (aligned with `engine-contracts/` bootstrap)
 Owner: Signaler core
 Last updated: 2026-04-12
 
@@ -43,11 +43,26 @@ Modules that contain both engine-worthy and shell-specific behavior and should e
 
 ### Engine-Worthy Directories
 
-#### `src/contracts/`
+#### `src/engine-contracts/`
 
 Reason:
 
-- contract surface for artifacts and protocol boundaries
+- canonical contract surface for artifacts, signals, events, and jobs
+- legacy `src/contracts/*` paths are compatibility shims
+
+#### `src/engine/`
+
+Reason:
+
+- engine-side artifact serialization and future engine runtime helpers
+- started with `artifacts/write-run-index.ts`
+
+#### `src/shell/`
+
+Reason:
+
+- shell-specific I/O adapters (stdout NDJSON events, future UI bridges)
+- started with `emit-engine-event.ts`
 
 #### `src/core/`
 
@@ -182,22 +197,20 @@ Reason:
 
 - useful engine output-policy logic if still relevant
 
-#### `src/engine-*`
+#### `src/engine-contracts/events/` and legacy `src/engine-*.ts` shims
 
-Includes:
+Includes event/manifest/run-index/export schemas (canonical under `engine-contracts/events/`).
 
-- `engine-contract.ts`
-- `engine-events.ts`
-- `engine-events-schema.ts`
-- `engine-json.ts`
-- `engine-manifest-schema.ts`
-- `engine-run-index.ts`
-- `engine-run-index-artifact.ts`
-- `engine-version.ts`
+#### `src/engine-events.ts` / `src/write-engine-run-index.ts` (shims)
+
+- re-export from `src/shell/` and `src/engine/` respectively
+- prefer `shell/index.js` and `engine/index.js` in new code
+
+#### `src/engine-json.ts`, `src/engine-version.ts`
 
 Reason:
 
-- these already express a reusable engine boundary vocabulary
+- engine vocabulary / versioning helpers (review before public export)
 
 ### Shell-Specific Candidates
 

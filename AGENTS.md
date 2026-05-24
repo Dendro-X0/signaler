@@ -8,22 +8,39 @@ Use Signaler to identify the highest-impact web quality issues and drive fix ver
 
 ## Canonical CLI Flow
 
-Run this sequence unless project docs define a specific variant:
+**Preferred (v3.3+): one-shot agent job with production serve**
 
 ```bash
-signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler job run --preset agent \
+  --managed-serve --in-process \
+  --scope quick \
+  --cwd /path/to/project \
+  --base-url http://127.0.0.1:3000
+```
+
+Defaults: discover (quick) → run (throughput, parallel 6, lean) → analyze (v6).  
+Override parallel: `--parallel 4` or `SIGNALER_PARALLEL=4`.  
+Exit codes: `0` ok; `1` discover/run failed; `2` run ok, analyze failed (use `performance-triage.json`).
+
+**Manual steps** (when you need finer control):
+
+```bash
+signaler discover --scope quick --non-interactive --yes --base-url http://127.0.0.1:3000
+signaler run --contract v3 --mode throughput --managed-serve --parallel 6 \
+  --artifact-profile lean --ci --no-color --yes
 signaler analyze --contract v6 --artifact-profile lean
 signaler verify --contract v6
-signaler report
+signaler query --view perf --json
+```
 
-# Or one-shot job (writes .signaler/jobs/<id>/job.json)
-signaler job run --preset agent --base-url http://127.0.0.1:3000
+**PR / changed-files** (requires existing `signaler.config.json`):
 
-# PR / changed-files only (requires existing signaler.config.json)
+```bash
 signaler job run --preset pr
 signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
 ```
+
+Roadmap: `docs/roadmap/version-roadmap.md`
 
 ## Agent read API (preferred over raw files)
 

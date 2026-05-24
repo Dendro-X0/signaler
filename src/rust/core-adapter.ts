@@ -1,8 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import type { RunnerModeV3, RunnerProfileV3 } from "../contracts/v3/run-v3.js";
-import type { SuggestionV3 } from "../contracts/v3/suggestions-v3.js";
+import type { RunnerModeV3, RunnerProfileV3, SuggestionV3 } from "../engine-contracts/artifacts/v3/index.js";
 import { runRustSidecar } from "./bridge.js";
 import {
   type ReduceSignalsInput,

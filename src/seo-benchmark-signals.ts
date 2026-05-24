@@ -1,5 +1,5 @@
 import { relative, resolve } from "node:path";
-import type { MultiBenchmarkSignalsFileV1, SeoTechnicalMetricsV1 } from "./contracts/multi-benchmark-v1.js";
+import type { MultiBenchmarkSignalsFileV1, SeoTechnicalMetricsV1 } from "./engine-contracts/signals/index.js";
 
 type ResultsReportLike = {
   readonly generatedAt?: unknown;

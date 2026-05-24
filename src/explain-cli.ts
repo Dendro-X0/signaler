@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { findPerformanceIssueById, findSuggestionById, loadAgentArtifacts } from "./agent-artifacts.js";
-import type { ResultsV3Line } from "./contracts/v3/results-v3.js";
+import type { ResultsV3Line } from "./engine-contracts/artifacts/v3/index.js";
 
 type ExplainArgs = {
   readonly dir: string;

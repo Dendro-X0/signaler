@@ -256,7 +256,7 @@ function printCommandHelp(topic: string): boolean {
   if (normalizedTopic === "job") {
     print([
       "Usage:",
-      "  signaler job run --preset <agent|ci|pr> [--base-url <url>] [--config <path>] [--scope <quick|full|file>] [--cwd <path>] [--dir <path>]",
+      "  signaler job run --preset <agent|ci|pr> [--base-url <url>] [--config <path>] [--scope <quick|full|file>] [--cwd <path>] [--dir <path>] [--in-process]",
       "  signaler job show --preset <agent|ci|pr> [--json]",
       "  signaler job status [--dir <path>] [--json]",
       "  signaler job run --file <job.json>",
@@ -271,6 +271,13 @@ function printCommandHelp(topic: string): boolean {
       "",
       "Discover scope (agent/ci presets):",
       "  --scope <quick|full|file>  (or SIGNALER_DISCOVER_SCOPE)",
+      "",
+      "In-process execution (no node bin.js subprocess per step):",
+      "  --in-process  (or SIGNALER_JOB_IN_PROCESS=1)",
+      "",
+      "Managed production server (build + start when base URL is down):",
+      "  --managed-serve | --auto-serve  (or SIGNALER_MANAGED_SERVE=1)",
+      "  --managed-serve-skip-build",
     ]);
     return true;
   }

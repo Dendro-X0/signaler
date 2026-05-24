@@ -1,66 +1,45 @@
 # Active Roadmap
 
-This roadmap tracks the active reboot direction. Historical CLI-centric roadmap material is preserved under `docs/archive/roadmaps/`.
+Status: Active  
+Updated: 2026-05-24
 
-## Current Reboot Objective
+## Current focus
 
-Keep the core Signaler goal intact:
+**Phase 1 — v3.3.x: Agent happy path**
 
-1. help developers and code agents audit and optimize web projects
-2. preserve machine-readable artifacts and verification loops
-3. move toward software surfaces that are easier to install and operate than the current CLI distribution model
+Canonical plan: [`version-roadmap.md`](./version-roadmap.md)
 
-## Reboot Workstreams
+### In progress / next implementation
 
-### Workstream R1: Preserve the Core
+| ID | Item | Status |
+|----|------|--------|
+| 3.3.1 | Agent preset `--parallel` (default `SIGNALER_PARALLEL` or 6) | In progress |
+| 3.3.2 | Job exit codes 0 / 1 / 2 | In progress |
+| 3.3.3 | Managed-serve build failure hints | In progress |
+| 3.3.4 | `AGENTS.md` golden-path command | Pending |
+| 3.3.5 | Dogfood gate (blogkit + ecommerce) | Manual ✓ (2026-05-24) |
 
-- [ ] Capture the durable artifact model and workflow expectations from the current repo.
-- [ ] Define which parts of the old CLI are product-critical versus implementation-specific.
-- [ ] Document what is being frozen in the current codebase.
+### Recently shipped (v3.2.x)
 
-### Workstream R2: Choose the New Shell
+- Engine contracts bootstrap (`src/engine-contracts/`)
+- Engine isolation + in-process job runner
+- Managed production serve v1 + auto port
+- `run --managed-serve`; analyze soft-fail when triage exists
 
-- [ ] Decide the primary successor surface:
-  - Windows-native installer + local engine
-  - desktop app
-  - VS Code extension
-  - hybrid app + engine
-- [ ] Define install/update/uninstall expectations for the new shell.
-- [ ] Define how code agents trigger work and retrieve artifacts.
+## North-star (stable)
 
-Current preferred direction:
+1. One agent command → `.signaler/agent-index.json` + triage + analyze
+2. Production-like audits via managed serve
+3. Quick scope under ~5 minutes when build is cached
+4. Issue-count triage over headline scores
 
-- desktop-first shell over a shared local engine
+## Deferred
 
-### Workstream R3: Shared Engine Protocol
-
-- [ ] Define the local runtime/engine contract independent of the existing CLI shell.
-- [ ] Choose the job interface:
-  - file-based
-  - local HTTP
-  - IPC
-- [ ] Preserve the canonical artifact outputs where possible.
-
-Current preferred baseline:
-
-- file-based jobs first, optional local HTTP later
-
-### Workstream R4: Windows Usability
-
-- [ ] Validate the Inno Setup-based installer path or replace it with a better Windows-native installer option.
-- [ ] Ensure Windows install does not require manual PATH editing.
-- [ ] Ensure uninstall and update behavior are standard and predictable.
-
-## Success Criteria
-
-- [ ] A human user can install the product without reasoning about shell-specific PATH behavior.
-- [ ] A code agent can run the product locally without registry-specific setup.
-- [ ] Canonical artifacts remain deterministic and easy to consume.
-- [ ] The successor product shell is easier to ship than the current CLI distribution path.
+- Desktop / VS Code primary shell → `docs/specs/desktop-implementation-plan.md`
+- Full `cli.ts` split → Phase 4 (v4.0)
+- Distribution push/tag/assets → user-scheduled
 
 ## Archive
 
-- Historical roadmaps: `docs/archive/roadmaps/`
-- Historical release notes: `docs/archive/release-notes/`
-- Active specs: `docs/specs/`
-- Desktop execution plan: `docs/specs/desktop-implementation-plan.md`
+- Reboot vision: `ROADMAP.md` (product shell questions)
+- Completed tracks: `docs/archive/roadmaps/`

@@ -1,6 +1,5 @@
 import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, ApexThroughputBackoffPolicy, PageDeviceSummary } from "../core/types.js";
-import type { RunnerModeV3, RunnerProfileV3 } from "../contracts/v3/run-v3.js";
-import type { SuggestionV3 } from "../contracts/v3/suggestions-v3.js";
+import type { RunnerModeV3, RunnerProfileV3, SuggestionV3 } from "../engine-contracts/artifacts/v3/index.js";
 
 export type RustCoreRunnerStability = {
   readonly backoffPolicy: ApexThroughputBackoffPolicy;

@@ -1,5 +1,5 @@
 import type { ApexDevice, MetricValues, RunMeta, RunSummary } from "./core/types.js";
-import type { EngineExportBundle } from "./engine-export-bundle-schema.js";
+import type { EngineExportBundle } from "./engine-contracts/events/index.js";
 import { stripUrl } from "./strip-url.js";
 
 type ExportBundleMeta = EngineExportBundle["meta"];

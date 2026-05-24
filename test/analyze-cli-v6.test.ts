@@ -772,6 +772,33 @@ describe("analyze-cli v6", () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  it("succeeds when suggestions.json is empty but performance-triage.json has actionable issues", async () => {
+    const root = await mkdtemp(join(tmpdir(), "signaler-analyze-triage-only-"));
+    const outDir = await writeBaseArtifacts({ root, suggestions: [] });
+    await writePerformanceTriageFixture({
+      outDir,
+      issues: [
+        {
+          id: "unused-javascript",
+          title: "Reduce unused JavaScript",
+          severity: "red",
+          affectedCombos: 2,
+          totalEstimatedSavingsMs: 900,
+        },
+      ],
+    });
+
+    const exitCode = await invokeAnalyze(["--contract", "v6", "--dir", outDir, "--artifact-profile", "lean", "--json"]);
+    expect(exitCode).toBe(0);
+
+    const report = JSON.parse(await readFile(resolve(outDir, "analyze.json"), "utf8")) as {
+      readonly actions: readonly { readonly id: string }[];
+    };
+    expect(report.actions.some((action) => action.id.includes("unused-javascript"))).toBe(true);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("uses profile-based default token budget when --token-budget is omitted", async () => {
     const root = await mkdtemp(join(tmpdir(), "signaler-analyze-profile-default-budget-"));
     const outDir = await writeBaseArtifacts({

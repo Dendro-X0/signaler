@@ -1,0 +1,38 @@
+{
+  "baseUrl": "http://127.0.0.1:3456",
+  "runs": 1,
+  "pages": [
+    {
+      "path": "/",
+      "label": "home",
+      "devices": [
+        "mobile",
+        "desktop"
+      ]
+    },
+    {
+      "path": "/about",
+      "label": "about",
+      "devices": [
+        "mobile",
+        "desktop"
+      ]
+    },
+    {
+      "path": "/pricing",
+      "label": "pricing",
+      "devices": [
+        "mobile",
+        "desktop"
+      ]
+    },
+    {
+      "path": "/blog",
+      "label": "blog",
+      "devices": [
+        "mobile",
+        "desktop"
+      ]
+    }
+  ]
+}

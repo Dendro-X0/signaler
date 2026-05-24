@@ -63,4 +63,23 @@ describe("job-cli", () => {
     expect(discoverArgs).toContain("--scope");
     expect(discoverArgs).toContain("quick");
   });
+
+  it("includes parallel on agent preset run step", async () => {
+    const lines: string[] = [];
+    const original = console.log;
+    console.log = (value?: unknown) => {
+      lines.push(String(value));
+    };
+    try {
+      await runJobCli(["node", "signaler", "job", "show", "--preset", "agent", "--parallel", "4", "--json"]);
+    } finally {
+      console.log = original;
+    }
+    const payload = JSON.parse(lines.join("\n")) as {
+      readonly steps: readonly { readonly command: string; readonly args?: readonly string[] }[];
+    };
+    const runArgs = payload.steps.find((step) => step.command === "run")?.args ?? [];
+    expect(runArgs).toContain("--parallel");
+    expect(runArgs).toContain("4");
+  });
 });

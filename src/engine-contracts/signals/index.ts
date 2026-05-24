@@ -7,7 +7,7 @@ export type {
   ExternalSignalsMetadataV1,
   ExternalSignalMetricsV1,
   ExternalSignalRecordV1,
-} from "../../contracts/external-signals-v1.js";
+} from "./external-signals-v1.js";
 
 export type {
   AccessibilityExtendedMetricsV1,
@@ -23,4 +23,4 @@ export type {
   ReliabilitySloMetricsV1,
   SecurityBaselineMetricsV1,
   SeoTechnicalMetricsV1,
-} from "../../contracts/multi-benchmark-v1.js";
+} from "./multi-benchmark-v1.js";

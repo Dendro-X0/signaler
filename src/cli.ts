@@ -19,10 +19,10 @@ import { renderTable } from "./ui/components/table.js";
 import { UiTheme } from "./ui/themes/theme.js";
 import { resolveOutputDir } from "./infrastructure/filesystem/output.js";
 import { readEngineVersion } from "./engine-version.js";
-import { writeEngineRunIndex } from "./write-engine-run-index.js";
+import { writeEngineRunIndex, ensureManagedProductionServer } from "./engine/index.js";
 import { resolveEngineJsonMode } from "./engine-json.js";
-import type { EngineEventPayload } from "./engine-events-schema.js";
-import { emitEngineEvent } from "./engine-events.js";
+import type { EngineEventPayload } from "./engine-contracts/events/index.js";
+import { emitEngineEvent } from "./shell/index.js";
 import { buildExportBundle } from "./build-export-bundle.js";
 import { writeAiOptimizedReports } from "./ai-reports.js";
 import { ReportGeneratorEngine } from "./reporting/generators/report-generator-engine.js";
@@ -41,10 +41,15 @@ import type {
   RunSummary,
 } from "./core/types.js";
 import { PerformanceBudgetManager, generateCIBudgetReport, generateGitHubActionsReport, generateGitLabCIReport, generateJenkinsReport, sendBudgetWebhook, validateWebhookUrl, createMonitoringPayload, type BudgetResult } from "./performance-budget.js";
-import type { AgentIndexV3, AgentIndexSuggestionRefV3 } from "./contracts/v3/agent-index-v3.js";
-import type { ResultsV3, ResultsV3Line } from "./contracts/v3/results-v3.js";
-import type { SuggestionV3, SuggestionsV3 } from "./contracts/v3/suggestions-v3.js";
-import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./contracts/v3/validators.js";
+import type {
+  AgentIndexSuggestionRefV3,
+  AgentIndexV3,
+  ResultsV3,
+  ResultsV3Line,
+  SuggestionV3,
+  SuggestionsV3,
+} from "./engine-contracts/artifacts/v3/index.js";
+import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { processSummaryWithRust, type RustProcessorAttempt } from "./rust/processor-adapter.js";
 import { isRustFeatureEnabled } from "./rust/bridge.js";
 import { runRustSignalReducer, type RustReduceSignalsAttempt } from "./rust/core-adapter.js";
@@ -145,6 +150,8 @@ interface CliArgs {
   readonly artifactProfile: MachineArtifactProfile;
   readonly machineTokenBudgetOverride: number | undefined;
   readonly perfIncludeYellow: boolean | undefined;
+  readonly managedServe: boolean;
+  readonly managedServeSkipBuild: boolean;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -2382,6 +2389,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let artifactProfile: MachineArtifactProfile = "lean";
   let machineTokenBudgetOverride: number | undefined;
   let perfIncludeYellow: boolean | undefined;
+  let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
+  let managedServeSkipBuild = false;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2616,6 +2625,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
       perfIncludeYellow = true;
     } else if (arg === "--no-perf-include-yellow") {
       perfIncludeYellow = false;
+    } else if (arg === "--managed-serve" || arg === "--auto-serve") {
+      managedServe = true;
+    } else if (arg === "--managed-serve-skip-build") {
+      managedServeSkipBuild = true;
     } else if (arg === "--artifact-profile" && i + 1 < argv.length) {
       const value: string = argv[i + 1] ?? "";
       if (value === "lean" || value === "standard" || value === "diagnostics") {
@@ -2716,6 +2729,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
     artifactProfile,
     machineTokenBudgetOverride,
     perfIncludeYellow,
+    managedServe,
+    managedServeSkipBuild,
   };
 }
 
@@ -2917,6 +2932,8 @@ function printAuditFlags(): void {
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
+      "  --managed-serve | --auto-serve  Build and start production server when base URL is down (or SIGNALER_MANAGED_SERVE=1)",
+      "  --managed-serve-skip-build  Skip build step when starting managed production server",
     ].join("\n"),
   );
 }
@@ -3575,9 +3592,23 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       readonly totalMs: number;
     };
   } | undefined;
+  let managedServer: Awaited<ReturnType<typeof ensureManagedProductionServer>> | undefined;
+  let auditConfig: ApexConfig = resolvedConfigForRun;
+  if (args.managedServe) {
+    managedServer = await ensureManagedProductionServer({
+      projectRoot: dirname(configPath),
+      baseUrl: auditConfig.baseUrl ?? "http://127.0.0.1:3000",
+      skipBuild: args.managedServeSkipBuild,
+    });
+    auditConfig = { ...auditConfig, baseUrl: managedServer.baseUrl };
+    if (managedServer.startedBySignaler) {
+      // eslint-disable-next-line no-console
+      console.log(`Managed serve: production server at ${managedServer.baseUrl}`);
+    }
+  }
   try {
     summary = await runAuditsForConfig({
-      config: resolvedConfigForRun,
+      config: auditConfig,
       configPath,
       outputDir: resolvedOutput.outputDir,
       showParallel: args.showParallel,
@@ -3620,11 +3651,16 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     await handleFriendlyError({
       error,
       configPath,
-      baseUrl: filteredConfig.baseUrl,
+      baseUrl: auditConfig.baseUrl,
     });
     process.exitCode = 1;
     return;
   } finally {
+    if (managedServer?.startedBySignaler) {
+      // eslint-disable-next-line no-console
+      console.log("Managed serve: stopping production server...");
+      await managedServer.stop();
+    }
     process.removeListener("SIGINT", onSigInt);
     if (lastProgressLine !== undefined) {
       process.stdout.write("\n");

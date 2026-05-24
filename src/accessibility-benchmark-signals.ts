@@ -1,6 +1,6 @@
 import { relative, resolve } from "node:path";
 import type { AxeSummary, AxeViolation } from "./accessibility-types.js";
-import type { MultiBenchmarkSignalsFileV1 } from "./contracts/multi-benchmark-v1.js";
+import type { MultiBenchmarkSignalsFileV1 } from "./engine-contracts/signals/index.js";
 
 type IssuesLike = {
   readonly topIssues?: readonly { readonly id?: unknown }[];

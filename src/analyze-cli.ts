@@ -29,7 +29,7 @@ import {
 } from "./multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
 import { scoreMultiBenchmarkWithRust } from "./rust/multi-benchmark-scoring-adapter.js";
-import type { PerformanceTriageV3 } from "./contracts/v3/performance-triage-v3.js";
+import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
 import {
   buildCandidateDraftsFromPerformanceTriage,
@@ -674,10 +674,41 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     }
   }
 
-  if (!suggestions || !results || suggestions.suggestions.length === 0) {
+  let performanceTriage: PerformanceTriageV3 | undefined;
+  try {
+    const triagePath = artifactPath("performance-triage.json");
+    if (await fileExists(triagePath)) {
+      const parsed = await readJson(triagePath);
+      if (isPerformanceTriageV3(parsed)) {
+        performanceTriage = parsed;
+      } else {
+        warnings.push("performance-triage.json present but invalid; ignored.");
+      }
+    }
+  } catch {
+    warnings.push("performance-triage.json could not be read; performance actions rely on suggestions.json only.");
+  }
+
+  const hasSuggestionCandidates: boolean = Boolean(suggestions && suggestions.suggestions.length > 0);
+  const hasTriageCandidates: boolean = Boolean(performanceTriage && performanceTriage.totals.actionable > 0);
+  if (!results || (!hasSuggestionCandidates && !hasTriageCandidates)) {
     // eslint-disable-next-line no-console
     console.error("Analyze could not build actions from artifacts. Ensure run/results/suggestions exist and are valid.");
     return 1;
+  }
+
+  const effectiveSuggestions: SuggestionsV3 = suggestions ?? {
+    generatedAt: results.generatedAt ?? new Date().toISOString(),
+    mode: results.protocol?.mode ?? runInput?.protocol?.mode ?? performanceTriage?.mode ?? "throughput",
+    comparabilityHash:
+      results.protocol?.comparabilityHash
+      ?? runInput?.protocol?.comparabilityHash
+      ?? performanceTriage?.comparabilityHash
+      ?? "",
+    suggestions: [],
+  };
+  if (effectiveSuggestions.suggestions.length === 0 && hasTriageCandidates) {
+    warnings.push("suggestions.json empty; building actions from performance-triage.json.");
   }
 
   if (args.strict) {
@@ -694,7 +725,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const minRank: number = confidenceRank(args.minConfidence);
   const allResults: ResultsV3Line[] = Array.isArray(results.results) ? [...results.results] : [];
   const knownIssueIds: ReadonlySet<string> = new Set(
-    suggestions.suggestions
+    effectiveSuggestions.suggestions
       .map((row) => extractIssueIdFromSuggestionId(row.id))
       .filter((row): row is string => typeof row === "string" && row.length > 0),
   );
@@ -724,7 +755,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   let droppedMissingEvidence = 0;
   let droppedDuplicate = 0;
 
-  for (const suggestion of suggestions.suggestions) {
+  for (const suggestion of effectiveSuggestions.suggestions) {
     const timeMs: number = typeof suggestion.estimatedImpact.timeMs === "number" ? suggestion.estimatedImpact.timeMs : 0;
     const bytes: number = typeof suggestion.estimatedImpact.bytes === "number" ? suggestion.estimatedImpact.bytes : 0;
     if (timeMs <= 0 && bytes <= 0) {
@@ -809,23 +840,6 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
         ...(matchedPaths.length > 0 ? { allowedPaths: matchedPaths } : {}),
       });
     }
-  }
-
-  let performanceTriage: PerformanceTriageV3 | undefined;
-  try {
-    const triagePath = artifactPath("performance-triage.json");
-    if (await fileExists(triagePath)) {
-      const parsed = await readJson(triagePath);
-      if (isPerformanceTriageV3(parsed)) {
-        performanceTriage = parsed;
-      } else {
-        warnings.push("performance-triage.json present but invalid; ignored.");
-      }
-    } else {
-      warnings.push("performance-triage.json missing; performance actions rely on suggestions.json only.");
-    }
-  } catch {
-    warnings.push("performance-triage.json could not be read; performance actions rely on suggestions.json only.");
   }
 
   const triageDrafts: CandidateDraft[] = performanceTriage
@@ -963,8 +977,8 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     generatedAt: new Date().toISOString(),
     source: {
       dir: normalizePathForReport(args.dir),
-      runComparabilityHash: runInput?.protocol?.comparabilityHash ?? agentIndex?.comparabilityHash ?? suggestions.comparabilityHash,
-      runMode: runInput?.protocol?.mode ?? suggestions.mode,
+      runComparabilityHash: runInput?.protocol?.comparabilityHash ?? agentIndex?.comparabilityHash ?? effectiveSuggestions.comparabilityHash,
+      runMode: runInput?.protocol?.mode ?? effectiveSuggestions.mode,
       runProfile: runInput?.protocol?.profile ?? agentIndex?.profile ?? "unknown",
     },
     artifactProfile: args.artifactProfile,

@@ -1,6 +1,6 @@
 # Engine Isolation Plan
 
-Status: Proposed
+Status: In progress (E1 inventory drafted; E3 thin adapter started)
 Owner: Signaler core
 Last updated: 2026-04-12
 
@@ -109,6 +109,15 @@ Output:
 
 - engine interface draft
 
+### E2 (complete for v1 jobs)
+
+See `engine-entry-surface.md`.
+
+1. Input contract: `EngineJobV1` (`engine-contracts/jobs`).
+2. Output contract: `EngineJobResultV1` + `EngineJobRunOutcome` (`src/engine/jobs/types.ts`).
+3. Entrypoints: `build*PresetJob`, `executeEngineJob`, injectable `EngineJobStepRunner`.
+4. `job-cli.ts` is a shell adapter over `src/engine/`.
+
 ## Phase E3: Thin Adapter Layer
 
 Tasks:
@@ -119,6 +128,13 @@ Tasks:
 Output:
 
 - transitional compatibility plan
+
+### E3 slice (started)
+
+1. `src/shell/` — shell I/O adapters (`emit-engine-event.ts` writes NDJSON to stdout).
+2. `src/engine/` — engine artifact writers (`artifacts/write-run-index.ts`).
+3. Legacy top-level `src/engine-events.ts` and `src/write-engine-run-index.ts` remain as shims.
+4. `cli.ts` and `folder-cli.ts` import from `shell/` and `engine/` entry surfaces.
 
 ## Acceptance Criteria
 

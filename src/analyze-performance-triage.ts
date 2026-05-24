@@ -1,6 +1,10 @@
-import type { PerformanceTriageIssueV3, PerformanceTriageV3 } from "./contracts/v3/performance-triage-v3.js";
-import type { ResultsV3Line } from "./contracts/v3/results-v3.js";
-import type { AnalyzeActionV6, AnalyzeConfidenceV6 } from "./contracts/v6/analyze-v6.js";
+import type {
+  AnalyzeActionV6,
+  AnalyzeConfidenceV6,
+  PerformanceTriageIssueV3,
+  PerformanceTriageV3,
+  ResultsV3Line,
+} from "./engine-contracts/artifacts/index.js";
 import { extractIssueIdFromSuggestionId } from "./external-signals.js";
 
 export type AnalyzeCandidateDraft = {

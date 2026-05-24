@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { PerformanceTriageV3 } from "./contracts/v3/performance-triage-v3.js";
+import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import type { VerifyReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isVerifyReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";

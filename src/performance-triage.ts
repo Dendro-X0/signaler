@@ -4,9 +4,9 @@ import type {
   PerformanceIssueSeverity,
   PerformanceTriageIssueV3,
   PerformanceTriageV3,
-} from "./contracts/v3/performance-triage-v3.js";
-import type { ResultsV3Line } from "./contracts/v3/results-v3.js";
-import type { RunProtocolV3 } from "./contracts/v3/run-v3.js";
+  ResultsV3Line,
+  RunProtocolV3,
+} from "./engine-contracts/artifacts/v3/index.js";
 import type { MachineArtifactProfile } from "./machine-output-profile.js";
 
 const PERFORMANCE_SCORE_DISCLAIMER =
