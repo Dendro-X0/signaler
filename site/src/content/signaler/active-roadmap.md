@@ -1,50 +1,66 @@
 # Active Roadmap
 
-This roadmap lists only unfinished or in-progress work. Completed phases/workstreams were moved to `docs/archive/roadmaps/`.
+This roadmap tracks the active reboot direction. Historical CLI-centric roadmap material is preserved under `docs/archive/roadmaps/`.
 
-## Release Readiness (Current)
+## Current Reboot Objective
 
-1. Complete cross-platform smoke evidence in CI for the current release candidate.
-2. Finalize semver transition from `2.6.4` to `3.0.0-rc.*` and then `3.0.0`.
-3. Confirm launch checklist completion in production-like CI context.
+Keep the core Signaler goal intact:
 
-## Product Roadmap (Open)
+1. help developers and code agents audit and optimize web projects
+2. preserve machine-readable artifacts and verification loops
+3. move toward software surfaces that are easier to install and operate than the current CLI distribution model
 
-### Workstream J: Benchmark and Spec Coverage Expansion
+## Reboot Workstreams
 
-- [ ] Add field-data adapters (CrUX and first-party RUM) as optional external signals with explicit freshness and confidence policy.
-- [ ] Add accessibility coverage expansion aligned to WCAG 2.2 and ARIA Authoring Practices checks.
-- [ ] Add security baseline checks aligned to OWASP Top 10 / ASVS-lite and production header policy.
-- [ ] Add technical SEO checks aligned to Google Search Essentials and structured-data validity.
-- [ ] Add reliability/SLO metrics (availability, error-rate, backend latency) as optional ranking context.
-- [ ] Add cross-browser/cross-device comparability snapshots for parity-sensitive routes.
+### Workstream R1: Preserve the Core
 
-### Workstream K: Rust Performance Path for New Signals
+- [ ] Capture the durable artifact model and workflow expectations from the current repo.
+- [ ] Define which parts of the old CLI are product-critical versus implementation-specific.
+- [ ] Document what is being frozen in the current codebase.
 
-- [ ] Implement Rust normalizer/aggregator for high-volume external records (RUM/CrUX/WPT) with deterministic reduction output.
-- [ ] Implement Rust scoring kernel for composite ranking (performance + a11y + security + SEO + reliability weights) with Node fallback.
-- [ ] Keep Node/TypeScript control plane for UX, contracts, migration messaging, and policy defaults.
-- [ ] Add parity/perf tests proving Rust and Node ranking equivalence under identical inputs.
+### Workstream R2: Choose the New Shell
 
-## Success Gate
+- [ ] Decide the primary successor surface:
+  - Windows-native installer + local engine
+  - desktop app
+  - VS Code extension
+  - hybrid app + engine
+- [ ] Define install/update/uninstall expectations for the new shell.
+- [ ] Define how code agents trigger work and retrieve artifacts.
 
-- [x] CLI UX hardening baseline is complete.
-- [x] Agent contract metadata baseline is complete.
-- [x] Loop efficiency/runtime-budget baseline is complete.
-- [x] Success-gate evaluator/validator automation is complete.
+Current preferred direction:
 
-## Success Criteria (Open)
+- desktop-first shell over a shared local engine
 
-- [ ] Non-Lighthouse inputs remain opt-in and never block `discover -> run -> analyze -> verify -> report`.
-- [ ] Composite ranking remains deterministic with explicit formula/version metadata.
-- [ ] Optional external signals stay within documented runtime overhead budgets.
-- [ ] At least two real public repos validate improvements over Lighthouse-only ranking.
-- [ ] Rust path demonstrates measurable speedup on large multi-source fixtures without contract drift.
+### Workstream R3: Shared Engine Protocol
 
-## V6 Program Gate (Open)
+- [ ] Define the local runtime/engine contract independent of the existing CLI shell.
+- [ ] Choose the job interface:
+  - file-based
+  - local HTTP
+  - IPC
+- [ ] Preserve the canonical artifact outputs where possible.
 
-- [ ] `discover -> run -> analyze -> verify` reproducible in <= 10 minutes on reference fixtures.
-- [ ] Median runtime and CPU improve versus the current baseline on medium/large suites.
-- [ ] Agent output remains actionable with bounded token footprint in default mode.
-- [ ] At least 3 real repos complete 2+ weeks of dogfooding with documented outcomes.
-- [ ] Optional adapter path does not regress core reliability.
+Current preferred baseline:
+
+- file-based jobs first, optional local HTTP later
+
+### Workstream R4: Windows Usability
+
+- [ ] Validate the Inno Setup-based installer path or replace it with a better Windows-native installer option.
+- [ ] Ensure Windows install does not require manual PATH editing.
+- [ ] Ensure uninstall and update behavior are standard and predictable.
+
+## Success Criteria
+
+- [ ] A human user can install the product without reasoning about shell-specific PATH behavior.
+- [ ] A code agent can run the product locally without registry-specific setup.
+- [ ] Canonical artifacts remain deterministic and easy to consume.
+- [ ] The successor product shell is easier to ship than the current CLI distribution path.
+
+## Archive
+
+- Historical roadmaps: `docs/archive/roadmaps/`
+- Historical release notes: `docs/archive/release-notes/`
+- Active specs: `docs/specs/`
+- Desktop execution plan: `docs/specs/desktop-implementation-plan.md`

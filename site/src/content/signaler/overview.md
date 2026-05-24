@@ -55,6 +55,7 @@ This folder is organized around stable documentation categories first, with vers
 - [Active Roadmap](/docs/signaler/active-roadmap)
 - [Specs Index](/docs/signaler/README)
 - [Spec: Multi-Benchmark Expansion](/docs/signaler/multi-benchmark-expansion)
+- [Spec: Workstream J Implementation Plan](/docs/signaler/workstream-j-implementation-plan)
 - [V6 Blueprint](/docs/signaler/v6-blueprint)
 - [Rust Network Workers](/docs/signaler/rust-network-workers)
 

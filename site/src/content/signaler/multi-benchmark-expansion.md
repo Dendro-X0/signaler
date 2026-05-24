@@ -1,6 +1,6 @@
 # Spec: V6.4 Multi-Benchmark Expansion (Rust-First)
 
-Status: Planned  
+Status: In Progress  
 Date: March 23, 2026  
 Owners: Core CLI + Rust runtime  
 Depends on: success-gate adoption completion
@@ -132,3 +132,7 @@ All additions remain additive:
 2. Stage 2: ranking integration under conservative policy defaults.
 3. Stage 3: Rust normalizer/aggregator default-on with Node fallback.
 4. Stage 4: release gate validation and public benchmark report.
+
+Execution detail and acceptance gates are tracked in:
+
+- `docs/specs/workstream-j-implementation-plan.md`

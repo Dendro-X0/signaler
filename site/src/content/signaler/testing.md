@@ -39,6 +39,15 @@ pnpm run bench:phase6:gate
 pnpm run bench:phase6:validate
 
 # V6.3 success gate
+pnpm run bench:workstream-j:overhead
+pnpm run bench:workstream-j:gate
+pnpm run bench:workstream-j:validate
+pnpm run bench:workstream-k:rust-benchmark
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
 pnpm run bench:v63:gate
 pnpm run bench:v63:loop
 pnpm run bench:v63:validate

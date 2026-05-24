@@ -16,32 +16,55 @@ Use Signaler as an **agent-first web lab runner**:
 
 ## 1. Fast start commands
 
-Local app example:
+**Recommended: one-shot job**
+
+```bash
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler query --view perf
+signaler explain --id <issue-id>
+```
+
+**PR / changed files only** (after `signaler.config.json` exists):
+
+```bash
+signaler job run --preset pr
+```
+
+Local app example (manual steps):
 
 ```bash
 signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --ci --no-color --yes
-signaler report
+signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler analyze --contract v6 --artifact-profile lean
+signaler query --view agent
 ```
 
 If the project already has `signaler.config.json`, the minimum path is:
 
 ```bash
-signaler run --contract v3 --mode throughput --ci --no-color --yes
-signaler report
+signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler analyze --contract v6
+signaler query --view perf
 ```
 
 ## 2. What the agent should read
 
-Read in this order:
+Prefer projections:
 
-1. `.signaler/agent-index.json`
-2. `.signaler/suggestions.json`
-3. `.signaler/issues.json`
-4. `.signaler/results.json`
-5. `.signaler/run.json`
+```bash
+signaler query --view agent --dir .signaler
+signaler query --view perf --dir .signaler
+signaler explain --id <issue-id> --dir .signaler
+```
 
-Do not start by loading every file in `.signaler/`.
+Direct files (when needed), in order:
+
+1. `.signaler/analyze.json`
+2. `.signaler/performance-triage.json` (performance issue-count triage)
+3. `.signaler/agent-index.json`
+4. `.signaler/suggestions.json` only when `explain` needs more context
+
+Do not start by loading every file in `.signaler/` or full `results.json`.
 
 ## 3. What each artifact is for
 

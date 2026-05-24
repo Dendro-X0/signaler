@@ -4,7 +4,40 @@ This document describes non-interactive CLI usage (for scripts/CI) and budget en
 
 ## 1. Commands
 
-The CLI binary is `signaler`.
+The primary CLI binary is `signaler`. A compatibility alias, `signalar`, is also installed by the portable release flow and points to the same CLI.
+
+Recommended global install:
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+macOS/Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Update later:
+
+```bash
+signaler upgrade
+signalar upgrade
+```
+
+Remove the global install later:
+
+```bash
+signaler uninstall --global
+```
+
+JSR remains useful for package distribution and publishing, but it is not the primary global CLI bootstrap path:
+
+```bash
+npx jsr run @signaler/cli <command> [flags]
+```
 
 Command help is side-effect free:
 
@@ -12,6 +45,11 @@ Command help is side-effect free:
 - It does not run discovery/audits or prompt for interactive input.
 - `signaler help agent` prints an agent-first end-to-end workflow, artifact ingestion order, and automation exit-code contract.
 - `signaler help agent --json` prints the same onboarding contract in machine-readable JSON for agent bootstrap scripts.
+- `pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json` converts local accessibility output into `accessibility-extended` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json` converts local headers output into `security-baseline` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json` converts local health output into `reliability-slo` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json` converts local results/links output into `seo-technical` benchmark input for `--benchmark-signals`.
+- `pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json` converts local cross-browser/cross-device snapshots into `cross-browser-parity` benchmark input for `--benchmark-signals`.
 
 Unpublished local workspace flow:
 
@@ -19,10 +57,9 @@ When the latest changes are not yet published, run the local build directly:
 
 ```bash
 corepack pnpm run build
-node ./dist/bin.js discover --scope full
-node ./dist/bin.js run --contract v3 --mode throughput --yes
-node ./dist/bin.js analyze --contract v6 --json
-node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json
+node ./dist/bin.js job run --preset agent --base-url http://127.0.0.1:3000
+node ./dist/bin.js query --view perf --dir .signaler
+node ./dist/bin.js explain --id <issue-id> --dir .signaler
 ```
 
 Install from GitHub Releases:
@@ -53,6 +90,11 @@ Upgrade later:
 ```bash
 signaler upgrade
 ```
+
+This portable installer creates both:
+
+- `signaler` as the primary launcher
+- `signalar` as a compatibility alias
 
 ### `shell`
 
@@ -156,6 +198,22 @@ Key flags:
 - `--artifact-profile <lean|standard|diagnostics>` (machine-output profile, default `lean`)
 - `--machine-token-budget <n>` (strict machine-output token budget, default by profile)
 - `--external-signals <path>` (repeatable local external-signal files merged into v3 suggestion ranking)
+- `--benchmark-signals <path>` (repeatable local benchmark fixture files merged into bounded suggestion ranking + additive `multiBenchmark` metadata; families: accessibility/security/SEO/reliability/parity)
+
+Accessibility fixture helper (local-file adapter path):
+
+```bash
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-accessibility.json
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-security.json
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-reliability.json
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-seo.json
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+signaler run --contract v3 --benchmark-signals .signaler/benchmark-parity.json
+```
 
 Runtime accelerator flags (opt-in):
 
@@ -167,8 +225,9 @@ Runtime accelerator flags (opt-in):
 - `SIGNALER_RUST_HEADERS=1` enables Rust worker for `headers`
 - `SIGNALER_RUST_LINKS=1` enables Rust worker for `links`
 - `SIGNALER_RUST_CONSOLE=1` enables Rust worker for `console`
+- `SIGNALER_RUST_BENCHMARK=1` enables Rust benchmark-signal normalizer + scoring path (falls back to Node on failure; sidecar commands support `normalize-benchmark|normalize-benchmark-signals` and `score-benchmark|score-benchmark-signals`)
 
-If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records the fallback reason in artifact metadata (`.signaler/run.json` and runner artifacts such as `.signaler/health.json`).
+If Rust sidecar execution fails or is unavailable, Signaler falls back to Node automatically and records accelerator metadata (`requested`, `enabled`, `used`, fallback reason, normalization/scoring sidecar commands, sidecar elapsed times, scoring matched-record count, and normalization stats) in `.signaler/run.json` and `.signaler/analyze.json`.
 
 Canonical outputs (v3):
 
@@ -176,6 +235,7 @@ Canonical outputs (v3):
 - `.signaler/results.json`
 - `.signaler/suggestions.json`
 - `.signaler/agent-index.json`
+- `.signaler/performance-triage.json` (issue-count performance triage from v3 run)
 - `.signaler/analyze.json` (when `analyze --contract v6` is run)
 - `.signaler/analyze.md` (when `analyze --contract v6` is run)
 - `.signaler/verify.json` (when `verify --contract v6` is run)
@@ -225,6 +285,22 @@ Flags:
 - `--min-confidence <high|medium|low>` (default `medium`)
 - `--token-budget <n>` (minimum `2000`; default by profile: `lean=8000`, `standard=16000`, `diagnostics=32000`)
 - `--external-signals <path>` (repeatable local external-signal files merged into v6 action ranking)
+- `--benchmark-signals <path>` (repeatable local benchmark fixture files merged into bounded composite action ranking + additive `multiBenchmark` metadata; families: accessibility/security/SEO/reliability/parity)
+
+Accessibility fixture helper (same input usable for analyze):
+
+```bash
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-accessibility.json --json
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-security.json --json
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-reliability.json --json
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-seo.json --json
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+signaler analyze --contract v6 --benchmark-signals .signaler/benchmark-parity.json --json
+```
 - `--strict` (missing/invalid required artifact => exit `2`)
 - `--json` (compact command summary JSON)
 
@@ -281,6 +357,52 @@ Exit codes:
 - `1`: runtime/processing error
 - `2`: verify checks completed with failures
 - `3`: dry-run completed
+
+### `job` (one-shot workflows)
+
+Run preset step sequences and write `.signaler/jobs/<jobId>/job.json`:
+
+```bash
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler job run --preset ci --base-url http://127.0.0.1:3000
+signaler job run --preset pr
+signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
+signaler job show --preset agent --json
+signaler job status --dir .signaler
+```
+
+Presets:
+
+- `agent` — discover → run (v3 lean) → analyze (v6)
+- `ci` — agent + `--fail-on-budget` on run
+- `pr` — run `--changed-only` → analyze (skips discover; needs existing config)
+
+Flags: `--config <path>`, `--cwd <path>`, `--dir <path>`, `--file <job.json>`.
+
+See [`../specs/engine-job-protocol.md`](/docs/signaler/engine-job-protocol).
+
+### `query` (agent projections)
+
+Small JSON views instead of loading all of `.signaler/`:
+
+```bash
+signaler query --view agent --dir .signaler
+signaler query --view perf --dir .signaler
+signaler query --view actions --dir .signaler
+signaler query --view delta --dir .signaler
+signaler query --view run --dir .signaler
+signaler query --view evidence --dir .signaler
+```
+
+`delta` reads `verify.json` or `--baseline-dir` + `--compare-dir` for before/after triage.
+
+### `explain` (lazy issue expand)
+
+```bash
+signaler explain --id <issue-or-suggestion-id> --dir .signaler
+```
+
+Expands one issue without ingesting full `results.json`.
 
 ## 1.1 Recommended speed workflows
 
@@ -490,9 +612,8 @@ jobs:
       - run: pnpm build
       - run: pnpm start &
       - run: npx wait-on http://localhost:3000
-      - run: pnpm exec signaler discover --scope full --non-interactive --yes --base-url http://localhost:3000
-      - run: pnpm exec signaler run --contract v3 --mode throughput --ci --no-color --yes
-      - run: pnpm exec signaler report
+      - run: npx jsr run @signaler/cli job run --preset ci --base-url http://localhost:3000 --scope full --dir .signaler
+      - run: npx jsr run @signaler/cli report --dir .signaler
 ```
 
 ## 4. Baseline benchmark harness (observe-only)
@@ -599,19 +720,22 @@ Dogfood evidence helper:
 ```bash
 pnpm run v3:dogfood:list
 pnpm run v3:dogfood upsert --repo <repo> --owner <owner> --start <YYYY-MM-DD> --end <YYYY-MM-DD> --notes "<notes>"
+pnpm run v3:repo-validation:list
+pnpm run v3:repo-validation upsert --repo <repo> --owner <owner> --url <https://github.com/org/repo> --date <YYYY-MM-DD> --lighthouse-resolved <n> --signaler-resolved <n> --notes "<notes>"
 ```
 
-Machine-readable dogfood source:
+Machine-readable evidence sources:
 
 - `release/v3/dogfood-evidence.json`
+- `release/v3/repo-validation-evidence.json`
 
 Release manifest generation:
 
 ```bash
 pnpm run v3:manifest generate \
-  --version 3.0.0-rc.1 \
+  --version 3.1.3 \
   --channel rc \
-  --asset dist/signaler-3.0.0-rc.1.tgz \
+  --asset dist/signaler-3.1.3.tgz \
   --gate benchmarks/out/v3-release-gate.json \
   --gate benchmarks/out/v63-success-gate.json \
   --out release/v3/release-manifest.generated.json
@@ -627,22 +751,41 @@ pnpm run v3:manifest:validate
 Push/release preflight (docs + gate + manifest readiness):
 
 ```bash
-pnpm run release -- --target-version 3.0.0-rc.1
+pnpm run release -- --target-version 3.1.3
 ```
 
 Strict mode (fail if cross-platform smoke evidence is missing):
 
 ```bash
-pnpm run release -- --target-version 3.0.0-rc.1 --require-cross-platform --strict
+pnpm run release -- --target-version 3.1.3 --require-cross-platform --strict
+```
+
+JSR publish helper (runs build + validates package/jsr context before publish):
+
+```bash
+pnpm run jsr:publish
 ```
 
 ## 9. Success gate
+
+Workstream J benchmark-coverage gate:
+
+```bash
+pnpm run bench:workstream-j:gate
+pnpm run bench:workstream-j:validate
+```
+
+Outputs:
+
+- `benchmarks/out/workstream-j-gate.json`
+- `benchmarks/out/workstream-j-gate.md`
 
 Success gate evaluator:
 
 ```bash
 pnpm run bench:v63:loop
 pnpm run bench:v63:lowmem
+pnpm run bench:workstream-k:rust-benchmark
 pnpm run bench:v63:gate
 pnpm run bench:v63:validate
 ```
@@ -653,12 +796,14 @@ Outputs:
 - `benchmarks/out/v63-loop-smoke.md`
 - `benchmarks/out/v63-low-memory-evidence.json`
 - `benchmarks/out/v63-low-memory-evidence.md`
+- `benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json`
+- `benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.md`
 - `benchmarks/out/v63-success-gate.json`
 - `benchmarks/out/v63-success-gate.md`
 
 `bench:v63:loop` runs a tiny local canonical loop smoke (`discover -> run -> analyze -> verify --dry-run -> report`) against an in-process local server and emits reproducible evidence artifacts.
 
-The gate is blocking for missing canonical-flow docs, missing local unpublished-build workflow docs, missing Workstream H runtime-budget/timing integration, and missing regression test coverage. Manual evidence checks remain warn-only.
+The gate is blocking for missing canonical-flow docs, missing local unpublished-build workflow docs, missing Workstream H runtime-budget/timing integration, and missing regression test coverage. Manual evidence checks remain warn-only, including Workstream J optional-input overhead and Workstream K Rust normalizer perf/parity evidence.
 
 ## 10. GitHub workflow templates
 
@@ -672,44 +817,62 @@ Each template runs canonical CI flow:
 
 1. start app
 2. wait for base URL
-3. `discover`
-4. `run --contract v3 --mode throughput`
-5. `report`
-6. upload `.signaler/*` artifacts
+3. `job run --preset ci` (discover → run v3 lean + `--fail-on-budget` → analyze v6)
+4. `report` (HTML digest)
+5. upload `.signaler/*` artifacts
+
+`workflow_dispatch` supports `job_preset` (`ci`|`agent`|`pr`) and `routes_scope` (`quick`|`full`|`file`).
 
 ## 11. Agent bootstrap (copy/paste)
 
-Use this block to bootstrap a coding agent quickly:
+**Recommended: one-shot job**
 
 ```bash
-# 1) Produce canonical artifacts
-signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --ci --no-color --yes
-signaler analyze --contract v6
-signaler verify --contract v6
-signaler report
+signaler job run --preset agent --base-url http://127.0.0.1:3000
+signaler query --view perf --dir .signaler
+signaler explain --id <issue-id> --dir .signaler
+```
 
-# 2) Feed these files to the agent in order
-# .signaler/analyze.json
-# .signaler/verify.json
-# .signaler/agent-index.json
-# .signaler/suggestions.json
-# .signaler/issues.json
-# .signaler/results.json
-# .signaler/run.json
+After a fix:
+
+```bash
+signaler verify --contract v6
+signaler query --view delta --dir .signaler
+```
+
+**PR / changed files** (requires existing `signaler.config.json`):
+
+```bash
+signaler job run --preset pr
+```
+
+**Machine-readable onboarding** (for agent bootstrap scripts):
+
+```bash
+signaler help agent --json
+```
+
+**Manual steps** (equivalent to agent job):
+
+```bash
+signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
+signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler analyze --contract v6 --artifact-profile lean
+signaler query --view agent --dir .signaler
 ```
 
 Agent rules:
 
-1. Start from `agent-index.json` and follow evidence pointers.
-2. Prioritize high-confidence, high-impact suggestions.
-3. Implement one small fix at a time, then rerun Signaler.
-4. Use focused `--mode fidelity --focus-worst <n>` reruns only when parity-sensitive validation is required.
+1. Prefer `query` / `explain` over reading all of `.signaler/`.
+2. Performance triage uses **issue counts** (red/yellow), not headline Lighthouse performance scores.
+3. Implement one small fix, then `verify` and `query --view delta`.
+4. Use focused `--mode fidelity --focus-worst <n>` only for parity-sensitive validation.
 
-One-command script variants:
+One-command script variants (default `JOB_PRESET=agent`):
 
 - `bash scripts/agent-bootstrap.sh`
 - `powershell -ExecutionPolicy Bypass -File scripts/agent-bootstrap.ps1`
 - `corepack pnpm run agent:bootstrap:sh`
 - `corepack pnpm run agent:bootstrap:ps`
+- `JOB_PRESET=manual bash scripts/agent-bootstrap.sh` for step-by-step discover/run/analyze
 

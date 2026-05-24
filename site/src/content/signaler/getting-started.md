@@ -4,7 +4,7 @@ Signaler is a **reliable web lab runner** with an agent-first artifact contract.
 
 If you are using an editor or terminal agent, start with [`agent-quickstart.md`](/docs/signaler/agent-quickstart).
 
-This remastered release is designed to be installed and run as a CLI (`signaler`).
+This remastered release is designed to be installed and run as a CLI (`signaler`, with `signalar` as a compatibility alias).
 
 Canonical workflow:
 
@@ -18,6 +18,11 @@ CLI onboarding shortcut:
 
 - Run `signaler help agent` for copy/paste agent workflow commands, artifact order, and automation exit codes.
 - Use `signaler help agent --json` when your agent runtime prefers structured onboarding metadata.
+- Optional benchmark fixture helper: `pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json`
+- Optional benchmark fixture helper: `pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json`
+- Optional benchmark fixture helper: `pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json`
+- Optional benchmark fixture helper: `pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json`
+- Optional benchmark fixture helper: `pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json`
 
 Legacy aliases remain supported:
 
@@ -40,9 +45,7 @@ Optional audits:
 
 ## 1. Install / run
 
-Registry-free installation (recommended):
-
-Install the latest tagged GitHub Release in a single command:
+Recommended global install:
 
 Windows (PowerShell):
 
@@ -56,11 +59,30 @@ macOS/Linux:
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-Upgrade later (no registry):
+Verify after install:
+
+```bash
+signaler --version
+signalar --version
+```
+
+Update later:
 
 ```bash
 signaler upgrade
 ```
+
+Remove the global install later:
+
+```bash
+signaler uninstall --global
+```
+
+Built-in lifecycle commands:
+
+- `signaler upgrade`
+- `signaler uninstall --global`
+- `signalar <command>` if you prefer the compatibility alias
 
 Prerequisites:
 
@@ -95,6 +117,41 @@ node ./dist/bin.js discover --scope full
 node ./dist/bin.js run --contract v3 --mode throughput --yes
 node ./dist/bin.js analyze --contract v6 --json
 node ./dist/bin.js verify --contract v6 --runtime-budget-ms 90000 --dry-run --json
+```
+
+If you use `--accessibility-pass`, you can convert its output into a local `accessibility-extended` benchmark fixture and feed it back into ranking:
+
+```bash
+pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-accessibility.json --json
+```
+
+If you run `headers`, you can convert `.signaler/headers.json` into a local `security-baseline` benchmark fixture and merge it the same way:
+
+```bash
+pnpm run bench:fixture:security -- --headers .signaler/headers.json --issues .signaler/issues.json --out .signaler/benchmark-security.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-security.json --json
+```
+
+If you run `health`, you can convert `.signaler/health.json` into a local `reliability-slo` benchmark fixture:
+
+```bash
+pnpm run bench:fixture:reliability -- --health .signaler/health.json --issues .signaler/issues.json --out .signaler/benchmark-reliability.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-reliability.json --json
+```
+
+SEO benchmark fixture helper (results + optional crawl signals from links):
+
+```bash
+pnpm run bench:fixture:seo -- --results .signaler/results.json --links .signaler/links.json --issues .signaler/issues.json --out .signaler/benchmark-seo.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-seo.json --json
+```
+
+Cross-browser parity benchmark fixture helper (browser/device snapshots):
+
+```bash
+pnpm run bench:fixture:parity -- --snapshots .signaler/cross-browser-snapshots.json --issues .signaler/issues.json --out .signaler/benchmark-parity.json
+node ./dist/bin.js analyze --contract v6 --benchmark-signals .signaler/benchmark-parity.json --json
 ```
 
 ## 2. Discover routes and create config
@@ -237,6 +294,7 @@ Useful flags:
 - `--min-confidence high|medium|low` (default `medium`)
 - `--token-budget <n>` (min `2000`; default by profile: `lean=8000`, `standard=16000`, `diagnostics=32000`)
 - `--external-signals <path>` (repeatable local external-signal files merged into ranking)
+- `--benchmark-signals <path>` (repeatable local benchmark fixture files for bounded composite ranking context + additive metadata; families: accessibility/security/SEO/reliability/parity)
 - `--strict` (exit `2` on missing/invalid required v3 artifacts)
 - `--json` (compact machine summary to stdout)
 
