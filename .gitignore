@@ -12,6 +12,8 @@ dist/
 dist-simplified/
 
 # Test artifacts
+vitest-*.log
+vitest.log
 .signaler/
 signaler-report/
 test-report/

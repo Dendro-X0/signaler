@@ -84,3 +84,16 @@ Agents and CI should read `docs/guides/migration-v4.md` before upgrading from 3.
 | Dirty worktree | Commit/tag release, or `pnpm run jsr:publish -- --allow-dirty` (avoid for real releases) |
 | Missing `dist/engine` | Run `pnpm run build` before publish |
 | Slow types warning | Default `--allow-slow-types` is passed by the publish helper |
+| GitHub CI test failed, empty log UI | Download workflow artifact `vitest-log-<node-version>` from the failed run; re-run locally with `CI=true pnpm test:full` |
+
+## CI vs JSR publish
+
+GitHub **CI** on `main` does not block **JSR** publish. After local verification:
+
+```bash
+CI=true pnpm test:full
+pnpm run release:preflight
+pnpm run jsr:publish
+```
+
+GitHub **Release** assets (portable zip / Windows installer) use tag push `v*` and only require `pnpm test:smoke` in `publish.yml`.

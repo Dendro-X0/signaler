@@ -13,9 +13,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+    timeout-minutes: 20
+
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18.x, 20.x, 22.x]
     
@@ -56,14 +57,43 @@ jobs:
       run: pnpm build
       
     - name: Run smoke tests
+      env:
+        CI: true
       run: pnpm test:smoke
-      
+
     - name: Run full test suite
-      run: pnpm test:full
-      
+      id: test_full
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:full 2>&1 | tee "vitest-${{ matrix.node-version }}.log"
+
+    - name: Upload vitest log
+      if: failure() && steps.test_full.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-${{ matrix.node-version }}
+        path: vitest-${{ matrix.node-version }}.log
+        if-no-files-found: warn
+        retention-days: 14
+
     - name: Generate test coverage
       if: matrix.node-version == '22.x'
-      run: pnpm test:coverage
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:coverage 2>&1 | tee vitest-coverage-22.x.log
+
+    - name: Upload coverage vitest log
+      if: failure() && matrix.node-version == '22.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-22.x-coverage
+        path: vitest-coverage-22.x.log
+        if-no-files-found: warn
+        retention-days: 14
       
     - name: Upload coverage reports
       if: matrix.node-version == '22.x'
@@ -113,18 +143,74 @@ jobs:
       
     - name: Build project
       run: pnpm build
-      
+
     - name: Run property-based tests
-      run: pnpm test:full -- --filter Property
-      
+      id: quality_property
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:full -- --filter Property 2>&1 | tee vitest-quality-property.log
+
+    - name: Upload quality vitest log (property)
+      if: failure() && steps.quality_property.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-quality-property
+        path: vitest-quality-property.log
+        if-no-files-found: warn
+        retention-days: 14
+
     - name: Validate TypeScript declarations
-      run: pnpm test:full typescript-declaration-completeness.test.ts
-      
+      id: quality_ts_decl
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:full typescript-declaration-completeness.test.ts 2>&1 | tee vitest-quality-ts-decl.log
+
+    - name: Upload quality vitest log (ts decl)
+      if: failure() && steps.quality_ts_decl.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-quality-ts-decl
+        path: vitest-quality-ts-decl.log
+        if-no-files-found: warn
+        retention-days: 14
+
     - name: Check package metadata
-      run: pnpm test:full package-metadata-completeness.test.ts
-      
+      id: quality_metadata
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:full package-metadata-completeness.test.ts 2>&1 | tee vitest-quality-metadata.log
+
+    - name: Upload quality vitest log (metadata)
+      if: failure() && steps.quality_metadata.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-quality-metadata
+        path: vitest-quality-metadata.log
+        if-no-files-found: warn
+        retention-days: 14
+
     - name: Validate API documentation
-      run: pnpm test:full api-documentation-coverage.test.ts
+      id: quality_api_docs
+      env:
+        CI: true
+      run: |
+        set -o pipefail
+        pnpm test:full api-documentation-coverage.test.ts 2>&1 | tee vitest-quality-api-docs.log
+
+    - name: Upload quality vitest log (api docs)
+      if: failure() && steps.quality_api_docs.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vitest-log-quality-api-docs
+        path: vitest-quality-api-docs.log
+        if-no-files-found: warn
+        retention-days: 14
 
   cross-platform-smoke:
     runs-on: ${{ matrix.os }}
