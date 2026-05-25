@@ -1,9 +1,9 @@
 # Phase 1 — v4.1.x Adoptability
 
-Status: **Active — kickoff**  
-Target line: `@signaler/cli@4.1.x`  
-Last updated: 2026-05-25  
+Status: Shipped (git **4.1.0** line)  
 Parent: [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md)
+
+> Superseded by [Phase 2 — v4.2 team CI](./phase2-v4.2-team-ci.md) for active development.
 
 ## Theme
 

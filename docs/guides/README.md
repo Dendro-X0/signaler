@@ -10,3 +10,4 @@ Practical onboarding and operator guidance.
 - `known-limits.md`
 - `signaler-vs-alternatives.md`
 - `b2b-team-value.md`
+- `github-actions.md`

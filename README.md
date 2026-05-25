@@ -133,7 +133,7 @@ signaler job run --preset ci --managed-serve --in-process --cwd .
 signaler job run --preset pr --managed-serve --in-process --cwd .
 ```
 
-Official GitHub Action: planned in [Phase 2 (v4.2)](./docs/roadmap/phase2-v4.2-team-ci.md).
+Official GitHub Action: planned in [Phase 2 (v4.2)](./docs/roadmap/phase2-v4.2-team-ci.md) — composite action at [`.github/actions/signaler`](./.github/actions/signaler/action.yml). See [GitHub Actions guide](./docs/guides/github-actions.md).
 
 ## Usage
 

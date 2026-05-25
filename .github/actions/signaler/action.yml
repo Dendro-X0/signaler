@@ -1,0 +1,141 @@
+name: Signaler
+description: Run Signaler audit in CI with managed serve, artifacts, and job summary output.
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  cli-version:
+    description: JSR package version (e.g. 4.1.0). Bump before each release publish.
+    required: false
+    default: "4.1.0"
+  base-url:
+    description: Application base URL for audits
+    required: false
+    default: "http://127.0.0.1:3000"
+  cwd:
+    description: Project directory to audit
+    required: false
+    default: "."
+  scope:
+    description: Discover scope when using audit or ci preset (quick|full|file)
+    required: false
+    default: "full"
+  preset:
+    description: Workflow preset — audit (v4 orchestrator), ci, pr, or agent
+    required: false
+    default: "ci"
+  managed-serve-mode:
+    description: Managed serve mode (auto|dev|production)
+    required: false
+    default: "auto"
+  output-dir:
+    description: Signaler artifact directory
+    required: false
+    default: ".signaler"
+  config-path:
+    description: Optional signaler.config.json path (for run/pr when config exists)
+    required: false
+    default: ""
+  upload-artifacts:
+    description: Upload .signaler artifacts after the run
+    required: false
+    default: "true"
+  write-summary:
+    description: Append report --summary to the GitHub Actions job summary
+    required: false
+    default: "true"
+  artifact-name:
+    description: Name prefix for uploaded artifacts
+    required: false
+    default: "signaler"
+
+outputs:
+  output-dir:
+    description: Resolved artifact output directory
+    value: ${{ inputs.output-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Run Signaler (audit preset)
+      if: inputs.preset == 'audit'
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      env:
+        SIGNALER_BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- audit \
+          --cwd . \
+          --base-url "${SIGNALER_BASE_URL}" \
+          --scope "${{ inputs.scope }}" \
+          --managed-serve \
+          --managed-serve-mode "${{ inputs.managed-serve-mode }}" \
+          --in-process \
+          --summary \
+          --dir "${{ inputs.output-dir }}"
+
+    - name: Run Signaler (job preset)
+      if: inputs.preset != 'audit'
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      env:
+        SIGNALER_BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+        ARGS=(
+          job run
+          --preset "${{ inputs.preset }}"
+          --base-url "${SIGNALER_BASE_URL}"
+          --managed-serve
+          --managed-serve-mode "${{ inputs.managed-serve-mode }}"
+          --in-process
+          --dir "${{ inputs.output-dir }}"
+        )
+        if [ "${{ inputs.preset }}" = "ci" ] || [ "${{ inputs.preset }}" = "agent" ]; then
+          ARGS+=(--scope "${{ inputs.scope }}")
+        fi
+        if [ -n "${{ inputs.config-path }}" ]; then
+          ARGS+=(--config "${{ inputs.config-path }}")
+        fi
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+
+    - name: Write job summary
+      if: inputs.write-summary == 'true'
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      run: |
+        set -euo pipefail
+        SUMMARY_FILE="${RUNNER_TEMP}/signaler-summary.md"
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- report \
+          --dir "${{ inputs.output-dir }}" \
+          --summary > "${SUMMARY_FILE}" 2>/dev/null || true
+        if [ -s "${SUMMARY_FILE}" ]; then
+          {
+            echo "## Signaler summary"
+            echo ""
+            cat "${SUMMARY_FILE}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        PERF_JSON="$(npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+          --view perf \
+          --dir "${{ inputs.output-dir }}" \
+          --json 2>/dev/null || echo '{}')"
+        if [ "${PERF_JSON}" != "{}" ]; then
+          {
+            echo ""
+            echo "### Performance triage (JSON)"
+            echo '```json'
+            echo "${PERF_JSON}" | head -c 12000
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+        fi
+
+    - name: Upload Signaler artifacts
+      if: inputs.upload-artifacts == 'true' && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}-${{ github.run_id }}
+        path: ${{ inputs.cwd }}/${{ inputs.output-dir }}/**
+        if-no-files-found: warn

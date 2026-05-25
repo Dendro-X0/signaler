@@ -4,8 +4,9 @@
 
 | Doc | Purpose |
 |-----|---------|
-| [**Active roadmap**](./active-roadmap.md) | Status board — what is in progress now |
-| [**Phase 1 — v4.1 adoptability**](./phase1-v4.1-adoptability.md) | **Current phase** — kickoff deliverables and exit criteria |
+| [**Active roadmap**](./active-roadmap.md) | Status board — Phase 2 v4.2 in progress |
+| [**Phase 2 — v4.2 team CI**](./phase2-v4.2-team-ci.md) | **Current phase** |
+| [Phase 1 — v4.1 adoptability](./phase1-v4.1-adoptability.md) | Shipped adoptability track |
 
 ## Strategy (post–v4.0)
 

@@ -6,7 +6,9 @@ Use this checklist when publishing `@signaler/cli` to [JSR](https://jsr.io/@sign
 
 `package.json` and `jsr.json` **must match** (enforced by `scripts/jsr-publish.js` and `pnpm run release:preflight`).
 
-Current line: **4.1.0**
+**Before every JSR publish:** bump both files to a **new** semver (JSR versions are immutable — you cannot republish `4.1.0` as `4.1.0`).
+
+Current dev line: **4.1.0** on git → target **4.2.0** when Phase 2 ships.
 
 ```bash
 node -e "const p=require('./package.json');const j=require('./jsr.json');console.log(p.version,j.version,p.version===j.version?'ok':'MISMATCH')"

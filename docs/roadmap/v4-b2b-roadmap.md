@@ -31,18 +31,18 @@ From [`version-roadmap.md`](./version-roadmap.md):
 
 ```
 v4.0.x  shipped   audit orchestrator, shell/engine split, managed dev serve
-v4.1.x  active    adoptability — docs, trust, install, dogfood (Phase 1)
-v4.2.0  planned    team CI pack — Action, PR summary, check annotations
-v4.3.0  planned    policy gates — profiles, baseline/delta in CI
-v5.0.0  planned    bundled quality profiles + engine API hardening
+v4.1.x  shipped   adoptability — docs, CI stability, portable tests (git)
+v4.2.0  active    team CI pack — GitHub Action, job summary, templates
+v4.3.0  planned   policy gates — profiles, baseline/delta in CI
+v5.0.0  planned   bundled quality profiles + engine API hardening
 ```
 
 ## Phase overview
 
 | Phase | Version | Theme | B2B outcome |
 |-------|---------|-------|-------------|
-| **1** | v4.1.x | Adoptability | Teams can install and trust outputs without hand-holding |
-| **2** | v4.2.0 | Team CI pack | Drop into GitHub in ~10 minutes |
+| **1** | v4.1.x | Adoptability | Teams can install and trust outputs (shipped on git) |
+| **2** | v4.2.0 | Team CI pack | **Active** — [`phase2-v4.2-team-ci.md`](./phase2-v4.2-team-ci.md) |
 | **3** | v4.3.0 | Policy gates | Eng managers get pass/fail, not JSON archaeology |
 | **4** | v5.0.0 | Quality profiles | One gate bundles Lighthouse + headers + links + bundle |
 

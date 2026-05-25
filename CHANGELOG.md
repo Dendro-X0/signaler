@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## Unreleased (4.2.0)
+
+### Added
+
+- Composite GitHub Action (`.github/actions/signaler`) with artifact upload and job summary.
+- GitHub Actions guide; workflow templates updated for v4 managed serve.
+
 ## 4.1.0 - 2026-05-25
 
 ### Added

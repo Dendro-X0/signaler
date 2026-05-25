@@ -8,32 +8,32 @@ on:
         description: "Application base URL"
         required: false
         default: "http://127.0.0.1:3000"
-      start_command:
-        description: "Command used to start the app"
-        required: false
-        default: "npm start"
       config_path:
-        description: "Path to signaler config file"
+        description: "Path to signaler config file (optional)"
         required: false
-        default: "signaler.config.json"
+        default: ""
       routes_scope:
         description: "Route discovery scope: quick|full|file"
         required: false
         default: "full"
       job_preset:
-        description: "Signaler job preset: ci|agent|pr"
+        description: "Signaler preset: audit|ci|agent|pr"
         required: false
         default: "ci"
+      cli_version:
+        description: "JSR @signaler/cli version"
+        required: false
+        default: "4.1.0"
 
 jobs:
   signaler:
     runs-on: ubuntu-latest
     env:
       SIGNALER_BASE_URL: ${{ inputs.base_url || 'http://127.0.0.1:3000' }}
-      SIGNALER_START_COMMAND: ${{ inputs.start_command || 'npm start' }}
-      SIGNALER_CONFIG_PATH: ${{ inputs.config_path || 'signaler.config.json' }}
+      SIGNALER_CONFIG_PATH: ${{ inputs.config_path || '' }}
       SIGNALER_ROUTES_SCOPE: ${{ inputs.routes_scope || 'full' }}
       SIGNALER_JOB_PRESET: ${{ inputs.job_preset || 'ci' }}
+      SIGNALER_CLI_VERSION: ${{ inputs.cli_version || '4.1.0' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,31 +44,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build app (if script exists)
-        run: npm run build --if-present
-
-      - name: Start app
-        run: |
-          bash -lc "${SIGNALER_START_COMMAND}" > .signaler-start.log 2>&1 &
-
-      - name: Wait for app
-        run: npx wait-on "${SIGNALER_BASE_URL}"
-
-      - name: Run Signaler job
-        run: >
-          npx jsr run @signaler/cli job run
-          --preset "${SIGNALER_JOB_PRESET}"
-          --base-url "${SIGNALER_BASE_URL}"
-          --config "${SIGNALER_CONFIG_PATH}"
-          --scope "${SIGNALER_ROUTES_SCOPE}"
-          --dir ".signaler"
-
-      - name: Generate report
-        run: npx jsr run @signaler/cli report --dir ".signaler"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Run Signaler
+        uses: ./.github/actions/signaler
         with:
-          name: signaler-artifacts-npm-${{ github.run_id }}
-          path: .signaler/**
-          if-no-files-found: warn
+          cli-version: ${{ env.SIGNALER_CLI_VERSION }}
+          base-url: ${{ env.SIGNALER_BASE_URL }}
+          scope: ${{ env.SIGNALER_ROUTES_SCOPE }}
+          preset: ${{ env.SIGNALER_JOB_PRESET }}
+          config-path: ${{ env.SIGNALER_CONFIG_PATH }}
+          managed-serve-mode: auto
