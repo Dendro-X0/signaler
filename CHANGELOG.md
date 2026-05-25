@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 4.0.0 - 2026-05-24
+
+### Added
+
+- **`signaler audit` orchestrator**: discover → run (v3) → analyze (v6); shell dispatch in `src/shell/`.
+- **`@signaler/cli/engine`** programmatic export (`runPresetJob`, managed serve, job presets).
+- **Managed serve modes**: `--managed-serve-mode dev|production|auto` (auto prefers `pnpm dev`).
+- **Route plan**: full-scope defaults, `routes.includePaths` / `excludePaths`, `--incremental-skip`.
+- **P(ref) trust semantics** in CLI, `report.html`, and `agent-index.json` (`performanceScoreSemantics`).
+- Guides: `docs/guides/migration-v4.md`, `docs/guides/greenfield-wizard.md`.
+
+### Changed
+
+- **Breaking:** `signaler audit` is no longer an alias of `run`. Use `signaler run` for Lighthouse-only.
+- Wizard/shell greenfield flow: `discover` → `audit` with managed serve auto mode.
+- Default auto parallel caps **4–6** on capable hardware (throughput mode).
+- `AGENTS.md` golden path uses `signaler audit` with full scope.
+
+### Fixed
+
+- Shell `audit` wired to orchestrator; home screen and migration hints aligned with v4.
+
 ## 3.2.0 - 2026-05-22
 
 ### Added

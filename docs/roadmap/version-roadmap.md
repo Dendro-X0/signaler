@@ -1,7 +1,7 @@
 # Signaler Version Roadmap
 
 Status: Active  
-Baseline release: **v3.2.0** (JSR)  
+Baseline release: **v4.0.0** (JSR)  
 Last updated: 2026-05-24  
 Audience: product direction, agent integrators, CLI maintainers
 
@@ -31,7 +31,7 @@ v3.2.x  shipped   engine contracts, managed-serve v1, in-process jobs
 v3.3.x  next      agent happy path (one command, exit codes, preset defaults)
 v3.4.x            prod serve hardening (Next 16 / pnpm / monorepo)
 v3.5.x            discover + scope honesty + human summary
-v4.0.0            CLI surface cleanup (audit alias removal, shell split)
+v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev managed serve)
 ```
 
 ---
