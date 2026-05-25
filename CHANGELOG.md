@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 4.1.0 - 2026-05-25
+
+### Added
+
+- **B2B roadmap** and Phase 1 adoptability plan (`docs/roadmap/v4-b2b-roadmap.md`, `phase1-v4.1-adoptability.md`).
+- **Team value guide** (`docs/guides/b2b-team-value.md`) and **dogfood checklist** (`docs/operations/dogfood-checklist.md`).
+- README **For teams** section with P(ref) trust links and v4 audit quick start.
+
+### Changed
+
+- CI: vitest serial files on CI, global mock cleanup, 90s timeouts, vitest log artifacts on failure.
+- Coverage thresholds aligned to post-v4 baseline (lines 36%, functions 41%, branches 30%, statements 35%).
+
+### Fixed
+
+- Managed-serve tests use portable fixtures instead of hardcoded Windows paths (CI ENOENT on Linux).
+- README compatibility aliases corrected for v4 (`audit` vs `run`).
+
 ## 4.0.0 - 2026-05-24
 
 ### Added

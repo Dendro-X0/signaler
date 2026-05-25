@@ -6,7 +6,7 @@ Use this checklist when publishing `@signaler/cli` to [JSR](https://jsr.io/@sign
 
 `package.json` and `jsr.json` **must match** (enforced by `scripts/jsr-publish.js` and `pnpm run release:preflight`).
 
-Current line: **4.0.0**
+Current line: **4.1.0**
 
 ```bash
 node -e "const p=require('./package.json');const j=require('./jsr.json');console.log(p.version,j.version,p.version===j.version?'ok':'MISMATCH')"
@@ -64,14 +64,14 @@ pnpm run jsr:publish:skip-build
 ## 5. Post-publish smoke
 
 ```bash
-npx jsr run @signaler/cli@4.0.0 -- --version
-npx jsr run @signaler/cli@4.0.0 -- help audit
+npx jsr run @signaler/cli@4.1.0 -- --version
+npx jsr run @signaler/cli@4.1.0 -- help audit
 ```
 
 ## 6. Consumer upgrade
 
 ```bash
-npx jsr add @signaler/cli@4.0.0
+npx jsr add @signaler/cli@4.1.0
 ```
 
 Agents and CI should read `docs/guides/migration-v4.md` before upgrading from 3.2.x.

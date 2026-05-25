@@ -14,6 +14,7 @@ dist-simplified/
 # Test artifacts
 vitest-*.log
 vitest.log
+coverage/
 .signaler/
 signaler-report/
 test-report/
