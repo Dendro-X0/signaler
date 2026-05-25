@@ -13,6 +13,7 @@ describe("audit-orchestrator-cli", () => {
       const args = parseAuditOrchestratorArgs(["node", "signaler", "audit"]);
       expect(args.discoverScope).toBe("full");
       expect(args.managedServe).toBe(true);
+      expect(args.managedServeMode).toBe("auto");
       expect(args.inProcess).toBe(true);
       expect(args.skipDiscover).toBe(false);
     } finally {

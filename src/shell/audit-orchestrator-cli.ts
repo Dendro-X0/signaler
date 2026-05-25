@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
+import { parseManagedServeMode, resolveManagedServeModeFromEnv, type ManagedServeMode } from "../engine/serve/index.js";
 import { printAuditSummary } from "../report-summary.js";
 
 export type AuditOrchestratorCliArgs = {
@@ -12,6 +13,7 @@ export type AuditOrchestratorCliArgs = {
   readonly skipDiscover: boolean;
   readonly inProcess: boolean;
   readonly managedServe: boolean;
+  readonly managedServeMode: ManagedServeMode;
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
   readonly incremental: boolean;
@@ -34,6 +36,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let incrementalSkipPassing = false;
   let inProcess = process.env.SIGNALER_JOB_IN_PROCESS !== "0";
   let managedServe = process.env.SIGNALER_MANAGED_SERVE !== "0";
+  let managedServeMode: ManagedServeMode = resolveManagedServeModeFromEnv() ?? "auto";
   let managedServeSkipBuild = false;
   let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   let parallel: number | undefined;
@@ -93,6 +96,11 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       managedServe = true;
       continue;
     }
+    if (arg === "--managed-serve-mode" && i + 1 < argv.length) {
+      managedServeMode = parseManagedServeMode(argv[i + 1]);
+      i += 1;
+      continue;
+    }
     if (arg === "--managed-serve-skip-build") {
       managedServeSkipBuild = true;
       continue;
@@ -141,6 +149,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     skipDiscover,
     inProcess,
     managedServe,
+    managedServeMode,
     managedServeSkipBuild,
     managedServeReuse,
     incremental,
@@ -165,6 +174,7 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     incrementalSkipPassing: args.incrementalSkipPassing,
     inProcess: args.inProcess,
     managedServe: args.managedServe,
+    managedServeMode: args.managedServeMode,
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
     parallel: args.parallel,

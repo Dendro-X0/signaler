@@ -1472,6 +1472,8 @@ export function buildWizardFirstAuditArgv(params: {
     resolve(params.configPath),
     "--skip-discover",
     "--managed-serve",
+    "--managed-serve-mode",
+    "auto",
     "--yes",
   ];
 }
@@ -1531,7 +1533,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
         type: "confirm",
         name: "value",
         message:
-          "Run first audit now? (builds/starts production server if the URL is down, then run → analyze)",
+          "Run first audit now? (starts dev server with pnpm dev when possible, then run → analyze)",
         initial: true,
       })).value;
     const projectRoot: string = built.discovery.repoRoot;
@@ -1542,7 +1544,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
         configPath: absolutePath,
       });
       // eslint-disable-next-line no-console
-      console.log("Starting first audit (managed serve when the base URL is unreachable)...");
+      console.log("Starting first audit (managed serve: dev first when the base URL is unreachable)...");
       await runAuditOrchestratorCli(auditArgv);
       if (process.exitCode !== 0 && process.exitCode !== 2 && !args.nonInteractive) {
         const retry: boolean = (
@@ -1560,7 +1562,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
       }
     } else {
       console.log(
-        `Next step: signaler audit --cwd "${projectRoot}" --config "${absolutePath}" --skip-discover --managed-serve --yes`,
+        `Next step: signaler audit --cwd "${projectRoot}" --config "${absolutePath}" --skip-discover --managed-serve --managed-serve-mode auto --yes`,
       );
     }
   } catch (error: unknown) {

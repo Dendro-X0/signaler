@@ -17,7 +17,7 @@ signaler audit --config signaler.config.json --contract v3 --mode throughput
 ```bash
 signaler audit --cwd . --base-url http://127.0.0.1:3000
 # Orchestrator: discover → run (v3) → analyze (v6)
-# Defaults: --scope quick, managed production serve, in-process steps
+# Defaults: --scope full, managed serve (auto: dev first), in-process steps
 ```
 
 To run **only** Lighthouse (previous `audit` behavior), use `signaler run`:
@@ -39,8 +39,9 @@ signaler run --config signaler.config.json --contract v3 --mode throughput --yes
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--scope` | `quick` | Discover scope before run |
-| `--managed-serve` | on | Build/start production server when URL is down |
+| `--scope` | `full` | Discover scope before run |
+| `--managed-serve` | on | Start server when URL is down |
+| `--managed-serve-mode` | `auto` | `dev` (pnpm dev), `production` (build+start), or `auto` |
 | `--no-managed-serve` | | Use existing server only |
 | `--in-process` | on | Run job steps without subprocess per step |
 | `--no-in-process` | | Subprocess step runner |
@@ -51,6 +52,7 @@ Environment overrides (audit orchestrator):
 
 - `SIGNALER_DISCOVER_SCOPE` — default discover scope
 - `SIGNALER_MANAGED_SERVE=0` — disable managed serve
+- `SIGNALER_MANAGED_SERVE_MODE=dev|production|auto` — serve strategy when URL is down
 - `SIGNALER_JOB_IN_PROCESS=0` — disable in-process steps
 
 ## Programmatic API

@@ -17,13 +17,23 @@ export {
 } from "./jobs/in-process-step-runner.js";
 export type { InProcessCommandHandler, InProcessJobCommand } from "./jobs/in-process-step-runner.js";
 export {
+  ensureManagedDevServer,
   ensureManagedProductionServer,
+  ensureManagedServer,
+  parseManagedServeMode,
   probeUrlReachable,
+  resolveDevServePlan,
+  resolveManagedServeModeFromEnv,
   resolveProductionServePlan,
 } from "./serve/index.js";
 export type {
+  DevServePlan,
+  EnsureManagedServerOptions,
+  ManagedDevServerHandle,
   ManagedProductionServerHandle,
   ManagedProductionServerOptions,
+  ManagedServeMode,
+  ManagedServerHandle,
   ProductionServePlan,
 } from "./serve/index.js";
 export type {

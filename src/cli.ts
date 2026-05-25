@@ -27,7 +27,13 @@ import { renderTable } from "./ui/components/table.js";
 import { UiTheme } from "./ui/themes/theme.js";
 import { resolveOutputDir } from "./infrastructure/filesystem/output.js";
 import { readEngineVersion } from "./engine-version.js";
-import { writeEngineRunIndex, ensureManagedProductionServer } from "./engine/index.js";
+import {
+  ensureManagedServer,
+  parseManagedServeMode,
+  resolveManagedServeModeFromEnv,
+  writeEngineRunIndex,
+  type ManagedServeMode,
+} from "./engine/index.js";
 import { resolveEngineJsonMode } from "./engine-json.js";
 import type { EngineEventPayload } from "./engine-contracts/events/index.js";
 import { emitEngineEvent } from "./shell/index.js";
@@ -170,6 +176,7 @@ interface CliArgs {
   readonly machineTokenBudgetOverride: number | undefined;
   readonly perfIncludeYellow: boolean | undefined;
   readonly managedServe: boolean;
+  readonly managedServeMode: ManagedServeMode;
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
 }
@@ -2417,6 +2424,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let machineTokenBudgetOverride: number | undefined;
   let perfIncludeYellow: boolean | undefined;
   let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
+  let managedServeMode: ManagedServeMode = resolveManagedServeModeFromEnv() ?? "production";
   let managedServeSkipBuild = false;
   let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   for (let i = 2; i < argv.length; i += 1) {
@@ -2657,6 +2665,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
       perfIncludeYellow = false;
     } else if (arg === "--managed-serve" || arg === "--auto-serve") {
       managedServe = true;
+    } else if (arg === "--managed-serve-mode" && i + 1 < argv.length) {
+      managedServeMode = parseManagedServeMode(argv[i + 1]);
+      i += 1;
     } else if (arg === "--managed-serve-skip-build") {
       managedServeSkipBuild = true;
     } else if (arg === "--managed-serve-reuse") {
@@ -2763,6 +2774,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     machineTokenBudgetOverride,
     perfIncludeYellow,
     managedServe,
+    managedServeMode,
     managedServeSkipBuild,
     managedServeReuse,
   };
@@ -2974,7 +2986,8 @@ function printAuditFlags(): void {
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
-      "  --managed-serve | --auto-serve  Build and start production server when base URL is down (or SIGNALER_MANAGED_SERVE=1)",
+      "  --managed-serve | --auto-serve  Start server when base URL is down (or SIGNALER_MANAGED_SERVE=1)",
+      "  --managed-serve-mode <mode>  dev | production | auto (default production for run; auto for audit)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
     ].join("\n"),
@@ -3700,19 +3713,20 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       readonly totalMs: number;
     };
   } | undefined;
-  let managedServer: Awaited<ReturnType<typeof ensureManagedProductionServer>> | undefined;
+  let managedServer: Awaited<ReturnType<typeof ensureManagedServer>> | undefined;
   let auditConfig: ApexConfig = resolvedConfigForRun;
   if (args.managedServe) {
-    managedServer = await ensureManagedProductionServer({
+    managedServer = await ensureManagedServer({
       projectRoot: dirname(configPath),
       baseUrl: auditConfig.baseUrl ?? "http://127.0.0.1:3000",
+      mode: args.managedServeMode,
       skipBuild: args.managedServeSkipBuild,
       reuseUnhealthy: args.managedServeReuse,
     });
     auditConfig = { ...auditConfig, baseUrl: managedServer.baseUrl };
     if (managedServer.startedBySignaler) {
       // eslint-disable-next-line no-console
-      console.log(`Managed serve: production server at ${managedServer.baseUrl}`);
+      console.log(`Managed serve: ${managedServer.mode} server at ${managedServer.baseUrl}`);
     }
   }
   try {
@@ -3767,7 +3781,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   } finally {
     if (managedServer?.startedBySignaler) {
       // eslint-disable-next-line no-console
-      console.log("Managed serve: stopping production server...");
+      console.log(`Managed serve: stopping ${managedServer.mode} server...`);
       await managedServer.stop();
     }
     process.removeListener("SIGINT", onSigInt);

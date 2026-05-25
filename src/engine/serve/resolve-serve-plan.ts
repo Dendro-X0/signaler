@@ -16,9 +16,16 @@ export type ProductionServePlan = {
   readonly startScript: string;
 };
 
+export type DevServePlan = {
+  readonly projectRoot: string;
+  readonly packageManager: PackageManagerId;
+  readonly devScript: string;
+};
+
 type PackageJsonScripts = {
   readonly build?: string;
   readonly start?: string;
+  readonly dev?: string;
 };
 
 async function detectPackageManager(projectRoot: string): Promise<PackageManagerId> {
@@ -127,6 +134,40 @@ export async function resolveProductionServePlan(params: {
 
   throw new Error(
     `No production serve plan found under ${params.projectRoot}. Expected package.json scripts "build" and "start".`,
+  );
+}
+
+/**
+ * Resolve how to start a dev server (`pnpm run dev`, etc.) for the target project.
+ */
+export async function resolveDevServePlan(params: {
+  readonly projectRoot: string;
+}): Promise<DevServePlan> {
+  const rootsToTry = [params.projectRoot];
+  const scripts = await readScripts(params.projectRoot);
+  if (!scripts.dev) {
+    const discovered = await discoverNextProjects({ repoRoot: params.projectRoot, maxDepth: 4 });
+    for (const project of discovered) {
+      if (project.root === params.projectRoot) {
+        continue;
+      }
+      rootsToTry.push(project.root);
+    }
+  }
+
+  for (const root of rootsToTry) {
+    const candidateScripts = root === params.projectRoot ? scripts : await readScripts(root);
+    if (candidateScripts.dev) {
+      return {
+        projectRoot: root,
+        packageManager: await detectPackageManager(root),
+        devScript: "dev",
+      };
+    }
+  }
+
+  throw new Error(
+    `No dev serve plan found under ${params.projectRoot}. Expected package.json script "dev".`,
   );
 }
 

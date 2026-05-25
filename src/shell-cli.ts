@@ -536,6 +536,8 @@ function buildOrchestratorArgv(projectRoot: string, session: ShellSessionState, 
     session.configPath,
     "--skip-discover",
     "--managed-serve",
+    "--managed-serve-mode",
+    "auto",
     "--yes",
   ];
   if (session.incremental) {

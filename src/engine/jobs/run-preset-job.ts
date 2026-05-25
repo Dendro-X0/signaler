@@ -11,7 +11,7 @@ import {
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import { createInProcessEngineJobStepRunner } from "./in-process-step-runner.js";
 import { executeEngineJob } from "./run-job.js";
-import { ensureManagedProductionServer } from "../serve/index.js";
+import { ensureManagedServer, type ManagedServeMode } from "../serve/index.js";
 import type { EngineJobPreset } from "./types.js";
 
 export type RunPresetJobParams = BuildPresetJobParams & {
@@ -20,6 +20,7 @@ export type RunPresetJobParams = BuildPresetJobParams & {
   readonly incremental?: boolean;
   readonly inProcess?: boolean;
   readonly managedServe?: boolean;
+  readonly managedServeMode?: ManagedServeMode;
   readonly managedServeSkipBuild?: boolean;
   readonly managedServeReuse?: boolean;
   readonly skipDiscover?: boolean;
@@ -81,9 +82,10 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
 
   let managedBaseUrl: string | undefined;
   if (params.managedServe) {
-    const managedServer = await ensureManagedProductionServer({
+    const managedServer = await ensureManagedServer({
       projectRoot: job.cwd,
       baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
+      mode: params.managedServeMode ?? "auto",
       skipBuild: params.managedServeSkipBuild ?? false,
       reuseUnhealthy: params.managedServeReuse ?? false,
     });
@@ -107,7 +109,7 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       };
     } finally {
       if (managedServer.startedBySignaler) {
-        console.log("Managed serve: stopping production server...");
+        console.log(`Managed serve: stopping ${managedServer.mode} server...`);
         await managedServer.stop();
       }
     }
