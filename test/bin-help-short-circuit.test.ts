@@ -61,7 +61,10 @@ describe("bin help short-circuit", () => {
     };
     expect(payload.schemaVersion).toBe(1);
     expect(payload.goal).toContain("deterministic");
-    expect(payload.workflows?.oneShotJob?.[0]).toContain("signaler job run --preset agent");
+    expect(payload.workflows?.oneShotJob?.[0]).toContain("signaler audit");
+    expect(payload.workflows?.oneShotJob?.some((step) => step.includes("signaler job run --preset agent"))).toBe(
+      true,
+    );
     expect(payload.workflows?.installedCli?.[0]).toContain("signaler discover");
     expect(payload.workflows?.localDist?.[0]).toContain("node ./dist/bin.js job run");
     expect(payload.projections?.[0]).toContain("signaler query --view agent");
