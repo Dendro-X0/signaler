@@ -1457,6 +1457,25 @@ async function buildConfigAndDiscoveryForMode(params: {
   return { config, discovery };
 }
 
+/** argv for the post-discover first audit (managed production serve + agent preset). */
+export function buildWizardFirstAuditArgv(params: {
+  readonly projectRoot: string;
+  readonly configPath: string;
+}): readonly string[] {
+  return [
+    "node",
+    "signaler",
+    "audit",
+    "--cwd",
+    resolve(params.projectRoot),
+    "--config",
+    resolve(params.configPath),
+    "--skip-discover",
+    "--managed-serve",
+    "--yes",
+  ];
+}
+
 /**
  * Run the interactive configuration wizard CLI.
  */
@@ -1511,14 +1530,38 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
       : (await ask<{ readonly value: boolean }>({
         type: "confirm",
         name: "value",
-        message: "Run first audit now with canonical defaults? (run --contract v3 --mode throughput)",
+        message:
+          "Run first audit now? (builds/starts production server if the URL is down, then run → analyze)",
         initial: true,
       })).value;
+    const projectRoot: string = built.discovery.repoRoot;
     if (runNow) {
-      const { runAuditCli } = await import("./cli.js");
-      await runAuditCli(["node", "signaler", "run", "--config", absolutePath, "--contract", "v3", "--mode", "throughput", "--yes"]);
+      const { runAuditOrchestratorCli } = await import("./shell/audit-orchestrator-cli.js");
+      const auditArgv: readonly string[] = buildWizardFirstAuditArgv({
+        projectRoot,
+        configPath: absolutePath,
+      });
+      // eslint-disable-next-line no-console
+      console.log("Starting first audit (managed serve when the base URL is unreachable)...");
+      await runAuditOrchestratorCli(auditArgv);
+      if (process.exitCode !== 0 && process.exitCode !== 2 && !args.nonInteractive) {
+        const retry: boolean = (
+          await ask<{ readonly value: boolean }>({
+            type: "confirm",
+            name: "value",
+            message: "Audit did not complete successfully. Retry with managed serve?",
+            initial: true,
+          })
+        ).value;
+        if (retry) {
+          process.exitCode = 0;
+          await runAuditOrchestratorCli(auditArgv);
+        }
+      }
     } else {
-      console.log(`Next step: signaler run --config "${absolutePath}" --contract v3 --mode throughput`);
+      console.log(
+        `Next step: signaler audit --cwd "${projectRoot}" --config "${absolutePath}" --skip-discover --managed-serve --yes`,
+      );
     }
   } catch (error: unknown) {
     if (error instanceof WizardAbortError) {

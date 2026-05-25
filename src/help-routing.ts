@@ -41,7 +41,10 @@ export function hasHelpFlag(args: readonly string[]): boolean {
 }
 
 export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | undefined {
-  if (command === "audit" || command === "run") {
+  if (command === "audit") {
+    return "audit";
+  }
+  if (command === "run") {
     return "run";
   }
   if (command === "discover" || command === "init" || command === "wizard" || command === "guide") {

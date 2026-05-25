@@ -148,6 +148,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
         comparabilityHash: artifacts.agentIndex.comparabilityHash,
         topSuggestions: artifacts.agentIndex.topSuggestions.slice(0, args.top),
         performanceReporting: artifacts.agentIndex.performanceReporting ?? "issue-count",
+        performanceScoreSemantics: artifacts.agentIndex.performanceScoreSemantics,
         entrypoints: artifacts.agentIndex.entrypoints,
         agentProtocol: artifacts.agentIndex.agentProtocol,
       },

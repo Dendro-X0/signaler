@@ -5,14 +5,10 @@ import { isEngineJobResultV1, isEngineJobV1 } from "./engine-contracts/jobs/inde
 import {
   buildAgentPresetJob,
   buildPresetJob,
-  createDefaultEngineJobStepRunner,
-  createInProcessEngineJobStepRunner,
-  ensureManagedProductionServer,
-  executeEngineJob,
   type BuildPresetJobParams,
   type EngineJobPreset,
 } from "./engine/index.js";
-import { markAgentIndexPartialSuccess } from "./agent-artifacts.js";
+import { runPresetJob } from "./engine/jobs/run-preset-job.js";
 
 type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
@@ -43,6 +39,8 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
   let discoverScope = process.env.SIGNALER_DISCOVER_SCOPE?.trim() || "full";
   let buildId: string | undefined;
   let incremental = false;
+  let incrementalSkipPassing = false;
+  let routesFile: string | undefined;
   let inProcess = process.env.SIGNALER_JOB_IN_PROCESS === "1";
   let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
   let managedServeSkipBuild = false;
@@ -130,6 +128,15 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
       i += 1;
       continue;
     }
+    if (arg === "--incremental-skip") {
+      incrementalSkipPassing = true;
+      continue;
+    }
+    if (arg === "--routes-file" && i + 1 < argv.length) {
+      routesFile = resolve(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
     if (arg === "--json") {
       json = true;
     }
@@ -146,11 +153,13 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     discoverScope,
     buildId,
     incremental,
+    incrementalSkipPassing,
     inProcess,
     managedServe,
     managedServeSkipBuild,
     managedServeReuse,
     parallel,
+    routesFile,
     json,
   };
 }
@@ -182,80 +191,44 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     return;
   }
 
-  let job: EngineJobV1;
-  if (args.jobFile) {
-    const raw = await readFile(args.jobFile, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isEngineJobV1(parsed)) {
-      throw new Error(`Invalid job file: ${args.jobFile}`);
-    }
-    job = parsed;
+  const outcome = await runPresetJob({
+    cwd: args.cwd,
+    outputDir: args.outputDir,
+    baseUrl: args.baseUrl,
+    configPath: args.configPath,
+    discoverScope: args.discoverScope,
+    buildId: args.buildId,
+    incremental: args.incremental,
+    incrementalSkipPassing: args.incrementalSkipPassing,
+    routesFile: args.routesFile,
+    parallel: args.parallel,
+    preset: args.preset,
+    jobFile: args.jobFile,
+    inProcess: args.inProcess,
+    managedServe: args.managedServe,
+    managedServeSkipBuild: args.managedServeSkipBuild,
+    managedServeReuse: args.managedServeReuse,
+  });
+
+  if (args.json) {
+    console.log(JSON.stringify(outcome.result, null, 2));
   } else {
-    job = resolveJob(args);
-  }
-
-  let managedServer: Awaited<ReturnType<typeof ensureManagedProductionServer>> | undefined;
-  if (args.managedServe) {
-    managedServer = await ensureManagedProductionServer({
-      projectRoot: job.cwd,
-      baseUrl: args.baseUrl ?? "http://127.0.0.1:3000",
-      skipBuild: args.managedServeSkipBuild,
-      reuseUnhealthy: args.managedServeReuse,
-    });
-    if (managedServer.startedBySignaler) {
-      job = {
-        ...job,
-        steps: job.steps.map((step) => {
-          if (step.command !== "discover") {
-            return step;
-          }
-          const nextArgs = [...(step.args ?? [])];
-          const baseUrlIndex = nextArgs.findIndex((value) => value === "--base-url");
-          if (baseUrlIndex >= 0 && baseUrlIndex + 1 < nextArgs.length) {
-            nextArgs[baseUrlIndex + 1] = managedServer!.baseUrl;
-          } else {
-            nextArgs.push("--base-url", managedServer!.baseUrl);
-          }
-          return { ...step, args: nextArgs };
-        }),
-      };
+    console.log(`Job ${outcome.result.jobId}: ${outcome.result.status} (${outcome.result.elapsedMs}ms)`);
+    console.log(`Artifacts: ${resolve(outcome.job.cwd, outcome.job.outputDir, "jobs", outcome.job.jobId)}`);
+    console.log("Latest status: .signaler/job-latest.json");
+    if (outcome.managedBaseUrl) {
+      console.log(`Managed serve: production server at ${outcome.managedBaseUrl}`);
+    }
+    if (outcome.job.preset === "pr") {
+      console.log("Tip: after a fix, run `signaler verify --contract v6` then `signaler query --view delta`.");
     }
   }
 
-  try {
-    const stepRunner = args.inProcess
-      ? createInProcessEngineJobStepRunner()
-      : createDefaultEngineJobStepRunner();
-    const outcome = await executeEngineJob({ job, stepRunner });
-
-    if (args.json) {
-      console.log(JSON.stringify(outcome.result, null, 2));
-    } else {
-      console.log(`Job ${outcome.result.jobId}: ${outcome.result.status} (${outcome.result.elapsedMs}ms)`);
-      console.log(`Artifacts: ${resolve(job.cwd, job.outputDir, "jobs", job.jobId)}`);
-      console.log("Latest status: .signaler/job-latest.json");
-      if (managedServer?.startedBySignaler) {
-        console.log(`Managed serve: production server at ${managedServer.baseUrl}`);
-      }
-      if (job.preset === "pr") {
-        console.log("Tip: after a fix, run `signaler verify --contract v6` then `signaler query --view delta`.");
-      }
-    }
-
-    process.exitCode = outcome.exitCode;
-    if (outcome.exitCode === 2) {
-      await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
-    }
-    if (!args.json && outcome.exitCode === 2) {
-      console.log(
-        "Job partial success: run completed; analyze failed. Use performance-triage.json and signaler query --view perf.",
-      );
-    }
-  } finally {
-    if (managedServer?.startedBySignaler) {
-      console.log("Managed serve: stopping production server...");
-      await managedServer.stop();
-    }
+  process.exitCode = outcome.exitCode;
+  if (!args.json && outcome.exitCode === 2) {
+    console.log(
+      "Job partial success: run completed; analyze failed. Use performance-triage.json and signaler query --view perf.",
+    );
   }
 }
 

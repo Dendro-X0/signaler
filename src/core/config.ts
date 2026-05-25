@@ -98,6 +98,8 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly incremental?: unknown;
     readonly throughputBackoff?: unknown;
     readonly budgets?: unknown;
+    readonly routes?: unknown;
+    readonly incrementalSkip?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
     throw new Error(`Invalid config at ${absolutePath}: baseUrl must be a non-empty string`);
@@ -156,6 +158,8 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const incremental: boolean | undefined =
     typeof maybeConfig.incremental === "boolean" ? maybeConfig.incremental : undefined;
   const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
+  const routes = normaliseRouteListFilter(maybeConfig.routes, absolutePath);
+  const incrementalSkip = normaliseIncrementalSkip(maybeConfig.incrementalSkip, absolutePath);
   return {
     baseUrl,
     query,
@@ -174,6 +178,86 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     incremental,
     pages,
     budgets,
+    routes,
+    incrementalSkip,
+  };
+}
+
+function normaliseStringArray(value: unknown, field: string, absolutePath: string): readonly string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`Invalid config at ${absolutePath}: ${field} must be an array of strings`);
+  }
+  return value.map((entry, index) => {
+    if (typeof entry !== "string" || entry.trim().length === 0) {
+      throw new Error(`Invalid config at ${absolutePath}: ${field}[${index}] must be a non-empty string`);
+    }
+    return entry.trim();
+  });
+}
+
+function normaliseRouteListFilter(
+  value: unknown,
+  absolutePath: string,
+): ApexConfig["routes"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: routes must be an object`);
+  }
+  const record = value as { readonly includePaths?: unknown; readonly excludePaths?: unknown };
+  const includePaths = normaliseStringArray(record.includePaths, "routes.includePaths", absolutePath);
+  const excludePaths = normaliseStringArray(record.excludePaths, "routes.excludePaths", absolutePath);
+  if (!includePaths?.length && !excludePaths?.length) {
+    return undefined;
+  }
+  return { includePaths, excludePaths };
+}
+
+function normaliseIncrementalSkip(
+  value: unknown,
+  absolutePath: string,
+): ApexConfig["incrementalSkip"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: incrementalSkip must be an object`);
+  }
+  const record = value as {
+    readonly enabled?: unknown;
+    readonly minPerformanceScore?: unknown;
+    readonly minAccessibilityScore?: unknown;
+    readonly minBestPracticesScore?: unknown;
+    readonly minSeoScore?: unknown;
+    readonly maxFailedAudits?: unknown;
+    readonly requireNoRuntimeErrors?: unknown;
+  };
+  const readScore = (field: keyof typeof record, label: string): number | undefined => {
+    const raw = record[field];
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (typeof raw !== "number" || raw < 0 || raw > 100) {
+      throw new Error(`Invalid config at ${absolutePath}: incrementalSkip.${label} must be 0-100`);
+    }
+    return raw;
+  };
+  return {
+    enabled: typeof record.enabled === "boolean" ? record.enabled : undefined,
+    minPerformanceScore: readScore("minPerformanceScore", "minPerformanceScore"),
+    minAccessibilityScore: readScore("minAccessibilityScore", "minAccessibilityScore"),
+    minBestPracticesScore: readScore("minBestPracticesScore", "minBestPracticesScore"),
+    minSeoScore: readScore("minSeoScore", "minSeoScore"),
+    maxFailedAudits:
+      typeof record.maxFailedAudits === "number" && record.maxFailedAudits >= 0
+        ? Math.floor(record.maxFailedAudits)
+        : undefined,
+    requireNoRuntimeErrors:
+      typeof record.requireNoRuntimeErrors === "boolean" ? record.requireNoRuntimeErrors : undefined,
   };
 }
 

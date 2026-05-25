@@ -7,6 +7,8 @@ export {
 } from "./jobs/presets.js";
 export type { BuildPresetJobParams } from "./jobs/presets.js";
 export { executeEngineJob, writeEngineJobArtifacts } from "./jobs/run-job.js";
+export { runPresetJob } from "./jobs/run-preset-job.js";
+export type { RunPresetJobParams, RunPresetJobOutcome } from "./jobs/run-preset-job.js";
 export { createDefaultEngineJobStepRunner, runBinStep } from "./jobs/step-runner.js";
 export {
   createInProcessEngineJobStepRunner,

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const runAuditCliMock = vi.fn(async () => {});
+const runAuditOrchestratorMock = vi.fn(async () => {});
 const runWizardCliMock = vi.fn(async () => {});
 const runReportCliMock = vi.fn(async () => {});
 
-vi.mock("../src/cli.js", () => ({
-  runAuditCli: runAuditCliMock,
+vi.mock("../src/shell/audit-orchestrator-cli.js", () => ({
+  runAuditOrchestratorCli: runAuditOrchestratorMock,
 }));
 
 vi.mock("../src/wizard-cli.js", () => ({
@@ -17,20 +17,19 @@ vi.mock("../src/report-cli.js", () => ({
 }));
 
 beforeEach(() => {
-  runAuditCliMock.mockClear();
+  runAuditOrchestratorMock.mockClear();
   runWizardCliMock.mockClear();
   runReportCliMock.mockClear();
 });
 
-describe("bin alias deprecation messaging", () => {
-  it("prints deprecation guidance for audit alias", async () => {
+describe("bin v4 command routing", () => {
+  it("routes audit to orchestrator without deprecation alias message", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const { runBin } = await import("../src/bin.js");
     await runBin(["node", "signaler", "audit"]);
     const output = logSpy.mock.calls.map((call) => String(call[0] ?? "")).join("\n");
-    expect(output).toContain("Compatibility alias: 'audit' maps to primary 'run'");
-    expect(output).toContain("planned removal in v4.0");
-    expect(runAuditCliMock).toHaveBeenCalledTimes(1);
+    expect(output).not.toContain("Compatibility alias: 'audit' maps to primary 'run'");
+    expect(runAuditOrchestratorMock).toHaveBeenCalledTimes(1);
     logSpy.mockRestore();
   });
 

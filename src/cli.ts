@@ -5,6 +5,14 @@ import { createHash } from "node:crypto";
 import { cpus, freemem } from "node:os";
 import { gzipSync } from "node:zlib";
 import { loadConfig } from "./core/config.js";
+import {
+  applyConfigRoutePlan,
+  applyRouteListFilter,
+  filterConfigFailing,
+  filterConfigSkipPassing,
+  loadPreviousRunResults,
+  resolveIncrementalSkipCriteria,
+} from "./audit-route-plan.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
 import type { AxeResult, AxeSummary, AxeViolation } from "./accessibility-types.js";
 import { runAccessibilityAudit } from "./accessibility.js";
@@ -24,6 +32,16 @@ import { resolveEngineJsonMode } from "./engine-json.js";
 import type { EngineEventPayload } from "./engine-contracts/events/index.js";
 import { emitEngineEvent } from "./shell/index.js";
 import { buildExportBundle } from "./build-export-bundle.js";
+import {
+  avgPerformanceSummaryLabel,
+  buildAgentIndexPerformanceScoreSemantics,
+  buildHtmlPerformanceTrustBannerLines,
+  buildStatsPanelContentLines,
+  buildTrustNoteLines,
+  performanceColumnLabel,
+  performanceInlineLabel,
+  type PerformanceScoreDisplayMode,
+} from "./performance-score-labels.js";
 import { writeAiOptimizedReports } from "./ai-reports.js";
 import { ReportGeneratorEngine } from "./reporting/generators/report-generator-engine.js";
 import type {
@@ -115,6 +133,7 @@ interface CliArgs {
   readonly openReport: boolean;
   readonly warmUp: boolean;
   readonly incremental: boolean;
+  readonly incrementalSkipPassing: boolean;
   readonly buildId: string | undefined;
   readonly runsOverride: number | undefined;
   readonly quick: boolean;
@@ -209,6 +228,7 @@ type SummaryPanelParams = {
   readonly useColor: boolean;
   readonly regressionsOnly: boolean;
   readonly previousSummary?: RunSummary;
+  readonly scoreDisplayMode?: PerformanceScoreDisplayMode;
 };
 
 function isPublicCombo(r: PageDeviceSummary): boolean {
@@ -1908,18 +1928,19 @@ function formatDelta(curr: number | undefined, prev: number | undefined, theme: 
 function buildSummaryPanel(params: SummaryPanelParams): string {
   const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
   const hasPrev: boolean = params.previousSummary !== undefined;
+  const perfLabel: string = performanceColumnLabel(params.scoreDisplayMode ?? "throughput");
   const headers: readonly string[] = params.useColor
     ? [
       theme.bold("Label"),
       theme.bold("Path"),
       theme.bold("Device"),
-      theme.green("P"),
+      theme.green(perfLabel),
       hasPrev ? theme.cyan("ΔP") : "",
       theme.cyan("A"),
       theme.magenta("BP"),
       theme.yellow("SEO"),
     ].filter((h) => h !== "")
-    : ["Label", "Path", "Device", "P", ...(hasPrev ? ["ΔP"] : []), "A", "BP", "SEO"];
+    : ["Label", "Path", "Device", perfLabel, ...(hasPrev ? ["ΔP"] : []), "A", "BP", "SEO"];
   const prevMap: Map<string, PageDeviceSummary> | undefined =
     params.previousSummary !== undefined
       ? new Map(params.previousSummary.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r]))
@@ -2074,8 +2095,14 @@ function buildShareableExport(params: {
   };
 }
 
-function buildExportPanel(params: { readonly exportPath: string; readonly useColor: boolean; readonly share: ShareableExport }): string {
+function buildExportPanel(params: {
+  readonly exportPath: string;
+  readonly useColor: boolean;
+  readonly share: ShareableExport;
+  readonly scoreDisplayMode?: PerformanceScoreDisplayMode;
+}): string {
   const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const perfLabel: string = performanceColumnLabel(params.scoreDisplayMode ?? "throughput");
   const lines: string[] = [];
 
   const width: number = 80;
@@ -2155,7 +2182,7 @@ function buildExportPanel(params: { readonly exportPath: string; readonly useCol
     ]);
     lines.push(
       renderTable({
-        headers: ["Label", "Path", "Device", "P", "ΔP", "Prev P"],
+        headers: ["Label", "Path", "Device", perfLabel, "ΔP", "Prev P"],
         rows: regressionRows,
       }),
     );
@@ -2163,7 +2190,7 @@ function buildExportPanel(params: { readonly exportPath: string; readonly useCol
   divider();
 
   // Deep audit targets
-  lines.push(`${theme.bold("Deep audit targets")} ${theme.dim("(worst 5 by P)")}`);
+  lines.push(`${theme.bold("Deep audit targets")} ${theme.dim(`(worst 5 by ${perfLabel})`)}`);
   const deepRows: readonly (readonly string[])[] = params.share.deepAuditTargets.map((t) => [
     t.label,
     t.path,
@@ -2172,7 +2199,7 @@ function buildExportPanel(params: { readonly exportPath: string; readonly useCol
   ]);
   lines.push(
     renderTable({
-      headers: ["Label", "Path", "Device", "P"],
+      headers: ["Label", "Path", "Device", perfLabel],
       rows: deepRows,
     }),
   );
@@ -2195,8 +2222,13 @@ function buildExportPanel(params: { readonly exportPath: string; readonly useCol
   return lines.join("\n");
 }
 
-function buildIssuesPanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+function buildIssuesPanel(
+  results: readonly PageDeviceSummary[],
+  useColor: boolean,
+  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const perfLabel: string = performanceInlineLabel(scoreDisplayMode);
   const reds = results.filter((r) => (r.scores.performance ?? 100) < 50);
   if (reds.length === 0) {
     return renderPanel({ title: theme.bold("Issues"), lines: [theme.green("No red issues.")] });
@@ -2208,7 +2240,7 @@ function buildIssuesPanel(results: readonly PageDeviceSummary[], useColor: boole
     const issue: string = top ? `${top.title}${top.estimatedSavingsMs ? ` (${Math.round(top.estimatedSavingsMs)}ms)` : ""}` : "No top issue reported";
     const perfText: string = colorScore(r.scores.performance, theme);
     const deviceText: string = colorDevice(r.device, theme);
-    return `${r.label} ${r.path} [${deviceText}] – P:${perfText} – ${issue}`;
+    return `${r.label} ${r.path} [${deviceText}] – ${perfLabel}:${perfText} – ${issue}`;
   });
   return renderPanel({ title: theme.bold("Issues"), lines });
 }
@@ -2240,31 +2272,24 @@ function buildTopFixesPanel(results: readonly PageDeviceSummary[], useColor: boo
 
 function buildTrustNotePanel(params: { readonly useColor: boolean; readonly protocol: RunProtocolV3 }): string {
   const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
-  if (params.protocol.mode === "throughput") {
-    return renderPanel({
-      title: theme.bold("Trust note"),
-      lines: [
-        "Throughput mode is trend-oriented and may score lower than manual DevTools runs.",
-        "Use `--mode fidelity` (or `--parity`) when validating DevTools-like parity.",
-      ],
-    });
-  }
   return renderPanel({
     title: theme.bold("Trust note"),
-    lines: [
-      "Fidelity mode is reproducibility-first and intended for DevTools-like validation.",
-      "Compare runs only when comparabilityHash matches.",
-    ],
+    lines: [...buildTrustNoteLines(params.protocol.mode)],
   });
 }
 
-function buildLowestPerformancePanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+function buildLowestPerformancePanel(
+  results: readonly PageDeviceSummary[],
+  useColor: boolean,
+  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
+  const perfLabel: string = performanceInlineLabel(scoreDisplayMode);
   const sorted = [...results].sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101)).slice(0, 5);
   const lines: string[] = sorted.map((r) => {
     const perfText: string = colorScore(r.scores.performance, theme);
     const deviceText: string = colorDevice(r.device, theme);
-    return `${r.label} ${r.path} [${deviceText}] P:${perfText}`;
+    return `${r.label} ${r.path} [${deviceText}] ${perfLabel}:${perfText}`;
   });
   return renderPanel({ title: theme.bold("Lowest performance"), lines });
 }
@@ -2355,6 +2380,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let openReport = false;
   let warmUp = false;
   let incremental = false;
+  let incrementalSkipPassing = false;
   let buildId: string | undefined;
   let runsOverride: number | undefined;
   let quick = false;
@@ -2542,6 +2568,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
       warmUp = true;
     } else if (arg === "--incremental") {
       incremental = true;
+    } else if (arg === "--incremental-skip") {
+      incrementalSkipPassing = true;
     } else if (arg === "--build-id" && i + 1 < argv.length) {
       buildId = argv[i + 1];
       i += 1;
@@ -2698,6 +2726,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     openReport,
     warmUp,
     incremental,
+    incrementalSkipPassing,
     buildId,
     runsOverride,
     quick,
@@ -2756,8 +2785,8 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
     mode: "throughput",
     profile: "throughput-balanced",
     throttlingMethod: "simulate",
-    // Safer default for common laptops/desktops; users can still opt-in higher with --parallel.
-    parallel: 2,
+    // Balanced default for common laptops/desktops; auto profile may raise to 4–6 on capable hardware.
+    parallel: 4,
     sessionIsolation: "shared",
     throughputBackoff: "auto",
     warmUp: true,
@@ -2785,7 +2814,8 @@ function readPositiveIntEnv(name: string): number | undefined {
   return parsed;
 }
 
-function resolveAutoResourceProfile(params: { readonly plannedCombos: number }): AutoResourceProfile {
+/** Exported for tests. Caps default parallel when the user did not pass --parallel. */
+export function resolveAutoResourceProfile(params: { readonly plannedCombos: number }): AutoResourceProfile {
   const forcedCpuCount: number | undefined = readPositiveIntEnv("SIGNALER_FORCE_CPU_COUNT");
   const forcedFreeMemoryMB: number | undefined = readPositiveIntEnv("SIGNALER_FORCE_FREE_MEMORY_MB");
   const cpuCount: number = forcedCpuCount ?? cpus().length;
@@ -2797,25 +2827,32 @@ function resolveAutoResourceProfile(params: { readonly plannedCombos: number }):
   }
 
   let baseParallelCap = 4;
-  if (freeMemoryMB < 3072 || cpuCount <= 4) {
+  if (freeMemoryMB < 2048 || cpuCount <= 2) {
     baseParallelCap = 1;
+    reasons.push(freeMemoryMB < 2048 ? "low-memory" : "low-cpu");
+  } else if (freeMemoryMB < 3072 || cpuCount <= 4) {
+    baseParallelCap = 2;
     reasons.push(freeMemoryMB < 3072 ? "low-memory" : "low-cpu");
   } else if (cpuCount <= 8) {
-    baseParallelCap = 2;
+    baseParallelCap = 4;
     reasons.push("mid-cpu");
-  } else if (cpuCount <= 12) {
-    baseParallelCap = 3;
+  } else if (cpuCount <= 16) {
+    baseParallelCap = 5;
     reasons.push("upper-mid-cpu");
   } else {
+    baseParallelCap = 6;
     reasons.push("high-cpu");
   }
 
   let appliedParallelCap = baseParallelCap;
-  if (params.plannedCombos >= 80) {
-    appliedParallelCap = Math.min(appliedParallelCap, 2);
+  if (params.plannedCombos >= 120) {
+    appliedParallelCap = Math.min(appliedParallelCap, 5);
+    reasons.push("large-suite-cap");
+  } else if (params.plannedCombos >= 80) {
+    appliedParallelCap = Math.min(appliedParallelCap, 6);
     reasons.push("large-suite-cap");
   } else if (params.plannedCombos >= 40) {
-    appliedParallelCap = Math.min(appliedParallelCap, 3);
+    appliedParallelCap = Math.min(appliedParallelCap, 6);
     reasons.push("medium-suite-cap");
   }
 
@@ -3136,7 +3173,11 @@ function buildMetaPanel(meta: RunSummary["meta"], useColor: boolean): string {
   return renderPanel({ title: theme.bold("Meta"), lines });
 }
 
-function buildStatsPanel(results: readonly PageDeviceSummary[], useColor: boolean): string {
+function buildStatsPanel(
+  results: readonly PageDeviceSummary[],
+  useColor: boolean,
+  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
   let pSum = 0;
   let aSum = 0;
@@ -3167,10 +3208,27 @@ function buildStatsPanel(results: readonly PageDeviceSummary[], useColor: boolea
   const avgA = results.length > 0 ? Math.round(aSum / results.length) : 0;
   const avgBP = results.length > 0 ? Math.round(bpSum / results.length) : 0;
   const avgSEO = results.length > 0 ? Math.round(seoSum / results.length) : 0;
-  const lines: string[] = [
-    `${theme.dim("Summary")}: Avg P:${avgP} A:${avgA} BP:${avgBP} SEO:${avgSEO}`,
-    `${theme.dim("Scores")}: ${theme.green(`${green} green (90+)`)} | ${theme.yellow(`${yellow} yellow (50-89)`)} | ${theme.red(`${red} red (<50)`)} of ${count} total`,
-  ];
+  const contentLines: readonly string[] = buildStatsPanelContentLines({
+    mode: scoreDisplayMode,
+    avgP,
+    avgA,
+    avgBP,
+    avgSEO,
+    green,
+    yellow,
+    red,
+    count,
+  });
+  const lines: string[] = contentLines.map((line, index) => {
+    if (index === 0) {
+      const avgLabel: string = avgPerformanceSummaryLabel(scoreDisplayMode);
+      return `${theme.dim("Summary")}: ${theme.dim(avgLabel)}:${avgP} A:${avgA} BP:${avgBP} SEO:${avgSEO}`;
+    }
+    if (index === 1) {
+      return `${theme.dim("Scores")}: ${theme.green(`${green} green (90+)`)} | ${theme.yellow(`${yellow} yellow (50-89)`)} | ${theme.red(`${red} red (<50)`)} of ${count} total`;
+    }
+    return theme.dim(line);
+  });
   return renderPanel({ title: theme.bold("Stats"), lines });
 }
 
@@ -3425,7 +3483,15 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     effectiveConfig = changedConfig;
   }
   if (args.rerunFailing) {
-    const rerunConfig: ApexConfig = filterConfigFailing(previousSummary, effectiveConfig);
+    const previousResults: readonly PageDeviceSummary[] | undefined =
+      previousSummary?.results ?? (await loadPreviousRunResults(resolvedOutput.outputDir));
+    if (!previousResults || previousResults.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error("Rerun-failing mode requires a previous run. Expected .signaler/summary.json or results.json.");
+      process.exitCode = 1;
+      return;
+    }
+    const rerunConfig: ApexConfig = filterConfigFailing({ previous: previousResults, config: effectiveConfig });
     if (rerunConfig.pages.length === 0) {
       // eslint-disable-next-line no-console
       console.log("Rerun-failing mode: no failing combos found in previous summary. Nothing to run.");
@@ -3449,6 +3515,42 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       return;
     }
     effectiveConfig = focused;
+  }
+  const beforeRouteFilterPages = effectiveConfig.pages.length;
+  effectiveConfig = applyConfigRoutePlan(effectiveConfig);
+  if (effectiveConfig.pages.length < beforeRouteFilterPages) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Route list filter: ${effectiveConfig.pages.length} page(s) retained (${beforeRouteFilterPages - effectiveConfig.pages.length} excluded via routes.includePaths/excludePaths).`,
+    );
+  }
+  const incrementalSkipEnabled: boolean =
+    args.incrementalSkipPassing || config.incrementalSkip?.enabled === true;
+  if (incrementalSkipEnabled) {
+    const previousResults: readonly PageDeviceSummary[] | undefined =
+      previousSummary?.results ?? (await loadPreviousRunResults(resolvedOutput.outputDir));
+    if (previousResults && previousResults.length > 0) {
+      const criteria = resolveIncrementalSkipCriteria({ fromConfig: config.incrementalSkip });
+      const skipped = filterConfigSkipPassing({
+        previous: previousResults,
+        config: effectiveConfig,
+        criteria,
+      });
+      if (skipped.skippedCombos > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`Incremental skip: ${skipped.skippedCombos} combo(s) omitted (met prior pass criteria).`);
+      }
+      effectiveConfig = skipped.config;
+      if (effectiveConfig.pages.length === 0) {
+        // eslint-disable-next-line no-console
+        console.log("Incremental skip: all combos passed prior criteria. Nothing to run.");
+        process.exitCode = 0;
+        return;
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("Incremental skip: no previous results in output dir; running full plan.");
+    }
   }
   const filteredConfig: ApexConfig = filterConfigDevices(effectiveConfig, args.deviceFilter);
   if (filteredConfig.pages.length === 0) {
@@ -3914,7 +4016,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   await writeJsonWithOptionalGzip(resolve(outputDir, "pwa.json"), pwa);
   const markdown: string = buildMarkdown(summary);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
-  const html: string = buildHtmlReport(summary);
+  const html: string = buildHtmlReport(summary, protocol.mode);
   const reportPath: string = resolve(outputDir, "report.html");
   await writeFile(reportPath, html, "utf8");
   const budgetViolations: readonly BudgetViolation[] =
@@ -4243,7 +4345,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   // eslint-disable-next-line no-console
   console.log(buildMetaPanel(summary.meta, useColor));
   // eslint-disable-next-line no-console
-  console.log(buildStatsPanel(summary.results, useColor));
+  console.log(buildStatsPanel(summary.results, useColor, protocol.mode));
   if (comparisonSummary !== undefined) {
     printSectionHeader("Changes", useColor);
     printDivider();
@@ -4259,11 +4361,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       useColor,
       regressionsOnly: args.regressionsOnly,
       previousSummary: comparisonSummary,
+      scoreDisplayMode: protocol.mode,
     }),
   );
   printSectionHeader("Issues", useColor);
   // eslint-disable-next-line no-console
-  console.log(buildIssuesPanel(summary.results, useColor));
+  console.log(buildIssuesPanel(summary.results, useColor, protocol.mode));
   printSectionHeader("Top fixes", useColor);
   // eslint-disable-next-line no-console
   console.log(buildTopFixesPanel(summary.results, useColor));
@@ -4320,10 +4423,10 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   printSectionHeader("Lowest performance", useColor);
   // eslint-disable-next-line no-console
-  console.log(buildLowestPerformancePanel(summary.results, useColor));
+  console.log(buildLowestPerformancePanel(summary.results, useColor, protocol.mode));
   printSectionHeader("Export", useColor);
   // eslint-disable-next-line no-console
-  console.log(buildExportPanel({ exportPath, useColor, share: shareable }));
+  console.log(buildExportPanel({ exportPath, useColor, share: shareable, scoreDisplayMode: protocol.mode }));
   const elapsedMs: number = Date.now() - startTimeMs;
   const elapsedText: string = formatElapsedTime(elapsedMs);
   const elapsedDisplay: string = useColor ? `${ANSI_CYAN}${elapsedText}${ANSI_RESET}` : elapsedText;
@@ -4374,31 +4477,6 @@ function filterConfigChanged(config: ApexConfig, changedFiles: readonly string[]
     return changedFiles.some((file) => file.includes(segment));
   };
   const pages: ApexPageConfig[] = config.pages.filter((page) => pageMatches(page.path));
-  return { ...config, pages };
-}
-
-function filterConfigFailing(previous: RunSummary | undefined, config: ApexConfig): ApexConfig {
-  if (previous === undefined) {
-    return config;
-  }
-  const failing = new Set<string>();
-  for (const result of previous.results) {
-    const runtimeFailed: boolean = Boolean(result.runtimeErrorMessage);
-    const perfScore: number | undefined = result.scores.performance;
-    const failedScore: boolean = typeof perfScore === "number" && perfScore < 90;
-    if (runtimeFailed || failedScore) {
-      failing.add(`${result.label}:::${result.path}:::${result.device}`);
-    }
-  }
-  const pages: ApexPageConfig[] = config.pages.flatMap((page) => {
-    const devices: readonly ApexDevice[] = page.devices.filter((device) =>
-      failing.has(`${page.label}:::${page.path}:::${device}`),
-    );
-    if (devices.length === 0) {
-      return [];
-    }
-    return [{ ...page, devices }];
-  });
   return { ...config, pages };
 }
 
@@ -4468,11 +4546,13 @@ function escapeMarkdownTableCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
 }
 
-function buildHtmlReport(summary: RunSummary): string {
+function buildHtmlReport(summary: RunSummary, scoreDisplayMode: PerformanceScoreDisplayMode = "throughput"): string {
   const results = summary.results;
   const meta = summary.meta;
   const timestamp: string = new Date().toISOString();
-  const rows: string = results.map((result) => buildHtmlRow(result)).join("\n");
+  const perfLabel: string = performanceColumnLabel(scoreDisplayMode);
+  const rows: string = results.map((result) => buildHtmlRow(result, scoreDisplayMode)).join("\n");
+  const trustBanner: string = buildHtmlTrustBanner(scoreDisplayMode);
   const cacheSummary: string = meta.incremental
     ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached`
     : "disabled";
@@ -4599,11 +4679,23 @@ function buildHtmlReport(summary: RunSummary): string {
       border-bottom: 1px dashed var(--border);
     }
     .issue:last-child { border-bottom: none; }
+    .trust-banner {
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.1rem;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(14, 165, 233, 0.08));
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .trust-banner strong { color: var(--text); display: block; margin-bottom: 0.45rem; }
+    .trust-banner p { margin: 0.25rem 0; }
   </style>
 </head>
 <body>
   <h1>Signaler Report</h1>
-  <p class="meta">Generated: ${timestamp}</p>
+  ${trustBanner}
+  <p class="meta">Generated: ${timestamp} · Mode: ${scoreDisplayMode} · Performance label: ${perfLabel}</p>
   <div class="meta-grid">
     ${buildMetaCard("Build ID", meta.buildId ?? "-")}
     ${buildMetaCard("Incremental", meta.incremental ? "Yes" : "No")}
@@ -4624,8 +4716,21 @@ ${rows}
 </html>`;
 }
 
-function buildHtmlRow(result: PageDeviceSummary): string {
+function buildHtmlTrustBanner(scoreDisplayMode: PerformanceScoreDisplayMode): string {
+  const lines: readonly string[] = buildHtmlPerformanceTrustBannerLines(scoreDisplayMode);
+  const title: string = scoreDisplayMode === "throughput"
+    ? "Performance score reference (P(ref))"
+    : "Performance score (DevTools parity mode)";
+  const body: string = lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("\n    ");
+  return `<div class="trust-banner"><strong>${escapeHtml(title)}</strong>\n    ${body}\n  </div>`;
+}
+
+function buildHtmlRow(
+  result: PageDeviceSummary,
+  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+): string {
   const scores = result.scores;
+  const perfLabel: string = performanceColumnLabel(scoreDisplayMode);
   const metrics = result.metrics;
   const lcpSeconds: string = metrics.lcpMs !== undefined ? (metrics.lcpMs / 1000).toFixed(1) + "s" : "-";
   const fcpSeconds: string = metrics.fcpMs !== undefined ? (metrics.fcpMs / 1000).toFixed(1) + "s" : "-";
@@ -4641,7 +4746,7 @@ function buildHtmlRow(result: PageDeviceSummary): string {
         <span class="device-badge ${result.device}">${result.device}</span>
       </div>
       <div class="scores">
-        ${buildScoreCircle("P", scores.performance)}
+        ${buildScoreCircle(perfLabel, scores.performance)}
         ${buildScoreCircle("A", scores.accessibility)}
         ${buildScoreCircle("BP", scores.bestPractices)}
         ${buildScoreCircle("SEO", scores.seo)}
@@ -5031,7 +5136,7 @@ function printSummaryStats(results: readonly PageDeviceSummary[], useColor: bool
   };
 
   // eslint-disable-next-line no-console
-  console.log(`\n📊 Summary: Avg P:${formatAvg(avgP)} A:${formatAvg(avgA)} BP:${formatAvg(avgBP)} SEO:${formatAvg(avgSEO)}`);
+  console.log(`\n📊 Summary: ${avgPerformanceSummaryLabel("throughput")}:${formatAvg(avgP)} A:${formatAvg(avgA)} BP:${formatAvg(avgBP)} SEO:${formatAvg(avgSEO)}`);
 
   const greenText = useColor ? `${ANSI_GREEN}${greenCount}${ANSI_RESET}` : greenCount.toString();
   const yellowText = useColor ? `${ANSI_YELLOW}${yellowCount}${ANSI_RESET}` : yellowCount.toString();
@@ -6216,6 +6321,7 @@ function buildAgentIndexV3(params: {
   const caps = getMachineProfileCaps(params.artifactProfile);
   const baseRefs: AgentIndexSuggestionRefV3[] = [...buildTopSuggestionRefs(params.suggestions.suggestions, caps.topSuggestionsCap)];
   let refs: AgentIndexSuggestionRefV3[] = [...baseRefs];
+  const performanceScoreSemantics = buildAgentIndexPerformanceScoreSemantics(params.protocol.mode);
   const fixed = {
     generatedAt: new Date().toISOString(),
     contractVersion: "v3" as const,
@@ -6230,6 +6336,7 @@ function buildAgentIndexV3(params: {
       ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
     },
     performanceReporting: "issue-count" as const,
+    performanceScoreSemantics,
     agentProtocol: {
       mandatoryReads: params.includePerformanceTriage
         ? ["agent-index.json", "performance-triage.json"]
@@ -6294,6 +6401,7 @@ function buildAgentIndexV3(params: {
       ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
     },
     performanceReporting: "issue-count",
+    performanceScoreSemantics,
     agentProtocol: {
       mandatoryReads: params.includePerformanceTriage
         ? ["agent-index.json", "performance-triage.json"]

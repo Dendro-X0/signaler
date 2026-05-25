@@ -8,19 +8,30 @@ Use Signaler to identify the highest-impact web quality issues and drive fix ver
 
 ## Canonical CLI Flow
 
-**Preferred (v3.3+): one-shot agent job with production serve**
+**Preferred (v4+): one-shot audit orchestrator (all routes by default)**
+
+```bash
+signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
+```
+
+Defaults: discover (**full** — all static routes) → run → analyze; managed production serve and in-process steps on by default.
+
+After fixes, rerun with incremental skip:
+
+```bash
+signaler audit --cwd /path/to/project --incremental-skip
+```
+
+**Alternative: explicit job preset**
 
 ```bash
 signaler job run --preset agent \
   --managed-serve --in-process \
-  --scope quick \
   --cwd /path/to/project \
   --base-url http://127.0.0.1:3000
 ```
 
-Defaults: discover (quick) → run (throughput, parallel 6, lean) → analyze (v6).  
-Override parallel: `--parallel 4` or `SIGNALER_PARALLEL=4`.  
-Exit codes: `0` ok; `1` discover/run failed; `2` run ok, analyze failed (use `performance-triage.json`).
+Use `--scope quick` only for a capped starter subset. Use `--incremental-skip` after fixes.
 
 **Manual steps** (when you need finer control):
 
@@ -32,6 +43,37 @@ signaler analyze --contract v6 --artifact-profile lean
 signaler verify --contract v6
 signaler query --view perf --json
 ```
+
+## Route selection (`signaler.config.json`)
+
+- **`pages`**: explicit list of paths/devices to audit (written by discover or edited manually).
+- **`routes.includePaths` / `routes.excludePaths`**: glob-like filters (`/blog/*`) applied before each run.
+- **`discover --scope file --routes-file paths.json`**: replace discovery with a fixed route list.
+
+## Incremental skip (rerun after fixes)
+
+Skip combos that already passed in the previous run (reads `.signaler/summary.json` or `results.json`):
+
+```bash
+signaler run --config signaler.config.json --incremental-skip
+signaler audit --incremental-skip
+```
+
+Config criteria (all optional; defaults shown):
+
+```json
+"incrementalSkip": {
+  "enabled": true,
+  "minPerformanceScore": 90,
+  "minAccessibilityScore": 90,
+  "minBestPracticesScore": 90,
+  "minSeoScore": 90,
+  "maxFailedAudits": 0,
+  "requireNoRuntimeErrors": true
+}
+```
+
+Combine with `--incremental --build-id <id>` to also reuse Lighthouse cache for unchanged combos.
 
 **PR / changed-files** (requires existing `signaler.config.json`):
 

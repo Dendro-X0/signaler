@@ -1,0 +1,42 @@
+export type ShellCommandId =
+  | "install"
+  | "run"
+  | "review"
+  | "audit"
+  | "quick"
+  | "report"
+  | "analyze"
+  | "verify"
+  | "query"
+  | "explain"
+  | "job"
+  | "upgrade"
+  | "measure"
+  | "bundle"
+  | "folder"
+  | "health"
+  | "links"
+  | "headers"
+  | "console"
+  | "clean"
+  | "uninstall"
+  | "clear-screenshots"
+  | "wizard"
+  | "quickstart"
+  | "guide"
+  | "tui"
+  | "shell"
+  | "help"
+  | "init"
+  | "discover"
+  | "config"
+  | "export"
+  | "ai"
+  | "cortex"
+  | "version"
+  | "install-shim";
+
+export interface ParsedShellArgs {
+  readonly command: ShellCommandId;
+  readonly argv: readonly string[];
+}

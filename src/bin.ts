@@ -19,74 +19,14 @@ if (freeMemoryMB < 512) {
   console.warn('   Signaler may run slowly or fail. Consider closing other applications.');
 }
 
-import { runAuditCli } from "./cli.js";
-import { runUpgradeCli } from "./upgrade-cli.js";
-import { runWizardCli } from "./wizard-cli.js";
 import { runQuickstartCli } from "./quickstart-cli.js";
-import { runAiCli } from "./ai-cli.js";
 import { runShellCli } from "./shell-cli.js";
-import { runMeasureCli } from "./measure-cli.js";
-import { runBundleCli } from "./bundle-cli.js";
-import { runHealthCli } from "./health-cli.js";
-import { runLinksCli } from "./links-cli.js";
-import { runHeadersCli } from "./headers-cli.js";
-import { runConsoleCli } from "./console-cli.js";
-import { runCleanCli } from "./clean-cli.js";
-import { runUninstallCli } from "./uninstall-cli.js";
-import { runClearScreenshotsCli } from "./clear-screenshots-cli.js";
-import { runQuickCli } from "./quick-cli.js";
-import { runReportCli } from "./report-cli.js";
-import { runAnalyzeCli } from "./analyze-cli.js";
-import { runVerifyCli } from "./verify-cli.js";
-import { runQueryCli } from "./query-cli.js";
-import { runExplainCli } from "./explain-cli.js";
-import { runJobCli } from "./job-cli.js";
-import { runInstallShimCli } from "./install-shim-cli.js";
-import { runFolderCli } from "./folder-cli.js";
-import { runCortexCli } from "./cortex-cli.js";
 import { runTuiCli } from "./tui-cli.js";
-import { ConfigCli, parseConfigArgs } from "./cli/config-cli.js";
-import { ExportCli, parseExportArgs } from "./cli/export-cli.js";
 import { readEngineVersion } from "./engine-version.js";
 import { hasHelpFlag, resolveCommandHelpTopic } from "./help-routing.js";
+import { dispatchShellCommand, parseShellArgs, type ParsedShellArgs } from "./shell/index.js";
 
-type ApexCommandId =
-  | "install"
-  | "run"
-  | "review"
-  | "audit"
-  | "quick"
-  | "report"
-  | "analyze"
-  | "verify"
-  | "query"
-  | "explain"
-  | "job"
-  | "upgrade"
-  | "measure"
-  | "bundle"
-  | "folder"
-  | "health"
-  | "links"
-  | "headers"
-  | "console"
-  | "clean"
-  | "uninstall"
-  | "clear-screenshots"
-  | "wizard"
-  | "quickstart"
-  | "guide"
-  | "tui"
-  | "shell"
-  | "help"
-  | "init"
-  | "discover"
-  | "config"
-  | "export"
-  | "ai"
-  | "cortex"
-  | "version"
-  | "install-shim";
+type ApexCommandId = ParsedShellArgs["command"];
 
 interface ParsedBinArgs {
   readonly command: ApexCommandId;
@@ -94,59 +34,7 @@ interface ParsedBinArgs {
 }
 
 function parseBinArgs(argv: readonly string[]): ParsedBinArgs {
-  const rawCommand: string | undefined = argv[2];
-  if (rawCommand === undefined) {
-    return { command: "shell", argv };
-  }
-  if (rawCommand === "help" || rawCommand === "--help" || rawCommand === "-h") {
-    return { command: "help", argv };
-  }
-  if (rawCommand === "version" || rawCommand === "--version" || rawCommand === "-v") {
-    return { command: "version", argv };
-  }
-  if (rawCommand === "shell") {
-    const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
-    return { command: "shell", argv: commandArgv };
-  }
-  if (
-    rawCommand === "run" ||
-    rawCommand === "install" ||
-    rawCommand === "review" ||
-    rawCommand === "audit" ||
-    rawCommand === "quick" ||
-    rawCommand === "report" ||
-    rawCommand === "analyze" ||
-    rawCommand === "verify" ||
-    rawCommand === "query" ||
-    rawCommand === "explain" ||
-    rawCommand === "job" ||
-    rawCommand === "upgrade" ||
-    rawCommand === "measure" ||
-    rawCommand === "bundle" ||
-    rawCommand === "folder" ||
-    rawCommand === "health" ||
-    rawCommand === "links" ||
-    rawCommand === "headers" ||
-    rawCommand === "console" ||
-    rawCommand === "clean" ||
-    rawCommand === "uninstall" ||
-    rawCommand === "clear-screenshots" ||
-    rawCommand === "wizard" ||
-    rawCommand === "quickstart" ||
-    rawCommand === "guide" ||
-    rawCommand === "tui" ||
-    rawCommand === "init" ||
-    rawCommand === "discover" ||
-    rawCommand === "config" ||
-    rawCommand === "export" ||
-    rawCommand === "ai" ||
-    rawCommand === "cortex" ||
-    rawCommand === "install-shim"
-  ) {
-    const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
-    return { command: rawCommand as ApexCommandId, argv: commandArgv };
-  }
-  return { command: "help", argv };
+  return parseShellArgs(argv);
 }
 
 async function printVersion(): Promise<void> {
@@ -187,14 +75,38 @@ async function printVersion(): Promise<void> {
 
 function printCommandHelp(topic: string): boolean {
   const normalizedTopic: string =
-    topic === "audit" ? "run"
-      : topic === "init" || topic === "wizard" || topic === "guide" ? "discover"
-        : topic === "review" ? "report"
-          : topic;
+    topic === "init" || topic === "wizard" || topic === "guide" ? "discover"
+      : topic === "review" ? "report"
+        : topic;
 
   const print = (lines: readonly string[]): void => {
     console.log(lines.join("\n"));
   };
+
+  if (normalizedTopic === "audit") {
+    print([
+      "Usage:",
+      "  signaler audit [--cwd <path>] [--base-url <url>] [--scope <quick|full>] [flags]",
+      "",
+      "Description:",
+      "  End-to-end orchestrator: discover → run (v3) → analyze (v6).",
+      "  Defaults: --scope full (all static routes), managed production serve, in-process steps.",
+      "",
+      "Key flags:",
+      "  --managed-serve | --no-managed-serve",
+      "  --in-process | --no-in-process",
+      "  --skip-discover (requires --config)",
+      "  --summary           Print one-screen summary after completion",
+      "  --json",
+      "",
+      "Examples:",
+      "  signaler audit --cwd ./apps/web --base-url http://127.0.0.1:3000",
+      "  signaler audit --config signaler.config.json --skip-discover --no-managed-serve",
+      "",
+      "Note: `signaler run` remains the low-level Lighthouse runner (config required).",
+    ]);
+    return true;
+  }
 
   if (normalizedTopic === "run") {
     print([
@@ -460,7 +372,8 @@ function buildAgentHelpJson(): AgentHelpJson {
     goal: "deterministic detect -> prioritize -> verify loop with machine-readable artifacts",
     workflows: {
       oneShotJob: [
-        "signaler job run --preset agent --base-url http://127.0.0.1:3000",
+        "signaler audit --cwd . --base-url http://127.0.0.1:3000",
+        "signaler job run --preset agent --managed-serve --in-process --base-url http://127.0.0.1:3000",
         "signaler query --view perf --dir .signaler",
         "signaler explain --id <issue-id> --dir .signaler",
         "signaler verify --contract v6",
@@ -579,7 +492,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
         "  auditTimeoutMs         Per-audit timeout in milliseconds (prevents hung runs from stalling)",
         "  throttlingMethod       simulate | devtools (default simulate)",
         "  cpuSlowdownMultiplier  CPU slowdown (default 4)",
-        "  parallel               Workers (default auto up to 3, respects CPU/memory)",
+        "  parallel               Workers (default auto 4–6 on capable hardware, respects CPU/memory)",
         "  warmUp                 true/false to warm cache before auditing (bounded concurrency)",
         "  incremental            (deprecated default) Set in config but only active when --incremental is passed",
         "  pages                  Array of { path, label, devices: [mobile|desktop] }",
@@ -659,7 +572,8 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  signaler                 # interactive shell (default)",
       "  signaler install         # install the portable release globally",
       "  signaler discover        # primary route discovery/setup",
-      "  signaler run --mode <fidelity|throughput> [flags]   # canonical runner",
+      "  signaler audit [--cwd <path>] [--base-url <url>] [--scope quick|full]   # discover + run + analyze",
+      "  signaler run --mode <fidelity|throughput> [flags]   # canonical Lighthouse runner",
       "  signaler analyze --contract v6 [flags]   # canonical machine action packet",
       "  signaler verify --contract v6 [flags]   # canonical focused rerun + delta validation",
       "  signaler report [--dir <path>]   # primary report/review from artifacts",
@@ -672,8 +586,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  signaler quick [--config <path>] [--project-root <path>]",
       "  signaler report [--dir <path>]",
       "  signaler folder --root <dir> [--route-cap <n>]",
-      "  signaler audit [--config <path>] [--ci] [--no-color|--color] [--log-level <level>]",
-      "  signaler audit --flags    # print audit flags/options and exit",
+      "  signaler audit [--cwd <path>] [--base-url <url>] [--scope <quick|full>] [--config <path>]",
       "  signaler guide  (alias of wizard) interactive flow with tips for non-technical users",
       "  signaler upgrade [--version <tag|latest>]  # update the portable global install",
       "  signaler uninstall --global  # remove the portable global install",
@@ -689,11 +602,11 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "    quickstart Detect routes and run a one-off audit with sensible defaults",
       "",
       "  Audits and checks:",
-      "    run        Primary Lighthouse runner command",
+      "    run        Primary Lighthouse runner (requires config)",
+      "    audit      End-to-end orchestrator: discover + run + analyze",
       "    analyze    V6 machine-facing action packet generator (requires --contract v6)",
       "    verify     V6 focused rerun and pass/fail verification loop (requires --contract v6)",
       "    report     Primary report/review command from existing artifacts",
-      "    audit      Compatibility alias for run (planned removal in v4.0)",
       "    review     Compatibility alias for report (planned removal in v4.0)",
       "    measure    Fast batch metrics (CDP-based, non-Lighthouse)",
       "    quick      Fast runner pack (measure + headers + links + bundle + accessibility pass)",
@@ -721,7 +634,18 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "    help       Show this help message",
       "",
       "Options (audit):",
-      "  --flags            Print audit flags/options and exit",
+      "  --scope <quick|full>   Discover scope (default full — all static routes)",
+      "  --routes-file <path>   Explicit route list file (scope file)",
+      "  --incremental-skip     Skip combos that passed prior run criteria",
+      "  --incremental          Reuse cache for unchanged combos (requires --build-id)",
+      "  --managed-serve        Build/start production server when base URL is down (default on)",
+      "  --no-managed-serve     Use existing server only",
+      "  --in-process           Run job steps in-process (default on)",
+      "  --skip-discover        Skip discover when config already exists",
+      "  --summary              Print one-screen summary after completion",
+      "  --json",
+      "",
+      "Options (run):",
       "  --ci               Enable CI mode with budgets and non-zero exit code on failure",
       "  --fail-on-budget   Exit non-zero if budgets fail even outside CI",
       "  --no-color         Disable ANSI colours in console output (default in CI mode)",
@@ -1021,130 +945,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
   }
 
   const runOnce = async (): Promise<void> => {
-    if (parsed.command === "audit") {
-      console.log("Compatibility alias: 'audit' maps to primary 'run' (planned removal in v4.0).");
-      await runAuditCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "run") {
-      await runAuditCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "install") {
-      await runUpgradeCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "quick") {
-      await runQuickCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "report") {
-      await runReportCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "analyze") {
-      await runAnalyzeCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "verify") {
-      await runVerifyCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "query") {
-      await runQueryCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "explain") {
-      await runExplainCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "job") {
-      await runJobCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "review") {
-      console.log("Compatibility alias: 'review' maps to primary 'report' (planned removal in v4.0).");
-      await runReportCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "upgrade") {
-      await runUpgradeCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "measure") {
-      await runMeasureCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "bundle") {
-      await runBundleCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "folder") {
-      await runFolderCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "health") {
-      await runHealthCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "links") {
-      await runLinksCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "headers") {
-      await runHeadersCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "console") {
-      await runConsoleCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "clean") {
-      await runCleanCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "uninstall") {
-      await runUninstallCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "clear-screenshots") {
-      await runClearScreenshotsCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide" || parsed.command === "discover") {
-      if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
-        console.log("Compatibility alias: use 'discover' as the primary setup command (init planned removal in v4.0).");
-      }
-      const hasScope: boolean = parsed.argv.some((arg) => arg === "--scope" || arg.startsWith("--scope="));
-      const discoverArgv: readonly string[] =
-        !hasScope
-          ? [...parsed.argv, "--scope", "full"]
-          : parsed.argv;
-      await runWizardCli(discoverArgv);
-      return;
-    }
-    if (parsed.command === "config") {
-      const configOptions = parseConfigArgs(parsed.argv.slice(2));
-      await ConfigCli.handle(configOptions);
-      return;
-    }
-    if (parsed.command === "export") {
-      const exportOptions = parseExportArgs(parsed.argv.slice(2));
-      await ExportCli.handle(exportOptions);
-      return;
-    }
-    if (parsed.command === "ai") {
-      await runAiCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "cortex") {
-      await runCortexCli(parsed.argv);
-      return;
-    }
-    if (parsed.command === "install-shim") {
-      await runInstallShimCli(parsed.argv);
-      return;
-    }
+    await dispatchShellCommand(parsed);
   };
 
   try {

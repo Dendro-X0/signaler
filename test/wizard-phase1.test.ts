@@ -3,7 +3,28 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ApexPageConfig } from "../src/core/types.js";
-import { buildDiscoverySummary, parseWizardArgs, runWizardCli } from "../src/wizard-cli.js";
+import {
+  buildDiscoverySummary,
+  buildWizardFirstAuditArgv,
+  parseWizardArgs,
+  runWizardCli,
+} from "../src/wizard-cli.js";
+
+describe("wizard first audit argv", () => {
+  it("uses audit orchestrator with managed serve and skip-discover", () => {
+    const argv = buildWizardFirstAuditArgv({
+      projectRoot: "/tmp/demo",
+      configPath: "/tmp/demo/signaler.config.json",
+    });
+    expect(argv).toContain("audit");
+    expect(argv).toContain("--managed-serve");
+    expect(argv).toContain("--skip-discover");
+    expect(argv).toContain("--yes");
+    expect(argv).toContain("--cwd");
+    expect(argv[argv.indexOf("--cwd") + 1]).toBe(resolve("/tmp/demo"));
+    expect(argv[argv.indexOf("--config") + 1]).toBe(resolve("/tmp/demo/signaler.config.json"));
+  });
+});
 
 describe("wizard phase1 args", () => {
   it("defaults scope to full when not provided", () => {

@@ -121,6 +121,18 @@ export function isAgentIndexV3(value: unknown): value is AgentIndexV3 {
   ) {
     return false;
   }
+  if (value.performanceScoreSemantics !== undefined) {
+    if (!isRecord(value.performanceScoreSemantics)) return false;
+    const semantics = value.performanceScoreSemantics;
+    if (semantics.performanceColumnLabel !== "P(ref)" && semantics.performanceColumnLabel !== "P") return false;
+    if (semantics.scoreKind !== "lab-reference" && semantics.scoreKind !== "devtools-parity") return false;
+    if (!isNonEmptyString(semantics.disclaimer)) return false;
+    if (!Array.isArray(semantics.trustNotes) || semantics.trustNotes.length === 0) return false;
+    for (const note of semantics.trustNotes) {
+      if (!isNonEmptyString(note)) return false;
+    }
+    if (semantics.validationCommand !== undefined && !isNonEmptyString(semantics.validationCommand)) return false;
+  }
   if (value.compatibility !== undefined) {
     if (!isRecord(value.compatibility)) return false;
     const mapping = value.compatibility.legacyToCanonical;

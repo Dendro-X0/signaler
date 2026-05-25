@@ -9,7 +9,8 @@ describe("help routing", () => {
   });
 
   it("maps aliases to canonical command help topics", () => {
-    expect(resolveCommandHelpTopic("audit")).toBe("run");
+    expect(resolveCommandHelpTopic("audit")).toBe("audit");
+    expect(resolveCommandHelpTopic("run")).toBe("run");
     expect(resolveCommandHelpTopic("init")).toBe("discover");
     expect(resolveCommandHelpTopic("wizard")).toBe("discover");
     expect(resolveCommandHelpTopic("guide")).toBe("discover");

@@ -11,6 +11,8 @@ export type BuildPresetJobParams = {
   readonly discoverScope?: string;
   readonly buildId?: string;
   readonly incremental?: boolean;
+  readonly incrementalSkipPassing?: boolean;
+  readonly routesFile?: string;
   readonly parallel?: number;
 };
 
@@ -75,29 +77,39 @@ export function buildAgentPresetJob(params: BuildPresetJobParams): EngineJobV1 {
     discoverArgs.push("--base-url", params.baseUrl);
   }
   discoverArgs = appendConfigArg(discoverArgs, params.configPath);
+  if (params.routesFile) {
+    discoverArgs.push("--routes-file", params.routesFile);
+  }
   const outputDirArg = resolveOutputDirArg(params);
   const parallel = resolveAgentJobParallel(params.parallel);
+  let runArgs: string[] = appendConfigArg(
+    [
+      "--contract",
+      "v3",
+      "--mode",
+      "throughput",
+      "--artifact-profile",
+      "lean",
+      "--ci",
+      "--no-color",
+      "--yes",
+      "--parallel",
+      String(parallel),
+    ],
+    params.configPath,
+  );
+  if (params.incrementalSkipPassing) {
+    runArgs.push("--incremental-skip");
+  }
+  if (params.incremental) {
+    const resolvedBuildId = resolveBuildId({ cwd: params.cwd, explicit: params.buildId });
+    if (resolvedBuildId) {
+      runArgs.push("--incremental", "--build-id", resolvedBuildId);
+    }
+  }
   const steps: EngineJobStepV1[] = [
     { command: "discover", args: discoverArgs },
-    {
-      command: "run",
-      args: appendConfigArg(
-        [
-          "--contract",
-          "v3",
-          "--mode",
-          "throughput",
-          "--artifact-profile",
-          "lean",
-          "--ci",
-          "--no-color",
-          "--yes",
-          "--parallel",
-          String(parallel),
-        ],
-        params.configPath,
-      ),
-    },
+    { command: "run", args: runArgs },
     { command: "analyze", args: ["--contract", "v6", "--artifact-profile", "lean", "--dir", outputDirArg] },
   ];
   return {

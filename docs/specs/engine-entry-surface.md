@@ -32,7 +32,32 @@ Build job definitions without running them:
 ### Execution
 
 ```ts
-import { executeEngineJob, createDefaultEngineJobStepRunner } from "./engine/index.js";
+import {
+  runPresetJob,
+  executeEngineJob,
+  createDefaultEngineJobStepRunner,
+} from "@signaler/cli/engine";
+```
+
+`runPresetJob` runs a preset job with optional managed serve, in-process steps, and `skipDiscover`:
+
+```ts
+const outcome = await runPresetJob({
+  cwd: process.cwd(),
+  outputDir: ".signaler",
+  preset: "agent",
+  discoverScope: "quick",
+  managedServe: true,
+  inProcess: true,
+  baseUrl: "http://127.0.0.1:3000",
+});
+// outcome.exitCode: 0 | 1 | 2
+```
+
+Lower-level job execution:
+
+```ts
+import { executeEngineJob, createDefaultEngineJobStepRunner } from "@signaler/cli/engine";
 
 const outcome = await executeEngineJob({
   job,
@@ -75,6 +100,7 @@ Dispatches `discover`, `run`, `analyze`, `verify`, `query`, and `explain` to exi
 
 | Shell command | Engine API |
 |---------------|------------|
+| `signaler audit` | `runPresetJob({ preset: "agent", managedServe, inProcess, ... })` |
 | `signaler job show --preset agent` | `buildAgentPresetJob` |
 | `signaler job run --file job.json` | `executeEngineJob({ job })` |
 | `signaler job run --preset ci` | `executeEngineJob({ job: buildPresetJob({ preset: "ci", ... }) })` |

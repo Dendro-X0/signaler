@@ -1740,8 +1740,8 @@ function resolveParallelCount({
   // Take minimum of CPU and memory constraints
   const suggested: number = Math.max(1, Math.min(cpuBased, memoryBased));
 
-  // Cap at 3 by default for stability
-  const cappedSuggested: number = Math.min(3, suggested || 1);
+  // Cap at 6 by default — cli auto profile applies tighter caps when memory/CPU are constrained
+  const cappedSuggested: number = Math.min(6, suggested || 1);
 
   // Don't use more workers than tasks
   const final: number = Math.max(1, Math.min(10, Math.min(taskCount, cappedSuggested)));

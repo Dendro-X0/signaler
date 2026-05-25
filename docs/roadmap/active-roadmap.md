@@ -5,33 +5,34 @@ Updated: 2026-05-24
 
 ## Current focus
 
-**Phase 3 — v3.5.x: Discover and scope honesty** (in progress)
+**Phase 4 — v4.0.0: CLI surface cleanup** (in progress)
 
 Canonical plan: [`version-roadmap.md`](./version-roadmap.md)
 
-### Phase 3 deliverables
+### Phase 4 deliverables
 
 | ID | Item | Status |
 |----|------|--------|
-| 3.5.1 | Discover coverage % + excludedReasons + full-scope recommendation | Done |
-| 3.5.2 | App Router MDX page detection | Done |
-| 3.5.3 | `signaler report --summary` one-screen view | Done |
-| 3.5.4 | `agent-index.json` job exit codes + `partialSuccess` | Done |
+| 4.0.1 | Remove `audit` → `run` alias | Done |
+| 4.0.2 | `signaler audit` orchestrator (discover + managed-serve + run + analyze) | Done |
+| 4.0.3 | Shell owns argv/dispatch (`src/shell/`) | Done |
+| 4.0.4 | `@signaler/cli/engine` programmatic export | Done |
+| 4.0.5 | v4 migration guide | Done |
+| — | Split `cli.ts` below ~2k lines | Deferred |
+
+### Phase 3 (v3.5.x) — shipped
+
+- Discover coverage, `report --summary`, MDX routes, agent-index job exit codes
+- Commit: `66cef7e`
 
 ### Phase 2 (v3.4.x) — shipped
 
-- Webpack fallback, monorepo `nextAppRoot`, `--managed-serve-reuse`, fresh build skip
-- Commit: `a42fdfc`
-
-### Phase 1 (v3.3.x) — shipped
-
-- Agent preset parallel 6, job exit codes 0/1/2
-- Managed serve v1, engine isolation, version roadmap
-- Commit: `435f90b`
+- Managed serve hardening — commit: `a42fdfc`
 
 ## Next
 
-Phase 4 (v3.6): distribution polish, JSR/npm publish smoke, installer validation
+- Dogfood `signaler audit` on ecommerce monorepo
+- Optional: extract `cli.ts` run modules; version bump 4.0.0
 
 ## North-star (stable)
 

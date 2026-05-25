@@ -9,6 +9,14 @@ export interface AgentIndexSuggestionRefV3 {
   readonly pointer: string;
 }
 
+export interface AgentIndexPerformanceScoreSemanticsV3 {
+  readonly performanceColumnLabel: "P(ref)" | "P";
+  readonly scoreKind: "lab-reference" | "devtools-parity";
+  readonly disclaimer: string;
+  readonly trustNotes: readonly string[];
+  readonly validationCommand?: string;
+}
+
 export interface AgentIndexV3 {
   readonly generatedAt: string;
   readonly contractVersion: "v3";
@@ -24,6 +32,7 @@ export interface AgentIndexV3 {
     readonly analyze?: "analyze.json";
   };
   readonly performanceReporting?: "issue-count" | "score";
+  readonly performanceScoreSemantics?: AgentIndexPerformanceScoreSemanticsV3;
   readonly agentProtocol?: {
     readonly mandatoryReads: readonly string[];
     readonly optionalReads: readonly string[];

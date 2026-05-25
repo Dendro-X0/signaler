@@ -12,6 +12,8 @@ import { runHealthCli } from "./health-cli.js";
 import { runLinksCli } from "./links-cli.js";
 import { runMeasureCli } from "./measure-cli.js";
 import { runWizardCli } from "./wizard-cli.js";
+import { runAuditOrchestratorCli } from "./shell/audit-orchestrator-cli.js";
+import { shellRunStrategyTrustLine } from "./performance-score-labels.js";
 import { runCleanCli } from "./clean-cli.js";
 import { runUninstallCli } from "./uninstall-cli.js";
 import { runReportCli } from "./report-cli.js";
@@ -497,8 +499,8 @@ async function runDiff(projectRoot: string): Promise<void> {
   console.log(formatChanges(prev, curr));
 }
 
-function buildAuditArgvFromSession(session: ShellSessionState): readonly string[] {
-  const args: string[] = ["node", "signaler", "audit", "--config", session.configPath];
+function buildRunArgvFromSession(session: ShellSessionState): readonly string[] {
+  const args: string[] = ["node", "signaler", "run", "--config", session.configPath, "--managed-serve"];
   if (session.preset === "overview") {
     args.push("--overview");
   }
@@ -523,8 +525,27 @@ function buildAuditArgvFromSession(session: ShellSessionState): readonly string[
   return args;
 }
 
-function buildAuditArgv(session: ShellSessionState, passthroughArgs: readonly string[]): readonly string[] {
-  const baseArgv: readonly string[] = buildAuditArgvFromSession(session);
+function buildOrchestratorArgv(projectRoot: string, session: ShellSessionState, passthroughArgs: readonly string[]): readonly string[] {
+  const args: string[] = [
+    "node",
+    "signaler",
+    "audit",
+    "--cwd",
+    projectRoot,
+    "--config",
+    session.configPath,
+    "--skip-discover",
+    "--managed-serve",
+    "--yes",
+  ];
+  if (session.incremental) {
+    args.push("--incremental", "--incremental-skip");
+  }
+  return [...args, ...passthroughArgs];
+}
+
+function buildRunArgv(session: ShellSessionState, passthroughArgs: readonly string[]): readonly string[] {
+  const baseArgv: readonly string[] = buildRunArgvFromSession(session);
   if (passthroughArgs.length === 0) {
     return baseArgv;
   }
@@ -607,8 +628,9 @@ type HelpLine = {
 };
 
 const HELP_CORE_COMMANDS: readonly HelpLine[] = [
-  { command: "discover [flags]", description: "Primary discovery/setup flow (quick|full|file scopes)" },
-  { command: "run [flags]", description: "Canonical runner (defaults: --contract v3 --mode throughput)" },
+  { command: "discover [flags]", description: "Interactive wizard: detect routes, write signaler.config.json (default scope: full)" },
+  { command: "audit [flags]", description: "End-to-end: discover + run + analyze (managed serve on by default)" },
+  { command: "run [flags]", description: "Lighthouse runner only (requires existing config)" },
   { command: "analyze [flags]", description: "V6 machine packet generation from v3 artifacts (requires --contract v6)" },
   { command: "verify [flags]", description: "V6 focused rerun and pass/fail checks (requires --contract v6)" },
   { command: "job run --preset agent|ci|pr", description: "One-shot workflows (discover/run/analyze presets)" },
@@ -618,9 +640,8 @@ const HELP_CORE_COMMANDS: readonly HelpLine[] = [
 ] as const;
 
 const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
-  { command: "init", description: "Compatibility alias for discover (still supported)" },
-  { command: "audit", description: "Legacy alias for run (still supported)" },
-  { command: "review", description: "Legacy alias for report (still supported)" },
+  { command: "init", description: "Compatibility alias for discover" },
+  { command: "review", description: "Compatibility alias for report" },
   { command: "measure", description: "Fast batch metrics (CDP, non-Lighthouse)" },
   { command: "bundle", description: "Bundle size audit (Next.js .next or dist)" },
   { command: "health", description: "HTTP status + latency checks" },
@@ -811,10 +832,10 @@ function printHelp(rawTopic?: string): void {
     lines.push(theme.dim("Use `help <topic>` to expand a category."));
     lines.push("");
     lines.push(theme.bold("Primary workflow"));
-    lines.push(`${theme.cyan("discover")} -> ${theme.cyan("run")} -> ${theme.cyan("analyze")} -> ${theme.cyan("verify")} -> ${theme.cyan("report")}`);
+    lines.push(`${theme.cyan("discover")} -> ${theme.cyan("audit")} (or step-by-step: discover, run, analyze, report)`);
     lines.push("");
     lines.push(theme.bold("Compatibility aliases"));
-    lines.push(`${theme.cyan("init")} -> discover, ${theme.cyan("audit")} -> run, ${theme.cyan("review")} -> report`);
+    lines.push(`${theme.cyan("init")} -> discover, ${theme.cyan("review")} -> report`);
     lines.push("");
     lines.push(theme.bold("Topics"));
     lines.push(`${theme.cyan("help core")} Show canonical discover -> run -> analyze -> verify -> report commands`);
@@ -879,20 +900,20 @@ async function readCliVersion(): Promise<string> {
 
 function printHomeScreen(params: { readonly version: string; readonly session: ShellSessionState }): void {
   const { version, session } = params;
-  const padCmd = (cmd: string): string => cmd.padEnd(14, " ");
+  const padCmd = (cmd: string): string => cmd.padEnd(18, " ");
   const lines: string[] = [];
   lines.push(theme.dim("Reliable web lab runner with agent-first artifacts."));
   lines.push("");
   lines.push(theme.bold("Primary workflow"));
-  lines.push(`${theme.cyan(padCmd("discover"))}Discover routes and create/update signaler.config.json`);
-  lines.push(`${theme.cyan(padCmd("run"))}Run canonical audits (defaults to --contract v3 --mode throughput)`);
+  lines.push(`${theme.cyan(padCmd("discover"))}Interactive wizard — routes + signaler.config.json`);
+  lines.push(`${theme.cyan(padCmd("audit"))}Full audit (run → analyze; run discover first)`);
+  lines.push(`${theme.cyan(padCmd("run"))}Lighthouse only (after discover)`);
   lines.push(`${theme.cyan(padCmd("analyze"))}Build V6 action packet for agents from canonical artifacts`);
   lines.push(`${theme.cyan(padCmd("verify"))}Run focused rerun and evaluate pass/fail deltas`);
   lines.push(`${theme.cyan(padCmd("report"))}Regenerate report/review outputs from .signaler artifacts`);
   lines.push("");
   lines.push(theme.bold("Compatibility aliases"));
   lines.push(`${theme.cyan(padCmd("init"))}Alias of discover`);
-  lines.push(`${theme.cyan(padCmd("audit"))}Alias of run`);
   lines.push(`${theme.cyan(padCmd("review"))}Alias of report`);
   lines.push("");
   lines.push(theme.bold("Advanced/secondary checks"));
@@ -1130,7 +1151,7 @@ function createCompleter(): (line: string) => readonly [readonly string[], strin
 
 async function runAudit(projectRoot: string, session: ShellSessionState, passthroughArgs: readonly string[]): Promise<void> {
   await snapshotPreviousSummary(projectRoot);
-  const argv: readonly string[] = buildAuditArgv(session, passthroughArgs);
+  const argv: readonly string[] = buildRunArgv(session, passthroughArgs);
   // eslint-disable-next-line no-console
   console.log("Starting audit. Tip: large runs may prompt for confirmation; pass --yes to skip the prompt.");
   await runAuditCli(argv);
@@ -1246,10 +1267,10 @@ async function confirmCleanInShell(params: { readonly rl: readline.Interface; re
   return text === "y" || text === "yes";
 }
 
-async function runAuditFromShell(projectRoot: string, session: ShellSessionState, args: readonly string[]): Promise<ShellSessionState> {
+async function runRunFromShell(projectRoot: string, session: ShellSessionState, args: readonly string[]): Promise<ShellSessionState> {
   const effectiveArgs: readonly string[] = args.includes("--yes") || args.includes("-y") ? args : [...args, "--yes"];
   const escResult = await runWithEscAbort(async (signal) => {
-    await runAuditCli(buildAuditArgv(session, effectiveArgs), { signal });
+    await runAuditCli([...buildRunArgv(session, effectiveArgs)], { signal });
   });
   if (escResult === "aborted") {
     // eslint-disable-next-line no-console
@@ -1278,7 +1299,46 @@ async function runAuditFromShell(projectRoot: string, session: ShellSessionState
     if (message.includes("ENOENT") && message.includes(session.configPath)) {
       // eslint-disable-next-line no-console
       console.log(
-        `Config not found at ${session.configPath}. Run 'init' to create a new config for this project, or use 'config <path>' to point to an existing one.`,
+        `Config not found at ${session.configPath}. Run ${theme.cyan("discover")} to create a config, or use ${theme.cyan("config <path>")} to point to an existing file.`,
+      );
+      return session;
+    }
+    throw error;
+  }
+}
+
+async function runOrchestratorFromShell(projectRoot: string, session: ShellSessionState, args: readonly string[]): Promise<ShellSessionState> {
+  const escResult = await runWithEscAbort(async () => {
+    // eslint-disable-next-line no-console
+    console.log("Starting full audit (managed serve if needed, then run → analyze).");
+    await runAuditOrchestratorCli(buildOrchestratorArgv(projectRoot, session, args));
+  });
+  if (escResult === "aborted") {
+    // eslint-disable-next-line no-console
+    console.log("Audit cancelled via Esc. Back to shell.");
+    process.exitCode = 0;
+    return session;
+  }
+  try {
+    if (process.exitCode === 130) {
+      process.exitCode = 0;
+      return session;
+    }
+    const reportPath: string = resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    // eslint-disable-next-line no-console
+    console.log(`Tip: ${theme.cyan("report")} or ${theme.cyan("query --view perf")}.`);
+    // eslint-disable-next-line no-console
+    console.log(`AI entrypoint: ${theme.cyan(".signaler/agent-index.json")}`);
+    await printRunStrategySummary(projectRoot);
+    const updated: ShellSessionState = { ...session, lastReportPath: reportPath };
+    await saveSession(projectRoot, updated);
+    return updated;
+  } catch (error: unknown) {
+    const message: string = error instanceof Error ? error.message : String(error);
+    if (message.includes("ENOENT") && message.includes(session.configPath)) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Config not found at ${session.configPath}. Run ${theme.cyan("discover")} first, or use ${theme.cyan("config <path>")}.`,
       );
       return session;
     }
@@ -1383,7 +1443,7 @@ async function runDiscoverFromShell(projectRoot: string, session: ShellSessionSt
   await runWizardCli(argv);
   await printDiscoverSummary(resolvedConfigPath);
   // eslint-disable-next-line no-console
-  console.log(`Ready. Next: ${theme.cyan("run")}, then ${theme.cyan("analyze --contract v6")}, then ${theme.cyan("verify --contract v6")}, then ${theme.cyan("report")}.`);
+  console.log(`Ready. Next: ${theme.cyan("audit")} (or ${theme.cyan("run")} for Lighthouse-only), then ${theme.cyan("report")}.`);
   void projectRoot;
 }
 
@@ -1477,9 +1537,7 @@ async function printRunStrategySummary(projectRoot: string): Promise<void> {
   const acceleratorLine = runSummary.runtime?.accelerators
     ? `accelerators: rustCore=${runSummary.runtime.accelerators.rustCore?.enabled ? (runSummary.runtime.accelerators.rustCore.used ? "on" : "fallback") : "off"} rustDiscovery=${runSummary.runtime.accelerators.rustDiscovery?.enabled ? (runSummary.runtime.accelerators.rustDiscovery.used ? "on" : "fallback") : "off"} rustProcessor=${runSummary.runtime.accelerators.rustProcessor?.enabled ? (runSummary.runtime.accelerators.rustProcessor.used ? "on" : "fallback") : "off"} rustBenchmark=${runSummary.runtime.accelerators.rustBenchmark?.enabled ? (runSummary.runtime.accelerators.rustBenchmark.used ? "on" : "fallback") : "off"}`
     : undefined;
-  const trustLine = mode === "throughput"
-    ? "trust: throughput is trend-oriented; use `run --mode fidelity` (or --parity) for DevTools-like validation"
-    : "trust: fidelity is parity-oriented; compare only with matching comparabilityHash";
+  const trustLine = shellRunStrategyTrustLine(mode === "fidelity" ? "fidelity" : "throughput");
   // eslint-disable-next-line no-console
   console.log(
     renderPanel({
@@ -1591,10 +1649,10 @@ async function maybePrintV3MigrationHint(projectRoot: string): Promise<void> {
   }
   const lines: string[] = [
     theme.bold("Canonical Flow"),
-    `${theme.cyan("discover")} -> ${theme.cyan("run")} -> ${theme.cyan("analyze")} -> ${theme.cyan("verify")} -> ${theme.cyan("report")}`,
+    `${theme.cyan("discover")} -> ${theme.cyan("audit")} (all static routes by default)`,
     "",
-    `${theme.dim("run")} defaults to ${theme.cyan("--contract v3 --mode throughput")} in shell mode.`,
-    `${theme.dim("init")}, ${theme.dim("audit")}, and ${theme.dim("review")} remain available as compatibility aliases.`,
+    `${theme.dim("discover")} runs the setup wizard. ${theme.dim("audit")} is the one-shot agent path.`,
+    `${theme.dim("run")} is for Lighthouse-only when you already have a config.`,
   ];
   // eslint-disable-next-line no-console
   console.log(renderPanel({ title: theme.bold("Migration Hint"), lines }));
@@ -1623,7 +1681,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
   }
   if (command.id === "run") {
     const effectiveArgs = applyCanonicalRunDefaults(command.args);
-    const nextSession: ShellSessionState = await runAuditFromShell(projectRoot, session, effectiveArgs);
+    const nextSession: ShellSessionState = await runRunFromShell(projectRoot, session, effectiveArgs);
     return { session: nextSession, shouldExit: false };
   }
   if (command.id === "analyze") {
@@ -1639,9 +1697,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session, shouldExit: false };
   }
   if (command.id === "audit") {
-    // eslint-disable-next-line no-console
-    console.log(theme.dim("Legacy alias: 'audit' maps to the canonical 'run' workflow."));
-    const nextSession: ShellSessionState = await runAuditFromShell(projectRoot, session, command.args);
+    const nextSession: ShellSessionState = await runOrchestratorFromShell(projectRoot, session, command.args);
     return { session: nextSession, shouldExit: false };
   }
   if (command.id === "review") {
@@ -1904,7 +1960,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
           rl.pause();
           const answer: string = await new Promise<string>((resolvePromise) => {
             rl.question(
-              `Config not found at ${session.configPath}. Run the init wizard now? (Y/n) `,
+              `Config not found at ${session.configPath}. Run the discover wizard now? (Y/n) `,
               (value: string) => resolvePromise(value),
             );
           });
@@ -1912,7 +1968,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
           const accepted: boolean = text.length === 0 || text === "y" || text === "yes";
           if (accepted) {
             // eslint-disable-next-line no-console
-            console.log("Starting config wizard...");
+            console.log("Starting discover wizard...");
             try {
               await runWizardInShell(["discover"]);
               // eslint-disable-next-line no-console
@@ -1958,7 +2014,7 @@ export async function runShellCli(argv: readonly string[]): Promise<void> {
         await runWizardInShell(command.id === "discover" ? ["discover", ...command.args] : ["init", ...command.args]);
         await printDiscoverSummary(session.configPath);
         // eslint-disable-next-line no-console
-        console.log(`Ready. Next: ${theme.cyan("run")}, then ${theme.cyan("analyze --contract v6")}, then ${theme.cyan("verify --contract v6")}, then ${theme.cyan("report")}.`);
+        console.log(`Ready. Next: ${theme.cyan("audit")} (or ${theme.cyan("run")} for Lighthouse-only), then ${theme.cyan("report")}.`);
         // Force readline recreation by closing current instance - this ensures
         // the shell stays alive after the wizard completes even if prompts closed stdin
         rl.close();

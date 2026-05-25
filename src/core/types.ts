@@ -113,6 +113,26 @@ export interface ApexConfig {
   readonly incremental?: boolean;
   readonly pages: readonly ApexPageConfig[];
   readonly budgets?: ApexBudgets;
+  /**
+   * Optional route list controls applied to `pages` before each run.
+   * Use exact paths or prefix patterns ending with `*` (e.g. `/blog/*`).
+   */
+  readonly routes?: {
+    readonly includePaths?: readonly string[];
+    readonly excludePaths?: readonly string[];
+  };
+  /**
+   * When incremental skip is enabled, combos meeting these thresholds in the prior run are not re-audited.
+   */
+  readonly incrementalSkip?: {
+    readonly enabled?: boolean;
+    readonly minPerformanceScore?: number;
+    readonly minAccessibilityScore?: number;
+    readonly minBestPracticesScore?: number;
+    readonly minSeoScore?: number;
+    readonly maxFailedAudits?: number;
+    readonly requireNoRuntimeErrors?: boolean;
+  };
 }
 
 /**

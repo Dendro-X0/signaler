@@ -71,6 +71,10 @@
       "import": "./dist/api.js",
       "types": "./dist/api.d.ts"
     },
+    "./engine": {
+      "import": "./dist/engine/index.js",
+      "types": "./dist/engine/index.d.ts"
+    },
     "./cli": {
       "import": "./dist/cli.js",
       "types": "./dist/cli.d.ts"

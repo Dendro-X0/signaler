@@ -1,4 +1,4 @@
-export type { AgentIndexSuggestionRefV3, AgentIndexV3 } from "./agent-index-v3.js";
+export type { AgentIndexPerformanceScoreSemanticsV3, AgentIndexSuggestionRefV3, AgentIndexV3 } from "./agent-index-v3.js";
 export type { ResultsV3, ResultsV3Line } from "./results-v3.js";
 export type {
   RunProtocolV3,
