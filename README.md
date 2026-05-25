@@ -46,7 +46,15 @@ JSR remains useful as a package source for project dependencies and publishing, 
 
 Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
 
-**One-shot agent job** (discover → run v3 lean → analyze v6):
+**One-shot audit (v4 preferred)** — discover → run → analyze:
+
+```bash
+signaler audit --cwd . --base-url http://127.0.0.1:3000
+signaler query --view perf
+signaler explain --id <issue-id>
+```
+
+**One-shot agent job** (explicit preset):
 
 ```bash
 signaler job run --preset agent --base-url http://127.0.0.1:3000
@@ -93,11 +101,39 @@ corepack pnpm run agent:bootstrap:sh
 corepack pnpm run agent:bootstrap:ps
 ```
 
-Compatibility aliases:
+Compatibility aliases (deprecation notices in v4):
 
-- `init` -> `discover`
-- `audit` -> `run`
-- `review` -> `report`
+- `init` / `wizard` / `guide` → `discover`
+- `review` → `report`
+
+`signaler run` is Lighthouse-only; `signaler audit` is the full orchestrator (discover + run + analyze).
+
+## For teams
+
+Signaler targets **platform and product engineering teams** running Next.js (and similar) apps in CI and with coding agents.
+
+- **Route-scale labs** — many routes × devices in one job, not a single URL
+- **Agent-first artifacts** — `query` / `explain` instead of ingesting all of `.signaler/`
+- **Verify loop** — pass/fail after fixes for CI and PR gates
+- **Managed serve** — production-like runs without hand-starting dev servers
+
+**Trust semantics:** throughput mode scores are **P(ref)** lab trends, not DevTools parity. See [Lab semantics](./docs/guides/lab-semantics.md).
+
+**Docs:**
+
+- [B2B / team value](./docs/guides/b2b-team-value.md)
+- [Migration to v4](./docs/guides/migration-v4.md)
+- [Phase 1 roadmap](./docs/roadmap/phase1-v4.1-adoptability.md)
+- [Dogfood checklist](./docs/operations/dogfood-checklist.md)
+
+**CI today:**
+
+```bash
+signaler job run --preset ci --managed-serve --in-process --cwd .
+signaler job run --preset pr --managed-serve --in-process --cwd .
+```
+
+Official GitHub Action: planned in [Phase 2 (v4.2)](./docs/roadmap/phase2-v4.2-team-ci.md).
 
 ## Usage
 

@@ -82,7 +82,7 @@ signaler job run --preset pr
 signaler job run --preset pr --incremental --build-id "$(git rev-parse --short HEAD)"
 ```
 
-Roadmap: `docs/roadmap/version-roadmap.md`
+Roadmap: `docs/roadmap/active-roadmap.md` (Phase 1: `docs/roadmap/phase1-v4.1-adoptability.md`)
 
 ## Agent read API (preferred over raw files)
 

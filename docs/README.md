@@ -14,6 +14,8 @@ This folder is organized around stable documentation categories first, with vers
 - [Release Playbook](operations/release-playbook.md)
 - [Release Notes](operations/release-notes.md)
 - [Active Roadmap](roadmap/active-roadmap.md)
+- [Phase 1 — v4.1 Adoptability](roadmap/phase1-v4.1-adoptability.md)
+- [B2B / Team Value](guides/b2b-team-value.md)
 - [Repository Agent Defaults](../AGENTS.md)
 
 ## Guides
@@ -52,7 +54,11 @@ This folder is organized around stable documentation categories first, with vers
 
 ## Roadmap and Specs
 
+- [Roadmap Index](roadmap/README.md)
 - [Active Roadmap](roadmap/active-roadmap.md)
+- [v4 B2B Roadmap](roadmap/v4-b2b-roadmap.md)
+- [Phase 1 — v4.1 Adoptability](roadmap/phase1-v4.1-adoptability.md)
+- [B2B Team Value](guides/b2b-team-value.md)
 - [Specs Index](specs/README.md)
 - [Spec: Multi-Benchmark Expansion](specs/multi-benchmark-expansion.md)
 - [Spec: Workstream J Implementation Plan](specs/workstream-j-implementation-plan.md)

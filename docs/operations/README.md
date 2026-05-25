@@ -9,3 +9,5 @@ Release, benchmark, and production operation runbooks.
 - `release-playbook.md`
 - `release-notes.md`
 - `jsr-optimization.md`
+- `jsr-release.md`
+- `dogfood-checklist.md`

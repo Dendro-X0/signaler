@@ -1,9 +1,13 @@
 # Signaler Version Roadmap
 
-Status: Active  
+Status: Active (shipped track + pointer to B2B phases)  
 Baseline release: **v4.0.0** (JSR)  
-Last updated: 2026-05-24  
+Last updated: 2026-05-25  
 Audience: product direction, agent integrators, CLI maintainers
+
+> **Current work:** [Phase 1 — v4.1 adoptability](./phase1-v4.1-adoptability.md)  
+> **Post-v4 strategy:** [v4 B2B roadmap](./v4-b2b-roadmap.md) · [B2B team value](../guides/b2b-team-value.md)  
+> **Status board:** [active-roadmap.md](./active-roadmap.md)
 
 ## North-star goals
 
@@ -28,15 +32,23 @@ These goals are stable across versions. Every phase should move at least one met
 
 ```
 v3.2.x  shipped   engine contracts, managed-serve v1, in-process jobs
-v3.3.x  next      agent happy path (one command, exit codes, preset defaults)
-v3.4.x            prod serve hardening (Next 16 / pnpm / monorepo)
-v3.5.x            discover + scope honesty + human summary
+v3.3.x  shipped   agent happy path (preset defaults, job exit codes)
+v3.4.x  shipped   prod serve hardening (Next 16 / pnpm / monorepo)
+v3.5.x  shipped   discover + scope honesty + human summary
 v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev managed serve)
+v4.1.x  active    adoptability — see phase1-v4.1-adoptability.md
+v4.2+   planned   team CI, policy gates — see v4-b2b-roadmap.md
 ```
 
 ---
 
-## Phase 1 — v3.3.x: Agent happy path
+## Shipped track (v3.3 → v4.0)
+
+Historical phases below are **complete**. New work is tracked under [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md).
+
+---
+
+## Phase 1 — v3.3.x: Agent happy path (shipped)
 
 **Theme:** Make the default agent workflow obvious, fast, and recoverable.
 
@@ -68,7 +80,7 @@ v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev mana
 
 ---
 
-## Phase 2 — v3.4.x: Production serve hardening
+## Phase 2 — v3.4.x: Production serve hardening (shipped)
 
 **Theme:** Managed serve works on real Next 16 + pnpm monorepos without project-specific surgery.
 
@@ -91,7 +103,7 @@ v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev mana
 
 ---
 
-## Phase 3 — v3.5.x: Discover and scope honesty
+## Phase 3 — v3.5.x: Discover and scope honesty (shipped)
 
 **Theme:** Users and agents know what “quick” means and what was excluded.
 
@@ -113,7 +125,7 @@ v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev mana
 
 ---
 
-## Phase 4 — v4.0.0: CLI surface cleanup
+## Phase 4 — v4.0.0: CLI surface cleanup (shipped)
 
 **Theme:** Thin shell, fat engine; remove aliases and duplicate entry points.
 
@@ -130,8 +142,14 @@ v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev mana
 
 ### Exit criteria
 
-- [ ] `cli.ts` under ~2k lines or split into routed modules
-- [ ] v4 migration guide published
+- [x] `cli.ts` split started; shell owns dispatch; engine exported
+- [x] v4 migration guide published
+
+---
+
+## Post-v4 B2B phases
+
+See [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md) and [`phase1-v4.1-adoptability.md`](./phase1-v4.1-adoptability.md).
 
 ---
 
@@ -147,15 +165,14 @@ v4.0.0  shipped   CLI surface cleanup (audit orchestrator, shell split, dev mana
 ## Reference commands (golden path)
 
 ```bash
-# Agent loop (v3.3+)
+# v4 one-shot (preferred)
+signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
+
+# Explicit job preset
 signaler job run --preset agent \
   --managed-serve --in-process \
-  --scope quick \
   --cwd /path/to/project \
   --base-url http://127.0.0.1:3000
-
-# Read order
-# .signaler/agent-index.json → performance-triage.json → analyze.json
 
 signaler query --view perf --json
 signaler explain --id redirects --json
@@ -170,4 +187,5 @@ signaler explain --id redirects --json
 
 ## Archive
 
-Reboot-era roadmaps that discuss desktop-first shell remain in `docs/archive/roadmaps/`. This document is the **CLI iteration** track until v4; shell choice does not block 3.3–3.5.
+Reboot-era roadmaps that discuss desktop-first shell remain in `docs/archive/roadmaps/`.  
+Post-v4 team/CI work: [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md).

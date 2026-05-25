@@ -9,3 +9,4 @@ Practical onboarding and operator guidance.
 - `troubleshooting.md`
 - `known-limits.md`
 - `signaler-vs-alternatives.md`
+- `b2b-team-value.md`

@@ -4,8 +4,11 @@ Active specification documents.
 
 ## Roadmap
 
-- [`../roadmap/version-roadmap.md`](../roadmap/version-roadmap.md) — phased CLI iteration (v3.3–v4.0)
+- [`../roadmap/README.md`](../roadmap/README.md) — index
 - [`../roadmap/active-roadmap.md`](../roadmap/active-roadmap.md) — current phase status
+- [`../roadmap/v4-b2b-roadmap.md`](../roadmap/v4-b2b-roadmap.md) — post-v4.0 team/CI strategy (v4.1–v5)
+- [`../roadmap/phase1-v4.1-adoptability.md`](../roadmap/phase1-v4.1-adoptability.md) — **active Phase 1**
+- [`../roadmap/version-roadmap.md`](../roadmap/version-roadmap.md) — north-star goals + shipped v3.3–v4.0 track
 
 - `multi-benchmark-expansion.md`
 - `workstream-j-implementation-plan.md`
