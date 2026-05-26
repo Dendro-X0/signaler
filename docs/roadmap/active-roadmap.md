@@ -18,7 +18,7 @@ CI guide: [`../guides/github-actions.md`](../guides/github-actions.md)
 | 4.3.1 | Named run profiles (`ci-strict`, `pr-quick`, `release-full`) | Done |
 | 4.3.4 | Exit code matrix (docs + Action semantics) | Done |
 | 4.2.8 | Meta-CI dogfood workflow | Done |
-| 4.3.2 | Quality gate block in config | Todo |
+| 4.3.2 | Quality gate block in config | Done |
 | 4.3.3 | Baseline compare in CI | Todo |
 | 4.3.5 | Comparability hash in PR output | Todo |
 | 4.2.4 | Check Run annotations (optional) | Todo |

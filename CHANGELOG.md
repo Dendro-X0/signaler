@@ -8,10 +8,11 @@
 
 - **Named run profiles** (`--run-profile`): `ci-strict`, `pr-quick`, `release-full` for `job run` and `audit`.
 - **Meta-CI dogfood** workflow (`workflow_dispatch`) validating run profiles on each run.
+- **`qualityGate` config** — max red perf issues, min category scores, optional `requireHeadersPass`; writes `quality-gate.json`; `--fail-on-quality-gate` flag.
 
 ### Planned (Phase 3)
 
-- Quality gate block in config (max red perf issues, baseline compare).
+- Baseline compare for PR CI (`query --view delta` + `--baseline`).
 - Comparability hash in PR output when delta is invalid.
 
 ## 4.2.0 - 2026-05-25

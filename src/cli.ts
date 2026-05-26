@@ -98,6 +98,13 @@ import {
 } from "./machine-output-profile.js";
 import { buildRunSuggestionCommand } from "./cli-invocation.js";
 import { buildPerformanceTriageV3, isPerformanceTriageV3, trimResultsLineForMachineProfile } from "./performance-triage.js";
+import {
+  evaluateQualityGate,
+  getQualityGateExitCode,
+  isQualityGateActive,
+  type HeadersGateInput,
+  type QualityGateResult,
+} from "./quality-gate.js";
 
 type CliLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -121,6 +128,7 @@ interface CliArgs {
   readonly configPath: string;
   readonly ci: boolean;
   readonly failOnBudget: boolean;
+  readonly failOnQualityGate: boolean;
   readonly colorMode: CliColorMode;
   readonly logLevelOverride: CliLogLevel | undefined;
   readonly deviceFilter: ApexDevice | undefined;
@@ -2369,6 +2377,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let configPath: string | undefined;
   let ci: boolean = false;
   let failOnBudget: boolean = false;
+  let failOnQualityGate: boolean = false;
   let colorMode: CliColorMode = "auto";
   let logLevelOverride: CliLogLevel | undefined;
   let deviceFilter: ApexDevice | undefined;
@@ -2436,6 +2445,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
       ci = true;
     } else if (arg === "--fail-on-budget") {
       failOnBudget = true;
+    } else if (arg === "--fail-on-quality-gate") {
+      failOnQualityGate = true;
     } else if (arg === "--no-color") {
       colorMode = "never";
     } else if (arg === "--color") {
@@ -2719,6 +2730,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     configPath: finalConfigPath,
     ci,
     failOnBudget,
+    failOnQualityGate,
     colorMode,
     logLevelOverride,
     deviceFilter,
@@ -4185,6 +4197,22 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     throw new Error("Internal contract error: performance-triage.json failed validation.");
   }
   await writeJsonWithOptionalGzip(resolve(outputDir, "performance-triage.json"), performanceTriageV3, { pretty: false });
+  let qualityGateResult: QualityGateResult | undefined;
+  if (
+    effectiveConfig.qualityGate !== undefined
+    && isQualityGateActive(effectiveConfig.qualityGate, {
+      ci: args.ci,
+      failOnQualityGate: args.failOnQualityGate,
+    })
+  ) {
+    const headersInput: HeadersGateInput | null = await loadHeadersForQualityGate(outputDir);
+    qualityGateResult = evaluateQualityGate({
+      gate: effectiveConfig.qualityGate,
+      triage: performanceTriageV3,
+      headers: headersInput,
+    });
+    await writeFile(resolve(outputDir, "quality-gate.json"), `${JSON.stringify(qualityGateResult, null, 2)}\n`, "utf8");
+  }
   const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({
     protocol,
     suggestions: suggestionsV3,
@@ -4427,13 +4455,33 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     }
   }
   printCiSummary({ isCi: args.ci, failOnBudget: args.failOnBudget, violations: budgetViolations });
+  printQualityGateSummary({
+    isCi: args.ci,
+    failOnQualityGate: args.failOnQualityGate,
+    gate: effectiveConfig.qualityGate,
+    result: qualityGateResult,
+  });
 
-  // Set exit code based on enhanced budget results
+  // Set exit code based on budget + quality gate policy
+  let policyExitCode = 0;
   if (budgetManager && budgetResult) {
-    const exitCode = budgetManager.getExitCode(budgetResult, args.ci, args.failOnBudget);
-    if (exitCode !== 0) {
-      process.exitCode = exitCode;
-    }
+    policyExitCode = Math.max(
+      policyExitCode,
+      budgetManager.getExitCode(budgetResult, args.ci, args.failOnBudget),
+    );
+  }
+  if (qualityGateResult !== undefined && effectiveConfig.qualityGate !== undefined) {
+    policyExitCode = Math.max(
+      policyExitCode,
+      getQualityGateExitCode(qualityGateResult, {
+        ci: args.ci,
+        failOnQualityGate: args.failOnQualityGate,
+        gate: effectiveConfig.qualityGate,
+      }),
+    );
+  }
+  if (policyExitCode !== 0) {
+    process.exitCode = policyExitCode;
   }
   printSectionHeader("Lowest performance", useColor);
   // eslint-disable-next-line no-console
@@ -5218,6 +5266,71 @@ interface BudgetViolation {
   readonly id: string;
   readonly value: number;
   readonly limit: number;
+}
+
+async function loadHeadersForQualityGate(outputDir: string): Promise<HeadersGateInput | null> {
+  try {
+    const raw: string = await readFile(resolve(outputDir, "headers.json"), "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+    const results = (parsed as { readonly results?: unknown }).results;
+    if (!Array.isArray(results)) {
+      return null;
+    }
+    return {
+      results: results.map((entry, index) => {
+        if (typeof entry !== "object" || entry === null) {
+          throw new Error(`Invalid headers.json results[${index}]`);
+        }
+        const row = entry as {
+          readonly label?: unknown;
+          readonly path?: unknown;
+          readonly missing?: unknown;
+          readonly runtimeErrorMessage?: unknown;
+        };
+        return {
+          label: typeof row.label === "string" ? row.label : "",
+          path: typeof row.path === "string" ? row.path : "",
+          missing: Array.isArray(row.missing) ? row.missing.map((value) => String(value)) : [],
+          runtimeErrorMessage:
+            typeof row.runtimeErrorMessage === "string" ? row.runtimeErrorMessage : undefined,
+        };
+      }),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function printQualityGateSummary(params: {
+  readonly isCi: boolean;
+  readonly failOnQualityGate: boolean;
+  readonly gate: import("./core/types.js").QualityGateConfig | undefined;
+  readonly result: QualityGateResult | undefined;
+}): void {
+  if (params.result === undefined || params.gate === undefined) {
+    return;
+  }
+  if (
+    !isQualityGateActive(params.gate, { ci: params.isCi, failOnQualityGate: params.failOnQualityGate })
+  ) {
+    return;
+  }
+  if (params.result.passed) {
+    if (params.isCi) {
+      // eslint-disable-next-line no-console
+      console.log("\nQuality gate PASSED.");
+    }
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`\nQuality gate FAILED (${params.result.violations.length} violations):`);
+  for (const violation of params.result.violations) {
+    // eslint-disable-next-line no-console
+    console.log(`- ${violation.id}: ${violation.message}`);
+  }
 }
 
 function printCiSummary(params: {

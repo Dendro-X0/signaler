@@ -133,6 +133,26 @@ export interface ApexConfig {
     readonly maxFailedAudits?: number;
     readonly requireNoRuntimeErrors?: boolean;
   };
+  /**
+   * Policy gates for CI (v4.3): issue-count perf limits, category floors, optional headers pass.
+   * Evaluated after run when enabled, in CI mode, or with --fail-on-quality-gate.
+   */
+  readonly qualityGate?: QualityGateConfig;
+}
+
+/**
+ * Quality gate thresholds (policy-as-code).
+ */
+export interface QualityGateConfig {
+  readonly enabled?: boolean;
+  /** Max performance triage `totals.red` (issue instances across combos). */
+  readonly maxRedPerfIssues?: number;
+  /** Max deduplicated red issues in `uniqueIssues`. */
+  readonly maxUniqueRedIssues?: number;
+  /** Minimum median category scores (0–100) from performance-triage.json. */
+  readonly minCategoryScores?: CategoryBudgetThresholds;
+  /** Fail when headers.json is missing or any route has missing headers / runtime errors. */
+  readonly requireHeadersPass?: boolean;
 }
 
 /**

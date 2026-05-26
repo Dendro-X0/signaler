@@ -62,6 +62,11 @@ signaler audit --incremental-skip
 Config criteria (all optional; defaults shown):
 
 ```json
+"qualityGate": {
+  "enabled": true,
+  "maxRedPerfIssues": 0,
+  "minCategoryScores": { "accessibility": 90, "bestPractices": 90, "seo": 90 }
+},
 "incrementalSkip": {
   "enabled": true,
   "minPerformanceScore": 90,

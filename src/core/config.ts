@@ -100,6 +100,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly budgets?: unknown;
     readonly routes?: unknown;
     readonly incrementalSkip?: unknown;
+    readonly qualityGate?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
     throw new Error(`Invalid config at ${absolutePath}: baseUrl must be a non-empty string`);
@@ -160,6 +161,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
   const routes = normaliseRouteListFilter(maybeConfig.routes, absolutePath);
   const incrementalSkip = normaliseIncrementalSkip(maybeConfig.incrementalSkip, absolutePath);
+  const qualityGate = normaliseQualityGate(maybeConfig.qualityGate, absolutePath);
   return {
     baseUrl,
     query,
@@ -180,7 +182,60 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     budgets,
     routes,
     incrementalSkip,
+    qualityGate,
   };
+}
+
+function normaliseQualityGate(
+  value: unknown,
+  absolutePath: string,
+): ApexConfig["qualityGate"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: qualityGate must be an object`);
+  }
+  const record = value as {
+    readonly enabled?: unknown;
+    readonly maxRedPerfIssues?: unknown;
+    readonly maxUniqueRedIssues?: unknown;
+    readonly minCategoryScores?: unknown;
+    readonly requireHeadersPass?: unknown;
+  };
+  const readNonNegativeInt = (field: keyof typeof record, label: string): number | undefined => {
+    const raw = record[field];
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 0) {
+      throw new Error(`Invalid config at ${absolutePath}: qualityGate.${label} must be a non-negative number`);
+    }
+    return Math.floor(raw);
+  };
+  let minCategoryScores: CategoryBudgetThresholds | undefined;
+  if (record.minCategoryScores !== undefined) {
+    const budgets = normaliseBudgets({ categories: record.minCategoryScores }, absolutePath);
+    minCategoryScores = budgets?.categories;
+  }
+  const gate = {
+    enabled: typeof record.enabled === "boolean" ? record.enabled : undefined,
+    maxRedPerfIssues: readNonNegativeInt("maxRedPerfIssues", "maxRedPerfIssues"),
+    maxUniqueRedIssues: readNonNegativeInt("maxUniqueRedIssues", "maxUniqueRedIssues"),
+    ...(minCategoryScores !== undefined ? { minCategoryScores } : {}),
+    requireHeadersPass:
+      typeof record.requireHeadersPass === "boolean" ? record.requireHeadersPass : undefined,
+  };
+  if (
+    gate.enabled === undefined
+    && gate.maxRedPerfIssues === undefined
+    && gate.maxUniqueRedIssues === undefined
+    && gate.minCategoryScores === undefined
+    && gate.requireHeadersPass === undefined
+  ) {
+    return undefined;
+  }
+  return gate;
 }
 
 function normaliseStringArray(value: unknown, field: string, absolutePath: string): readonly string[] | undefined {

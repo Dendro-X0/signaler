@@ -90,6 +90,33 @@ Rules:
 - Category budgets are minimum scores (0-100).
 - Metric budgets are maximum values.
 
+## 3b. Quality gate (v4.3, policy-as-code)
+
+Use `qualityGate` for issue-count performance limits and category floors. Evaluated after each run when the block is present and `enabled` is not `false`, in `--ci` mode, or with `--fail-on-quality-gate`.
+
+```json
+{
+  "qualityGate": {
+    "enabled": true,
+    "maxRedPerfIssues": 0,
+    "maxUniqueRedIssues": 5,
+    "minCategoryScores": {
+      "accessibility": 90,
+      "bestPractices": 90,
+      "seo": 90
+    },
+    "requireHeadersPass": true
+  }
+}
+```
+
+Writes `.signaler/quality-gate.json`. Pair with `signaler job run --run-profile ci-strict` for a single CI policy bundle.
+
+- `maxRedPerfIssues` — cap on `performance-triage.json` `totals.red` (issue instances).
+- `maxUniqueRedIssues` — cap on deduplicated red rows in `uniqueIssues`.
+- `minCategoryScores` — minimum **median** suite scores from triage (not Lighthouse performance score).
+- `requireHeadersPass` — fails if `headers.json` is missing or any route has missing headers.
+
 ## 4. Warm-up
 
 Set `warmUp: true` to run a lightweight warm-up request pass before Lighthouse audits.
