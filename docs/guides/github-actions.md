@@ -28,6 +28,7 @@ Use it from the same repo (or pin to a tag after release):
 | `cwd` | `.` | Project root |
 | `scope` | `full` | Discover scope for `audit` / `ci` / `agent` |
 | `preset` | `ci` | `audit`, `ci`, `pr`, or `agent` |
+| `run-profile` | (empty) | `ci-strict`, `pr-quick`, or `release-full` (overrides `preset`) |
 | `managed-serve-mode` | `auto` | `auto`, `dev`, or `production` |
 | `output-dir` | `.signaler` | Artifact directory |
 | `config-path` | (empty) | Optional config file |

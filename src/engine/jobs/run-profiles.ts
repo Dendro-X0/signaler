@@ -20,6 +20,24 @@ export function parseRunProfileName(value: string): RunProfileName {
   );
 }
 
+function appendRunArgs(job: EngineJobV1, extraArgs: readonly string[]): EngineJobV1 {
+  return {
+    ...job,
+    steps: job.steps.map((step) => {
+      if (step.command !== "run") {
+        return step;
+      }
+      const args = [...(step.args ?? [])];
+      for (const flag of extraArgs) {
+        if (!args.includes(flag)) {
+          args.push(flag);
+        }
+      }
+      return { ...step, args };
+    }),
+  };
+}
+
 function patchRunStepMode(job: EngineJobV1, mode: "throughput" | "fidelity"): EngineJobV1 {
   return {
     ...job,
@@ -49,14 +67,17 @@ export function buildRunProfileJob(
   const discoverScope = params.discoverScope;
   switch (params.runProfile) {
     case "ci-strict": {
-      const job = buildCiPresetJob({
-        ...params,
-        discoverScope: discoverScope ?? "full",
-      });
+      const job = appendRunArgs(
+        buildCiPresetJob({
+          ...params,
+          discoverScope: discoverScope ?? "full",
+        }),
+        ["--fail-on-quality-gate", "--fail-on-baseline-compare"],
+      );
       return { ...job, preset: "custom", runProfile: "ci-strict" };
     }
     case "pr-quick": {
-      const job = buildPrPresetJob(params);
+      const job = appendRunArgs(buildPrPresetJob(params), ["--fail-on-baseline-compare"]);
       return { ...job, preset: "custom", runProfile: "pr-quick" };
     }
     case "release-full": {

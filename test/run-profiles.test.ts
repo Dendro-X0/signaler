@@ -23,6 +23,8 @@ describe("run profiles", () => {
     const discoverArgs = job.steps[0]?.args ?? [];
     expect(discoverArgs).toContain("full");
     expect(runArgs(job)).toContain("--fail-on-budget");
+    expect(runArgs(job)).toContain("--fail-on-quality-gate");
+    expect(runArgs(job)).toContain("--fail-on-baseline-compare");
     expect(runArgs(job)).toContain("--mode");
     expect(runArgs(job)).toContain("throughput");
   });
@@ -32,6 +34,7 @@ describe("run profiles", () => {
     expect(job.runProfile).toBe("pr-quick");
     expect(job.steps.map((step) => step.command)).toEqual(["run", "analyze"]);
     expect(runArgs(job)).toContain("--changed-only");
+    expect(runArgs(job)).toContain("--fail-on-baseline-compare");
   });
 
   it("release-full uses fidelity mode and lower default parallel", () => {

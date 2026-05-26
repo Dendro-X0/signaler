@@ -1,0 +1,37 @@
+# Example: PR audit with baseline regression (copy/adapt for app repos).
+# Upload .signaler from main CI, then download to .signaler-main before this job.
+
+name: Signaler PR (example)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: signaler-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  signaler-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: signaler-main-artifacts
+      #     path: .signaler-main
+
+      - uses: ./.github/actions/signaler
+        with:
+          cli-version: "4.3.0"
+          run-profile: pr-quick
+          base-url: http://127.0.0.1:3000
+          cwd: .
+          output-dir: .signaler
+          baseline-artifacts-path: .signaler-main
+          write-summary: "true"
+          upload-artifacts: "true"

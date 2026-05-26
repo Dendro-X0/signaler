@@ -6,9 +6,9 @@ branding:
 
 inputs:
   cli-version:
-    description: JSR package version (e.g. 4.2.0). Bump before each release publish.
+    description: JSR package version (e.g. 4.3.0). Bump before each release publish.
     required: false
-    default: "4.2.0"
+    default: "4.3.0"
   base-url:
     description: Application base URL for audits
     required: false
@@ -25,6 +25,10 @@ inputs:
     description: Workflow preset — audit (v4 orchestrator), ci, pr, or agent
     required: false
     default: "ci"
+  run-profile:
+    description: Optional policy profile (ci-strict, pr-quick, release-full). Overrides preset when set.
+    required: false
+    default: ""
   managed-serve-mode:
     description: Managed serve mode (auto|dev|production)
     required: false
@@ -62,8 +66,33 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Run Signaler (run profile)
+      if: inputs.run-profile != ''
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      env:
+        SIGNALER_BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+        ARGS=(
+          job run
+          --run-profile "${{ inputs.run-profile }}"
+          --base-url "${SIGNALER_BASE_URL}"
+          --managed-serve
+          --managed-serve-mode "${{ inputs.managed-serve-mode }}"
+          --in-process
+          --dir "${{ inputs.output-dir }}"
+        )
+        if [ "${{ inputs.run-profile }}" = "ci-strict" ] || [ "${{ inputs.run-profile }}" = "release-full" ]; then
+          ARGS+=(--scope "${{ inputs.scope }}")
+        fi
+        if [ -n "${{ inputs.config-path }}" ]; then
+          ARGS+=(--config "${{ inputs.config-path }}")
+        fi
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+
     - name: Run Signaler (audit preset)
-      if: inputs.preset == 'audit'
+      if: inputs.preset == 'audit' && inputs.run-profile == ''
       shell: bash
       working-directory: ${{ inputs.cwd }}
       env:
@@ -81,7 +110,7 @@ runs:
           --dir "${{ inputs.output-dir }}"
 
     - name: Run Signaler (job preset)
-      if: inputs.preset != 'audit'
+      if: inputs.preset != 'audit' && inputs.run-profile == ''
       shell: bash
       working-directory: ${{ inputs.cwd }}
       env:
@@ -155,6 +184,14 @@ runs:
             --baseline "${{ inputs.baseline-artifacts-path }}" \
             --json 2>/dev/null || echo '{}')"
           if [ "${DELTA_JSON}" != "{}" ]; then
+            MATCHED="$(echo "${DELTA_JSON}" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));process.stdout.write(String(d.comparability?.matched ?? true));")"
+            if [ "${MATCHED}" = "false" ]; then
+              echo "::warning title=Signaler comparability::Baseline and PR runs are not comparable — see job summary delta JSON and docs/guides/when-deltas-lie.md"
+            fi
+            RED_DELTA="$(echo "${DELTA_JSON}" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));process.stdout.write(String(d.performance?.delta?.red ?? 0));")"
+            if [ "${RED_DELTA}" -gt 0 ] 2>/dev/null; then
+              echo "::error title=Signaler perf regression::Red performance issues increased by ${RED_DELTA} vs baseline (issue-count triage)."
+            fi
             {
               echo ""
               echo "### Baseline delta"
