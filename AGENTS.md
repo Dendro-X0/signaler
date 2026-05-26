@@ -67,6 +67,11 @@ Config criteria (all optional; defaults shown):
   "maxRedPerfIssues": 0,
   "minCategoryScores": { "accessibility": 90, "bestPractices": 90, "seo": 90 }
 },
+"baselineCompare": {
+  "baselineDir": ".signaler-main",
+  "maxRedIncrease": 0,
+  "requireComparabilityMatch": true
+},
 "incrementalSkip": {
   "enabled": true,
   "minPerformanceScore": 90,

@@ -60,6 +60,21 @@ signaler job run --run-profile ci-strict --managed-serve --in-process --base-url
 
 Do not combine `--preset` and `--run-profile`.
 
+### PR baseline regression
+
+Download or restore main-branch `.signaler` artifacts, then pass the path:
+
+```yaml
+- uses: ./.github/actions/signaler
+  with:
+    preset: pr
+    baseline-artifacts-path: .signaler-main
+```
+
+This runs `query --view delta --baseline … --fail-on-regression` and appends comparability + delta JSON to the job summary when comparability mismatches, the step fails with explicit warnings.
+
+See [When deltas lie](./when-deltas-lie.md).
+
 ## Exit codes (Action failure semantics)
 
 GitHub Actions fails a step when the process exits non-zero. Signaler uses these conventions:

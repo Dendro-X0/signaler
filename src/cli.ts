@@ -99,6 +99,12 @@ import {
 import { buildRunSuggestionCommand } from "./cli-invocation.js";
 import { buildPerformanceTriageV3, isPerformanceTriageV3, trimResultsLineForMachineProfile } from "./performance-triage.js";
 import {
+  getBaselineCompareExitCode,
+  isBaselineCompareActive,
+  runBaselineCompare,
+  type BaselineCompareResult,
+} from "./baseline-compare.js";
+import {
   evaluateQualityGate,
   getQualityGateExitCode,
   isQualityGateActive,
@@ -129,6 +135,7 @@ interface CliArgs {
   readonly ci: boolean;
   readonly failOnBudget: boolean;
   readonly failOnQualityGate: boolean;
+  readonly failOnBaselineCompare: boolean;
   readonly colorMode: CliColorMode;
   readonly logLevelOverride: CliLogLevel | undefined;
   readonly deviceFilter: ApexDevice | undefined;
@@ -2378,6 +2385,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let ci: boolean = false;
   let failOnBudget: boolean = false;
   let failOnQualityGate: boolean = false;
+  let failOnBaselineCompare: boolean = false;
   let colorMode: CliColorMode = "auto";
   let logLevelOverride: CliLogLevel | undefined;
   let deviceFilter: ApexDevice | undefined;
@@ -2447,6 +2455,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
       failOnBudget = true;
     } else if (arg === "--fail-on-quality-gate") {
       failOnQualityGate = true;
+    } else if (arg === "--fail-on-baseline-compare") {
+      failOnBaselineCompare = true;
     } else if (arg === "--no-color") {
       colorMode = "never";
     } else if (arg === "--color") {
@@ -2731,6 +2741,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     ci,
     failOnBudget,
     failOnQualityGate,
+    failOnBaselineCompare,
     colorMode,
     logLevelOverride,
     deviceFilter,
@@ -4213,6 +4224,38 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     });
     await writeFile(resolve(outputDir, "quality-gate.json"), `${JSON.stringify(qualityGateResult, null, 2)}\n`, "utf8");
   }
+  let baselineCompareResult: BaselineCompareResult | undefined;
+  const projectCwd = resolve(configPath, "..");
+  if (
+    effectiveConfig.baselineCompare !== undefined
+    && isBaselineCompareActive(effectiveConfig.baselineCompare, {
+      ci: args.ci,
+      failOnBaselineCompare: args.failOnBaselineCompare,
+    })
+  ) {
+    try {
+      baselineCompareResult = await runBaselineCompare({
+        cwd: projectCwd,
+        compareDir: outputDir,
+        config: effectiveConfig.baselineCompare,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      baselineCompareResult = {
+        passed: false,
+        violations: [{ id: "baseline-unavailable", message, severity: "critical" }],
+        evaluatedAt: new Date().toISOString(),
+        baselineDir: effectiveConfig.baselineCompare.baselineDir ?? "",
+        compareDir: outputDir,
+        delta: { view: "delta", source: "compare" },
+      };
+    }
+    await writeFile(
+      resolve(outputDir, "baseline-compare.json"),
+      `${JSON.stringify(baselineCompareResult, null, 2)}\n`,
+      "utf8",
+    );
+  }
   const agentIndexV3: AgentIndexV3 = buildAgentIndexV3({
     protocol,
     suggestions: suggestionsV3,
@@ -4461,6 +4504,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     gate: effectiveConfig.qualityGate,
     result: qualityGateResult,
   });
+  printBaselineCompareSummary({
+    isCi: args.ci,
+    failOnBaselineCompare: args.failOnBaselineCompare,
+    config: effectiveConfig.baselineCompare,
+    result: baselineCompareResult,
+  });
 
   // Set exit code based on budget + quality gate policy
   let policyExitCode = 0;
@@ -4477,6 +4526,16 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
         ci: args.ci,
         failOnQualityGate: args.failOnQualityGate,
         gate: effectiveConfig.qualityGate,
+      }),
+    );
+  }
+  if (baselineCompareResult !== undefined && effectiveConfig.baselineCompare !== undefined) {
+    policyExitCode = Math.max(
+      policyExitCode,
+      getBaselineCompareExitCode(baselineCompareResult, {
+        ci: args.ci,
+        failOnBaselineCompare: args.failOnBaselineCompare,
+        config: effectiveConfig.baselineCompare,
       }),
     );
   }
@@ -5301,6 +5360,48 @@ async function loadHeadersForQualityGate(outputDir: string): Promise<HeadersGate
     };
   } catch {
     return null;
+  }
+}
+
+function printBaselineCompareSummary(params: {
+  readonly isCi: boolean;
+  readonly failOnBaselineCompare: boolean;
+  readonly config: import("./core/types.js").BaselineCompareConfig | undefined;
+  readonly result: BaselineCompareResult | undefined;
+}): void {
+  if (params.result === undefined || params.config === undefined) {
+    return;
+  }
+  if (
+    !isBaselineCompareActive(params.config, {
+      ci: params.isCi,
+      failOnBaselineCompare: params.failOnBaselineCompare,
+    })
+  ) {
+    return;
+  }
+  if (params.result.passed) {
+    if (params.isCi) {
+      // eslint-disable-next-line no-console
+      console.log("\nBaseline compare PASSED.");
+    }
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`\nBaseline compare FAILED (${params.result.violations.length} violations):`);
+  for (const violation of params.result.violations) {
+    // eslint-disable-next-line no-console
+    console.log(`- ${violation.id}: ${violation.message}`);
+  }
+  if (params.result.delta.comparability !== undefined && !params.result.delta.comparability.matched) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `  comparability: baseline ${params.result.delta.comparability.baselineHash ?? "?"} → compare ${params.result.delta.comparability.compareHash ?? "?"}`,
+    );
+    for (const warning of params.result.delta.comparability.warnings) {
+      // eslint-disable-next-line no-console
+      console.log(`  - ${warning}`);
+    }
   }
 }
 

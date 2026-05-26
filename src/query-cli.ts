@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { findPerformanceIssueById, findSuggestionById, loadAgentArtifacts } from "./agent-artifacts.js";
+import { shouldFailOnDeltaProjection, type BaselineCompareConfig } from "./baseline-compare.js";
 import { buildDeltaProjection } from "./query-delta.js";
 
 type QueryView = "agent" | "actions" | "perf" | "run" | "evidence" | "delta";
@@ -14,6 +15,8 @@ type QueryArgs = {
   readonly out?: string;
   readonly baselineDir?: string;
   readonly compareDir?: string;
+  readonly failOnRegression: boolean;
+  readonly baselinePolicy?: BaselineCompareConfig;
 };
 
 function parseArgs(argv: readonly string[]): QueryArgs {
@@ -25,6 +28,8 @@ function parseArgs(argv: readonly string[]): QueryArgs {
   let out: string | undefined;
   let baselineDir: string | undefined;
   let compareDir: string | undefined;
+  let failOnRegression = false;
+  let maxRedIncrease: number | undefined;
 
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -68,7 +73,7 @@ function parseArgs(argv: readonly string[]): QueryArgs {
       out = resolve(argv[i + 1] ?? "");
       i += 1;
     }
-    if (arg === "--baseline-dir" && i + 1 < argv.length) {
+    if ((arg === "--baseline-dir" || arg === "--baseline") && i + 1 < argv.length) {
       baselineDir = resolve(argv[i + 1] ?? "");
       i += 1;
       continue;
@@ -78,17 +83,36 @@ function parseArgs(argv: readonly string[]): QueryArgs {
       i += 1;
       continue;
     }
+    if (arg === "--fail-on-regression") {
+      failOnRegression = true;
+      continue;
+    }
+    if (arg === "--max-red-increase" && i + 1 < argv.length) {
+      const parsed = Number.parseInt(argv[i + 1] ?? "", 10);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new Error(`Invalid --max-red-increase value: ${argv[i + 1]}. Expected non-negative integer.`);
+      }
+      maxRedIncrease = parsed;
+      i += 1;
+      continue;
+    }
   }
 
-  if ((baselineDir !== undefined) !== (compareDir !== undefined)) {
-    throw new Error("compare mode requires both --baseline-dir and --compare-dir.");
+  if (baselineDir !== undefined && compareDir === undefined) {
+    compareDir = dir;
+  }
+  if (compareDir !== undefined && baselineDir === undefined) {
+    throw new Error("compare mode requires --baseline or --baseline-dir when using --compare-dir.");
   }
 
   if (view === "evidence" && (id === undefined || id.length === 0)) {
     throw new Error("evidence view requires --id <suggestion-or-issue-id>.");
   }
 
-  return { dir, view, id, top, json, out, baselineDir, compareDir };
+  const baselinePolicy: BaselineCompareConfig | undefined =
+    maxRedIncrease !== undefined ? { maxRedIncrease } : undefined;
+
+  return { dir, view, id, top, json, out, baselineDir, compareDir, failOnRegression, baselinePolicy };
 }
 
 function emit(payload: unknown, args: QueryArgs): void {
@@ -111,6 +135,16 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
       compareDir: args.compareDir,
     });
     emit(projection, args);
+    if (args.failOnRegression && args.baselineDir !== undefined && args.compareDir !== undefined) {
+      const policy: BaselineCompareConfig = {
+        maxRedIncrease: 0,
+        requireComparabilityMatch: true,
+        ...args.baselinePolicy,
+      };
+      if (shouldFailOnDeltaProjection(projection, policy)) {
+        process.exitCode = 1;
+      }
+    }
     return;
   }
 

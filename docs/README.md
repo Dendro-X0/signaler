@@ -28,6 +28,7 @@ This folder is organized around stable documentation categories first, with vers
 - [AI-Optimized Reports](guides/ai-optimized-reports.md)
 - [Troubleshooting](guides/troubleshooting.md)
 - [Known Limits](guides/known-limits.md)
+- [When Deltas Lie](guides/when-deltas-lie.md)
 - [Signaler vs Alternatives](guides/signaler-vs-alternatives.md)
 
 ## Reference

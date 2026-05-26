@@ -101,6 +101,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly routes?: unknown;
     readonly incrementalSkip?: unknown;
     readonly qualityGate?: unknown;
+    readonly baselineCompare?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
     throw new Error(`Invalid config at ${absolutePath}: baseUrl must be a non-empty string`);
@@ -162,6 +163,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const routes = normaliseRouteListFilter(maybeConfig.routes, absolutePath);
   const incrementalSkip = normaliseIncrementalSkip(maybeConfig.incrementalSkip, absolutePath);
   const qualityGate = normaliseQualityGate(maybeConfig.qualityGate, absolutePath);
+  const baselineCompare = normaliseBaselineCompare(maybeConfig.baselineCompare, absolutePath);
   return {
     baseUrl,
     query,
@@ -183,7 +185,63 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     routes,
     incrementalSkip,
     qualityGate,
+    baselineCompare,
   };
+}
+
+function normaliseBaselineCompare(
+  value: unknown,
+  absolutePath: string,
+): ApexConfig["baselineCompare"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: baselineCompare must be an object`);
+  }
+  const record = value as {
+    readonly enabled?: unknown;
+    readonly baselineDir?: unknown;
+    readonly maxRedIncrease?: unknown;
+    readonly maxActionableIncrease?: unknown;
+    readonly requireComparabilityMatch?: unknown;
+    readonly failOnIncomparable?: unknown;
+  };
+  const readNonNegativeInt = (field: keyof typeof record, label: string): number | undefined => {
+    const raw = record[field];
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 0) {
+      throw new Error(`Invalid config at ${absolutePath}: baselineCompare.${label} must be a non-negative number`);
+    }
+    return Math.floor(raw);
+  };
+  const baselineDir =
+    typeof record.baselineDir === "string" && record.baselineDir.trim().length > 0
+      ? record.baselineDir.trim()
+      : undefined;
+  const gate = {
+    enabled: typeof record.enabled === "boolean" ? record.enabled : undefined,
+    baselineDir,
+    maxRedIncrease: readNonNegativeInt("maxRedIncrease", "maxRedIncrease"),
+    maxActionableIncrease: readNonNegativeInt("maxActionableIncrease", "maxActionableIncrease"),
+    requireComparabilityMatch:
+      typeof record.requireComparabilityMatch === "boolean" ? record.requireComparabilityMatch : undefined,
+    failOnIncomparable:
+      typeof record.failOnIncomparable === "boolean" ? record.failOnIncomparable : undefined,
+  };
+  if (
+    gate.enabled === undefined
+    && gate.baselineDir === undefined
+    && gate.maxRedIncrease === undefined
+    && gate.maxActionableIncrease === undefined
+    && gate.requireComparabilityMatch === undefined
+    && gate.failOnIncomparable === undefined
+  ) {
+    return undefined;
+  }
+  return gate;
 }
 
 function normaliseQualityGate(

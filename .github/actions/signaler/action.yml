@@ -49,6 +49,10 @@ inputs:
     description: Name prefix for uploaded artifacts
     required: false
     default: "signaler"
+  baseline-artifacts-path:
+    description: Optional path to main-branch .signaler artifacts for PR regression compare
+    required: false
+    default: ""
 
 outputs:
   output-dir:
@@ -101,6 +105,19 @@ runs:
         fi
         npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
 
+    - name: Baseline compare (PR regression)
+      if: inputs.baseline-artifacts-path != ''
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      run: |
+        set -euo pipefail
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+          --view delta \
+          --dir "${{ inputs.output-dir }}" \
+          --baseline "${{ inputs.baseline-artifacts-path }}" \
+          --fail-on-regression \
+          --max-red-increase 0
+
     - name: Write job summary
       if: inputs.write-summary == 'true'
       shell: bash
@@ -130,6 +147,22 @@ runs:
             echo "${PERF_JSON}" | head -c 12000
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [ -n "${{ inputs.baseline-artifacts-path }}" ]; then
+          DELTA_JSON="$(npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+            --view delta \
+            --dir "${{ inputs.output-dir }}" \
+            --baseline "${{ inputs.baseline-artifacts-path }}" \
+            --json 2>/dev/null || echo '{}')"
+          if [ "${DELTA_JSON}" != "{}" ]; then
+            {
+              echo ""
+              echo "### Baseline delta"
+              echo '```json'
+              echo "${DELTA_JSON}" | head -c 8000
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
         fi
 
     - name: Upload Signaler artifacts

@@ -17,9 +17,9 @@ Engineering managers configure gates in `signaler.config.json` or a policy file;
 |----|-------------|--------|
 | 4.3.1 | Named **run profiles**: `ci-strict`, `pr-quick`, `release-full` | Done |
 | 4.3.2 | **Quality gate** block in config: max red perf issues, min category scores, headers must-pass | Done |
-| 4.3.3 | **Baseline compare** in CI: branch vs `main` via `query --view delta` + `--baseline` | Todo |
+| 4.3.3 | **Baseline compare** in CI: branch vs `main` via `query --view delta` + `--baseline` | Done |
 | 4.3.4 | Unified **exit code matrix** documented for `audit`, `job run`, and Action | Done |
-| 4.3.5 | **Comparability hash** surfaced in PR output when delta is invalid | Todo |
+| 4.3.5 | **Comparability hash** surfaced in PR output when delta is invalid | Done |
 
 ## Exit criteria
 

@@ -138,6 +138,24 @@ export interface ApexConfig {
    * Evaluated after run when enabled, in CI mode, or with --fail-on-quality-gate.
    */
   readonly qualityGate?: QualityGateConfig;
+  /**
+   * Compare current run artifacts to a baseline directory (e.g. main branch CI output).
+   */
+  readonly baselineCompare?: BaselineCompareConfig;
+}
+
+/**
+ * Baseline regression policy (v4.3).
+ */
+export interface BaselineCompareConfig {
+  readonly enabled?: boolean;
+  /** Relative to project cwd, or absolute. Overridden by SIGNALER_BASELINE_DIR. */
+  readonly baselineDir?: string;
+  /** Allowed increase in performance-triage totals.red (default 0). */
+  readonly maxRedIncrease?: number;
+  readonly maxActionableIncrease?: number;
+  readonly requireComparabilityMatch?: boolean;
+  readonly failOnIncomparable?: boolean;
 }
 
 /**

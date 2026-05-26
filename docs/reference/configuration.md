@@ -117,6 +117,35 @@ Writes `.signaler/quality-gate.json`. Pair with `signaler job run --run-profile 
 - `minCategoryScores` — minimum **median** suite scores from triage (not Lighthouse performance score).
 - `requireHeadersPass` — fails if `headers.json` is missing or any route has missing headers.
 
+## 3c. Baseline compare (v4.3, PR vs main)
+
+Compare the current run to a **baseline artifact directory** (typically main-branch CI output).
+
+```json
+{
+  "baselineCompare": {
+    "enabled": true,
+    "baselineDir": ".signaler-main",
+    "maxRedIncrease": 0,
+    "maxActionableIncrease": 0,
+    "requireComparabilityMatch": true,
+    "failOnIncomparable": true
+  }
+}
+```
+
+- Evaluated after run in CI when the block is present (or `--fail-on-baseline-compare`).
+- Writes `.signaler/baseline-compare.json` with delta + comparability warnings.
+- Override path with env `SIGNALER_BASELINE_DIR`.
+
+CLI equivalent:
+
+```bash
+signaler query --view delta --dir .signaler --baseline .signaler-main --fail-on-regression
+```
+
+See [When deltas lie](../guides/when-deltas-lie.md).
+
 ## 4. Warm-up
 
 Set `warmUp: true` to run a lightweight warm-up request pass before Lighthouse audits.

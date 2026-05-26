@@ -24,6 +24,22 @@ describe("query-delta", () => {
         categoryScores: { note: "test" },
       };
       await writeFile(
+        resolve(baselineDir, "run.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          protocol: { comparabilityHash: "cmp-1", mode: "throughput" },
+        }),
+        "utf8",
+      );
+      await writeFile(
+        resolve(compareDir, "run.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          protocol: { comparabilityHash: "cmp-1", mode: "throughput" },
+        }),
+        "utf8",
+      );
+      await writeFile(
         resolve(baselineDir, "performance-triage.json"),
         JSON.stringify({
           ...triageBase,
@@ -49,6 +65,7 @@ describe("query-delta", () => {
       });
       expect(projection.view).toBe("delta");
       expect(projection.performance?.delta.actionable).toBe(-3);
+      expect(projection.comparability?.matched).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
