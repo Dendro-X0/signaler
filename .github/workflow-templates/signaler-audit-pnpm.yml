@@ -23,7 +23,7 @@ on:
       cli_version:
         description: "JSR @signaler/cli version"
         required: false
-        default: "4.1.0"
+        default: "4.2.0"
 
 jobs:
   signaler:
@@ -33,7 +33,7 @@ jobs:
       SIGNALER_CONFIG_PATH: ${{ inputs.config_path || '' }}
       SIGNALER_ROUTES_SCOPE: ${{ inputs.routes_scope || 'full' }}
       SIGNALER_JOB_PRESET: ${{ inputs.job_preset || 'ci' }}
-      SIGNALER_CLI_VERSION: ${{ inputs.cli_version || '4.1.0' }}
+      SIGNALER_CLI_VERSION: ${{ inputs.cli_version || '4.2.0' }}
     steps:
       - uses: actions/checkout@v4
 

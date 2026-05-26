@@ -4,11 +4,12 @@ Use this page as the canonical entrypoint for release notes.
 
 ## Current Line
 
-- Active package line: `@signaler/cli@4.1.0`
+- Active package line: `@signaler/cli@4.2.0`
 - Current release note:
-  - [`../archive/release-notes/RELEASE-NOTES-v4.1.0.md`](../archive/release-notes/RELEASE-NOTES-v4.1.0.md)
+  - [`../archive/release-notes/RELEASE-NOTES-v4.2.0.md`](../archive/release-notes/RELEASE-NOTES-v4.2.0.md)
 - Migration: [`../guides/migration-v4.md`](../guides/migration-v4.md)
 - Previous:
+  - [`../archive/release-notes/RELEASE-NOTES-v4.1.0.md`](../archive/release-notes/RELEASE-NOTES-v4.1.0.md)
   - [`../archive/release-notes/RELEASE-NOTES-v4.0.0.md`](../archive/release-notes/RELEASE-NOTES-v4.0.0.md)
   - [`../archive/release-notes/RELEASE-NOTES-v3.2.0.md`](../archive/release-notes/RELEASE-NOTES-v3.2.0.md)
   - [`../archive/release-notes/RELEASE-NOTES-v3.1.6.md`](../archive/release-notes/RELEASE-NOTES-v3.1.6.md)

@@ -2,12 +2,13 @@
 
 ## Unreleased
 
-## Unreleased (4.2.0)
+## 4.2.0 - 2026-05-25
 
 ### Added
 
-- Composite GitHub Action (`.github/actions/signaler`) with artifact upload and job summary.
-- GitHub Actions guide; workflow templates updated for v4 managed serve.
+- **Composite GitHub Action** (`.github/actions/signaler`) with artifact upload and job summary.
+- **GitHub Actions guide** (`docs/guides/github-actions.md`).
+- Workflow templates updated for v4 managed serve (pnpm/npm/yarn).
 
 ## 4.1.0 - 2026-05-25
 
