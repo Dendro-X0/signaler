@@ -70,9 +70,20 @@ git push origin <branch>
 
 After CI is green and checklist is complete:
 
+1. Confirm `package.json` and `jsr.json` already match `<version>` on `main` (CI `release-readiness` job enforces this).
+2. Confirm `docs/archive/release-notes/RELEASE-NOTES-v<version>.md` exists.
+3. Tag **only after** those files are merged — the GitHub Release workflow checks `tag === v${package.json.version}`.
+
 ```bash
 git tag v<version>
 git push origin v<version>
+```
+
+If a tag was pushed too early, move it to the version-bump commit (do not re-tag a different semver):
+
+```bash
+git tag -f v<version> <commit-with-matching-package.json>
+git push origin v<version> --force
 ```
 
 Then publish from the `signaler` package directory (where `jsr.json` is present):

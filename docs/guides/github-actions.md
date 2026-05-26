@@ -80,7 +80,7 @@ jobs:
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.1.0"
+    cli-version: "4.2.0"
     preset: ci
     scope: full
 ```

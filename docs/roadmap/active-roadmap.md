@@ -28,7 +28,7 @@ Action guide: [`../guides/github-actions.md`](../guides/github-actions.md)
 
 1. Add `signaler-dogfood.yml` (`workflow_dispatch`)
 2. Document exit codes for Action failure semantics
-3. **Before JSR publish:** bump to **4.2.0** in `package.json` + `jsr.json` (JSR versions are immutable)
+3. **JSR publish:** `package.json` + `jsr.json` at **4.2.0** on `main` (done); retag `v4.2.0` to that commit before re-running GitHub Release
 
 ## Shipped — Phase 1 (v4.1.x)
 

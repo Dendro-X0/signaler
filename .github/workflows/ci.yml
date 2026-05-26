@@ -11,7 +11,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate package version and release notes
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').version")
+          JSR=$(node -p "require('./jsr.json').version")
+          if [ "$PKG" != "$JSR" ]; then
+            echo "Version mismatch: package.json=$PKG jsr.json=$JSR" >&2
+            exit 1
+          fi
+          NOTES="docs/archive/release-notes/RELEASE-NOTES-v${PKG}.md"
+          if [ ! -f "$NOTES" ]; then
+            echo "Missing release notes: $NOTES" >&2
+            echo "Bump package.json + jsr.json and add notes before tagging v${PKG}." >&2
+            exit 1
+          fi
+          echo "Release metadata OK for v${PKG}"
+
   test:
+    needs: release-readiness
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
