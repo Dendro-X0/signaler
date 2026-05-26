@@ -82,7 +82,7 @@ begin
       NewPath := ExpandConstant('{#BinDir}')
     else
       NewPath := ExistingPath + ';' + ExpandConstant('{#BinDir}');
-    SetEnv('Path', NewPath);
+    { Persist user PATH; ChangesEnvironment=yes notifies running apps. }
     RegWriteExpandStringValue(HKCU, 'Environment', 'Path', NewPath);
   end;
 end;
