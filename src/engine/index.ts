@@ -5,6 +5,12 @@ export {
   buildPrPresetJob,
   buildPresetJob,
 } from "./jobs/presets.js";
+export {
+  buildRunProfileJob,
+  parseRunProfileName,
+  RUN_PROFILE_NAMES,
+  type RunProfileName,
+} from "./jobs/run-profiles.js";
 export type { BuildPresetJobParams } from "./jobs/presets.js";
 export { executeEngineJob, writeEngineJobArtifacts } from "./jobs/run-job.js";
 export { runPresetJob } from "./jobs/run-preset-job.js";

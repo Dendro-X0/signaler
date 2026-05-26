@@ -1,6 +1,6 @@
 # Signaler GitHub Actions
 
-Status: Active (v4.2 development)  
+Status: Active (v4.3 development)  
 Audience: platform engineers, CI maintainers
 
 ## Official composite action
@@ -43,6 +43,38 @@ Use it from the same repo (or pin to a tag after release):
 | `ci` | `job run --preset ci` | Strict CI with `--fail-on-budget` on run |
 | `pr` | `job run --preset pr` | Changed-files only |
 | `agent` | `job run --preset agent` | Agent bootstrap parity |
+
+### Run profiles (v4.3+)
+
+Use `--run-profile` instead of `--preset` when you want named policy bundles:
+
+| Profile | Steps | Use when |
+|---------|-------|----------|
+| `ci-strict` | discover → run (throughput + `--fail-on-budget`) → analyze | Main-branch CI gate |
+| `pr-quick` | run (`--changed-only`) → analyze | PR changed-files only |
+| `release-full` | discover → run (**fidelity**, parallel 2) → analyze | Pre-release / parity-sensitive |
+
+```bash
+signaler job run --run-profile ci-strict --managed-serve --in-process --base-url http://127.0.0.1:3000
+```
+
+Do not combine `--preset` and `--run-profile`.
+
+## Exit codes (Action failure semantics)
+
+GitHub Actions fails a step when the process exits non-zero. Signaler uses these conventions:
+
+| Code | Command | Meaning | Fail the Action? |
+|------|---------|---------|------------------|
+| `0` | `job run`, `audit` | All steps succeeded | No |
+| `1` | `job run`, `audit` | `discover` or `run` failed (hard failure) | **Yes** |
+| `2` | `job run`, `audit` | `run` ok, `analyze` failed (partial; triage may still exist) | **Yes** (default) |
+| `1` | `run --ci --fail-on-budget` | Budget or CI gate failed | **Yes** |
+| `3` | `verify --dry-run` | Planned verify only (no rerun) | Treat as success unless you require a real verify |
+
+**Partial success (`2`):** Artifacts such as `performance-triage.json` and `run.json` may be usable. Set `continue-on-error` only if your team explicitly allows analyze failures.
+
+**Composite action:** The `Run Signaler` step propagates the CLI exit code. Summary steps use `if: always()` and do not mask failure.
 
 ## Example — pull request
 
@@ -113,6 +145,7 @@ See [`../operations/jsr-release.md`](../operations/jsr-release.md).
 
 ## Related
 
+- [Phase 3 roadmap — policy gates](../roadmap/phase3-v4.3-policy-gates.md)
 - [Phase 2 roadmap](../roadmap/phase2-v4.2-team-ci.md)
 - [B2B team value](./b2b-team-value.md)
 - [CLI reference — workflow templates](../reference/cli.md)

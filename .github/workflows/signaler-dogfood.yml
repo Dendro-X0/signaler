@@ -1,0 +1,58 @@
+name: Signaler dogfood
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: signaler-dogfood-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-profiles-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm build
+
+      - name: Validate run profiles (job show)
+        run: |
+          set -euo pipefail
+          for profile in ci-strict pr-quick release-full; do
+            echo "=== run-profile: ${profile} ==="
+            node dist/bin.js job show --run-profile "${profile}" --json | node -e "
+              const job = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+              if (job.runProfile !== process.argv[1]) {
+                console.error('expected runProfile', process.argv[1], 'got', job.runProfile);
+                process.exit(1);
+              }
+              if (!Array.isArray(job.steps) || job.steps.length === 0) {
+                console.error('missing steps');
+                process.exit(1);
+              }
+            " "${profile}"
+          done
+
+      - name: Validate legacy presets still resolve
+        run: |
+          set -euo pipefail
+          for preset in agent ci pr; do
+            node dist/bin.js job show --preset "${preset}" --json > /dev/null
+          done

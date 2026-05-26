@@ -8,6 +8,7 @@ import {
   buildPresetJob,
   type BuildPresetJobParams,
 } from "./presets.js";
+import { buildRunProfileJob, type RunProfileName } from "./run-profiles.js";
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import { createInProcessEngineJobStepRunner } from "./in-process-step-runner.js";
 import { executeEngineJob } from "./run-job.js";
@@ -16,6 +17,7 @@ import type { EngineJobPreset } from "./types.js";
 
 export type RunPresetJobParams = BuildPresetJobParams & {
   readonly preset?: EngineJobPreset;
+  readonly runProfile?: RunProfileName;
   readonly jobFile?: string;
   readonly incremental?: boolean;
   readonly inProcess?: boolean;
@@ -70,6 +72,8 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       throw new Error(`Invalid job file: ${params.jobFile}`);
     }
     job = parsed;
+  } else if (params.runProfile) {
+    job = buildRunProfileJob({ ...params, runProfile: params.runProfile });
   } else if (params.preset) {
     job = buildPresetJob({ ...params, preset: params.preset });
   } else {

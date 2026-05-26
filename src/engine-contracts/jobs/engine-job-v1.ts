@@ -10,6 +10,8 @@ export type EngineJobV1 = {
   readonly cwd: string;
   readonly outputDir: string;
   readonly preset?: "agent" | "ci" | "pr" | "custom";
+  /** Named policy profile (v4.3): ci-strict, pr-quick, release-full */
+  readonly runProfile?: string;
   readonly steps: readonly EngineJobStepV1[];
 };
 

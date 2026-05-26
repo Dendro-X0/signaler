@@ -64,6 +64,32 @@ describe("job-cli", () => {
     expect(discoverArgs).toContain("quick");
   });
 
+  it("rejects using preset and run-profile together", async () => {
+    await expect(
+      runJobCli(["node", "signaler", "job", "show", "--preset", "ci", "--run-profile", "ci-strict"]),
+    ).rejects.toThrow(/either --preset or --run-profile/i);
+  });
+
+  it("prints release-full run profile with fidelity mode", async () => {
+    const lines: string[] = [];
+    const original = console.log;
+    console.log = (value?: unknown) => {
+      lines.push(String(value));
+    };
+    try {
+      await runJobCli(["node", "signaler", "job", "show", "--run-profile", "release-full", "--json"]);
+    } finally {
+      console.log = original;
+    }
+    const payload = JSON.parse(lines.join("\n")) as {
+      readonly runProfile: string;
+      readonly steps: readonly { readonly command: string; readonly args?: readonly string[] }[];
+    };
+    expect(payload.runProfile).toBe("release-full");
+    const runArgs = payload.steps.find((step) => step.command === "run")?.args ?? [];
+    expect(runArgs).toContain("fidelity");
+  });
+
   it("includes parallel on agent preset run step", async () => {
     const lines: string[] = [];
     const original = console.log;

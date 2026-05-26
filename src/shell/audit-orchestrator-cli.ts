@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
 import { parseManagedServeMode, resolveManagedServeModeFromEnv, type ManagedServeMode } from "../engine/serve/index.js";
 import { printAuditSummary } from "../report-summary.js";
@@ -19,6 +20,7 @@ export type AuditOrchestratorCliArgs = {
   readonly incremental: boolean;
   readonly incrementalSkipPassing: boolean;
   readonly parallel?: number;
+  readonly runProfile?: RunProfileName;
   readonly json: boolean;
   readonly summary: boolean;
 };
@@ -40,6 +42,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let managedServeSkipBuild = false;
   let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   let parallel: number | undefined;
+  let runProfile: RunProfileName | undefined;
   let json = false;
   let summary = false;
 
@@ -118,6 +121,11 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       i += 1;
       continue;
     }
+    if (arg === "--run-profile" && i + 1 < argv.length) {
+      runProfile = parseRunProfileName(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
     if (arg === "--incremental") {
       incremental = true;
       continue;
@@ -155,6 +163,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     incremental,
     incrementalSkipPassing,
     parallel,
+    runProfile,
     json,
     summary,
   };
@@ -178,7 +187,8 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
     parallel: args.parallel,
-    preset: "agent",
+    preset: args.runProfile ? undefined : "agent",
+    runProfile: args.runProfile,
   });
 
   if (args.json) {

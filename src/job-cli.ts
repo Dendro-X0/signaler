@@ -5,14 +5,18 @@ import { isEngineJobResultV1, isEngineJobV1 } from "./engine-contracts/jobs/inde
 import {
   buildAgentPresetJob,
   buildPresetJob,
+  buildRunProfileJob,
+  parseRunProfileName,
   type BuildPresetJobParams,
   type EngineJobPreset,
+  type RunProfileName,
 } from "./engine/index.js";
 import { runPresetJob } from "./engine/jobs/run-preset-job.js";
 
 type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
   readonly preset?: EngineJobPreset;
+  readonly runProfile?: RunProfileName;
   readonly jobFile?: string;
   readonly inProcess: boolean;
   readonly managedServe: boolean;
@@ -31,6 +35,7 @@ function parsePreset(value: string): EngineJobPreset {
 function parseArgs(argv: readonly string[]): JobCliArgs {
   let subcommand: JobCliArgs["subcommand"] = "run";
   let preset: JobCliArgs["preset"];
+  let runProfile: JobCliArgs["runProfile"];
   let jobFile: string | undefined;
   let cwd = process.cwd();
   let outputDir = resolve(cwd, ".signaler");
@@ -61,6 +66,11 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     }
     if (arg === "--preset" && i + 1 < argv.length) {
       preset = parsePreset(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
+    if (arg === "--run-profile" && i + 1 < argv.length) {
+      runProfile = parseRunProfileName(argv[i + 1] ?? "");
       i += 1;
       continue;
     }
@@ -142,9 +152,14 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     }
   }
 
+  if (preset && runProfile) {
+    throw new Error("Use either --preset or --run-profile, not both.");
+  }
+
   return {
     subcommand,
     preset,
+    runProfile,
     jobFile,
     cwd,
     outputDir,
@@ -165,6 +180,9 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
 }
 
 function resolveJob(args: JobCliArgs): EngineJobV1 {
+  if (args.runProfile) {
+    return buildRunProfileJob({ ...args, runProfile: args.runProfile });
+  }
   if (args.preset) {
     return buildPresetJob({ ...args, preset: args.preset });
   }
@@ -203,6 +221,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     routesFile: args.routesFile,
     parallel: args.parallel,
     preset: args.preset,
+    runProfile: args.runProfile,
     jobFile: args.jobFile,
     inProcess: args.inProcess,
     managedServe: args.managedServe,

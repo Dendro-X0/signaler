@@ -1,7 +1,7 @@
 # Phase 2 — v4.2.0 Team CI Pack
 
-Status: **Active — kickoff**  
-Target line: `@signaler/cli@4.2.0` (bump `package.json` + `jsr.json` before JSR publish)  
+Status: **Shipped** (v4.2.0 tagged)  
+Target line: `@signaler/cli@4.2.0`  
 Parent: [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md)
 
 ## Theme

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 4.3.0 - Unreleased
+
+### Added
+
+- **Named run profiles** (`--run-profile`): `ci-strict`, `pr-quick`, `release-full` for `job run` and `audit`.
+- **Meta-CI dogfood** workflow (`workflow_dispatch`) validating run profiles on each run.
+
+### Planned (Phase 3)
+
+- Quality gate block in config (max red perf issues, baseline compare).
+- Comparability hash in PR output when delta is invalid.
+
 ## 4.2.0 - 2026-05-25
 
 ### Added
