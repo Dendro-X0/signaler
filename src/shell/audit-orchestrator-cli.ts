@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { parseQualityProfileName, type QualityProfileName } from "../engine/jobs/quality-profiles.js";
 import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
 import { parseManagedServeMode, resolveManagedServeModeFromEnv, type ManagedServeMode } from "../engine/serve/index.js";
@@ -21,6 +22,7 @@ export type AuditOrchestratorCliArgs = {
   readonly incrementalSkipPassing: boolean;
   readonly parallel?: number;
   readonly runProfile?: RunProfileName;
+  readonly qualityProfile?: QualityProfileName;
   readonly json: boolean;
   readonly summary: boolean;
 };
@@ -43,6 +45,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
   let parallel: number | undefined;
   let runProfile: RunProfileName | undefined;
+  let qualityProfile: QualityProfileName | undefined;
   let json = false;
   let summary = false;
 
@@ -126,6 +129,11 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       i += 1;
       continue;
     }
+    if (arg === "--quality-profile" && i + 1 < argv.length) {
+      qualityProfile = parseQualityProfileName(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
     if (arg === "--incremental") {
       incremental = true;
       continue;
@@ -147,6 +155,10 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     outputDir = resolve(cwd, ".signaler");
   }
 
+  if (qualityProfile && runProfile) {
+    throw new Error("Use either --quality-profile or --run-profile, not both.");
+  }
+
   return {
     cwd,
     outputDir,
@@ -164,6 +176,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     incrementalSkipPassing,
     parallel,
     runProfile,
+    qualityProfile,
     json,
     summary,
   };
@@ -187,8 +200,9 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
     parallel: args.parallel,
-    preset: args.runProfile ? undefined : "agent",
+    preset: args.runProfile || args.qualityProfile ? undefined : "agent",
     runProfile: args.runProfile,
+    qualityProfile: args.qualityProfile,
   });
 
   if (args.json) {

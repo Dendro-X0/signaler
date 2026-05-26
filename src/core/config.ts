@@ -102,6 +102,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly incrementalSkip?: unknown;
     readonly qualityGate?: unknown;
     readonly baselineCompare?: unknown;
+    readonly qualityPack?: unknown;
   };
   if (typeof maybeConfig.baseUrl !== "string" || maybeConfig.baseUrl.length === 0) {
     throw new Error(`Invalid config at ${absolutePath}: baseUrl must be a non-empty string`);
@@ -164,6 +165,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
   const incrementalSkip = normaliseIncrementalSkip(maybeConfig.incrementalSkip, absolutePath);
   const qualityGate = normaliseQualityGate(maybeConfig.qualityGate, absolutePath);
   const baselineCompare = normaliseBaselineCompare(maybeConfig.baselineCompare, absolutePath);
+  const qualityPack = normaliseQualityPack(maybeConfig.qualityPack, absolutePath);
   return {
     baseUrl,
     query,
@@ -186,6 +188,34 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     incrementalSkip,
     qualityGate,
     baselineCompare,
+    qualityPack,
+  };
+}
+
+function normaliseQualityPack(
+  value: unknown,
+  absolutePath: string,
+): ApexConfig["qualityPack"] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: qualityPack must be an object`);
+  }
+  const record = value as Record<string, unknown>;
+  const readNonNegative = (key: string): number | undefined => {
+    const raw = record[key];
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 0) {
+      throw new Error(`Invalid config at ${absolutePath}: qualityPack.${key} must be a non-negative number`);
+    }
+    return raw;
+  };
+  return {
+    maxHeaderFailures: readNonNegative("maxHeaderFailures"),
+    maxBrokenLinks: readNonNegative("maxBrokenLinks"),
   };
 }
 

@@ -11,6 +11,12 @@ export {
   RUN_PROFILE_NAMES,
   type RunProfileName,
 } from "./jobs/run-profiles.js";
+export {
+  buildQualityProfileJob,
+  parseQualityProfileName,
+  QUALITY_PROFILE_NAMES,
+  type QualityProfileName,
+} from "./jobs/quality-profiles.js";
 export type { BuildPresetJobParams } from "./jobs/presets.js";
 export { executeEngineJob, writeEngineJobArtifacts } from "./jobs/run-job.js";
 export { runPresetJob } from "./jobs/run-preset-job.js";

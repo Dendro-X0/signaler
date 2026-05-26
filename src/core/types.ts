@@ -142,6 +142,10 @@ export interface ApexConfig {
    * Compare current run artifacts to a baseline directory (e.g. main branch CI output).
    */
   readonly baselineCompare?: BaselineCompareConfig;
+  /**
+   * Thresholds for bundled quality profiles (v5) — headers, links, bundle pack gate.
+   */
+  readonly qualityPack?: QualityPackConfig;
 }
 
 /**
@@ -171,6 +175,14 @@ export interface QualityGateConfig {
   readonly minCategoryScores?: CategoryBudgetThresholds;
   /** Fail when headers.json is missing or any route has missing headers / runtime errors. */
   readonly requireHeadersPass?: boolean;
+}
+
+/**
+ * Unified pack gate for `--quality-profile` jobs (v5).
+ */
+export interface QualityPackConfig {
+  readonly maxHeaderFailures?: number;
+  readonly maxBrokenLinks?: number;
 }
 
 /**

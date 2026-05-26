@@ -17,6 +17,9 @@ export const IN_PROCESS_JOB_COMMANDS = [
   "explain",
   "report",
   "review",
+  "headers",
+  "links",
+  "bundle",
 ] as const;
 
 export type InProcessJobCommand = (typeof IN_PROCESS_JOB_COMMANDS)[number];
@@ -41,6 +44,9 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     { runQueryCli },
     { runExplainCli },
     { runReportCli },
+    { runHeadersCli },
+    { runLinksCli },
+    { runBundleCli },
   ] = await Promise.all([
     import("../../wizard-cli.js"),
     import("../../cli.js"),
@@ -49,6 +55,9 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     import("../../query-cli.js"),
     import("../../explain-cli.js"),
     import("../../report-cli.js"),
+    import("../../headers-cli.js"),
+    import("../../links-cli.js"),
+    import("../../bundle-cli.js"),
   ]);
 
   return {
@@ -64,6 +73,9 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     explain: async (argv) => runExplainCli(argv),
     report: async (argv) => runReportCli(argv),
     review: async (argv) => runReportCli(argv),
+    headers: async (argv) => runHeadersCli(argv),
+    links: async (argv) => runLinksCli(argv),
+    bundle: async (argv) => runBundleCli(argv),
   };
 }
 

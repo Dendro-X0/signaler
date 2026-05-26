@@ -12,6 +12,8 @@ export type EngineJobV1 = {
   readonly preset?: "agent" | "ci" | "pr" | "custom";
   /** Named policy profile (v4.3): ci-strict, pr-quick, release-full */
   readonly runProfile?: string;
+  /** Bundled side runners + unified pack gate (v5): web-quality */
+  readonly qualityProfile?: string;
   readonly steps: readonly EngineJobStepV1[];
 };
 

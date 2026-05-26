@@ -5,10 +5,13 @@ import { isEngineJobResultV1, isEngineJobV1 } from "./engine-contracts/jobs/inde
 import {
   buildAgentPresetJob,
   buildPresetJob,
+  buildQualityProfileJob,
   buildRunProfileJob,
+  parseQualityProfileName,
   parseRunProfileName,
   type BuildPresetJobParams,
   type EngineJobPreset,
+  type QualityProfileName,
   type RunProfileName,
 } from "./engine/index.js";
 import { runPresetJob } from "./engine/jobs/run-preset-job.js";
@@ -17,6 +20,7 @@ type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
   readonly preset?: EngineJobPreset;
   readonly runProfile?: RunProfileName;
+  readonly qualityProfile?: QualityProfileName;
   readonly jobFile?: string;
   readonly inProcess: boolean;
   readonly managedServe: boolean;
@@ -36,6 +40,7 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
   let subcommand: JobCliArgs["subcommand"] = "run";
   let preset: JobCliArgs["preset"];
   let runProfile: JobCliArgs["runProfile"];
+  let qualityProfile: JobCliArgs["qualityProfile"];
   let jobFile: string | undefined;
   let cwd = process.cwd();
   let outputDir = resolve(cwd, ".signaler");
@@ -71,6 +76,11 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     }
     if (arg === "--run-profile" && i + 1 < argv.length) {
       runProfile = parseRunProfileName(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
+    if (arg === "--quality-profile" && i + 1 < argv.length) {
+      qualityProfile = parseQualityProfileName(argv[i + 1] ?? "");
       i += 1;
       continue;
     }
@@ -155,11 +165,15 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
   if (preset && runProfile) {
     throw new Error("Use either --preset or --run-profile, not both.");
   }
+  if (qualityProfile && (preset || runProfile)) {
+    throw new Error("Use --quality-profile alone (not with --preset or --run-profile).");
+  }
 
   return {
     subcommand,
     preset,
     runProfile,
+    qualityProfile,
     jobFile,
     cwd,
     outputDir,
@@ -180,6 +194,9 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
 }
 
 function resolveJob(args: JobCliArgs): EngineJobV1 {
+  if (args.qualityProfile) {
+    return buildQualityProfileJob({ ...args, qualityProfile: args.qualityProfile });
+  }
   if (args.runProfile) {
     return buildRunProfileJob({ ...args, runProfile: args.runProfile });
   }
@@ -222,6 +239,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     parallel: args.parallel,
     preset: args.preset,
     runProfile: args.runProfile,
+    qualityProfile: args.qualityProfile,
     jobFile: args.jobFile,
     inProcess: args.inProcess,
     managedServe: args.managedServe,

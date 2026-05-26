@@ -5,19 +5,21 @@ Updated: 2026-05-25
 
 ## Current focus
 
-**v4.3.0 policy gates** — feature-complete on `main`; release polish and optional CI annotations.
+**v5.0.0 quality profiles** — `web-quality` bundles Lighthouse ci-strict + headers + links + bundle.
 
-Canonical plan: [`phase3-v4.3-policy-gates.md`](./phase3-v4.3-policy-gates.md)
+Canonical plan: [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md)
 
-### Phase 3 (shipped on git 4.3.0 line)
+### Phase 4 (in progress on git 5.0.0 line)
 
-Run profiles, qualityGate, baselineCompare, delta comparability, exit-code docs, dogfood workflow.
+- `--quality-profile web-quality` on `audit` / `job run`
+- `quality-pack.json` unified exit after side runners
+- `qualityPack` config thresholds
 
 ### Next implementation slice
 
-1. Finalize `RELEASE-NOTES-v4.3.0` and JSR publish
-2. Tag `v4.3.0` after green CI (use **Actions → CI → Run workflow** if push did not trigger)
-3. Optional: Check Run annotations hardening (4.2.4)
+1. Agent-index merge for pack findings
+2. GitHub Action `quality-profile` input
+3. Optional: tag `v5.0.0` after dogfood on a real app
 
 ### CI manual trigger
 
@@ -33,7 +35,7 @@ Team CI pack. Details: [`phase2-v4.2-team-ci.md`](./phase2-v4.2-team-ci.md)
 
 | Phase | Version | Doc |
 |-------|---------|-----|
-| 4 | v5.0.0 Quality profiles | [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md) |
+| 4 | v5.0.0 Quality profiles | [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md) |
 
 ## Index
 

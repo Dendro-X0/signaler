@@ -8,7 +8,13 @@ import {
   buildPresetJob,
   type BuildPresetJobParams,
 } from "./presets.js";
+import { buildQualityProfileJob, type QualityProfileName } from "./quality-profiles.js";
 import { buildRunProfileJob, type RunProfileName } from "./run-profiles.js";
+import {
+  evaluateAndWriteQualityPack,
+  formatQualityPackFailures,
+  mergeQualityPackExitCode,
+} from "../../quality-pack.js";
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import { createInProcessEngineJobStepRunner } from "./in-process-step-runner.js";
 import { executeEngineJob } from "./run-job.js";
@@ -18,6 +24,7 @@ import type { EngineJobPreset } from "./types.js";
 export type RunPresetJobParams = BuildPresetJobParams & {
   readonly preset?: EngineJobPreset;
   readonly runProfile?: RunProfileName;
+  readonly qualityProfile?: QualityProfileName;
   readonly jobFile?: string;
   readonly incremental?: boolean;
   readonly inProcess?: boolean;
@@ -42,6 +49,28 @@ function withoutDiscoverStep(job: EngineJobV1): EngineJobV1 {
     ...job,
     steps: job.steps.filter((step) => step.command !== "discover"),
   };
+}
+
+async function applyQualityPackExitCode(params: {
+  readonly job: EngineJobV1;
+  readonly priorExitCode: number;
+  readonly configPath?: string;
+}): Promise<number> {
+  if (!params.job.qualityProfile) {
+    return params.priorExitCode;
+  }
+  const pack = await evaluateAndWriteQualityPack({
+    outputDir: resolve(params.job.cwd, params.job.outputDir),
+    profile: params.job.qualityProfile,
+    cwd: params.job.cwd,
+    configPath: params.configPath,
+  });
+  const exitCode = mergeQualityPackExitCode(params.priorExitCode, pack);
+  if (exitCode !== 0 && pack.violations.length > 0) {
+    console.error("Quality pack failed:\n" + formatQualityPackFailures(pack));
+    console.error(`See ${resolve(params.job.cwd, params.job.outputDir, "quality-pack.json")}`);
+  }
+  return exitCode;
 }
 
 function patchDiscoverBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
@@ -72,6 +101,8 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       throw new Error(`Invalid job file: ${params.jobFile}`);
     }
     job = parsed;
+  } else if (params.qualityProfile) {
+    job = buildQualityProfileJob({ ...params, qualityProfile: params.qualityProfile });
   } else if (params.runProfile) {
     job = buildRunProfileJob({ ...params, runProfile: params.runProfile });
   } else if (params.preset) {
@@ -105,8 +136,13 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       if (outcome.exitCode === 2) {
         await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
       }
+      const exitCode = await applyQualityPackExitCode({
+        job,
+        priorExitCode: outcome.exitCode,
+        configPath: params.configPath,
+      });
       return {
-        exitCode: outcome.exitCode,
+        exitCode,
         result: outcome.result,
         job,
         managedBaseUrl,
@@ -124,8 +160,13 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
   if (outcome.exitCode === 2) {
     await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
   }
+  const exitCode = await applyQualityPackExitCode({
+    job,
+    priorExitCode: outcome.exitCode,
+    configPath: params.configPath,
+  });
   return {
-    exitCode: outcome.exitCode,
+    exitCode,
     result: outcome.result,
     job,
     managedBaseUrl,
