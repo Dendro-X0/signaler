@@ -2,14 +2,12 @@
 
 ## Unreleased
 
-## 5.0.0 - Unreleased
-
-### Added
+### Added (v5.0 preview — not released)
 
 - **`--quality-profile web-quality`** on `audit` and `job run` — bundles `ci-strict` Lighthouse gate with `headers`, `links`, and `bundle` steps; writes `quality-pack.json` and a single combined exit code.
 - **`qualityPack` config** — `maxHeaderFailures`, `maxBrokenLinks` thresholds for the pack gate.
 
-## 4.3.0 - Unreleased
+## 4.3.0 - 2026-05-26
 
 ### Added
 

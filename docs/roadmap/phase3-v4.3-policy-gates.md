@@ -1,6 +1,6 @@
 # Phase 3 — v4.3.0 Policy Gates
 
-Status: **Active — in development** (git **4.3.0** line)  
+Status: **Shipped** (v4.3.0, 2026-05-26)  
 Parent: [`v4-b2b-roadmap.md`](./v4-b2b-roadmap.md)
 
 ## Theme
@@ -23,9 +23,9 @@ Engineering managers configure gates in `signaler.config.json` or a policy file;
 
 ## Exit criteria
 
-- [ ] Team can enable `ci-strict` with one config block
-- [ ] PR fails when red perf issue count increases vs baseline (configurable)
-- [ ] Docs: “When deltas lie” (throughput mode, scope change, build id)
+- [x] Team can enable `ci-strict` with one config block (`--run-profile ci-strict` or `qualityGate` + presets)
+- [x] PR fails when red perf issue count increases vs baseline (configurable via `baselineCompare`)
+- [x] Docs: “When deltas lie” (throughput mode, scope change, build id)
 
 ## Not in Phase 3
 

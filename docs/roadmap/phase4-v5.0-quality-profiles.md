@@ -1,14 +1,13 @@
 # Phase 4 — v5.0 Quality profiles
 
-Status: **Active**  
-Version line: **5.0.0**  
-Last updated: 2026-05-25
+Status: **In development** (first slice on `main`; version line opens at **5.0.0** after v4.3.0 ships)  
+Last updated: 2026-05-26
 
 ## Goal
 
 One command runs Lighthouse policy gates plus existing side runners, producing one pack artifact and one CI exit code.
 
-## First slice (shipped on git 5.0.0 line)
+## First slice (on git `main`, unreleased)
 
 ```bash
 signaler audit --quality-profile web-quality --cwd /path/to/app --base-url http://127.0.0.1:3000

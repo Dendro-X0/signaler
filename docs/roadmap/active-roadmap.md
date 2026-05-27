@@ -5,21 +5,17 @@ Updated: 2026-05-25
 
 ## Current focus
 
-**v5.0.0 quality profiles** — `web-quality` bundles Lighthouse ci-strict + headers + links + bundle.
+**v4.3.0 release** — Phase 3 policy gates shipped on git; tag + JSR when CI is green.
 
-Canonical plan: [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md)
+Canonical plan: [`phase3-v4.3-policy-gates.md`](./phase3-v4.3-policy-gates.md)
 
-### Phase 4 (in progress on git 5.0.0 line)
+### Phase 3 (v4.3.0 — shipped)
 
-- `--quality-profile web-quality` on `audit` / `job run`
-- `quality-pack.json` unified exit after side runners
-- `qualityPack` config thresholds
+Run profiles, qualityGate, baselineCompare, delta comparability, exit-code docs, dogfood workflow.
 
-### Next implementation slice
+### Phase 4 (v5.0 — next, partial on main)
 
-1. Agent-index merge for pack findings
-2. GitHub Action `quality-profile` input
-3. Optional: tag `v5.0.0` after dogfood on a real app
+First slice `--quality-profile web-quality` exists in code but is **Unreleased** until Phase 4 exit criteria. See [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md).
 
 ### CI manual trigger
 

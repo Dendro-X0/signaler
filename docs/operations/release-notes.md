@@ -4,7 +4,7 @@ Use this page as the canonical entrypoint for release notes.
 
 ## Current Line
 
-- Active package line: `@signaler/cli@4.3.0` (in development)
+- Active package line: `@signaler/cli@4.3.0` (shipped 2026-05-26)
 - Current release note:
   - [`../archive/release-notes/RELEASE-NOTES-v4.3.0.md`](../archive/release-notes/RELEASE-NOTES-v4.3.0.md)
 - Previous shipped:

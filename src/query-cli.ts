@@ -1,7 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { findPerformanceIssueById, findSuggestionById, loadAgentArtifacts } from "./agent-artifacts.js";
-import { shouldFailOnDeltaProjection, type BaselineCompareConfig } from "./baseline-compare.js";
+import { shouldFailOnDeltaProjection } from "./baseline-compare.js";
+import type { BaselineCompareConfig } from "./core/types.js";
 import { buildDeltaProjection } from "./query-delta.js";
 
 type QueryView = "agent" | "actions" | "perf" | "run" | "evidence" | "delta";
