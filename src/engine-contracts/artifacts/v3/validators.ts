@@ -114,6 +114,18 @@ export function isAgentIndexV3(value: unknown): value is AgentIndexV3 {
   if (value.entrypoints.analyze !== undefined && value.entrypoints.analyze !== "analyze.json") {
     return false;
   }
+  if (value.entrypoints.headers !== undefined && value.entrypoints.headers !== "headers.json") {
+    return false;
+  }
+  if (value.entrypoints.links !== undefined && value.entrypoints.links !== "links.json") {
+    return false;
+  }
+  if (value.entrypoints.bundle !== undefined && value.entrypoints.bundle !== "bundle-audit.json") {
+    return false;
+  }
+  if (value.entrypoints.qualityPack !== undefined && value.entrypoints.qualityPack !== "quality-pack.json") {
+    return false;
+  }
   if (
     value.performanceReporting !== undefined
     && value.performanceReporting !== "issue-count"

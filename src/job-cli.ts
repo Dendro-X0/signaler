@@ -15,8 +15,14 @@ import {
   type RunProfileName,
 } from "./engine/index.js";
 import { runPresetJob } from "./engine/jobs/run-preset-job.js";
+import type { ManagedServeMode } from "./engine/serve/index.js";
+import {
+  applyOrchestratorServeFlag,
+  createOrchestratorServeDefaults,
+  type OrchestratorServeOptions,
+} from "./shell/orchestrator-serve-options.js";
 
-type JobCliArgs = BuildPresetJobParams & {
+export type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
   readonly preset?: EngineJobPreset;
   readonly runProfile?: RunProfileName;
@@ -24,6 +30,7 @@ type JobCliArgs = BuildPresetJobParams & {
   readonly jobFile?: string;
   readonly inProcess: boolean;
   readonly managedServe: boolean;
+  readonly managedServeMode: ManagedServeMode;
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
   readonly json: boolean;
@@ -36,7 +43,7 @@ function parsePreset(value: string): EngineJobPreset {
   throw new Error(`Invalid --preset value: ${value}. Expected agent|ci|pr.`);
 }
 
-function parseArgs(argv: readonly string[]): JobCliArgs {
+export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
   let subcommand: JobCliArgs["subcommand"] = "run";
   let preset: JobCliArgs["preset"];
   let runProfile: JobCliArgs["runProfile"];
@@ -51,10 +58,7 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
   let incremental = false;
   let incrementalSkipPassing = false;
   let routesFile: string | undefined;
-  let inProcess = process.env.SIGNALER_JOB_IN_PROCESS === "1";
-  let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
-  let managedServeSkipBuild = false;
-  let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
+  const serveOptions: OrchestratorServeOptions = createOrchestratorServeDefaults();
   let parallel: number | undefined;
   let json = false;
 
@@ -123,21 +127,12 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
       incremental = true;
       continue;
     }
-    if (arg === "--in-process") {
-      inProcess = true;
-      continue;
-    }
-    if (arg === "--managed-serve" || arg === "--auto-serve") {
-      managedServe = true;
-      continue;
-    }
-    if (arg === "--managed-serve-skip-build") {
-      managedServeSkipBuild = true;
-      continue;
-    }
-    if (arg === "--managed-serve-reuse") {
-      managedServeReuse = true;
-      continue;
+    {
+      const skip = applyOrchestratorServeFlag(arg, argv, i, serveOptions);
+      if (skip >= 0) {
+        i += skip;
+        continue;
+      }
     }
     if (arg === "--parallel" && i + 1 < argv.length) {
       const value = Number.parseInt(argv[i + 1] ?? "", 10);
@@ -183,10 +178,11 @@ function parseArgs(argv: readonly string[]): JobCliArgs {
     buildId,
     incremental,
     incrementalSkipPassing,
-    inProcess,
-    managedServe,
-    managedServeSkipBuild,
-    managedServeReuse,
+    inProcess: serveOptions.inProcess,
+    managedServe: serveOptions.managedServe,
+    managedServeMode: serveOptions.managedServeMode,
+    managedServeSkipBuild: serveOptions.managedServeSkipBuild,
+    managedServeReuse: serveOptions.managedServeReuse,
     parallel,
     routesFile,
     json,
@@ -207,7 +203,7 @@ function resolveJob(args: JobCliArgs): EngineJobV1 {
 }
 
 export async function runJobCli(argv: readonly string[]): Promise<void> {
-  const args = parseArgs(argv);
+  const args = parseJobCliArgs(argv);
 
   if (args.subcommand === "show") {
     const presetJob = resolveJob(args);
@@ -243,6 +239,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     jobFile: args.jobFile,
     inProcess: args.inProcess,
     managedServe: args.managedServe,
+    managedServeMode: args.managedServeMode,
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
   });
@@ -254,7 +251,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     console.log(`Artifacts: ${resolve(outcome.job.cwd, outcome.job.outputDir, "jobs", outcome.job.jobId)}`);
     console.log("Latest status: .signaler/job-latest.json");
     if (outcome.managedBaseUrl) {
-      console.log(`Managed serve: production server at ${outcome.managedBaseUrl}`);
+      console.log(`Managed serve: ${outcome.managedBaseUrl}`);
     }
     if (outcome.job.preset === "pr") {
       console.log("Tip: after a fix, run `signaler verify --contract v6` then `signaler query --view delta`.");

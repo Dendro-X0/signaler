@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-4.3.0-blue.svg)
+![Version](http://img.shields.io/badge/version-4.4.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -46,12 +46,19 @@ JSR remains useful as a package source for project dependencies and publishing, 
 
 Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
 
-**One-shot audit (v4 preferred)** — discover → run → analyze:
+**One-shot audit (v4+)** — discover → run → analyze:
 
 ```bash
 signaler audit --cwd . --base-url http://127.0.0.1:3000
 signaler query --view perf
 signaler explain --id <issue-id>
+```
+
+**Full web quality (v5)** — Lighthouse CI gate + headers + links + bundle:
+
+```bash
+signaler audit --quality-profile web-quality --cwd . --base-url http://127.0.0.1:3000
+signaler query --view agent
 ```
 
 **One-shot agent job** (explicit preset):
@@ -129,11 +136,21 @@ Signaler targets **platform and product engineering teams** running Next.js (and
 **CI today:**
 
 ```bash
-signaler job run --preset ci --managed-serve --in-process --cwd .
+signaler job run --run-profile ci-strict --managed-serve --in-process --cwd .
 signaler job run --preset pr --managed-serve --in-process --cwd .
+# v5: Lighthouse + headers + links + bundle in one job
+signaler audit --quality-profile web-quality --managed-serve --in-process --cwd .
 ```
 
-Official GitHub Action: planned in [Phase 2 (v4.2)](./docs/roadmap/phase2-v4.2-team-ci.md) — composite action at [`.github/actions/signaler`](./.github/actions/signaler/action.yml). See [GitHub Actions guide](./docs/guides/github-actions.md).
+Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/action.yml). See [GitHub Actions guide](./docs/guides/github-actions.md).
+
+```yaml
+- uses: ./.github/actions/signaler
+  with:
+    cli-version: "4.4.0"
+    quality-profile: web-quality
+    base-url: http://127.0.0.1:3000
+```
 
 ## Usage
 
@@ -192,6 +209,8 @@ Supported providers:
 
 ### Demos
 
+> Demo GIFs were recorded on an older CLI UI; commands and artifacts match current v5 docs (`audit`, `query`, `quality-pack.json`).
+
 ![Init and Audit Workflow](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif)
 *Initializing a project and running an audit in interactive mode*
 
@@ -209,6 +228,7 @@ Signaler generates comprehensive reports in `.signaler/`:
 - `results.json` - Normalized per-combo metrics/opportunities
 - `suggestions.json` - Ranked actions with confidence + evidence pointers
 - `agent-index.json` - Token-conscious AI entrypoint (v3 canonical)
+- `quality-pack.json` - Unified pass/fail for headers, links, and bundle (v5 `--quality-profile`)
 - `analyze.json` - Deterministic action packet for agents (v6)
 - `analyze.md` - Human digest for top actions and verify intent
 - `verify.json` - Focused before/after check results with pass/fail

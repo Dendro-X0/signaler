@@ -11,6 +11,29 @@ const PRIMARY_JOB_ARTIFACTS = [
   "run.json",
 ] as const;
 
+export async function writeJobLatestFailure(params: {
+  readonly job: EngineJobV1;
+  readonly failureReason: string;
+  readonly failureMessage: string;
+  readonly exitCode?: 0 | 1 | 2;
+}): Promise<void> {
+  const startedAt = new Date().toISOString();
+  const result: EngineJobResultV1 = {
+    schemaVersion: 1,
+    jobId: params.job.jobId,
+    status: "failed",
+    startedAt,
+    completedAt: startedAt,
+    elapsedMs: 0,
+    steps: [],
+    primaryArtifacts: [...PRIMARY_JOB_ARTIFACTS],
+    exitCode: params.exitCode ?? 1,
+    failureReason: params.failureReason,
+    failureMessage: params.failureMessage,
+  };
+  await writeEngineJobArtifacts({ job: params.job, result });
+}
+
 export async function writeEngineJobArtifacts(params: {
   readonly job: EngineJobV1;
   readonly result: EngineJobResultV1;
@@ -67,6 +90,8 @@ export async function executeEngineJob(options: EngineJobRunOptions): Promise<En
     elapsedMs: Date.now() - startedMs,
     steps: stepResults,
     primaryArtifacts: [...PRIMARY_JOB_ARTIFACTS],
+    exitCode,
+    failedStep,
   };
 
   if (options.writeArtifacts !== false) {

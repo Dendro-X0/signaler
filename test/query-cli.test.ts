@@ -41,6 +41,25 @@ async function withArtifacts(
       "utf8",
     );
     await writeFile(
+      resolve(outDir, "run.json"),
+      JSON.stringify({ completedAt: "2026-05-28T11:00:30.000Z" }),
+      "utf8",
+    );
+    await writeFile(
+      resolve(outDir, "job-latest.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        jobId: "job-test",
+        status: "success",
+        startedAt: "2026-05-28T11:00:00.000Z",
+        completedAt: "2026-05-28T11:00:35.000Z",
+        elapsedMs: 35000,
+        steps: [{ command: "run", exitCode: 0, elapsedMs: 30000 }],
+        primaryArtifacts: [],
+      }),
+      "utf8",
+    );
+    await writeFile(
       resolve(outDir, "performance-triage.json"),
       JSON.stringify({
         generatedAt: new Date().toISOString(),
@@ -85,9 +104,57 @@ describe("query-cli", () => {
       } finally {
         console.log = original;
       }
-      const payload = JSON.parse(logs.join("\n")) as { view: string; reportingModel: string };
+      const payload = JSON.parse(logs.join("\n")) as {
+        view: string;
+        reportingModel: string;
+        artifactStatus?: { state: string };
+      };
       expect(payload.view).toBe("perf");
       expect(payload.reportingModel).toBe("issue-count");
+      expect(payload.artifactStatus?.state).toBe("fresh");
+    });
+  });
+
+  it("surfaces stale artifact status when latest job failed before run", async () => {
+    await withArtifacts(async (root) => {
+      const outDir = resolve(root, ".signaler");
+      await writeFile(
+        resolve(outDir, "run.json"),
+        JSON.stringify({ completedAt: "2026-05-28T10:00:00.000Z" }),
+        "utf8",
+      );
+      await writeFile(
+        resolve(outDir, "job-latest.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          jobId: "job-stale",
+          status: "failed",
+          startedAt: "2026-05-28T11:00:00.000Z",
+          completedAt: "2026-05-28T11:00:01.000Z",
+          elapsedMs: 1,
+          steps: [],
+          primaryArtifacts: [],
+          failureReason: "managed-serve",
+          failureMessage: "startup timeout",
+        }),
+        "utf8",
+      );
+      const logs: string[] = [];
+      const original = console.log;
+      console.log = (value?: unknown) => {
+        logs.push(String(value));
+      };
+      try {
+        await runQueryCli(["node", "signaler", "query", "--dir", outDir, "--view", "perf", "--top", "5"]);
+      } finally {
+        console.log = original;
+      }
+      const payload = JSON.parse(logs.join("\n")) as {
+        artifactStatus?: { state: string; trustArtifacts: boolean; warnings: string[] };
+      };
+      expect(payload.artifactStatus?.state).toBe("stale");
+      expect(payload.artifactStatus?.trustArtifacts).toBe(false);
+      expect(payload.artifactStatus?.warnings.length).toBeGreaterThan(0);
     });
   });
 });

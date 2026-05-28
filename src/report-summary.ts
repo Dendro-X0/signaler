@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { evaluateArtifactFreshness } from "./artifact-freshness.js";
 import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
 import { formatDiscoveryCoverageLine, type DiscoveryCoverage } from "./discovery-coverage.js";
@@ -48,6 +49,7 @@ export async function printAuditSummary(params: { readonly outputDir: string }):
     readonly status?: string;
     readonly steps?: readonly { readonly command: string; readonly exitCode: number }[];
   } | undefined;
+  const artifactStatus = await evaluateArtifactFreshness(outputDir);
 
   const lines: string[] = [];
   lines.push("Signaler audit summary");
@@ -118,6 +120,14 @@ export async function printAuditSummary(params: { readonly outputDir: string }):
     if (analyzeStep && analyzeStep.exitCode !== 0) {
       lines.push("");
       lines.push("Job note: analyze step failed (exit 2). Use performance-triage.json and `signaler query --view perf`.");
+    }
+  }
+
+  if (artifactStatus.state !== "fresh" && artifactStatus.warnings.length > 0) {
+    lines.push("");
+    lines.push(`Artifact status: ${artifactStatus.state}`);
+    for (const warning of artifactStatus.warnings) {
+      lines.push(`  - ${warning}`);
     }
   }
 

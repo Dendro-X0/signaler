@@ -6,9 +6,9 @@ branding:
 
 inputs:
   cli-version:
-    description: JSR package version (e.g. 4.3.0). Bump before each release publish.
+    description: JSR package version (e.g. 4.4.0). Bump before each release publish.
     required: false
-    default: "4.3.0"
+    default: "4.4.0"
   base-url:
     description: Application base URL for audits
     required: false
@@ -27,6 +27,10 @@ inputs:
     default: "ci"
   run-profile:
     description: Optional policy profile (ci-strict, pr-quick, release-full). Overrides preset when set.
+    required: false
+    default: ""
+  quality-profile:
+    description: Optional bundled quality profile (web-quality). Overrides preset and run-profile when set.
     required: false
     default: ""
   managed-serve-mode:
@@ -66,8 +70,31 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Run Signaler (quality profile)
+      if: inputs.quality-profile != ''
+      shell: bash
+      working-directory: ${{ inputs.cwd }}
+      env:
+        SIGNALER_BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+        ARGS=(
+          job run
+          --quality-profile "${{ inputs.quality-profile }}"
+          --base-url "${SIGNALER_BASE_URL}"
+          --managed-serve
+          --managed-serve-mode "${{ inputs.managed-serve-mode }}"
+          --in-process
+          --dir "${{ inputs.output-dir }}"
+          --scope "${{ inputs.scope }}"
+        )
+        if [ -n "${{ inputs.config-path }}" ]; then
+          ARGS+=(--config "${{ inputs.config-path }}")
+        fi
+        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+
     - name: Run Signaler (run profile)
-      if: inputs.run-profile != ''
+      if: inputs.run-profile != '' && inputs.quality-profile == ''
       shell: bash
       working-directory: ${{ inputs.cwd }}
       env:
@@ -92,7 +119,7 @@ runs:
         npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
 
     - name: Run Signaler (audit preset)
-      if: inputs.preset == 'audit' && inputs.run-profile == ''
+      if: inputs.preset == 'audit' && inputs.run-profile == '' && inputs.quality-profile == ''
       shell: bash
       working-directory: ${{ inputs.cwd }}
       env:
@@ -110,7 +137,7 @@ runs:
           --dir "${{ inputs.output-dir }}"
 
     - name: Run Signaler (job preset)
-      if: inputs.preset != 'audit' && inputs.run-profile == ''
+      if: inputs.preset != 'audit' && inputs.run-profile == '' && inputs.quality-profile == ''
       shell: bash
       working-directory: ${{ inputs.cwd }}
       env:
@@ -174,6 +201,20 @@ runs:
             echo "### Performance triage (JSON)"
             echo '```json'
             echo "${PERF_JSON}" | head -c 12000
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [ -f "${{ inputs.output-dir }}/quality-pack.json" ]; then
+          PACK_JSON="$(cat "${{ inputs.output-dir }}/quality-pack.json")"
+          PACK_PASSED="$(echo "${PACK_JSON}" | node -e "const p=JSON.parse(require('fs').readFileSync(0,'utf8'));process.stdout.write(String(p.passed));")"
+          if [ "${PACK_PASSED}" = "false" ]; then
+            echo "::error title=Signaler quality pack::Quality pack gate failed — see quality-pack.json"
+          fi
+          {
+            echo ""
+            echo "### Quality pack"
+            echo '```json'
+            echo "${PACK_JSON}" | head -c 6000
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
         fi

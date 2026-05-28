@@ -10,6 +10,7 @@ import {
   spawnPackageScriptProcess,
   stopManagedServeChild,
 } from "./managed-serve-lifecycle.js";
+import { formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
 import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedDevServerOptions = {
@@ -89,7 +90,17 @@ export async function ensureManagedDevServer(
     });
   } catch (error) {
     await stopManagedServeChild(child);
-    throw error;
+    throw new Error(
+      formatManagedServeStartTimeout({
+        mode: "dev",
+        baseUrl,
+        timeoutMs: options.startTimeoutMs ?? 180_000,
+        requestedProjectRoot: options.projectRoot,
+        resolvedProjectRoot: plan.projectRoot,
+        script: `${plan.packageManager} run ${plan.devScript}`,
+        cause: error,
+      }),
+    );
   }
 
   const handle: ManagedDevServerHandle = {

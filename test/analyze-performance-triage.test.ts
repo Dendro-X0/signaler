@@ -46,8 +46,46 @@ describe("analyze-performance-triage", () => {
   it("builds performance candidates with issue-count verify direction", () => {
     const drafts = buildCandidateDraftsFromPerformanceTriage({ triage: triageFixture, results });
     expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.category).toBe("performance");
     expect(drafts[0]?.verifyPlan.expectedDirection.issueCount).toBe("down");
     expect(drafts[0]?.verifyPlan.expectedDirection.score).toBeUndefined();
+  });
+
+  it("maps non-performance lighthouse audits to the right analyze category", () => {
+    const drafts = buildCandidateDraftsFromPerformanceTriage({
+      triage: {
+        ...triageFixture,
+        uniqueIssues: [
+          {
+            id: "document-title",
+            title: "Document doesn't have a `<title>` element",
+            severity: "red",
+            kind: "audit",
+            affectedCombos: 1,
+            pointer: "performance-triage.json#/uniqueIssues/0",
+          },
+          {
+            id: "landmark-one-main",
+            title: "Document does not have a main landmark.",
+            severity: "red",
+            kind: "audit",
+            affectedCombos: 1,
+            pointer: "performance-triage.json#/uniqueIssues/1",
+          },
+        ],
+      },
+      results: [
+        {
+          ...results[0]!,
+          failedAudits: [
+            { id: "document-title", title: "Document doesn't have a `<title>` element", score: 0, scoreDisplayMode: "binary" },
+            { id: "landmark-one-main", title: "Document does not have a main landmark.", score: 0, scoreDisplayMode: "binary" },
+          ],
+        },
+      ],
+    });
+    expect(drafts.find((draft) => draft.sourceSuggestionId === "triage-document-title")?.category).toBe("seo");
+    expect(drafts.find((draft) => draft.sourceSuggestionId === "triage-landmark-one-main")?.category).toBe("accessibility");
   });
 
   it("merges triage and suggestion drafts by issue id", () => {

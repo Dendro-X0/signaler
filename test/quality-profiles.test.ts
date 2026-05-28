@@ -7,8 +7,8 @@ const baseParams = {
 } as const;
 
 describe("quality profiles", () => {
-  it("exports web-quality", () => {
-    expect(QUALITY_PROFILE_NAMES).toEqual(["web-quality"]);
+  it("exports quality profile names", () => {
+    expect(QUALITY_PROFILE_NAMES).toEqual(["web-quality", "pr-quality"]);
   });
 
   it("web-quality extends ci-strict with headers, links, and bundle steps", () => {
@@ -29,5 +29,13 @@ describe("quality profiles", () => {
     const bundleArgs = job.steps.find((step) => step.command === "bundle")?.args ?? [];
     expect(bundleArgs).toContain("--project-root");
     expect(bundleArgs).toContain("/tmp/project");
+  });
+
+  it("pr-quality uses changed-only run and side runners", () => {
+    const job = buildQualityProfileJob({ ...baseParams, qualityProfile: "pr-quality" });
+    expect(job.qualityProfile).toBe("pr-quality");
+    expect(job.steps.map((step) => step.command)).toEqual(["run", "analyze", "headers", "links", "bundle"]);
+    const runArgs = job.steps.find((step) => step.command === "run")?.args ?? [];
+    expect(runArgs).toContain("--changed-only");
   });
 });

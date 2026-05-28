@@ -1,6 +1,6 @@
 # Signaler GitHub Actions
 
-Status: Active (v4.3 development)  
+Status: Active (v5.0)  
 Audience: platform engineers, CI maintainers
 
 ## Official composite action
@@ -12,7 +12,7 @@ Use it from the same repo (or pin to a tag after release):
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.2.0"   # bump when you publish a new JSR version
+    cli-version: "4.4.0"
     base-url: http://127.0.0.1:3000
     preset: ci              # audit | ci | pr | agent
     scope: full
@@ -23,12 +23,13 @@ Use it from the same repo (or pin to a tag after release):
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `cli-version` | `4.2.0` | JSR `@signaler/cli` version |
+| `cli-version` | `4.4.0` | JSR `@signaler/cli` version |
 | `base-url` | `http://127.0.0.1:3000` | App URL |
 | `cwd` | `.` | Project root |
 | `scope` | `full` | Discover scope for `audit` / `ci` / `agent` |
 | `preset` | `ci` | `audit`, `ci`, `pr`, or `agent` |
 | `run-profile` | (empty) | `ci-strict`, `pr-quick`, or `release-full` (overrides `preset`) |
+| `quality-profile` | (empty) | `web-quality` or `pr-quality` — Lighthouse + headers + links + bundle (overrides `preset` and `run-profile`) |
 | `managed-serve-mode` | `auto` | `auto`, `dev`, or `production` |
 | `output-dir` | `.signaler` | Artifact directory |
 | `config-path` | (empty) | Optional config file |
@@ -59,7 +60,32 @@ Use `--run-profile` instead of `--preset` when you want named policy bundles:
 signaler job run --run-profile ci-strict --managed-serve --in-process --base-url http://127.0.0.1:3000
 ```
 
-Do not combine `--preset` and `--run-profile`.
+Do not combine `--preset`, `--run-profile`, and `--quality-profile`.
+
+### Quality profiles (v5.0+)
+
+**`web-quality`** runs ci-strict Lighthouse, then headers, links, and bundle side runners, and evaluates `quality-pack.json`:
+
+```yaml
+- uses: ./.github/actions/signaler
+  with:
+    cli-version: "4.4.0"
+    quality-profile: web-quality
+    base-url: http://127.0.0.1:3000
+    scope: full
+```
+
+```bash
+signaler audit --quality-profile web-quality --managed-serve --in-process --base-url http://127.0.0.1:3000
+```
+
+After the run, read `agent-index.json` → `qualityPack` and side-runner entrypoints, or `quality-pack.json` directly.
+
+**`pr-quality`** uses changed-only Lighthouse (`--changed-only`) plus the same side runners — suited for PR workflows:
+
+```bash
+signaler job run --quality-profile pr-quality --managed-serve --in-process --base-url http://127.0.0.1:3000
+```
 
 ### PR baseline regression
 

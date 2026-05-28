@@ -2,7 +2,7 @@ import type { EngineJobStepV1, EngineJobV1 } from "../../engine-contracts/jobs/i
 import type { BuildPresetJobParams } from "./presets.js";
 import { buildRunProfileJob } from "./run-profiles.js";
 
-export const QUALITY_PROFILE_NAMES = ["web-quality"] as const;
+export const QUALITY_PROFILE_NAMES = ["web-quality", "pr-quality"] as const;
 
 export type QualityProfileName = (typeof QUALITY_PROFILE_NAMES)[number];
 
@@ -45,6 +45,15 @@ export function buildQualityProfileJob(
         ...base,
         preset: "custom",
         qualityProfile: "web-quality",
+        steps: [...base.steps, ...buildSideRunnerSteps(params)],
+      };
+    }
+    case "pr-quality": {
+      const base = buildRunProfileJob({ ...params, runProfile: "pr-quick" });
+      return {
+        ...base,
+        preset: "custom",
+        qualityProfile: "pr-quality",
         steps: [...base.steps, ...buildSideRunnerSteps(params)],
       };
     }

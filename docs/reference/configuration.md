@@ -146,6 +146,33 @@ signaler query --view delta --dir .signaler --baseline .signaler-main --fail-on-
 
 See [When deltas lie](../guides/when-deltas-lie.md).
 
+## 3d. Quality pack (v5, `--quality-profile`)
+
+Evaluated after `headers`, `links`, and `bundle` side runners when using `--quality-profile web-quality` or `pr-quality`.
+
+```json
+{
+  "qualityPack": {
+    "maxHeaderFailures": 0,
+    "maxBrokenLinks": 0
+  }
+}
+```
+
+- Writes `.signaler/quality-pack.json` with pass/fail and counts.
+- On failure, includes **onboarding guidance** in CLI output and `quality-pack.json` (`guidance` sections for headers, links, bundle).
+- Merges pack summary into `agent-index.json` (`qualityPack` block + entrypoints).
+- Pair with `signaler audit --quality-profile web-quality` for a single CI exit code.
+
+CLI:
+
+```bash
+signaler audit --quality-profile web-quality --managed-serve --in-process
+signaler job run --quality-profile pr-quality --managed-serve --in-process
+```
+
+Do not combine `--quality-profile` with `--preset` or `--run-profile`.
+
 ## 4. Warm-up
 
 Set `warmUp: true` to run a lightweight warm-up request pass before Lighthouse audits.

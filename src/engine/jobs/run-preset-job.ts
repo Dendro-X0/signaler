@@ -17,8 +17,9 @@ import {
 } from "../../quality-pack.js";
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import { createInProcessEngineJobStepRunner } from "./in-process-step-runner.js";
-import { executeEngineJob } from "./run-job.js";
+import { executeEngineJob, writeJobLatestFailure } from "./run-job.js";
 import { ensureManagedServer, type ManagedServeMode } from "../serve/index.js";
+import { resolveNextAppRoot } from "../serve/resolve-serve-plan.js";
 import type { EngineJobPreset } from "./types.js";
 
 export type RunPresetJobParams = BuildPresetJobParams & {
@@ -92,6 +93,34 @@ function patchDiscoverBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
   };
 }
 
+export function patchBundleStepArgs(job: EngineJobV1, params: {
+  readonly bundleProjectRoot: string;
+  readonly outputDir: string;
+}): EngineJobV1 {
+  return {
+    ...job,
+    steps: job.steps.map((step) => {
+      if (step.command !== "bundle") {
+        return step;
+      }
+      const nextArgs = [...(step.args ?? [])];
+      const rootIndex = nextArgs.findIndex((value) => value === "--project-root" || value === "--root");
+      if (rootIndex >= 0 && rootIndex + 1 < nextArgs.length) {
+        nextArgs[rootIndex + 1] = params.bundleProjectRoot;
+      } else {
+        nextArgs.push("--project-root", params.bundleProjectRoot);
+      }
+      const outputIndex = nextArgs.findIndex((value) => value === "--output-dir" || value === "--dir");
+      if (outputIndex >= 0 && outputIndex + 1 < nextArgs.length) {
+        nextArgs[outputIndex + 1] = params.outputDir;
+      } else {
+        nextArgs.push("--output-dir", params.outputDir);
+      }
+      return { ...step, args: nextArgs };
+    }),
+  };
+}
+
 export async function runPresetJob(params: RunPresetJobParams): Promise<RunPresetJobOutcome> {
   let job: EngineJobV1;
   if (params.jobFile) {
@@ -114,44 +143,65 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
   if (params.skipDiscover) {
     job = withoutDiscoverStep(job);
   }
+  if (job.steps.some((step) => step.command === "bundle")) {
+    const bundleProjectRoot = await resolveNextAppRoot(job.cwd);
+    if (bundleProjectRoot !== job.cwd) {
+      // eslint-disable-next-line no-console
+      console.log(`Bundle scan root resolved to ${bundleProjectRoot} (from ${job.cwd}).`);
+    }
+    job = patchBundleStepArgs(job, {
+      bundleProjectRoot,
+      outputDir: resolve(job.cwd, job.outputDir),
+    });
+  }
 
   let managedBaseUrl: string | undefined;
   if (params.managedServe) {
-    const managedServer = await ensureManagedServer({
-      projectRoot: job.cwd,
-      baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
-      mode: params.managedServeMode ?? "auto",
-      skipBuild: params.managedServeSkipBuild ?? false,
-      reuseUnhealthy: params.managedServeReuse ?? false,
-    });
-    managedBaseUrl = managedServer.baseUrl;
-    if (managedServer.startedBySignaler) {
-      job = patchDiscoverBaseUrl(job, managedServer.baseUrl);
-    }
     try {
-      const stepRunner = params.inProcess
-        ? createInProcessEngineJobStepRunner()
-        : createDefaultEngineJobStepRunner();
-      const outcome = await executeEngineJob({ job, stepRunner });
-      if (outcome.exitCode === 2) {
-        await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
-      }
-      const exitCode = await applyQualityPackExitCode({
-        job,
-        priorExitCode: outcome.exitCode,
-        configPath: params.configPath,
+      const managedServer = await ensureManagedServer({
+        projectRoot: job.cwd,
+        baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
+        mode: params.managedServeMode ?? "auto",
+        skipBuild: params.managedServeSkipBuild ?? false,
+        reuseUnhealthy: params.managedServeReuse ?? false,
       });
-      return {
-        exitCode,
-        result: outcome.result,
-        job,
-        managedBaseUrl,
-      };
-    } finally {
+      managedBaseUrl = managedServer.baseUrl;
       if (managedServer.startedBySignaler) {
-        console.log(`Managed serve: stopping ${managedServer.mode} server...`);
-        await managedServer.stop();
+        job = patchDiscoverBaseUrl(job, managedServer.baseUrl);
       }
+      try {
+        const stepRunner = params.inProcess
+          ? createInProcessEngineJobStepRunner()
+          : createDefaultEngineJobStepRunner();
+        const outcome = await executeEngineJob({ job, stepRunner });
+        if (outcome.exitCode === 2) {
+          await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
+        }
+        const exitCode = await applyQualityPackExitCode({
+          job,
+          priorExitCode: outcome.exitCode,
+          configPath: params.configPath,
+        });
+        return {
+          exitCode,
+          result: outcome.result,
+          job,
+          managedBaseUrl,
+        };
+      } finally {
+        if (managedServer.startedBySignaler) {
+          console.log(`Managed serve: stopping ${managedServer.mode} server...`);
+          await managedServer.stop();
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await writeJobLatestFailure({
+        job,
+        failureReason: "managed-serve",
+        failureMessage: message,
+      });
+      throw error;
     }
   }
 

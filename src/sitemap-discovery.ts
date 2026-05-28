@@ -1,5 +1,6 @@
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
+import { originsEquivalent } from "./loopback-origin.js";
 
 type SitemapDiscoveryOptions = {
   readonly baseUrl: string;
@@ -70,8 +71,7 @@ function resolveRoutesFromUrls(params: { readonly baseUrl: string; readonly urls
     } catch {
       continue;
     }
-    const isSameOrigin: boolean = parsed.origin === base.origin;
-    if (!isSameOrigin) {
+    if (!originsEquivalent(parsed.origin, base.origin)) {
       continue;
     }
     const route: string = normaliseRoute(parsed.pathname);

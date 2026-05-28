@@ -29,14 +29,17 @@ import { resolveOutputDir } from "./infrastructure/filesystem/output.js";
 import { readEngineVersion } from "./engine-version.js";
 import {
   ensureManagedServer,
-  parseManagedServeMode,
-  resolveManagedServeModeFromEnv,
   writeEngineRunIndex,
   type ManagedServeMode,
 } from "./engine/index.js";
 import { resolveEngineJsonMode } from "./engine-json.js";
 import type { EngineEventPayload } from "./engine-contracts/events/index.js";
 import { emitEngineEvent } from "./shell/index.js";
+import {
+  applyOrchestratorServeFlag,
+  createOrchestratorServeDefaults,
+  type OrchestratorServeOptions,
+} from "./shell/orchestrator-serve-options.js";
 import { buildExportBundle } from "./build-export-bundle.js";
 import {
   avgPerformanceSummaryLabel,
@@ -2440,12 +2443,14 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let artifactProfile: MachineArtifactProfile = "lean";
   let machineTokenBudgetOverride: number | undefined;
   let perfIncludeYellow: boolean | undefined;
-  let managedServe = process.env.SIGNALER_MANAGED_SERVE === "1";
-  let managedServeMode: ManagedServeMode = resolveManagedServeModeFromEnv() ?? "production";
-  let managedServeSkipBuild = false;
-  let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
+  const serveOptions: OrchestratorServeOptions = createOrchestratorServeDefaults();
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
+    const serveSkip = applyOrchestratorServeFlag(arg, argv, i, serveOptions);
+    if (serveSkip >= 0) {
+      i += serveSkip;
+      continue;
+    }
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
       configPath = argv[i + 1];
       i += 1;
@@ -2684,15 +2689,6 @@ function parseArgs(argv: readonly string[]): CliArgs {
       perfIncludeYellow = true;
     } else if (arg === "--no-perf-include-yellow") {
       perfIncludeYellow = false;
-    } else if (arg === "--managed-serve" || arg === "--auto-serve") {
-      managedServe = true;
-    } else if (arg === "--managed-serve-mode" && i + 1 < argv.length) {
-      managedServeMode = parseManagedServeMode(argv[i + 1]);
-      i += 1;
-    } else if (arg === "--managed-serve-skip-build") {
-      managedServeSkipBuild = true;
-    } else if (arg === "--managed-serve-reuse") {
-      managedServeReuse = true;
     } else if (arg === "--artifact-profile" && i + 1 < argv.length) {
       const value: string = argv[i + 1] ?? "";
       if (value === "lean" || value === "standard" || value === "diagnostics") {
@@ -2796,10 +2792,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
     artifactProfile,
     machineTokenBudgetOverride,
     perfIncludeYellow,
-    managedServe,
-    managedServeMode,
-    managedServeSkipBuild,
-    managedServeReuse,
+    managedServe: serveOptions.managedServe,
+    managedServeMode: serveOptions.managedServeMode,
+    managedServeSkipBuild: serveOptions.managedServeSkipBuild,
+    managedServeReuse: serveOptions.managedServeReuse,
   };
 }
 
@@ -3009,8 +3005,8 @@ function printAuditFlags(): void {
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
-      "  --managed-serve | --auto-serve  Start server when base URL is down (or SIGNALER_MANAGED_SERVE=1)",
-      "  --managed-serve-mode <mode>  dev | production | auto (default production for run; auto for audit)",
+      "  --managed-serve | --auto-serve | --no-managed-serve  Start server when base URL is down (default on; SIGNALER_MANAGED_SERVE=0 to disable)",
+      "  --managed-serve-mode <mode>  dev | production | auto (default auto)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
     ].join("\n"),

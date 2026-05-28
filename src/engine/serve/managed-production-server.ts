@@ -11,6 +11,7 @@ import {
   type PackageManagerId,
   type ProductionServePlan,
 } from "./resolve-serve-plan.js";
+import { formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
 import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedProductionServerOptions = {
@@ -266,7 +267,17 @@ export async function ensureManagedProductionServer(
     });
   } catch (error) {
     await stopChildProcess(child);
-    throw error;
+    throw new Error(
+      formatManagedServeStartTimeout({
+        mode: "production",
+        baseUrl,
+        timeoutMs: options.startTimeoutMs ?? 120_000,
+        requestedProjectRoot: options.projectRoot,
+        resolvedProjectRoot: plan.projectRoot,
+        script: `${plan.packageManager} run ${plan.startScript}`,
+        cause: error,
+      }),
+    );
   }
 
   const handle: ManagedProductionServerHandle = {

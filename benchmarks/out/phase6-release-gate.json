@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-26T10:02:32.874Z",
+  "generatedAt": "2026-05-28T16:17:33.613Z",
   "status": "ok",
   "checks": [
     {
@@ -24,7 +24,7 @@
     {
       "id": "release-notes-continuity",
       "status": "ok",
-      "details": "Release notes index + historical notes exist for package version 4.3.0.",
+      "details": "Release notes index + historical notes exist for package version 4.4.0.",
       "blocking": true
     },
     {

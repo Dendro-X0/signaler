@@ -70,6 +70,32 @@ describe("job-cli", () => {
     ).rejects.toThrow(/either --preset or --run-profile/i);
   });
 
+  it("prints web-quality profile job via show", async () => {
+    const lines: string[] = [];
+    const original = console.log;
+    console.log = (value?: unknown) => {
+      lines.push(String(value));
+    };
+    try {
+      await runJobCli(["node", "signaler", "job", "show", "--quality-profile", "web-quality", "--json"]);
+    } finally {
+      console.log = original;
+    }
+    const payload = JSON.parse(lines.join("\n")) as {
+      readonly qualityProfile?: string;
+      readonly steps: readonly { readonly command: string }[];
+    };
+    expect(payload.qualityProfile).toBe("web-quality");
+    expect(payload.steps.map((step) => step.command)).toEqual([
+      "discover",
+      "run",
+      "analyze",
+      "headers",
+      "links",
+      "bundle",
+    ]);
+  });
+
   it("prints release-full run profile with fidelity mode", async () => {
     const lines: string[] = [];
     const original = console.log;

@@ -2,6 +2,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadConfig } from "./core/config.js";
 import type { QualityPackConfig } from "./core/types.js";
+import { evaluateLinksCheckStatus, type LinksCheckStatus } from "./links-check-status.js";
+import { buildQualityPackGuidance, formatQualityPackGuidanceText, type QualityPackGuidanceSection } from "./quality-pack-guidance.js";
 
 export type QualityPackViolation = {
   readonly id: string;
@@ -18,6 +20,8 @@ export type QualityPackResult = {
   readonly summary: {
     readonly headerFailures: number;
     readonly brokenLinks: number;
+    readonly linksDiscovered: number;
+    readonly linksStatus: LinksCheckStatus;
     readonly bundleScanned: boolean;
     readonly bundleFileCount: number;
   };
@@ -27,6 +31,7 @@ export type QualityPackResult = {
     readonly links: string;
     readonly bundle: string;
   };
+  readonly guidance?: readonly QualityPackGuidanceSection[];
 };
 
 type HeadersArtifact = {
@@ -38,6 +43,10 @@ type HeadersArtifact = {
 
 type LinksArtifact = {
   readonly broken?: readonly unknown[];
+  readonly discovered?: {
+    readonly total?: number;
+  };
+  readonly checkStatus?: "pass" | "inconclusive" | "fail";
 };
 
 type BundleArtifact = {
@@ -85,10 +94,20 @@ export function evaluateQualityPack(params: {
   }
 
   const brokenLinks = params.links?.broken?.length ?? 0;
+  const linksDiscovered = params.links?.discovered?.total ?? 0;
+  const linksStatus =
+    params.links?.checkStatus ?? evaluateLinksCheckStatus({ discoveredCount: linksDiscovered, brokenCount: brokenLinks });
   if (params.links === null) {
     violations.push({
       id: "links-missing",
       message: "links.json not found after quality profile run.",
+      severity: "critical",
+    });
+  } else if (linksStatus === "inconclusive") {
+    violations.push({
+      id: "links-inconclusive",
+      message:
+        "Links check is inconclusive: 0 URLs discovered (sitemap/crawl found nothing). Broken=0 is not a meaningful pass.",
       severity: "critical",
     });
   } else if (brokenLinks > limits.maxBrokenLinks) {
@@ -116,7 +135,7 @@ export function evaluateQualityPack(params: {
     });
   }
 
-  return {
+  const result: QualityPackResult = {
     schemaVersion: 1,
     profile: params.profile,
     passed: violations.length === 0,
@@ -125,6 +144,8 @@ export function evaluateQualityPack(params: {
     summary: {
       headerFailures,
       brokenLinks,
+      linksDiscovered,
+      linksStatus,
       bundleScanned: params.bundle !== null,
       bundleFileCount,
     },
@@ -134,6 +155,10 @@ export function evaluateQualityPack(params: {
       links: "links.json",
       bundle: "bundle-audit.json",
     },
+  };
+  return {
+    ...result,
+    guidance: buildQualityPackGuidance(result),
   };
 }
 
@@ -172,7 +197,56 @@ export async function evaluateAndWriteQualityPack(params: {
   });
 
   await writeFile(resolve(outputDir, "quality-pack.json"), `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  await mergeQualityPackIntoAgentIndex({ outputDir, pack: result });
   return result;
+}
+
+export async function mergeQualityPackIntoAgentIndex(params: {
+  readonly outputDir: string;
+  readonly pack: QualityPackResult;
+}): Promise<void> {
+  const agentIndexPath = resolve(params.outputDir, "agent-index.json");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(agentIndexPath, "utf8")) as unknown;
+  } catch {
+    return;
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return;
+  }
+  const index = parsed as Record<string, unknown>;
+  if (index.contractVersion !== "v3") {
+    return;
+  }
+  const entrypoints =
+    typeof index.entrypoints === "object" && index.entrypoints !== null
+      ? { ...(index.entrypoints as Record<string, string>) }
+      : {};
+  entrypoints.headers = "headers.json";
+  entrypoints.links = "links.json";
+  entrypoints.bundle = "bundle-audit.json";
+  entrypoints.qualityPack = "quality-pack.json";
+  const updated = {
+    ...index,
+    entrypoints,
+    qualityPack: {
+      profile: params.pack.profile,
+      passed: params.pack.passed,
+      relativePath: "quality-pack.json" as const,
+      summary: {
+        headerFailures: params.pack.summary.headerFailures,
+        brokenLinks: params.pack.summary.brokenLinks,
+        linksDiscovered: params.pack.summary.linksDiscovered,
+        linksStatus: params.pack.summary.linksStatus,
+        bundleFileCount: params.pack.summary.bundleFileCount,
+      },
+      ...(params.pack.guidance && params.pack.guidance.length > 0
+        ? { guidance: params.pack.guidance.map((section) => section.title) }
+        : {}),
+    },
+  };
+  await writeFile(agentIndexPath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
 }
 
 export function mergeQualityPackExitCode(priorExitCode: number, pack: QualityPackResult): number {
@@ -183,5 +257,10 @@ export function mergeQualityPackExitCode(priorExitCode: number, pack: QualityPac
 }
 
 export function formatQualityPackFailures(pack: QualityPackResult): string {
-  return pack.violations.map((v) => `- ${v.message}`).join("\n");
+  const lines = pack.violations.map((v) => `- ${v.message}`);
+  const guidanceText = formatQualityPackGuidanceText(pack.guidance ?? buildQualityPackGuidance(pack));
+  if (guidanceText.length > 0) {
+    lines.push("", guidanceText);
+  }
+  return lines.join("\n");
 }

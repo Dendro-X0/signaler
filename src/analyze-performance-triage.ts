@@ -6,6 +6,7 @@ import type {
   ResultsV3Line,
 } from "./engine-contracts/artifacts/index.js";
 import { extractIssueIdFromSuggestionId } from "./external-signals.js";
+import { inferLighthouseIssueCategory } from "./lighthouse-audit-category.js";
 
 export type AnalyzeCandidateDraft = {
   readonly sourceSuggestionId: string;
@@ -133,7 +134,7 @@ export function buildCandidateDraftsFromPerformanceTriage(params: {
     drafts.push({
       sourceSuggestionId: `triage-${issue.id}`,
       title: issue.title,
-      category: "performance",
+      category: inferLighthouseIssueCategory({ issueId: issue.id, kind: issue.kind }),
       confidence,
       estimatedImpact: {
         ...(timeMs > 0 ? { timeMs } : {}),

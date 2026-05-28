@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { evaluateArtifactFreshness } from "./artifact-freshness.js";
 import { findPerformanceIssueById, findSuggestionById, loadAgentArtifacts } from "./agent-artifacts.js";
 import { shouldFailOnDeltaProjection } from "./baseline-compare.js";
 import type { BaselineCompareConfig } from "./core/types.js";
@@ -128,6 +129,7 @@ function emit(payload: unknown, args: QueryArgs): void {
 export async function runQueryCli(argv: readonly string[]): Promise<void> {
   const args = parseArgs(argv);
   const artifacts = await loadAgentArtifacts(args.dir);
+  const artifactStatus = await evaluateArtifactFreshness(args.dir);
 
   if (args.view === "delta") {
     const projection = await buildDeltaProjection({
@@ -135,7 +137,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
       baselineDir: args.baselineDir,
       compareDir: args.compareDir,
     });
-    emit(projection, args);
+    emit({ ...projection, artifactStatus }, args);
     if (args.failOnRegression && args.baselineDir !== undefined && args.compareDir !== undefined) {
       const policy: BaselineCompareConfig = {
         maxRedIncrease: 0,
@@ -168,6 +170,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
             optionalReads: ["verify.json", "performance-triage.json"],
             expandCommand: "signaler explain --id <action-id>",
           },
+          artifactStatus,
         },
         args,
       );
@@ -186,6 +189,8 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
         performanceScoreSemantics: artifacts.agentIndex.performanceScoreSemantics,
         entrypoints: artifacts.agentIndex.entrypoints,
         agentProtocol: artifacts.agentIndex.agentProtocol,
+        partialSuccess: artifacts.agentIndex.partialSuccess,
+        artifactStatus,
       },
       args,
     );
@@ -199,6 +204,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
           view: "actions",
           source: "analyze.json",
           actions: artifacts.analyze.actions.slice(0, args.top),
+          artifactStatus,
         },
         args,
       );
@@ -210,6 +216,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
           view: "actions",
           source: "agent-index.json",
           actions: artifacts.agentIndex.topSuggestions.slice(0, args.top),
+          artifactStatus,
         },
         args,
       );
@@ -230,6 +237,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
         categoryScores: artifacts.performanceTriage.categoryScores,
         uniqueIssues: artifacts.performanceTriage.uniqueIssues.slice(0, args.top),
         disclaimer: artifacts.performanceTriage.disclaimer,
+        artifactStatus,
       },
       args,
     );
@@ -244,7 +252,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
       typeof parsed === "object" && parsed !== null && "protocol" in parsed
         ? (parsed as { protocol: unknown }).protocol
         : parsed;
-    emit({ view: "run", protocol }, args);
+    emit({ view: "run", protocol, artifactStatus }, args);
     return;
   }
 

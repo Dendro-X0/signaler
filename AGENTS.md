@@ -14,7 +14,7 @@ Use Signaler to identify the highest-impact web quality issues and drive fix ver
 signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
 ```
 
-Defaults: discover (**full** — all static routes) → run → analyze; managed production serve and in-process steps on by default.
+Defaults: discover (**full** — all static routes) → run → analyze; **managed serve (auto: dev first)** and **in-process** steps on by default. Opt out with `--no-managed-serve` / `--no-in-process`.
 
 After fixes, rerun with incremental skip:
 
@@ -22,11 +22,16 @@ After fixes, rerun with incremental skip:
 signaler audit --cwd /path/to/project --incremental-skip
 ```
 
-**Alternative: explicit job preset**
+**Full web quality (v5)** — Lighthouse CI gate + headers + links + bundle:
+
+```bash
+signaler audit --quality-profile web-quality --cwd /path/to/project --base-url http://127.0.0.1:3000
+```
+
+**Alternative: explicit job preset** (same managed-serve / in-process defaults as `audit`)
 
 ```bash
 signaler job run --preset agent \
-  --managed-serve --in-process \
   --cwd /path/to/project \
   --base-url http://127.0.0.1:3000
 ```
@@ -71,6 +76,10 @@ Config criteria (all optional; defaults shown):
   "baselineDir": ".signaler-main",
   "maxRedIncrease": 0,
   "requireComparabilityMatch": true
+},
+"qualityPack": {
+  "maxHeaderFailures": 0,
+  "maxBrokenLinks": 0
 },
 "incrementalSkip": {
   "enabled": true,

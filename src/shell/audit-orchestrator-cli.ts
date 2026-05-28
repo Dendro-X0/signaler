@@ -2,8 +2,13 @@ import { resolve } from "node:path";
 import { parseQualityProfileName, type QualityProfileName } from "../engine/jobs/quality-profiles.js";
 import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
-import { parseManagedServeMode, resolveManagedServeModeFromEnv, type ManagedServeMode } from "../engine/serve/index.js";
+import { type ManagedServeMode } from "../engine/serve/index.js";
 import { printAuditSummary } from "../report-summary.js";
+import {
+  applyOrchestratorServeFlag,
+  createOrchestratorServeDefaults,
+  type OrchestratorServeOptions,
+} from "./orchestrator-serve-options.js";
 
 export type AuditOrchestratorCliArgs = {
   readonly cwd: string;
@@ -38,11 +43,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let skipDiscover = false;
   let incremental = false;
   let incrementalSkipPassing = false;
-  let inProcess = process.env.SIGNALER_JOB_IN_PROCESS !== "0";
-  let managedServe = process.env.SIGNALER_MANAGED_SERVE !== "0";
-  let managedServeMode: ManagedServeMode = resolveManagedServeModeFromEnv() ?? "auto";
-  let managedServeSkipBuild = false;
-  let managedServeReuse = process.env.SIGNALER_MANAGED_SERVE_REUSE === "1";
+  const serveOptions: OrchestratorServeOptions = createOrchestratorServeDefaults();
   let parallel: number | undefined;
   let runProfile: RunProfileName | undefined;
   let qualityProfile: QualityProfileName | undefined;
@@ -86,34 +87,12 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       skipDiscover = true;
       continue;
     }
-    if (arg === "--no-in-process") {
-      inProcess = false;
-      continue;
-    }
-    if (arg === "--in-process") {
-      inProcess = true;
-      continue;
-    }
-    if (arg === "--no-managed-serve") {
-      managedServe = false;
-      continue;
-    }
-    if (arg === "--managed-serve" || arg === "--auto-serve") {
-      managedServe = true;
-      continue;
-    }
-    if (arg === "--managed-serve-mode" && i + 1 < argv.length) {
-      managedServeMode = parseManagedServeMode(argv[i + 1]);
-      i += 1;
-      continue;
-    }
-    if (arg === "--managed-serve-skip-build") {
-      managedServeSkipBuild = true;
-      continue;
-    }
-    if (arg === "--managed-serve-reuse") {
-      managedServeReuse = true;
-      continue;
+    {
+      const skip = applyOrchestratorServeFlag(arg, argv, i, serveOptions);
+      if (skip >= 0) {
+        i += skip;
+        continue;
+      }
     }
     if (arg === "--parallel" && i + 1 < argv.length) {
       const value = Number.parseInt(argv[i + 1] ?? "", 10);
@@ -167,11 +146,11 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     routesFile,
     discoverScope,
     skipDiscover,
-    inProcess,
-    managedServe,
-    managedServeMode,
-    managedServeSkipBuild,
-    managedServeReuse,
+    inProcess: serveOptions.inProcess,
+    managedServe: serveOptions.managedServe,
+    managedServeMode: serveOptions.managedServeMode,
+    managedServeSkipBuild: serveOptions.managedServeSkipBuild,
+    managedServeReuse: serveOptions.managedServeReuse,
     incremental,
     incrementalSkipPassing,
     parallel,

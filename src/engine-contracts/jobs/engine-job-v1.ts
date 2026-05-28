@@ -32,6 +32,13 @@ export type EngineJobResultV1 = {
   readonly elapsedMs: number;
   readonly steps: readonly EngineJobResultStepV1[];
   readonly primaryArtifacts: readonly string[];
+  /** Present when the job did not fully succeed (0 success, 1 hard fail, 2 analyze-only fail). */
+  readonly exitCode?: 0 | 1 | 2;
+  readonly failedStep?: string;
+  /** Machine-readable failure category (for example managed-serve). */
+  readonly failureReason?: string;
+  /** Human-readable failure detail for job-latest consumers. */
+  readonly failureMessage?: string;
 };
 
 export function isEngineJobV1(value: unknown): value is EngineJobV1 {

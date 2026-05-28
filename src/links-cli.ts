@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import type { ApexConfig } from "./core/types.js";
 import { loadConfig } from "./core/config.js";
 import { buildDevServerGuidanceLines } from "./dev-server-guidance.js";
+import { evaluateLinksCheckStatus, formatLinksCheckStatusLabel } from "./links-check-status.js";
+import { resolveInternalUrl } from "./loopback-origin.js";
 import { runRustNetworkWorker } from "./rust/network-adapter.js";
 import { writeRunnerReports } from "./runner-reporting.js";
 import { writeArtifactsNavigation } from "./artifacts-navigation.js";
@@ -69,6 +71,7 @@ type LinksReport = {
   };
   readonly results: readonly LinkCheckResult[];
   readonly broken: readonly BrokenLink[];
+  readonly checkStatus: "pass" | "inconclusive" | "fail";
 };
 
 type RustLinksResult = {
@@ -245,12 +248,11 @@ function extractHtmlLinks(params: { readonly html: string; readonly baseUrl: str
       return;
     }
     try {
-      const u: URL = new URL(value, params.baseUrl);
-      if (u.origin !== params.origin) {
+      const resolved: string | undefined = resolveInternalUrl(new URL(value, params.baseUrl).toString(), params.origin);
+      if (!resolved) {
         return;
       }
-      u.hash = "";
-      urls.push(u.toString());
+      urls.push(resolved);
     } catch {
       return;
     }
@@ -320,10 +322,14 @@ function buildAiFindings(report: LinksReport): readonly AiFinding[] {
   const findings: AiFinding[] = [];
   findings.push({
     title: "Discovery",
-    severity: report.discovered.truncated ? "warn" : "info",
+    severity: report.checkStatus === "inconclusive" ? "warn" : report.discovered.truncated ? "warn" : "info",
     details: [
+      `Status: ${formatLinksCheckStatusLabel(report.checkStatus)}`,
       `Discovered: ${report.discovered.total} (unique ${report.discovered.unique})${report.discovered.truncated ? " (truncated)" : ""}`,
       `Broken: ${report.broken.length}`,
+      ...(report.checkStatus === "inconclusive"
+        ? ["No URLs were discovered from sitemap or crawl; verify sitemap.xml and base URL."]
+        : []),
     ],
     evidence,
   });
@@ -384,24 +390,24 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     if (sitemapRes.statusCode >= 200 && sitemapRes.statusCode < 300) {
       const urls: readonly string[] = extractSitemapUrls(sitemapRes.body);
       for (const url of urls) {
-        try {
-          const u: URL = new URL(url);
-          if (u.origin !== origin) {
-            continue;
-          }
-          addUrl({ url: u.toString(), source: "sitemap" });
-          if (discovered.length >= args.maxUrls) {
-            truncated = true;
-            break;
-          }
-        } catch {
+        const resolved: string | undefined = resolveInternalUrl(url, origin);
+        if (!resolved) {
           continue;
+        }
+        addUrl({ url: resolved, source: "sitemap" });
+        if (discovered.length >= args.maxUrls) {
+          truncated = true;
+          break;
         }
       }
     } else {
       seedFromConfig();
     }
   } catch {
+    seedFromConfig();
+  }
+
+  if (discovered.length === 0) {
     seedFromConfig();
   }
 
@@ -494,6 +500,10 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
   }
 
   const completedAtMs: number = Date.now();
+  const checkStatus = evaluateLinksCheckStatus({
+    discoveredCount: discovered.length,
+    brokenCount: broken.length,
+  });
   const report: LinksReport = {
     meta: {
       configPath,
@@ -520,6 +530,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     },
     results,
     broken,
+    checkStatus,
   };
 
   const outputDir: string = resolve(".signaler");
@@ -532,6 +543,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     generatedAt: new Date().toISOString(),
     humanTitle: "Signaler Links report",
     humanSummaryLines: [
+      `Status: ${formatLinksCheckStatusLabel(report.checkStatus)}`,
       `Discovered: ${report.discovered.total}${report.discovered.truncated ? " (truncated)" : ""}`,
       `Broken: ${report.broken.length}`,
       `Parallel: ${parallel}`,
@@ -547,6 +559,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
       maxUrls: args.maxUrls,
       discovered: report.discovered,
       brokenCount: report.broken.length,
+      checkStatus: report.checkStatus,
     },
     aiFindings: buildAiFindings(report),
   });
@@ -567,6 +580,7 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
     `Config: ${configPath}`,
     `Base URL: ${config.baseUrl}`,
     `Sitemap: ${sitemapUrl}`,
+    `Status: ${formatLinksCheckStatusLabel(report.checkStatus)}`,
     `Discovered: ${report.discovered.total}${report.discovered.truncated ? " (truncated)" : ""}`,
     `Engine: ${report.meta.accelerator.engine}`,
     `Broken: ${report.broken.length}`,
@@ -575,6 +589,15 @@ export async function runLinksCli(argv: readonly string[], options?: { readonly 
 
   // eslint-disable-next-line no-console
   console.log(renderPanel({ title: theme.bold("Links"), lines }));
+
+  if (report.checkStatus === "inconclusive") {
+    // eslint-disable-next-line no-console
+    console.log(
+      theme.yellow(
+        "Links check inconclusive: 0 URLs discovered. Verify sitemap.xml, base URL, and that the app exposes crawlable links.",
+      ),
+    );
+  }
 
   const table: string = buildBrokenTable(report.broken);
   if (table.length > 0) {

@@ -30,6 +30,10 @@ export interface AgentIndexV3 {
     readonly suggestions: "suggestions.json";
     readonly performanceTriage?: "performance-triage.json";
     readonly analyze?: "analyze.json";
+    readonly headers?: "headers.json";
+    readonly links?: "links.json";
+    readonly bundle?: "bundle-audit.json";
+    readonly qualityPack?: "quality-pack.json";
   };
   readonly performanceReporting?: "issue-count" | "score";
   readonly performanceScoreSemantics?: AgentIndexPerformanceScoreSemanticsV3;
@@ -62,5 +66,19 @@ export interface AgentIndexV3 {
     readonly reason: "analyze-failed";
     readonly message: string;
     readonly fallbackArtifacts: readonly string[];
+  };
+  /** Present after `--quality-profile` jobs (v5). */
+  readonly qualityPack?: {
+    readonly profile: string;
+    readonly passed: boolean;
+    readonly relativePath: "quality-pack.json";
+    readonly summary: {
+      readonly headerFailures: number;
+      readonly brokenLinks: number;
+      readonly linksDiscovered?: number;
+      readonly linksStatus?: "pass" | "inconclusive" | "fail";
+      readonly bundleFileCount: number;
+    };
+    readonly guidance?: readonly string[];
   };
 }

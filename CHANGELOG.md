@@ -2,10 +2,37 @@
 
 ## Unreleased
 
-### Added (v5.0 preview — not released)
+## 4.4.0 - 2026-05-28
+
+### Added
+
+- **Managed-serve timeout diagnostics** — actionable hints when dev/production serve fails to become reachable.
+- **Stale/incomplete artifact signaling** — `artifactStatus` in query views; `job-latest.json` records managed-serve failures.
+- **Links inconclusive semantics** — `checkStatus: inconclusive` when zero URLs discovered; quality-pack fails with `links-inconclusive`.
+- **Quality-pack onboarding guidance** — CLI hints and `quality-pack.json#guidance` for headers, links, and bundle failures.
+- **Loopback origin equivalence** — sitemap URLs on `localhost` match audits on `127.0.0.1`; config-page fallback when sitemap yields no URLs.
+- **Shared orchestrator serve defaults** — `audit`, `job run`, and `run` align on managed serve (on), mode `auto`, and in-process (on for job/audit).
+
+### Changed
+
+- **Monorepo bundle scan root** — quality-profile bundle step scans resolved Next app dir (e.g. `apps/web`).
+- **Analyze category mapping** — SEO/accessibility/best-practices Lighthouse audits no longer labeled as performance.
+- **`signaler job run` flags** — `--managed-serve-mode`, `--no-managed-serve`, `--no-in-process` parity with `audit`.
+
+### Fixed
+
+- Links discovery returning zero URLs when sitemap used `localhost` but config used `127.0.0.1`.
+- Config fallback skipped when sitemap returned HTTP 200 with no usable URLs.
+
+## 5.0.0 - Deferred (implemented, not released)
+
+### Added
 
 - **`--quality-profile web-quality`** on `audit` and `job run` — bundles `ci-strict` Lighthouse gate with `headers`, `links`, and `bundle` steps; writes `quality-pack.json` and a single combined exit code.
+- **`--quality-profile pr-quality`** — changed-only Lighthouse (`pr-quick`) plus headers, links, and bundle.
 - **`qualityPack` config** — `maxHeaderFailures`, `maxBrokenLinks` thresholds for the pack gate.
+- **Agent-index pack pointers** — `qualityPack` summary and side-runner entrypoints on `agent-index.json` after pack evaluation.
+- **GitHub Action `quality-profile` input** — run `web-quality` from CI without manual job args; default `cli-version` is `5.0.0`.
 
 ## 4.3.0 - 2026-05-26
 
