@@ -92,6 +92,10 @@ describe("job-cli", () => {
       "analyze",
       "headers",
       "links",
+      "health",
+      "console",
+      "measure",
+      "accessibility",
       "bundle",
     ]);
   });
