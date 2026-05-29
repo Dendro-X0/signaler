@@ -16,10 +16,10 @@ const REQUIRED_DOCS = [
 ] as const;
 
 const REQUIRED_BENCHMARKS = [
-  "benchmarks/out/phase0-baseline.json",
-  "benchmarks/out/phase0-baseline.md",
-  "benchmarks/out/phase4-baseline.json",
-  "benchmarks/out/phase4-baseline.md",
+  "benchmarks/fixtures/baselines/phase0-baseline.json",
+  "benchmarks/fixtures/baselines/phase0-baseline.md",
+  "benchmarks/fixtures/baselines/phase4-baseline.json",
+  "benchmarks/fixtures/baselines/phase4-baseline.md",
 ] as const;
 
 const REQUIRED_TEMPLATES = [

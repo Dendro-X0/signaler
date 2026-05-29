@@ -1,5 +1,14 @@
 # Benchmarks
 
+**Output layout**
+
+| Path | Git | Purpose |
+|------|-----|---------|
+| `benchmarks/out/` | Ignored (see `out/README.md`) | Ephemeral generator output (`bench:*:gate`, baselines, smoke) |
+| `benchmarks/fixtures/` | Committed | Snapshots for release preflight and validators |
+
+Refresh fixtures after regenerating gates: `pnpm run bench:sync-fixtures`.
+
 Phase 0 establishes reproducible speed/reliability baselines before V5 optimization work.
 
 ## Commands

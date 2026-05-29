@@ -27,10 +27,10 @@ const REQUIRED_RELEASE_ASSETS = [
 ];
 
 const REQUIRED_GATES = [
-  "benchmarks/out/v3-release-gate.json",
-  "benchmarks/out/phase6-release-gate.json",
-  "benchmarks/out/v63-success-gate.json",
-  "benchmarks/out/workstream-j-gate.json",
+  "benchmarks/fixtures/gates/v3-release-gate.json",
+  "benchmarks/fixtures/gates/phase6-release-gate.json",
+  "benchmarks/fixtures/gates/v63-success-gate.json",
+  "benchmarks/fixtures/gates/workstream-j-gate.json",
 ];
 
 const CROSS_PLATFORM_FILES = [
@@ -39,21 +39,20 @@ const CROSS_PLATFORM_FILES = [
   "benchmarks/out/cross-platform-smoke-macos-latest.json",
 ];
 const WORKSTREAM_J_OVERHEAD_FILE =
-  "benchmarks/out/workstream-j-optional-input-overhead.json";
+  "benchmarks/fixtures/evidence/workstream-j-optional-input-overhead.json";
 const WORKSTREAM_K_BENCHMARK_FILE =
-  "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
+  "benchmarks/fixtures/evidence/workstream-k-rust-benchmark-normalizer-perf.json";
 const REPO_VALIDATION_FILE =
   "release/v3/repo-validation-evidence.json";
 
+/** Vitest + validate committed fixtures only (gate evaluators write gitignored benchmarks/out/). */
 const PRE_FLIGHT_COMMANDS = [
-  "pnpm run bench:v3:phase1",
-  "pnpm run bench:v3:phase2",
+  "pnpm run test:v3:dogfood",
+  "pnpm run test:v3:manifest",
   "pnpm run test:phase6:gate",
-  "pnpm run bench:phase6:gate",
   "pnpm run bench:phase6:validate",
-  "pnpm run bench:v63:gate",
+  "pnpm run bench:v3:validate",
   "pnpm run bench:v63:validate",
-  "pnpm run bench:workstream-j:gate",
   "pnpm run bench:workstream-j:validate",
 ];
 

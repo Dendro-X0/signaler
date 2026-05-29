@@ -14,7 +14,17 @@ Current line: **5.0.0**
 node -e "const p=require('./package.json');const j=require('./jsr.json');console.log(p.version,j.version,p.version===j.version?'ok':'MISMATCH')"
 ```
 
-## 2. Preflight
+## 2. Clean worktree (JSR requirement)
+
+`jsr publish` aborts on uncommitted changes. Benchmark gate evaluators write to **`benchmarks/out/`** (gitignored). If publish fails with dirty `benchmarks/out/`:
+
+```bash
+git restore benchmarks/out/   # or delete the directory
+```
+
+Committed snapshots live under **`benchmarks/fixtures/`**. Refresh after intentional gate regen: `pnpm run bench:sync-fixtures`.
+
+## 3. Preflight
 
 ```bash
 pnpm run build
@@ -22,13 +32,15 @@ pnpm run test:smoke
 pnpm run release:preflight
 ```
 
+Preflight validates **fixtures** and runs tests; it does not regenerate `benchmarks/out/` gate files.
+
 Optional strict gate:
 
 ```bash
 pnpm run release:preflight:strict
 ```
 
-## 3. JSR preparation
+## 4. JSR preparation
 
 ```bash
 pnpm run prepare:jsr
@@ -36,7 +48,7 @@ pnpm run prepare:jsr
 
 Validates exports, essential files, and version alignment.
 
-## 4. Publish
+## 5. Publish
 
 **Dry run (no upload):**
 
@@ -63,14 +75,14 @@ pnpm run jsr:publish
 pnpm run jsr:publish:skip-build
 ```
 
-## 5. Post-publish smoke
+## 6. Post-publish smoke
 
 ```bash
 npx jsr run @signaler/cli@4.2.0 -- --version
 npx jsr run @signaler/cli@4.2.0 -- help audit
 ```
 
-## 6. Consumer upgrade
+## 7. Consumer upgrade
 
 ```bash
 npx jsr add @signaler/cli@4.2.0

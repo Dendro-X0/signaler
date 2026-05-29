@@ -21,14 +21,14 @@ const REQUIRED_RELEASE_ASSETS = [
 ];
 
 const REQUIRED_GATES = [
-  "benchmarks/out/v3-release-gate.json",
-  "benchmarks/out/phase6-release-gate.json",
-  "benchmarks/out/v63-success-gate.json",
-  "benchmarks/out/workstream-j-gate.json",
+  "benchmarks/fixtures/gates/v3-release-gate.json",
+  "benchmarks/fixtures/gates/phase6-release-gate.json",
+  "benchmarks/fixtures/gates/v63-success-gate.json",
+  "benchmarks/fixtures/gates/workstream-j-gate.json",
 ];
 
-const WORKSTREAM_J_OVERHEAD = "benchmarks/out/workstream-j-optional-input-overhead.json";
-const WORKSTREAM_K_RUST_BENCHMARK = "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json";
+const WORKSTREAM_J_OVERHEAD = "benchmarks/fixtures/evidence/workstream-j-optional-input-overhead.json";
+const WORKSTREAM_K_RUST_BENCHMARK = "benchmarks/fixtures/evidence/workstream-k-rust-benchmark-normalizer-perf.json";
 const REPO_VALIDATION = "release/v3/repo-validation-evidence.json";
 
 const originalCwd = process.cwd();

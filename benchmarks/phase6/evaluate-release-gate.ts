@@ -288,15 +288,17 @@ async function evaluateReleaseGate(args: CliArgs): Promise<GateReport> {
   );
 
   const requiredBenchmarks = [
-    "benchmarks/out/phase0-baseline.json",
-    "benchmarks/out/phase0-baseline.md",
-    "benchmarks/out/phase4-baseline.json",
-    "benchmarks/out/phase4-baseline.md",
+    { out: "benchmarks/out/phase0-baseline.json", fixture: "benchmarks/fixtures/baselines/phase0-baseline.json" },
+    { out: "benchmarks/out/phase0-baseline.md", fixture: "benchmarks/fixtures/baselines/phase0-baseline.md" },
+    { out: "benchmarks/out/phase4-baseline.json", fixture: "benchmarks/fixtures/baselines/phase4-baseline.json" },
+    { out: "benchmarks/out/phase4-baseline.md", fixture: "benchmarks/fixtures/baselines/phase4-baseline.md" },
   ];
   const missingBenchmarkOutputs: string[] = [];
   for (const relPath of requiredBenchmarks) {
-    if (!(await fileExists(resolve(root, relPath)))) {
-      missingBenchmarkOutputs.push(relPath);
+    const hasOut = await fileExists(resolve(root, relPath.out));
+    const hasFixture = await fileExists(resolve(root, relPath.fixture));
+    if (!hasOut && !hasFixture) {
+      missingBenchmarkOutputs.push(relPath.fixture);
     }
   }
   checks.push(

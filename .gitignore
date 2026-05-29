@@ -46,7 +46,7 @@ launcher/target/signaler-pkg.exe
 portable-package/
 rust/target/
 
-# Benchmark runtime artifacts
+# Benchmark runtime artifacts (generators write here; commit snapshots under benchmarks/fixtures/)
+benchmarks/out/*
+!benchmarks/out/README.md
 benchmarks/workspaces/
-benchmarks/out/tmp/
-benchmarks/out/*.rust-discovery.json

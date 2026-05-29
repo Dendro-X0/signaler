@@ -129,6 +129,22 @@ function parseArgs(argv: readonly string[]): CliArgs {
   return { outJsonPath, outMarkdownPath, rootDir };
 }
 
+async function resolveBenchmarkArtifactPath(
+  root: string,
+  outRel: string,
+  fixtureRel: string,
+): Promise<string | undefined> {
+  const outPath = resolve(root, outRel);
+  if (await fileExists(outPath)) {
+    return outPath;
+  }
+  const fixturePath = resolve(root, fixtureRel);
+  if (await fileExists(fixturePath)) {
+    return fixturePath;
+  }
+  return undefined;
+}
+
 async function fileExists(pathToFile: string): Promise<boolean> {
   try {
     await stat(pathToFile);
@@ -373,9 +389,13 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
     }
   }
 
-  const loopEvidencePath = resolve(root, "benchmarks/out/v63-loop-smoke.json");
-  if (!(await fileExists(loopEvidencePath))) {
-    checks.push(check("loop-smoke-evidence", "warn", "Loop smoke evidence not found (benchmarks/out/v63-loop-smoke.json).", false));
+  const loopEvidencePath = await resolveBenchmarkArtifactPath(
+    root,
+    "benchmarks/out/v63-loop-smoke.json",
+    "benchmarks/fixtures/evidence/v63-loop-smoke.json",
+  );
+  if (loopEvidencePath === undefined) {
+    checks.push(check("loop-smoke-evidence", "warn", "Loop smoke evidence not found (benchmarks/fixtures/evidence/v63-loop-smoke.json).", false));
   } else {
     const rawLoopSmoke = await readText(loopEvidencePath);
     if (rawLoopSmoke === undefined) {
@@ -400,9 +420,13 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
     }
   }
 
-  const lowMemoryEvidencePath = resolve(root, "benchmarks/out/v63-low-memory-evidence.json");
-  if (!(await fileExists(lowMemoryEvidencePath))) {
-    checks.push(check("low-memory-evidence", "warn", "Low-memory evidence not found (benchmarks/out/v63-low-memory-evidence.json).", false));
+  const lowMemoryEvidencePath = await resolveBenchmarkArtifactPath(
+    root,
+    "benchmarks/out/v63-low-memory-evidence.json",
+    "benchmarks/fixtures/evidence/v63-low-memory-evidence.json",
+  );
+  if (lowMemoryEvidencePath === undefined) {
+    checks.push(check("low-memory-evidence", "warn", "Low-memory evidence not found (benchmarks/fixtures/evidence/v63-low-memory-evidence.json).", false));
   } else {
     const rawLowMemory = await readText(lowMemoryEvidencePath);
     if (rawLowMemory === undefined) {
@@ -433,9 +457,13 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
     }
   }
 
-  const workstreamJOverheadPath = resolve(root, "benchmarks/out/workstream-j-optional-input-overhead.json");
-  if (!(await fileExists(workstreamJOverheadPath))) {
-    checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence not found (benchmarks/out/workstream-j-optional-input-overhead.json).", false));
+  const workstreamJOverheadPath = await resolveBenchmarkArtifactPath(
+    root,
+    "benchmarks/out/workstream-j-optional-input-overhead.json",
+    "benchmarks/fixtures/evidence/workstream-j-optional-input-overhead.json",
+  );
+  if (workstreamJOverheadPath === undefined) {
+    checks.push(check("workstream-j-overhead-evidence", "warn", "Workstream J overhead evidence not found (benchmarks/fixtures/evidence/workstream-j-optional-input-overhead.json).", false));
   } else {
     const rawOverhead = await readText(workstreamJOverheadPath);
     if (rawOverhead === undefined) {
@@ -476,9 +504,13 @@ async function evaluateSuccessGate(args: CliArgs): Promise<GateReport> {
     }
   }
 
-  const workstreamKPerfPath = resolve(root, "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json");
-  if (!(await fileExists(workstreamKPerfPath))) {
-    checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence not found (benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json).", false));
+  const workstreamKPerfPath = await resolveBenchmarkArtifactPath(
+    root,
+    "benchmarks/out/workstream-k-rust-benchmark-normalizer-perf.json",
+    "benchmarks/fixtures/evidence/workstream-k-rust-benchmark-normalizer-perf.json",
+  );
+  if (workstreamKPerfPath === undefined) {
+    checks.push(check("workstream-k-rust-benchmark-evidence", "warn", "Workstream K benchmark evidence not found (benchmarks/fixtures/evidence/workstream-k-rust-benchmark-normalizer-perf.json).", false));
   } else {
     const rawWorkstreamK = await readText(workstreamKPerfPath);
     if (rawWorkstreamK === undefined) {
