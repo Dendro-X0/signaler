@@ -4,20 +4,28 @@
 
 | Doc | Purpose |
 |-----|---------|
-| [**Active roadmap**](./active-roadmap.md) | Status board — Phase 2 v4.2 in progress |
-| [**Phase 2 — v4.2 team CI**](./phase2-v4.2-team-ci.md) | **Current phase** |
-| [Phase 1 — v4.1 adoptability](./phase1-v4.1-adoptability.md) | Shipped adoptability track |
+| [**Active roadmap**](./active-roadmap.md) | Status board — **v4.5.0 shipped**; v5 deferred |
+| [**Phase 4.5 — v4.5 artifact layout**](./phase4.5-v4.5-artifact-layout.md) | Shipped — tree layout |
+| [Artifact layout spec](../specs/artifact-layout-v4.5.md) | Target tree layout + manifest schema |
+
+## Recent shipped
+
+| Doc | Purpose |
+|-----|---------|
+| [Phase 4.5 — v4.5 artifact layout](./phase4.5-v4.5-artifact-layout.md) | v4.5.0 shipped — tree `.signaler/` |
+| [Phase 4.4 — v4.4 stabilization](./phase4.4-v4x-stabilization.md) | v4.4.0 shipped |
+| [Phase 3 — v4.3 policy gates](./phase3-v4.3-policy-gates.md) | Run profiles, quality gate, baseline compare |
+| [Phase 2 — v4.2 team CI](./phase2-v4.2-team-ci.md) | GitHub Action, job summary |
 
 ## Strategy (post–v4.0)
 
 | Doc | Purpose |
 |-----|---------|
 | [v4 B2B roadmap](./v4-b2b-roadmap.md) | v4.1 → v5 strategy and phase overview |
-| [B2B team value](../guides/b2b-team-value.md) | Positioning for teams and enterprise-adjacent buyers |
-| [Phase 2 — v4.2 team CI](./phase2-v4.2-team-ci.md) | GitHub Action, PR summaries |
-| [Phase 3 — v4.3 policy gates](./phase3-v4.3-policy-gates.md) | Profiles, baselines, gates |
+| [Phase 4 — v5.0 quality profiles](./phase4-v5.0-quality-profiles.md) | Deferred release (implemented on main) |
+| [B2B team value](../guides/b2b-team-value.md) | Positioning for teams |
 
-## Historical (shipped v3.3 → v4.0)
+## Historical
 
 | Doc | Purpose |
 |-----|---------|

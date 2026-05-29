@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { resolveArtifactPath, resolveFlatPathForId } from "./artifact-layout/index.js";
 import type { AgentIndexV3, ResultsV3, SuggestionV3, SuggestionsV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isAgentIndexV3, isResultsV3, isSuggestionsV3 } from "./engine-contracts/artifacts/v3/index.js";
 import type { AnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
@@ -30,7 +31,7 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   let performanceTriage: PerformanceTriageV3 | undefined;
 
   try {
-    const parsed = await readJson(resolve(root, "agent-index.json"));
+    const parsed = await readJson(await resolveArtifactPath(root, "agent-index"));
     if (isAgentIndexV3(parsed)) {
       agentIndex = parsed;
     }
@@ -39,7 +40,7 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   }
 
   try {
-    const parsed = await readJson(resolve(root, "suggestions.json"));
+    const parsed = await readJson(await resolveArtifactPath(root, "suggestions"));
     if (isSuggestionsV3(parsed)) {
       suggestions = parsed;
     }
@@ -48,7 +49,7 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   }
 
   try {
-    const parsed = await readJson(resolve(root, "results.json"));
+    const parsed = await readJson(await resolveArtifactPath(root, "results"));
     if (isResultsV3(parsed)) {
       results = parsed;
     }
@@ -57,7 +58,7 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   }
 
   try {
-    const parsed = await readJson(resolve(root, "analyze.json"));
+    const parsed = await readJson(await resolveArtifactPath(root, "analyze"));
     if (isAnalyzeReportV6(parsed)) {
       analyze = parsed;
     }
@@ -66,7 +67,7 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   }
 
   try {
-    const parsed = await readJson(resolve(root, "performance-triage.json"));
+    const parsed = await readJson(await resolveArtifactPath(root, "performance-triage"));
     if (isPerformanceTriageV3(parsed)) {
       performanceTriage = parsed;
     }
@@ -86,7 +87,8 @@ export function findPerformanceIssueById(triage: PerformanceTriageV3, id: string
 }
 
 export async function markAgentIndexPartialSuccess(outputDir: string): Promise<void> {
-  const agentIndexPath = resolve(outputDir, "agent-index.json");
+  const root = resolve(outputDir);
+  const agentIndexPath = await resolveArtifactPath(root, "agent-index");
   let parsed: unknown;
   try {
     parsed = await readJson(agentIndexPath);
@@ -109,5 +111,5 @@ export async function markAgentIndexPartialSuccess(outputDir: string): Promise<v
     },
   };
   const { writeFile } = await import("node:fs/promises");
-  await writeFile(agentIndexPath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+  await writeFile(resolve(root, resolveFlatPathForId("agent-index")), `${JSON.stringify(updated, null, 2)}\n`, "utf8");
 }

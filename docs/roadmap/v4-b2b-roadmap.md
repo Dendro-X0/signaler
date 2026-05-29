@@ -34,7 +34,9 @@ v4.0.x  shipped   audit orchestrator, shell/engine split, managed dev serve
 v4.1.x  shipped   adoptability — docs, CI stability, portable tests (git)
 v4.2.0  shipped   team CI pack — GitHub Action, job summary, templates
 v4.3.0  shipped   policy gates — profiles, baseline/delta in CI
-v5.0.0  active    bundled quality profiles + engine API hardening
+v4.4.0  shipped   stabilization — serve diagnostics, artifact trust, links discovery
+v4.5.0  shipped   artifact layout — tree output, manifest, root prune (default)
+v5.0.0  deferred  bundled quality profiles (implemented, release after v4.5)
 ```
 
 ## Phase overview
@@ -44,7 +46,9 @@ v5.0.0  active    bundled quality profiles + engine API hardening
 | **1** | v4.1.x | Adoptability | Teams can install and trust outputs (shipped on git) |
 | **2** | v4.2.0 | Team CI pack | Shipped — [`phase2-v4.2-team-ci.md`](./phase2-v4.2-team-ci.md) |
 | **3** | v4.3.0 | Policy gates | Shipped — [`phase3-v4.3-policy-gates.md`](./phase3-v4.3-policy-gates.md) |
-| **4** | v5.0.0 | Quality profiles | **Active** — [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md) |
+| **4.4** | v4.4.0 | Stabilization | Shipped — [`phase4.4-v4x-stabilization.md`](./phase4.4-v4x-stabilization.md) |
+| **4.5** | v4.5.0 | Artifact layout | Shipped — [`phase4.5-v4.5-artifact-layout.md`](./phase4.5-v4.5-artifact-layout.md) |
+| **5** | v5.0.0 | Quality profiles | **Deferred** — [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md) |
 
 Detailed specs:
 

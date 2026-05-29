@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { resolveArtifactPath, resolveFlatPathForId } from "./artifact-layout/index.js";
 import { loadConfig } from "./core/config.js";
 import type { QualityPackConfig } from "./core/types.js";
 import { evaluateLinksCheckStatus, type LinksCheckStatus } from "./links-check-status.js";
@@ -184,9 +185,9 @@ export async function evaluateAndWriteQualityPack(params: {
     packConfig = config.qualityPack;
   }
 
-  const headers = await readJsonIfExists<HeadersArtifact>(resolve(outputDir, "headers.json"));
-  const links = await readJsonIfExists<LinksArtifact>(resolve(outputDir, "links.json"));
-  const bundle = await readJsonIfExists<BundleArtifact>(resolve(outputDir, "bundle-audit.json"));
+  const headers = await readJsonIfExists<HeadersArtifact>(await resolveArtifactPath(outputDir, "headers"));
+  const links = await readJsonIfExists<LinksArtifact>(await resolveArtifactPath(outputDir, "links"));
+  const bundle = await readJsonIfExists<BundleArtifact>(await resolveArtifactPath(outputDir, "bundle"));
 
   const result = evaluateQualityPack({
     profile: params.profile,
@@ -205,7 +206,8 @@ export async function mergeQualityPackIntoAgentIndex(params: {
   readonly outputDir: string;
   readonly pack: QualityPackResult;
 }): Promise<void> {
-  const agentIndexPath = resolve(params.outputDir, "agent-index.json");
+  const root = resolve(params.outputDir);
+  const agentIndexPath = await resolveArtifactPath(root, "agent-index");
   let parsed: unknown;
   try {
     parsed = JSON.parse(await readFile(agentIndexPath, "utf8")) as unknown;
@@ -246,7 +248,7 @@ export async function mergeQualityPackIntoAgentIndex(params: {
         : {}),
     },
   };
-  await writeFile(agentIndexPath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+  await writeFile(resolve(root, resolveFlatPathForId("agent-index")), `${JSON.stringify(updated, null, 2)}\n`, "utf8");
 }
 
 export function mergeQualityPackExitCode(priorExitCode: number, pack: QualityPackResult): number {

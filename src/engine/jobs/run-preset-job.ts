@@ -18,6 +18,8 @@ import {
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import { createInProcessEngineJobStepRunner } from "./in-process-step-runner.js";
 import { executeEngineJob, writeJobLatestFailure } from "./run-job.js";
+import { finalizeArtifactLayout } from "../../artifact-layout/index.js";
+import type { ArtifactLayoutMode } from "../../artifact-layout/index.js";
 import { ensureManagedServer, type ManagedServeMode } from "../serve/index.js";
 import { resolveNextAppRoot } from "../serve/resolve-serve-plan.js";
 import type { EngineJobPreset } from "./types.js";
@@ -33,6 +35,7 @@ export type RunPresetJobParams = BuildPresetJobParams & {
   readonly managedServeMode?: ManagedServeMode;
   readonly managedServeSkipBuild?: boolean;
   readonly managedServeReuse?: boolean;
+  readonly artifactLayout?: ArtifactLayoutMode;
   readonly skipDiscover?: boolean;
   readonly incrementalSkipPassing?: boolean;
   readonly routesFile?: string;
@@ -182,6 +185,7 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
           priorExitCode: outcome.exitCode,
           configPath: params.configPath,
         });
+        await finalizeJobArtifacts({ job, artifactLayout: params.artifactLayout });
         return {
           exitCode,
           result: outcome.result,
@@ -215,10 +219,21 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
     priorExitCode: outcome.exitCode,
     configPath: params.configPath,
   });
+  await finalizeJobArtifacts({ job, artifactLayout: params.artifactLayout });
   return {
     exitCode,
     result: outcome.result,
     job,
     managedBaseUrl,
   };
+}
+
+async function finalizeJobArtifacts(params: {
+  readonly job: EngineJobV1;
+  readonly artifactLayout?: ArtifactLayoutMode;
+}): Promise<void> {
+  await finalizeArtifactLayout({
+    outputDir: resolve(params.job.cwd, params.job.outputDir),
+    layout: params.artifactLayout,
+  });
 }

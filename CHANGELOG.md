@@ -1,6 +1,27 @@
 # Changelog
 
-## Unreleased
+## 4.5.0 - 2026-05-29
+
+### Added
+
+- **Tree artifact layout (default)** — `.signaler/` organized by audience, runner, and weight (`agent/`, `developer/`, `runs/`, `runners/`, `orchestration/`, `gates/`, `export/`, `archive/`).
+- **`manifest.json`** — machine-readable artifact index with tags and legacy path pointers.
+- **`INDEX.md`** — structured developer index (replaces flat file-dump navigation).
+- **`agent/entrypoints.json`** — canonical agent read order when not using `query`.
+- **`--artifact-layout tree|flat`** on `signaler audit` and `signaler job run`; env `SIGNALER_ARTIFACT_LAYOUT`.
+- **Post-materialize root prune** — tree mode removes flat duplicate files from `.signaler/` root after copy.
+
+### Changed
+
+- **Default output layout** is `tree` (was flat root dump in 4.4.x).
+- **`signaler query`**, **quality-pack**, and **artifact-freshness** resolve paths from manifest/tree before flat fallback.
+- Audit/job completion runs layout finalization automatically.
+
+### Deprecated
+
+- **`--artifact-layout flat`** — warns at runtime; use tree (default) for new workflows.
+
+See [`docs/specs/artifact-layout-v4.5.md`](docs/specs/artifact-layout-v4.5.md) and [`docs/archive/release-notes/RELEASE-NOTES-v4.5.0.md`](docs/archive/release-notes/RELEASE-NOTES-v4.5.0.md).
 
 ## 4.4.0 - 2026-05-28
 

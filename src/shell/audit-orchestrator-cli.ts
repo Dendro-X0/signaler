@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { parseQualityProfileName, type QualityProfileName } from "../engine/jobs/quality-profiles.js";
 import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
+import { parseArtifactLayoutMode, resolveArtifactLayoutFromEnv, type ArtifactLayoutMode } from "../artifact-layout/index.js";
 import { type ManagedServeMode } from "../engine/serve/index.js";
 import { printAuditSummary } from "../report-summary.js";
 import {
@@ -30,6 +31,7 @@ export type AuditOrchestratorCliArgs = {
   readonly qualityProfile?: QualityProfileName;
   readonly json: boolean;
   readonly summary: boolean;
+  readonly artifactLayout: ArtifactLayoutMode;
 };
 
 export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrchestratorCliArgs {
@@ -49,6 +51,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let qualityProfile: QualityProfileName | undefined;
   let json = false;
   let summary = false;
+  let artifactLayout: ArtifactLayoutMode = resolveArtifactLayoutFromEnv();
 
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -127,6 +130,11 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     }
     if (arg === "--summary") {
       summary = true;
+      continue;
+    }
+    if (arg === "--artifact-layout" && i + 1 < argv.length) {
+      artifactLayout = parseArtifactLayoutMode(argv[i + 1]);
+      i += 1;
     }
   }
 
@@ -158,6 +166,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     qualityProfile,
     json,
     summary,
+    artifactLayout,
   };
 }
 
@@ -182,6 +191,7 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     preset: args.runProfile || args.qualityProfile ? undefined : "agent",
     runProfile: args.runProfile,
     qualityProfile: args.qualityProfile,
+    artifactLayout: args.artifactLayout,
   });
 
   if (args.json) {
@@ -192,7 +202,7 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     if (outcome.managedBaseUrl) {
       console.log(`Managed serve: ${outcome.managedBaseUrl}`);
     }
-    console.log("Read: .signaler/agent-index.json → performance-triage.json");
+    console.log("Read: signaler query --view agent|perf --dir .signaler");
   }
 
   if (args.summary) {

@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-4.4.0-blue.svg)
+![Version](http://img.shields.io/badge/version-4.5.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -147,7 +147,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.4.0"
+    cli-version: "4.5.0"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
@@ -222,27 +222,33 @@ Supported providers:
 ![HTML Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/HTML_report.gif)
 *Interactive HTML report with AI insights*
 
-Signaler generates comprehensive reports in `.signaler/`:
+Signaler generates comprehensive reports in `.signaler/` (default **tree layout** since v4.5):
 
-- `run.json` - Run identity + protocol + comparability metadata
-- `results.json` - Normalized per-combo metrics/opportunities
-- `suggestions.json` - Ranked actions with confidence + evidence pointers
-- `agent-index.json` - Token-conscious AI entrypoint (v3 canonical)
-- `quality-pack.json` - Unified pass/fail for headers, links, and bundle (v5 `--quality-profile`)
-- `analyze.json` - Deterministic action packet for agents (v6)
-- `analyze.md` - Human digest for top actions and verify intent
-- `verify.json` - Focused before/after check results with pass/fail
-- `verify.md` - Human digest for verification outcomes
-- `report.html` - Interactive visual report
-- `summary.json`, `issues.json`, `triage.md` - Legacy compatibility artifacts
+**Start here (developers):** open `.signaler/INDEX.md` → `developer/report.html`
+
+**Agents:** use `signaler query` / `explain` (do not list the whole tree). Fallback: `.signaler/agent/entrypoints.json`
+
+| Tree path | Purpose |
+|-----------|---------|
+| `agent/index.json` | Agent entrypoint (was `agent-index.json`) |
+| `agent/analyze.json` | v6 action packet |
+| `agent/performance-triage.json` | Performance issue-count triage |
+| `runners/links/links.json` | Link check results |
+| `runners/headers/headers.json` | Security header checks |
+| `runners/bundle/bundle-audit.json` | Bundle scan |
+| `gates/quality-pack.json` | Unified web-quality gate |
+| `runs/lighthouse/run.json` | Run identity + comparability |
+| `manifest.json` | Machine index for all paths |
+
+Use `--artifact-layout flat` only for legacy flat-root output (deprecated).
 
 Recommended agent read order:
 
-1. `signaler query --view agent` or `analyze.json` (after analyze v6)
-2. `signaler query --view perf` or `performance-triage.json` (performance issue-count triage)
-3. `signaler query --view delta` or `verify.json` (after verify v6)
-4. `agent-index.json`, then `suggestions.json` / `issues.json` as needed
-5. `signaler explain --id <id>` for one issue—avoid loading full `results.json` by default
+1. `signaler query --view agent` or `agent/analyze.json` (after analyze v6)
+2. `signaler query --view perf` or `agent/performance-triage.json`
+3. `signaler query --view delta` or `runs/verify/verify.json` (after verify v6)
+4. `agent/index.json`, then `agent/suggestions.json` as needed
+5. `signaler explain --id <id>` for one issue—avoid loading full `runs/lighthouse/results.json` by default
 
 ## API
 

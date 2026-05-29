@@ -16,6 +16,7 @@ import {
 } from "./engine/index.js";
 import { runPresetJob } from "./engine/jobs/run-preset-job.js";
 import type { ManagedServeMode } from "./engine/serve/index.js";
+import { parseArtifactLayoutMode, resolveArtifactLayoutFromEnv, type ArtifactLayoutMode } from "./artifact-layout/index.js";
 import {
   applyOrchestratorServeFlag,
   createOrchestratorServeDefaults,
@@ -33,6 +34,7 @@ export type JobCliArgs = BuildPresetJobParams & {
   readonly managedServeMode: ManagedServeMode;
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
+  readonly artifactLayout: ArtifactLayoutMode;
   readonly json: boolean;
 };
 
@@ -59,6 +61,7 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
   let incrementalSkipPassing = false;
   let routesFile: string | undefined;
   const serveOptions: OrchestratorServeOptions = createOrchestratorServeDefaults();
+  let artifactLayout: ArtifactLayoutMode = resolveArtifactLayoutFromEnv();
   let parallel: number | undefined;
   let json = false;
 
@@ -154,6 +157,11 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
     }
     if (arg === "--json") {
       json = true;
+      continue;
+    }
+    if (arg === "--artifact-layout" && i + 1 < argv.length) {
+      artifactLayout = parseArtifactLayoutMode(argv[i + 1]);
+      i += 1;
     }
   }
 
@@ -183,6 +191,7 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
     managedServeMode: serveOptions.managedServeMode,
     managedServeSkipBuild: serveOptions.managedServeSkipBuild,
     managedServeReuse: serveOptions.managedServeReuse,
+    artifactLayout,
     parallel,
     routesFile,
     json,
@@ -242,6 +251,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     managedServeMode: args.managedServeMode,
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
+    artifactLayout: args.artifactLayout,
   });
 
   if (args.json) {

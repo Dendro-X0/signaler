@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { resolveArtifactPath } from "./artifact-layout/index.js";
 import type { EngineJobResultV1 } from "./engine-contracts/jobs/index.js";
 import { isEngineJobResultV1 } from "./engine-contracts/jobs/index.js";
 
@@ -59,10 +60,10 @@ function runStepSucceeded(job: EngineJobResultV1): boolean {
  */
 export async function evaluateArtifactFreshness(dir: string): Promise<ArtifactFreshnessReport> {
   const root = resolve(dir);
-  const jobRaw = await readJsonOptional(resolve(root, "job-latest.json"));
-  const runRaw = await readJsonOptional(resolve(root, "run.json"));
-  const analyzeRaw = await readJsonOptional(resolve(root, "analyze.json"));
-  const agentIndexRaw = await readJsonOptional(resolve(root, "agent-index.json"));
+  const jobRaw = await readJsonOptional(await resolveArtifactPath(root, "job-latest"));
+  const runRaw = await readJsonOptional(await resolveArtifactPath(root, "run"));
+  const analyzeRaw = await readJsonOptional(await resolveArtifactPath(root, "analyze"));
+  const agentIndexRaw = await readJsonOptional(await resolveArtifactPath(root, "agent-index"));
 
   const runCompletedAt =
     typeof runRaw === "object" && runRaw !== null && "completedAt" in runRaw

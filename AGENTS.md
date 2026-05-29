@@ -116,10 +116,14 @@ Do not read the entire `.signaler/` directory. Use projections only.
 
 ## Canonical Artifact Read Order (when files are used directly)
 
-1. `analyze.json` (after `signaler analyze --contract v6`)
-2. `performance-triage.json` (issue-count performance triage; not score parity)
-3. `agent-index.json`
-4. `suggestions.json` only when `explain` or evidence pointers require it
+Tree layout (default since v4.5): start from `.signaler/INDEX.md` or `manifest.json`.
+
+1. `agent/analyze.json` or `runs/analyze/analyze.json` (after `signaler analyze --contract v6`)
+2. `agent/performance-triage.json` (issue-count performance triage; not score parity)
+3. `agent/index.json` (agent-index)
+4. `agent/suggestions.json` only when `explain` or evidence pointers require it
+
+Legacy flat paths (`analyze.json` at root) are removed after tree materialize; use `signaler query` or paths above.
 
 ## Performance reporting
 
