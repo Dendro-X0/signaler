@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolveArtifactPath } from "../src/artifact-layout/index.js";
 import { runReportCli } from "../src/report-cli.js";
 
 describe("report-cli v3 fallback", () => {
@@ -53,8 +54,10 @@ describe("report-cli v3 fallback", () => {
 
     await runReportCli(["node", "signaler", "report", "--output-dir", outDir]);
 
-    const aiGlobalRed = JSON.parse(await readFile(resolve(outDir, "ai-global-red.json"), "utf8")) as { readonly meta?: { readonly source?: string } };
-    const md = await readFile(resolve(outDir, "global-red.report.md"), "utf8");
+    const aiGlobalRed = JSON.parse(
+      await readFile(await resolveArtifactPath(outDir, "ai-global-red"), "utf8"),
+    ) as { readonly meta?: { readonly source?: string } };
+    const md = await readFile(await resolveArtifactPath(outDir, "global-red-report"), "utf8");
 
     expect(aiGlobalRed.meta?.source).toBe("v3-canonical");
     expect(md.includes("Reduce unused JavaScript")).toBe(true);

@@ -45,6 +45,8 @@ export const ARTIFACT_RULES: readonly ArtifactRule[] = [
 
   { id: "issues", flatPath: "issues.json", treePath: "archive/issues.json", audience: "legacy", runner: "lighthouse", weight: "bulk" },
   { id: "ai-ledger", flatPath: "ai-ledger.json", treePath: "archive/ai-ledger.json", audience: "legacy", runner: "lighthouse", weight: "bulk" },
+  { id: "ai-global-red", flatPath: "ai-global-red.json", treePath: "archive/ai-global-red.json", audience: "legacy", runner: "lighthouse", weight: "summary" },
+  { id: "global-red-report", flatPath: "global-red.report.md", treePath: "developer/global-red.report.md", audience: "developer", runner: "lighthouse", weight: "summary" },
   { id: "pwa", flatPath: "pwa.json", treePath: "runs/lighthouse/pwa.json", audience: "diagnostics", runner: "lighthouse", weight: "summary" },
 ] as const;
 
