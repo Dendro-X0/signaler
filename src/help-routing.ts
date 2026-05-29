@@ -18,6 +18,7 @@ export type HelpRoutableCommand =
   | "links"
   | "headers"
   | "console"
+  | "accessibility"
   | "clean"
   | "uninstall"
   | "clear-screenshots"
@@ -68,6 +69,7 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
     command === "links" ||
     command === "headers" ||
     command === "console" ||
+    command === "accessibility" ||
     command === "clean" ||
     command === "uninstall" ||
     command === "clear-screenshots" ||

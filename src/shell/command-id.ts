@@ -18,6 +18,7 @@ export type ShellCommandId =
   | "links"
   | "headers"
   | "console"
+  | "accessibility"
   | "clean"
   | "uninstall"
   | "clear-screenshots"

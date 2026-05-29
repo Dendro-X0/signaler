@@ -230,3 +230,38 @@ export async function runAccessibilityAudit(params: {
     await chrome.close();
   }
 }
+
+export type AxeImpactSummary = {
+  readonly impactCounts: {
+    readonly critical: number;
+    readonly serious: number;
+    readonly moderate: number;
+    readonly minor: number;
+  };
+  readonly errored: number;
+  readonly total: number;
+};
+
+export function summarizeAxeSummary(summary: AxeSummary): AxeImpactSummary {
+  const counts = { critical: 0, serious: 0, moderate: 0, minor: 0 };
+  let errored = 0;
+  for (const result of summary.results) {
+    if (result.runtimeErrorMessage) {
+      errored += 1;
+      continue;
+    }
+    for (const violation of result.violations) {
+      const impact = violation.impact;
+      if (impact === "critical") {
+        counts.critical += 1;
+      } else if (impact === "serious") {
+        counts.serious += 1;
+      } else if (impact === "moderate") {
+        counts.moderate += 1;
+      } else if (impact === "minor") {
+        counts.minor += 1;
+      }
+    }
+  }
+  return { impactCounts: counts, errored, total: summary.results.length };
+}

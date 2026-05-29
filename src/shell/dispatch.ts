@@ -5,6 +5,7 @@ import { runQuickstartCli } from "../quickstart-cli.js";
 import { runAiCli } from "../ai-cli.js";
 import { runShellCli } from "../shell-cli.js";
 import { runMeasureCli } from "../measure-cli.js";
+import { runAccessibilityCli } from "../accessibility-cli.js";
 import { runBundleCli } from "../bundle-cli.js";
 import { runHealthCli } from "../health-cli.js";
 import { runLinksCli } from "../links-cli.js";
@@ -104,6 +105,10 @@ export async function dispatchShellCommand(parsed: ParsedShellArgs): Promise<voi
   }
   if (parsed.command === "console") {
     await runConsoleCli(parsed.argv);
+    return;
+  }
+  if (parsed.command === "accessibility") {
+    await runAccessibilityCli(parsed.argv);
     return;
   }
   if (parsed.command === "clean") {

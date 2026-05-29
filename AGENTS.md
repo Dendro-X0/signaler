@@ -28,6 +28,8 @@ signaler audit --cwd /path/to/project --incremental-skip
 signaler audit --quality-profile web-quality --cwd /path/to/project --base-url http://127.0.0.1:3000
 ```
 
+Side runners in quality profiles: **headers**, **links**, **health**, **console**, **measure**, **accessibility**, **bundle** (outputs under `.signaler/runners/` in tree layout).
+
 **Alternative: explicit job preset** (same managed-serve / in-process defaults as `audit`)
 
 ```bash

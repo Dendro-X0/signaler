@@ -28,6 +28,7 @@ import {
   evaluateConservativeMultiBenchmarkSignals,
 } from "./multi-benchmark-signals.js";
 import { loadMultiBenchmarkSignalsWithRust } from "./rust/multi-benchmark-adapter.js";
+import { artifactIdForFlatPath, resolveArtifactPath, resolveFlatPathForId } from "./artifact-layout/index.js";
 import { scoreMultiBenchmarkWithRust } from "./rust/multi-benchmark-scoring-adapter.js";
 import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
@@ -530,7 +531,14 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   }
 
   const warnings: string[] = [];
-  const artifactPath = (name: string): string => resolve(args.dir, name);
+  const artifactPath = async (name: string): Promise<string> => {
+    const id = artifactIdForFlatPath(name);
+    if (id) {
+      return resolveArtifactPath(args.dir, id);
+    }
+    return resolve(args.dir, name);
+  };
+  const writeArtifactPath = (id: string): string => resolve(args.dir, resolveFlatPathForId(id));
   let loadedExternalSignals: Awaited<ReturnType<typeof loadExternalSignalsFromFiles>>;
   let benchmarkRustAttempt: Awaited<ReturnType<typeof loadMultiBenchmarkSignalsWithRust>>;
   try {
@@ -551,7 +559,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     readonly validator?: (value: unknown) => value is T;
     readonly parser?: (value: unknown) => T | undefined;
   }): Promise<T | undefined> => {
-    const path: string = artifactPath(params.file);
+    const path: string = await artifactPath(params.file);
     if (!(await fileExists(path))) {
       if (args.strict && params.required) {
         throw new StrictValidationError(`Missing required artifact: ${params.file}`);
@@ -665,7 +673,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
 
   const optionalFiles: readonly string[] = ["issues.json", "discovery.json", "analyze.json", "performance-triage.json"] as const;
   for (const file of optionalFiles) {
-    const path: string = artifactPath(file);
+    const path: string = await artifactPath(file);
     if (!(await fileExists(path))) continue;
     try {
       await readJson(path);
@@ -676,7 +684,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
 
   let performanceTriage: PerformanceTriageV3 | undefined;
   try {
-    const triagePath = artifactPath("performance-triage.json");
+    const triagePath = await artifactPath("performance-triage.json");
     if (await fileExists(triagePath)) {
       const parsed = await readJson(triagePath);
       if (isPerformanceTriageV3(parsed)) {
@@ -713,7 +721,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
 
   if (args.strict) {
     for (const required of requiredArtifactNames()) {
-      if (!(await fileExists(artifactPath(required)))) {
+      if (!(await fileExists(await artifactPath(required)))) {
         // eslint-disable-next-line no-console
         console.error(`Missing required artifact: ${required}`);
         return 2;
@@ -1023,8 +1031,8 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     return 1;
   }
 
-  const analyzeJsonPath: string = artifactPath("analyze.json");
-  const analyzeMdPath: string = artifactPath("analyze.md");
+  const analyzeJsonPath: string = writeArtifactPath("analyze");
+  const analyzeMdPath: string = writeArtifactPath("analyze-md");
   await writeFile(analyzeJsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   await writeFile(analyzeMdPath, formatAnalyzeMarkdown(report), "utf8");
 

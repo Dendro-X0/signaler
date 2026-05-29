@@ -23,17 +23,56 @@ function configArgs(configPath?: string): string[] {
   return ["--config", configPath];
 }
 
+export const QUALITY_SIDE_RUNNER_COMMANDS = [
+  "headers",
+  "links",
+  "health",
+  "console",
+  "measure",
+  "accessibility",
+  "bundle",
+] as const;
+
+export function isQualitySideRunnerCommand(command: string): boolean {
+  return (QUALITY_SIDE_RUNNER_COMMANDS as readonly string[]).includes(command);
+}
+
+export function shouldContinueQualityProfileJobAfterStepFailure(params: {
+  readonly qualityProfile?: string;
+  readonly command: string;
+  readonly runStepSucceeded: boolean;
+  readonly remainingSteps: readonly EngineJobStepV1[];
+}): boolean {
+  if (!params.qualityProfile) {
+    return false;
+  }
+  const hasRemainingSideRunners = params.remainingSteps.some((step) =>
+    isQualitySideRunnerCommand(step.command),
+  );
+  if (!hasRemainingSideRunners) {
+    return false;
+  }
+  if (params.command === "analyze" && params.runStepSucceeded) {
+    return true;
+  }
+  return isQualitySideRunnerCommand(params.command);
+}
+
 function buildSideRunnerSteps(params: BuildPresetJobParams): EngineJobStepV1[] {
   const cfg = configArgs(params.configPath);
   return [
     { command: "headers", args: cfg },
     { command: "links", args: cfg },
+    { command: "health", args: cfg },
+    { command: "console", args: cfg },
+    { command: "measure", args: cfg },
+    { command: "accessibility", args: cfg },
     { command: "bundle", args: ["--project-root", params.cwd] },
   ];
 }
 
 /**
- * Bundled quality profiles (v5): Lighthouse CI gate + headers + links + bundle in one job.
+ * Bundled quality profiles (v5): Lighthouse CI gate + side runners in one job.
  */
 export function buildQualityProfileJob(
   params: BuildPresetJobParams & { readonly qualityProfile: QualityProfileName },

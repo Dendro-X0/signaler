@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { isEngineJobResultV1 } from "../src/engine-contracts/jobs/index.js";
 import {
   buildAgentPresetJob,
+  buildQualityProfileJob,
   createInProcessEngineJobStepRunner,
   executeEngineJob,
   runInProcessJobStep,
@@ -121,5 +122,38 @@ describe("engine entry surface", () => {
 
     expect(outcome.exitCode).toBe(2);
     expect(outcome.result.steps.map((row) => row.command)).toEqual(["discover", "run", "analyze"]);
+  });
+
+  it("continues quality-profile side runners when analyze fails after a successful run", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "signaler-engine-quality-profile-"));
+    const job = buildQualityProfileJob({ cwd, outputDir: ".signaler", qualityProfile: "web-quality" });
+    const calls: string[] = [];
+
+    const outcome = await executeEngineJob({
+      job,
+      writeArtifacts: false,
+      stepRunner: ({ step }) => {
+        calls.push(step.command);
+        return {
+          exitCode: step.command === "analyze" ? 1 : 0,
+          elapsedMs: 1,
+        };
+      },
+    });
+
+    expect(calls).toEqual([
+      "discover",
+      "run",
+      "analyze",
+      "headers",
+      "links",
+      "health",
+      "console",
+      "measure",
+      "accessibility",
+      "bundle",
+    ]);
+    expect(outcome.exitCode).toBe(2);
+    expect(outcome.result.failedStep).toBe("analyze");
   });
 });

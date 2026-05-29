@@ -61,6 +61,59 @@ export function buildQualityPackGuidance(pack: QualityPackResult): readonly Qual
     });
   }
 
+  if (violationIds.has("max-health-errors") || violationIds.has("health-missing")) {
+    sections.push({
+      id: "health-check",
+      title: "Health / availability",
+      lines: [
+        "Inspect .signaler/health.json for non-2xx status codes and runtimeErrorMessage per route.",
+        "Ensure managed serve is running and routes respond before side runners execute.",
+        "Phased rollout: allow temporary failures while fixing:",
+        '  "qualityPack": { "maxHealthErrors": 5 }',
+      ],
+    });
+  }
+
+  if (violationIds.has("max-console-error-combos") || violationIds.has("console-missing")) {
+    sections.push({
+      id: "console-errors",
+      title: "Console errors",
+      lines: [
+        "Inspect .signaler/console.json for combos with status error.",
+        "Fix uncaught exceptions and failed asset loads surfaced during page load.",
+        '  "qualityPack": { "maxConsoleErrorCombos": 0 }',
+      ],
+    });
+  }
+
+  if (violationIds.has("max-measure-runtime-errors") || violationIds.has("measure-missing")) {
+    sections.push({
+      id: "measure-runtime",
+      title: "Measure (fast lab)",
+      lines: [
+        "Inspect .signaler/measure-summary.json for runtimeErrorMessage per combo.",
+        "Measure uses CDP/Chrome — ensure Chrome is available in CI (same as Lighthouse).",
+      ],
+    });
+  }
+
+  if (
+    violationIds.has("max-accessibility-critical")
+    || violationIds.has("max-accessibility-serious")
+    || violationIds.has("max-accessibility-runtime-errors")
+    || violationIds.has("accessibility-missing")
+  ) {
+    sections.push({
+      id: "accessibility-axe",
+      title: "Accessibility (axe-core)",
+      lines: [
+        "Inspect .signaler/accessibility-summary.json and runners/accessibility/ artifacts.",
+        "Fix critical/serious violations first; rerun signaler accessibility --config signaler.config.json.",
+        'Phased rollout: "qualityPack": { "maxAccessibilitySeriousViolations": 10 }',
+      ],
+    });
+  }
+
   return sections;
 }
 

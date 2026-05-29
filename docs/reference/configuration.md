@@ -148,19 +148,25 @@ See [When deltas lie](../guides/when-deltas-lie.md).
 
 ## 3d. Quality pack (v5, `--quality-profile`)
 
-Evaluated after `headers`, `links`, and `bundle` side runners when using `--quality-profile web-quality` or `pr-quality`.
+Evaluated after side runners when using `--quality-profile web-quality` or `pr-quality` (headers, links, health, console, measure, accessibility, bundle).
 
 ```json
 {
   "qualityPack": {
     "maxHeaderFailures": 0,
-    "maxBrokenLinks": 0
+    "maxBrokenLinks": 0,
+    "maxHealthErrors": 0,
+    "maxConsoleErrorCombos": 0,
+    "maxMeasureRuntimeErrors": 0,
+    "maxAccessibilityCriticalViolations": 0,
+    "maxAccessibilitySeriousViolations": 0,
+    "maxAccessibilityRuntimeErrors": 0
   }
 }
 ```
 
 - Writes `.signaler/quality-pack.json` with pass/fail and counts.
-- On failure, includes **onboarding guidance** in CLI output and `quality-pack.json` (`guidance` sections for headers, links, bundle).
+- On failure, includes **onboarding guidance** in CLI output and `quality-pack.json` (`guidance` sections for headers, links, health, console, measure, bundle).
 - Merges pack summary into `agent-index.json` (`qualityPack` block + entrypoints).
 - Pair with `signaler audit --quality-profile web-quality` for a single CI exit code.
 

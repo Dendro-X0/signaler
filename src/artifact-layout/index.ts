@@ -28,6 +28,7 @@ export async function finalizeArtifactLayout(params: FinalizeArtifactLayoutParam
 }
 
 export { resolveArtifactPath, resolveArtifactRelativePath, resolveFlatPathForId } from "./resolve.js";
+export { artifactIdForFlatPath } from "./registry.js";
 export { parseArtifactLayoutMode, resolveArtifactLayoutFromEnv, resolveDefaultArtifactLayoutMode } from "./layout-mode.js";
 export { materializeArtifactLayout } from "./materialize.js";
 export type { ArtifactLayoutMode, ArtifactManifestV1, AgentEntrypointsV1 } from "./types.js";

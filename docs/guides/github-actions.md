@@ -64,7 +64,7 @@ Do not combine `--preset`, `--run-profile`, and `--quality-profile`.
 
 ### Quality profiles (v5.0+)
 
-**`web-quality`** runs ci-strict Lighthouse, then headers, links, and bundle side runners, and evaluates `quality-pack.json`:
+**`web-quality`** runs ci-strict Lighthouse, then headers, links, health, console, measure, accessibility, and bundle side runners, and evaluates `quality-pack.json`:
 
 ```yaml
 - uses: ./.github/actions/signaler

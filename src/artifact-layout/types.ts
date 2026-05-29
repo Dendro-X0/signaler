@@ -11,6 +11,7 @@ export type ArtifactRunner =
   | "bundle"
   | "measure"
   | "console"
+  | "health"
   | "accessibility"
   | "orchestration"
   | "gate";

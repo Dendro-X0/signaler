@@ -323,7 +323,7 @@ function printCommandHelp(topic: string): boolean {
     return true;
   }
 
-  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "clean" || normalizedTopic === "clear-screenshots" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell" || normalizedTopic === "install-shim") {
+  if (normalizedTopic === "measure" || normalizedTopic === "bundle" || normalizedTopic === "folder" || normalizedTopic === "health" || normalizedTopic === "links" || normalizedTopic === "headers" || normalizedTopic === "console" || normalizedTopic === "accessibility" || normalizedTopic === "clean" || normalizedTopic === "clear-screenshots" || normalizedTopic === "config" || normalizedTopic === "export" || normalizedTopic === "ai" || normalizedTopic === "cortex" || normalizedTopic === "tui" || normalizedTopic === "shell" || normalizedTopic === "install-shim") {
     print([
       "Usage:",
       `  signaler ${normalizedTopic} [flags]`,

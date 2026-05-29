@@ -35,6 +35,19 @@ export const ARTIFACT_RULES: readonly ArtifactRule[] = [
   { id: "bundle-report", flatPath: "bundle.report.md", treePath: "developer/reports/bundle.report.md", audience: "developer", runner: "bundle", weight: "summary" },
   { id: "bundle-ai", flatPath: "bundle.ai.json", treePath: "runners/bundle/bundle.ai.json", audience: "agent", runner: "bundle", weight: "summary" },
 
+  { id: "health", flatPath: "health.json", treePath: "runners/health/health.json", audience: "agent", runner: "health", weight: "entrypoint" },
+  { id: "console", flatPath: "console.json", treePath: "runners/console/console.json", audience: "agent", runner: "console", weight: "entrypoint" },
+  { id: "console-report", flatPath: "console.report.md", treePath: "developer/reports/console.report.md", audience: "developer", runner: "console", weight: "summary" },
+  { id: "console-ai", flatPath: "console.ai.json", treePath: "runners/console/console.ai.json", audience: "agent", runner: "console", weight: "summary" },
+  { id: "measure-summary", flatPath: "measure-summary.json", treePath: "runners/measure/measure-summary.json", audience: "agent", runner: "measure", weight: "entrypoint" },
+  { id: "measure-summary-lite", flatPath: "measure-summary-lite.json", treePath: "runners/measure/measure-summary-lite.json", audience: "agent", runner: "measure", weight: "summary" },
+  { id: "measure-report", flatPath: "measure.report.md", treePath: "developer/reports/measure.report.md", audience: "developer", runner: "measure", weight: "summary" },
+  { id: "measure-ai", flatPath: "measure.ai.json", treePath: "runners/measure/measure.ai.json", audience: "agent", runner: "measure", weight: "summary" },
+
+  { id: "accessibility-summary", flatPath: "accessibility-summary.json", treePath: "runners/accessibility/accessibility-summary.json", audience: "agent", runner: "accessibility", weight: "entrypoint" },
+  { id: "accessibility-report", flatPath: "accessibility.report.md", treePath: "developer/reports/accessibility.report.md", audience: "developer", runner: "accessibility", weight: "summary" },
+  { id: "accessibility-ai", flatPath: "accessibility.ai.json", treePath: "runners/accessibility/accessibility.ai.json", audience: "agent", runner: "accessibility", weight: "summary" },
+
   { id: "discovery", flatPath: "discovery.json", treePath: "orchestration/discovery.json", audience: "agent", runner: "orchestration", weight: "summary" },
   { id: "session", flatPath: "session.json", treePath: "orchestration/session.json", audience: "diagnostics", runner: "orchestration", weight: "summary" },
   { id: "quality-gate", flatPath: "quality-gate.json", treePath: "gates/quality-gate.json", audience: "ci", runner: "gate", weight: "entrypoint" },
@@ -68,4 +81,8 @@ export function flatPathForId(id: string): string | undefined {
 
 export function treePathForId(id: string): string | undefined {
   return findArtifactRule(id)?.treePath;
+}
+
+export function artifactIdForFlatPath(flatPath: string): string | undefined {
+  return ARTIFACT_RULES.find((rule) => rule.flatPath === flatPath)?.id;
 }

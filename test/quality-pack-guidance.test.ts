@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { evaluateQualityPack, formatQualityPackFailures } from "../src/quality-pack.js";
 
+const extendedRunners = {
+  health: { results: [{ statusCode: 200 }] },
+  console: { results: [{ status: "ok" as const, events: [] }] },
+  measure: { results: [{ runtimeErrorMessage: undefined }] },
+  accessibility: {
+    meta: { configPath: "signaler.config.json", comboCount: 1, startedAt: "", completedAt: "", elapsedMs: 1 },
+    results: [{ url: "http://127.0.0.1:3000/", path: "/", label: "home", device: "mobile" as const, violations: [] }],
+  },
+};
+
 describe("quality pack guidance", () => {
   it("includes header onboarding guidance when header gate fails", () => {
     const pack = evaluateQualityPack({
@@ -10,6 +20,7 @@ describe("quality pack guidance", () => {
       },
       links: { broken: [], discovered: { total: 1 }, checkStatus: "pass" },
       bundle: { totals: { fileCount: 1 } },
+      ...extendedRunners,
     });
     expect(pack.passed).toBe(false);
     expect(pack.guidance?.some((section) => section.id === "security-headers")).toBe(true);
@@ -25,6 +36,7 @@ describe("quality pack guidance", () => {
       headers: { results: [{ missing: [] }] },
       links: { broken: [], discovered: { total: 0 }, checkStatus: "inconclusive" },
       bundle: { totals: { fileCount: 1 } },
+      ...extendedRunners,
     });
     const formatted = formatQualityPackFailures(pack);
     expect(formatted).toContain("sitemap.xml");

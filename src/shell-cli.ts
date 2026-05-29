@@ -650,6 +650,7 @@ const HELP_AUDIT_COMMANDS: readonly HelpLine[] = [
   { command: "links", description: "Broken links audit" },
   { command: "headers", description: "Security headers audit" },
   { command: "console", description: "Console errors + runtime exceptions audit" },
+  { command: "accessibility", description: "axe-core accessibility sweep (CDP-based)" },
   { command: "quick", description: "Run the quick pack (measure+headers+links+bundle+accessibility)" },
 ] as const;
 

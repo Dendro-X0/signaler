@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { EngineJobResultV1, EngineJobV1 } from "../../engine-contracts/jobs/index.js";
+import { shouldContinueQualityProfileJobAfterStepFailure } from "./quality-profiles.js";
 import { createDefaultEngineJobStepRunner } from "./step-runner.js";
 import type { EngineJobExitCode, EngineJobRunOptions, EngineJobRunOutcome } from "./types.js";
 
@@ -57,7 +58,8 @@ export async function executeEngineJob(options: EngineJobRunOptions): Promise<En
   let failedStep: EngineJobV1["steps"][number]["command"] | undefined;
   let runStepSucceeded = false;
 
-  for (const step of options.job.steps) {
+  for (let index = 0; index < options.job.steps.length; index += 1) {
+    const step = options.job.steps[index]!;
     const outcome = await Promise.resolve(stepRunner({ cwd: options.job.cwd, step }));
     stepResults.push({
       command: step.command,
@@ -69,7 +71,17 @@ export async function executeEngineJob(options: EngineJobRunOptions): Promise<En
     }
     if (outcome.exitCode !== 0) {
       failedStep = step.command;
-      break;
+      const remainingSteps = options.job.steps.slice(index + 1);
+      if (
+        !shouldContinueQualityProfileJobAfterStepFailure({
+          qualityProfile: options.job.qualityProfile,
+          command: step.command,
+          runStepSucceeded,
+          remainingSteps,
+        })
+      ) {
+        break;
+      }
     }
   }
 

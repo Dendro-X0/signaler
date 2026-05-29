@@ -28,6 +28,14 @@ async function readManifest(outputDir: string): Promise<ArtifactManifestV1 | und
  */
 export async function resolveArtifactPath(outputDir: string, id: string): Promise<string> {
   const root = resolve(outputDir);
+  const flatRel = flatPathForId(id);
+  if (flatRel) {
+    const flatAbs = resolve(root, flatRel);
+    if (existsSync(flatAbs)) {
+      return flatAbs;
+    }
+  }
+
   const manifest = await readManifest(root);
   const fromManifest = manifest?.artifacts.find((entry) => entry.id === id);
   if (fromManifest) {
@@ -51,8 +59,7 @@ export async function resolveArtifactPath(outputDir: string, id: string): Promis
     }
   }
 
-  const flatRel = flatPathForId(id) ?? `${id}.json`;
-  return resolve(root, flatRel);
+  return resolve(root, flatRel ?? `${id}.json`);
 }
 
 export async function resolveArtifactRelativePath(outputDir: string, id: string): Promise<string> {

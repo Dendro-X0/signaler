@@ -1,10 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **`--quality-profile web-quality|pr-quality`** now runs **health**, **console**, **measure**, and **accessibility** side runners after Lighthouse (with headers, links, bundle).
+- **Quality pack** evaluates health availability, console error combos, and measure runtime failures; new optional thresholds in `qualityPack` config.
+
 ## 4.5.0 - 2026-05-29
 
-### Added
-
-- **Tree artifact layout (default)** — `.signaler/` organized by audience, runner, and weight (`agent/`, `developer/`, `runs/`, `runners/`, `orchestration/`, `gates/`, `export/`, `archive/`).
+### Added — `.signaler/` organized by audience, runner, and weight (`agent/`, `developer/`, `runs/`, `runners/`, `orchestration/`, `gates/`, `export/`, `archive/`).
 - **`manifest.json`** — machine-readable artifact index with tags and legacy path pointers.
 - **`INDEX.md`** — structured developer index (replaces flat file-dump navigation).
 - **`agent/entrypoints.json`** — canonical agent read order when not using `query`.

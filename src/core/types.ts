@@ -183,6 +183,12 @@ export interface QualityGateConfig {
 export interface QualityPackConfig {
   readonly maxHeaderFailures?: number;
   readonly maxBrokenLinks?: number;
+  readonly maxHealthErrors?: number;
+  readonly maxConsoleErrorCombos?: number;
+  readonly maxMeasureRuntimeErrors?: number;
+  readonly maxAccessibilityCriticalViolations?: number;
+  readonly maxAccessibilitySeriousViolations?: number;
+  readonly maxAccessibilityRuntimeErrors?: number;
 }
 
 /**

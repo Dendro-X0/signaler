@@ -85,6 +85,19 @@ describe("artifact layout", () => {
     });
   });
 
+  it("resolveArtifactPath prefers flat path when writers emit fresh root artifacts", async () => {
+    await withDir(async (dir) => {
+      await mkdir(dir, { recursive: true });
+      await writeFile(resolve(dir, "agent-index.json"), JSON.stringify({ contractVersion: "v3", stale: true }), "utf8");
+      await materializeArtifactLayout({ outputDir: dir, layout: "tree" });
+      await writeFile(resolve(dir, "agent-index.json"), JSON.stringify({ contractVersion: "v3", fresh: true }), "utf8");
+
+      const resolved = await resolveArtifactPath(dir, "agent-index");
+      const parsed = JSON.parse(await readFile(resolved, "utf8")) as { fresh?: boolean };
+      expect(parsed.fresh).toBe(true);
+    });
+  });
+
   it("resolveArtifactPath falls back to flat path", async () => {
     await withDir(async (dir) => {
       await mkdir(dir, { recursive: true });

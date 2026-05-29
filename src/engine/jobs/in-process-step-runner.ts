@@ -20,6 +20,10 @@ export const IN_PROCESS_JOB_COMMANDS = [
   "headers",
   "links",
   "bundle",
+  "health",
+  "console",
+  "measure",
+  "accessibility",
 ] as const;
 
 export type InProcessJobCommand = (typeof IN_PROCESS_JOB_COMMANDS)[number];
@@ -47,6 +51,10 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     { runHeadersCli },
     { runLinksCli },
     { runBundleCli },
+    { runHealthCli },
+    { runConsoleCli },
+    { runMeasureCli },
+    { runAccessibilityCli },
   ] = await Promise.all([
     import("../../wizard-cli.js"),
     import("../../cli.js"),
@@ -58,6 +66,10 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     import("../../headers-cli.js"),
     import("../../links-cli.js"),
     import("../../bundle-cli.js"),
+    import("../../health-cli.js"),
+    import("../../console-cli.js"),
+    import("../../measure-cli.js"),
+    import("../../accessibility-cli.js"),
   ]);
 
   return {
@@ -76,6 +88,10 @@ async function defaultInProcessHandlers(): Promise<Record<string, InProcessComma
     headers: async (argv) => runHeadersCli(argv),
     links: async (argv) => runLinksCli(argv),
     bundle: async (argv) => runBundleCli(argv),
+    health: async (argv) => runHealthCli(argv),
+    console: async (argv) => runConsoleCli(argv),
+    measure: async (argv) => runMeasureCli(argv),
+    accessibility: async (argv) => runAccessibilityCli(argv),
   };
 }
 

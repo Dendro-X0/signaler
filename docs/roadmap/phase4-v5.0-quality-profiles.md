@@ -16,7 +16,7 @@ signaler audit --quality-profile web-quality --cwd /path/to/app --base-url http:
 **`web-quality`** job steps:
 
 1. `discover` (full) → `run` (ci-strict flags) → `analyze` (v6 lean)
-2. `headers` → `links` → `bundle`
+2. `headers` → `links` → `health` → `console` → `measure` → `accessibility` → `bundle`
 3. Post-job **`quality-pack.json`** gate + **agent-index** pack pointers
 
 ## Done

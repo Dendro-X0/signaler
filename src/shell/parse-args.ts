@@ -35,6 +35,7 @@ export function parseShellArgs(argv: readonly string[]): ParsedShellArgs {
     rawCommand === "links" ||
     rawCommand === "headers" ||
     rawCommand === "console" ||
+    rawCommand === "accessibility" ||
     rawCommand === "clean" ||
     rawCommand === "uninstall" ||
     rawCommand === "clear-screenshots" ||
