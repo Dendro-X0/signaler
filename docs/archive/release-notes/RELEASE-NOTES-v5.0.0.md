@@ -1,28 +1,31 @@
 # Release Notes - v5.0.0
 
+**Date:** 2026-05-29  
 **Package:** `@signaler/cli@5.0.0` (JSR + GitHub Release)
 
 ## Summary
 
-Signaler 5.0.0 is the **quality profiles** release: one command bundles Lighthouse policy gates with headers, links, and bundle checks, producing a unified pack artifact and a single CI exit code.
+Signaler 5.0.0 is the **quality profiles** release: one command runs Lighthouse policy gates plus **headers**, **links**, **health**, **console**, **measure**, **accessibility**, and **bundle**, producing a unified pack artifact (`gates/quality-pack.json`) and a single CI exit code. Works with the v4.5 **tree artifact layout** by default.
 
 ## Added
 
-- **`--quality-profile web-quality`** on `audit` and `job run` — extends `ci-strict` with `headers`, `links`, and `bundle` steps; writes `quality-pack.json`.
-- **`--quality-profile pr-quality`** — `pr-quick` (changed-only Lighthouse) plus the same side runners and pack gate.
-- **`qualityPack` config** — `maxHeaderFailures`, `maxBrokenLinks` thresholds for the pack gate.
-- **Agent-index pack pointers** — `qualityPack` summary and side-runner entrypoints on `agent-index.json` after pack evaluation.
+- **`--quality-profile web-quality`** on `audit` and `job run` — `discover` → `run` (ci-strict) → `analyze` → side runners → quality pack gate.
+- **`--quality-profile pr-quality`** — changed-only Lighthouse (`pr-quick`) plus the same side runners and pack.
+- **`signaler accessibility`** — standalone axe-core audit CLI.
+- **`qualityPack` config** — thresholds for headers, links, health, console, measure, accessibility, and bundle failures.
+- **Agent-index pack pointers** — pack summary and side-runner entrypoints after evaluation.
 - **GitHub Action `quality-profile` input** — run `web-quality` from CI; job summary surfaces pack failures.
 
-## Not in this release
+## Changed
 
-- Optional bundle **byte budgets** in `qualityPack` (planned for a follow-up).
+- Quality-profile jobs **continue side runners** when analyze fails after a successful run (exit code 2).
+- **`analyze`** prefers fresh flat artifacts over stale tree copies when both exist (tree layout reruns).
 
-## Upgrade from 4.3
+## Upgrade from 4.5
 
-- No breaking CLI renames. Existing `audit`, `run-profile`, and `qualityGate` flows are unchanged.
-- To adopt the v5 bundle, add `--quality-profile web-quality` (CLI) or `quality-profile: web-quality` (Action) instead of wiring headers/links/bundle manually.
-- Strict header checks may fail typical Next.js apps until you add security headers (middleware or `next.config`); tune `qualityPack` or disable side runners if you need a phased rollout.
+- No breaking CLI renames. Default artifact layout remains **tree**.
+- Add `--quality-profile web-quality` (CLI) or `quality-profile: web-quality` (Action) instead of wiring side runners manually.
+- Strict pack gates may fail typical apps until you fix links, console errors, or tune `qualityPack` for phased rollout.
 
 ## Quick start
 
@@ -43,6 +46,12 @@ PR changed-files + pack:
 
 ```bash
 signaler job run --quality-profile pr-quality --managed-serve --in-process --cwd .
+```
+
+## Install (JSR)
+
+```bash
+npx jsr add @signaler/cli@5.0.0
 ```
 
 ## Docs

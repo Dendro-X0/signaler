@@ -2,10 +2,23 @@
 
 ## Unreleased
 
+## 5.0.0 - 2026-05-29
+
+### Added
+
+- **`--quality-profile web-quality`** on `audit` and `job run` — extends `ci-strict` with side runners (`headers`, `links`, `health`, `console`, `measure`, `accessibility`, `bundle`); writes `gates/quality-pack.json` and a single combined exit code.
+- **`--quality-profile pr-quality`** — `pr-quick` (changed-only Lighthouse) plus the same side runners and pack gate.
+- **`signaler accessibility`** — standalone axe-core pass (also orchestrated in quality profiles).
+- **`qualityPack` config** — thresholds for headers, links, health, console, measure, accessibility, and bundle; onboarding guidance in pack output.
+- **Agent-index pack pointers** — `qualityPack` summary and side-runner entrypoints after pack evaluation.
+- **GitHub Action `quality-profile` input** — run `web-quality` from CI; default `cli-version` is `5.0.0`.
+
 ### Changed
 
-- **`--quality-profile web-quality|pr-quality`** now runs **health**, **console**, **measure**, and **accessibility** side runners after Lighthouse (with headers, links, bundle).
-- **Quality pack** evaluates health availability, console error combos, and measure runtime failures; new optional thresholds in `qualityPack` config.
+- **Quality-profile jobs** continue side runners when analyze exits with partial success (exit code 2).
+- **`analyze`** resolves inputs via tree-aware artifact paths (prefers fresh flat writers over stale manifest tree copies).
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.0.0.md`](docs/archive/release-notes/RELEASE-NOTES-v5.0.0.md).
 
 ## 4.5.0 - 2026-05-29
 
@@ -49,16 +62,6 @@ See [`docs/specs/artifact-layout-v4.5.md`](docs/specs/artifact-layout-v4.5.md) a
 
 - Links discovery returning zero URLs when sitemap used `localhost` but config used `127.0.0.1`.
 - Config fallback skipped when sitemap returned HTTP 200 with no usable URLs.
-
-## 5.0.0 - Deferred (implemented, not released)
-
-### Added
-
-- **`--quality-profile web-quality`** on `audit` and `job run` — bundles `ci-strict` Lighthouse gate with `headers`, `links`, and `bundle` steps; writes `quality-pack.json` and a single combined exit code.
-- **`--quality-profile pr-quality`** — changed-only Lighthouse (`pr-quick`) plus headers, links, and bundle.
-- **`qualityPack` config** — `maxHeaderFailures`, `maxBrokenLinks` thresholds for the pack gate.
-- **Agent-index pack pointers** — `qualityPack` summary and side-runner entrypoints on `agent-index.json` after pack evaluation.
-- **GitHub Action `quality-profile` input** — run `web-quality` from CI without manual job args; default `cli-version` is `5.0.0`.
 
 ## 4.3.0 - 2026-05-26
 

@@ -101,7 +101,7 @@ test -d .signaler/runners/links
 
 ## Relationship to v5.0.0
 
-v5.0.0 (quality profiles release) remains **deferred**. v4.5.0 improves output structure on the current package line; v5 can ship after layout migration is proven in dogfood.
+v5.0.0 (quality profiles) shipped after layout dogfood. See [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md).
 
 ## Non-goals (v4.5)
 

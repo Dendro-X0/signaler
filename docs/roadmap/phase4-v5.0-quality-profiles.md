@@ -1,13 +1,13 @@
 # Phase 4 — v5.0 Quality profiles
 
-Status: **Deferred** (implemented; release after v4.5 artifact layout)  
+Status: **Shipped** (v5.0.0, 2026-05-29)  
 Last updated: 2026-05-29
 
 ## Goal
 
 One command runs Lighthouse policy gates plus existing side runners, producing one pack artifact and one CI exit code.
 
-## Implemented (on main; release as v5.0.0)
+## Shipped (v5.0.0)
 
 ```bash
 signaler audit --quality-profile web-quality --cwd /path/to/app --base-url http://127.0.0.1:3000
@@ -30,7 +30,6 @@ signaler audit --quality-profile web-quality --cwd /path/to/app --base-url http:
 ## Follow-up (post-v5.0.0)
 
 - [ ] Optional bundle byte budgets in `qualityPack`
-- [ ] v5.0.0 tag + JSR publish
 
 ## Related
 

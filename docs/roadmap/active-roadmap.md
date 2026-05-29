@@ -5,15 +5,19 @@ Updated: 2026-05-29
 
 ## Current focus
 
-**v4.5.0 shipped** — tree artifact layout is the default. Next: v5.0.0 quality profiles tag after additional dogfood.
+**v5.0.0 shipped** — quality profiles bundle Lighthouse + side runners with a unified pack gate.
 
-- Release: [`../archive/release-notes/RELEASE-NOTES-v4.5.0.md`](../archive/release-notes/RELEASE-NOTES-v4.5.0.md)
-- Spec: [`../specs/artifact-layout-v4.5.md`](../specs/artifact-layout-v4.5.md)
-- Plan (completed): [`phase4.5-v4.5-artifact-layout.md`](./phase4.5-v4.5-artifact-layout.md)
+- Release: [`../archive/release-notes/RELEASE-NOTES-v5.0.0.md`](../archive/release-notes/RELEASE-NOTES-v5.0.0.md)
+- Plan: [`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md)
 
-### Deferred
+### Next
 
-- **v5.0.0** quality profiles tag/publish ([`phase4-v5.0-quality-profiles.md`](./phase4-v5.0-quality-profiles.md))
+- Optional bundle byte budgets in `qualityPack`
+- Multi-benchmark auto-bridge from runner outputs
+
+## Shipped — Phase 5 (v5.0.0)
+
+`--quality-profile web-quality|pr-quality`: headers, links, health, console, measure, accessibility, bundle + `gates/quality-pack.json`.
 
 ## Shipped — Phase 4.5 (v4.5.0)
 

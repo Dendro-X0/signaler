@@ -2,7 +2,7 @@
 
 > Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
 
-![Version](http://img.shields.io/badge/version-4.5.0-blue.svg)
+![Version](http://img.shields.io/badge/version-5.0.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 ## Installation
@@ -147,7 +147,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.5.0"
+    cli-version: "5.0.0"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```

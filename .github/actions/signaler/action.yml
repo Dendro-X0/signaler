@@ -6,9 +6,9 @@ branding:
 
 inputs:
   cli-version:
-    description: JSR package version (e.g. 4.5.0). Bump before each release publish.
+    description: JSR package version (e.g. 5.0.0). Bump before each release publish.
     required: false
-    default: "4.5.0"
+    default: "5.0.0"
   base-url:
     description: Application base URL for audits
     required: false

@@ -12,7 +12,7 @@ Use it from the same repo (or pin to a tag after release):
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.5.0"
+    cli-version: "5.0.0"
     base-url: http://127.0.0.1:3000
     preset: ci              # audit | ci | pr | agent
     scope: full
@@ -23,7 +23,7 @@ Use it from the same repo (or pin to a tag after release):
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `cli-version` | `4.5.0` | JSR `@signaler/cli` version |
+| `cli-version` | `5.0.0` | JSR `@signaler/cli` version |
 | `base-url` | `http://127.0.0.1:3000` | App URL |
 | `cwd` | `.` | Project root |
 | `scope` | `full` | Discover scope for `audit` / `ci` / `agent` |
@@ -69,7 +69,7 @@ Do not combine `--preset`, `--run-profile`, and `--quality-profile`.
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.5.0"
+    cli-version: "5.0.0"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
     scope: full

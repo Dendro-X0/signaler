@@ -8,7 +8,7 @@ Use this checklist when publishing `@signaler/cli` to [JSR](https://jsr.io/@sign
 
 **Before every JSR publish:** bump both files to a **new** semver (JSR versions are immutable — you cannot republish `4.1.0` as `4.1.0`).
 
-Current line: **4.5.0**
+Current line: **5.0.0**
 
 ```bash
 node -e "const p=require('./package.json');const j=require('./jsr.json');console.log(p.version,j.version,p.version===j.version?'ok':'MISMATCH')"
