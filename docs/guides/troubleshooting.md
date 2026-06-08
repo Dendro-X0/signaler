@@ -33,14 +33,21 @@ Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
    `signalar` is also installed as a compatibility alias by the portable release flow.
 3. **If you only need a lightweight wrapper in a JSR-driven workflow, install the Signaler shell shim:**
    ```bash
-   npx jsr run @signaler/cli install-shim
+   node node_modules/@signaler/cli/src/cli-entry.js install-shim
    ```
-4. **Use JSR direct run only when you are inside a project workflow that already installs the package locally:**
+4. **Project-local JSR install (no global command by default):**
    ```bash
-   npx jsr run @signaler/cli <command>
+   npx jsr add @signaler/cli@5.0.1 --pnpm
+   # package.json script:
+   # "signaler": "node node_modules/@signaler/cli/src/cli-entry.js"
    ```
-5. **Restart your terminal** to refresh PATH variables
-6. **Verify Node.js installation:**
+   Do **not** use `pnpm i jsr:@signaler/cli` on pnpm 9 — use `npx jsr add` instead. See [Installation](./installation.md).
+5. **Use JSR direct run only when you are inside a project workflow that already installs the package locally:**
+   ```bash
+   node node_modules/@signaler/cli/src/cli-entry.js <command>
+   ```
+6. **Restart your terminal** to refresh PATH variables
+7. **Verify Node.js installation:**
    ```bash
    node --version  # Should be 18.0.0 or higher
    npm --version

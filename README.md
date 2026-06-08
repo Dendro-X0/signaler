@@ -1,21 +1,32 @@
 # Signaler CLI
 
-> Agent-first web lab runner for route discovery, Lighthouse triage, and fix-oriented reports.
+> Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.0.0-blue.svg)
+![Version](http://img.shields.io/badge/version-5.0.1-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
+
+**v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
+→ [v5 showcase guide](./docs/guides/v5-showcase.md) · [Release notes](./docs/archive/release-notes/RELEASE-NOTES-v5.0.0.md)
 
 ## Installation
 
 Signaler is distributed through portable GitHub Release installers. The recommended path is a one-time install script that creates direct global `signaler` and `signalar` launchers without trying to bundle the entire package into a native binary.
 
-Windows (PowerShell):
+→ Full guide: [Installation](./docs/guides/installation.md)
+
+**Git Bash / WSL / macOS / Linux** (use this in Bash — not `irm` / `iex`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+**Windows PowerShell only:**
 
 ```powershell
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-macOS/Linux:
+**macOS/Linux terminal** (same as Git Bash):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
@@ -29,6 +40,26 @@ signalar --version
 signaler upgrade
 signaler uninstall --global
 ```
+
+### Project install (JSR)
+
+Do **not** run `pnpm i jsr:@signaler/cli` on pnpm 9 — it fails with `ERR_PNPM_SPEC_NOT_SUPPORTED_BY_ANY_RESOLVER`. Use:
+
+```bash
+npx jsr add @signaler/cli@5.0.0 --pnpm   # 5.0.1+ after JSR publish
+```
+
+Check [jsr.io/@signaler/cli](https://jsr.io/@signaler/cli) for the latest published version.
+
+JSR does not wire `node_modules/.bin/signaler`. Run via script or entrypoint:
+
+```json
+"scripts": {
+  "signaler": "node node_modules/@signaler/cli/src/cli-entry.js"
+}
+```
+
+Or install a shell shim from the project: `pnpm run signaler -- install-shim`.
 
 Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
 
@@ -44,21 +75,30 @@ JSR remains useful as a package source for project dependencies and publishing, 
 
 ## Quick Start
 
-Get up and running in minutes with the canonical workflow. Start by discovering routes, run a throughput audit, generate a V6 analyze packet, verify fixes on focused reruns, and then render reports.
+### Agent fix loop (default)
 
-**One-shot audit (v4+)** — discover → run → analyze:
+Discover → run → analyze. Managed serve starts your app when needed.
 
 ```bash
 signaler audit --cwd . --base-url http://127.0.0.1:3000
-signaler query --view perf
-signaler explain --id <issue-id>
+signaler query --view perf --dir .signaler
+signaler explain --id <issue-id> --dir .signaler
 ```
 
-**Full web quality (v5)** — Lighthouse CI gate + headers + links + bundle:
+### Full web quality (v5 — recommended for CI)
+
+Lighthouse policy gate **and** seven side runners → one quality-pack gate.
 
 ```bash
 signaler audit --quality-profile web-quality --cwd . --base-url http://127.0.0.1:3000
-signaler query --view agent
+signaler query --view agent --dir .signaler
+# CI artifact: .signaler/gates/quality-pack.json
+```
+
+### PR / changed routes
+
+```bash
+signaler job run --quality-profile pr-quality --managed-serve --in-process --cwd .
 ```
 
 **One-shot agent job** (explicit preset):
@@ -209,18 +249,25 @@ Supported providers:
 
 ### Demos
 
-> Demo GIFs were recorded on an older CLI UI; commands and artifacts match current v5 docs (`audit`, `query`, `quality-pack.json`).
+> **GIFs below are from v2.6.4** (init/wizard + flat artifacts). v5 uses `audit`, tree layout, and `quality-pack`.  
+> Recording storyboard for replacements: [docs/assets/README.md](./docs/assets/README.md)
+
+| Clip | Status | v5 equivalent |
+|------|--------|----------------|
+| Init & audit | Legacy GIF | `signaler audit --quality-profile web-quality` |
+| File tree | Legacy GIF | `.signaler/INDEX.md` + `manifest.json` |
+| HTML report | Still representative | `developer/report.html` |
 
 ![Init and Audit Workflow](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif)
-*Initializing a project and running an audit in interactive mode*
-
-### Output Files
+*Legacy: init/wizard — use `signaler audit` or `discover` today*
 
 ![File Tree Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/file_tree_report.gif)
-*Comprehensive file tree generation*
+*Legacy: flat `.signaler/` root — v4.5+ uses tree layout (see INDEX.md)*
 
 ![HTML Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/HTML_report.gif)
-*Interactive HTML report with AI insights*
+*Developer report — `developer/report.html` in tree layout*
+
+### Output layout (v4.5+ tree)
 
 Signaler generates comprehensive reports in `.signaler/` (default **tree layout** since v4.5):
 
@@ -235,8 +282,12 @@ Signaler generates comprehensive reports in `.signaler/` (default **tree layout*
 | `agent/performance-triage.json` | Performance issue-count triage |
 | `runners/links/links.json` | Link check results |
 | `runners/headers/headers.json` | Security header checks |
+| `runners/health/health.json` | Route availability |
+| `runners/console/console.json` | Console errors per combo |
+| `runners/measure/measure-summary.json` | Fast CDP lab metrics |
+| `runners/accessibility/accessibility-summary.json` | axe-core sweep |
 | `runners/bundle/bundle-audit.json` | Bundle scan |
-| `gates/quality-pack.json` | Unified web-quality gate |
+| `gates/quality-pack.json` | Unified web-quality gate (v5) |
 | `runs/lighthouse/run.json` | Run identity + comparability |
 | `manifest.json` | Machine index for all paths |
 
@@ -378,6 +429,7 @@ For more solutions, see [Troubleshooting Guide](./docs/guides/troubleshooting.md
 
 Comprehensive guides available in [`/docs`](./docs):
 
+- [**v5 Showcase**](./docs/guides/v5-showcase.md) — quality profiles, tree layout, agent vs CI flows
 - [Docs Index](./docs/README.md)
 - [Getting Started](./docs/guides/getting-started.md)
 - [Agent Quickstart](./docs/guides/agent-quickstart.md)

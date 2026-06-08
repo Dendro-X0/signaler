@@ -1,7 +1,7 @@
 {
   "name": "@signaler/cli",
-  "version": "5.0.0",
-  "description": "Next-generation web performance monitoring platform with AI-powered insights, enterprise-grade optimizations, and comprehensive CI/CD integration",
+  "version": "5.0.1",
+  "description": "Agent-first web quality CLI: Lighthouse audits, quality profiles (headers, links, health, console, measure, accessibility, bundle), tree artifacts, and CI gates.",
   "keywords": [
     "performance",
     "monitoring",
@@ -27,18 +27,20 @@
   "exports": {
     ".": "./src/index.ts",
     "./api": "./src/api.ts",
-    "./engine": "./src/engine/index.ts"
+    "./engine": "./src/engine/index.ts",
+    "./bin": "./src/bin.ts",
+    "./cli-entry": "./src/cli-entry.ts"
   },
   "publish": {
     "include": [
       "src/",
-      "dist/",
       "scripts/postinstall.js",
       "README.md",
       "CHANGELOG.md",
       "LICENSE"
     ],
     "exclude": [
+      "dist/",
       "dist/**/*.test.*",
       "dist/**/*.spec.*",
       "dist/**/*.map",

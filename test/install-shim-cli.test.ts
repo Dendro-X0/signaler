@@ -36,9 +36,9 @@ describe("install-shim cli", () => {
       await stat(resolve(targetDir, "signaler"));
       await stat(resolve(targetDir, "signalar"));
       const bashShim = await readFile(resolve(targetDir, "signaler"), "utf8");
-      expect(bashShim).toContain("npx jsr run @signaler/cli");
+      expect(bashShim).toContain("node_modules/@signaler/cli/src/cli-entry.js");
       const bashAliasShim = await readFile(resolve(targetDir, "signalar"), "utf8");
-      expect(bashAliasShim).toContain("npx jsr run @signaler/cli");
+      expect(bashAliasShim).toContain("node_modules/@signaler/cli/src/cli-entry.js");
       if (process.platform === "win32") {
         await stat(resolve(targetDir, "signaler.cmd"));
         await stat(resolve(targetDir, "signalar.cmd"));

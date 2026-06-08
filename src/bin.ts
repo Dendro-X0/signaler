@@ -11,7 +11,7 @@ if (major < 18) {
 
 // Check available memory
 import { freemem } from 'node:os';
-import { resolve } from "node:path";
+import { isSameExecPath } from "./exec-path.js";
 import { fileURLToPath } from "node:url";
 const freeMemoryMB = Math.round(freemem() / 1024 / 1024);
 if (freeMemoryMB < 512) {
@@ -993,7 +993,7 @@ export async function runBin(argv: readonly string[]): Promise<void> {
 
 }
 
-function handleRunBinError(error: unknown): void {
+export function handleRunBinError(error: unknown): void {
   console.error("\n[ERROR] Signaler CLI failed\n");
 
   if (error instanceof Error) {
@@ -1023,11 +1023,17 @@ function isDirectExecution(): boolean {
   if (typeof invokedPath !== "string" || invokedPath.length === 0) {
     return false;
   }
-  const modulePath: string = fileURLToPath(import.meta.url);
-  return resolve(invokedPath) === resolve(modulePath);
+  return isSameExecPath(invokedPath, import.meta.filename ?? fileURLToPath(import.meta.url));
 }
 
-if (isDirectExecution()) {
+function shouldRunMain(): boolean {
+  if (import.meta.main === true) {
+    return true;
+  }
+  return isDirectExecution();
+}
+
+if (shouldRunMain()) {
   void runBin(process.argv).catch(handleRunBinError);
 }
 

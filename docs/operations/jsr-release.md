@@ -8,7 +8,7 @@ Use this checklist when publishing `@signaler/cli` to [JSR](https://jsr.io/@sign
 
 **Before every JSR publish:** bump both files to a **new** semver (JSR versions are immutable — you cannot republish `4.1.0` as `4.1.0`).
 
-Current line: **5.0.0**
+Current line: **5.0.1**
 
 ```bash
 node -e "const p=require('./package.json');const j=require('./jsr.json');console.log(p.version,j.version,p.version===j.version?'ok':'MISMATCH')"
@@ -78,14 +78,15 @@ pnpm run jsr:publish:skip-build
 ## 6. Post-publish smoke
 
 ```bash
-npx jsr run @signaler/cli@4.2.0 -- --version
-npx jsr run @signaler/cli@4.2.0 -- help audit
+npx jsr run @signaler/cli@5.0.1 -- --version
+node node_modules/@signaler/cli/src/cli-entry.js --version
+npx jsr run @signaler/cli@5.0.1 -- help audit
 ```
 
 ## 7. Consumer upgrade
 
 ```bash
-npx jsr add @signaler/cli@4.2.0
+npx jsr add @signaler/cli@5.0.1 --pnpm
 ```
 
 Agents and CI should read `docs/guides/migration-v4.md` before upgrading from 3.2.x.
@@ -98,6 +99,9 @@ Agents and CI should read `docs/guides/migration-v4.md` before upgrading from 3.
 | Dirty worktree | Commit/tag release, or `pnpm run jsr:publish -- --allow-dirty` (avoid for real releases) |
 | Missing `dist/engine` | Run `pnpm run build` before publish |
 | Slow types warning | Default `--allow-slow-types` is passed by the publish helper |
+| `pnpm i jsr:@signaler/cli` fails | Use `npx jsr add @signaler/cli --pnpm` (pnpm 10.9+ can use `pnpm add jsr:@signaler/cli` with `.npmrc`) |
+| No `signaler` on PATH after JSR add | Expected — use `node node_modules/@signaler/cli/src/cli-entry.js` or `install-shim` |
+| `dist/bin.js` fails with `npm:` scheme | Use `src/cli-entry.js` from JSR installs; portable/GitHub release uses compiled `dist/` |
 | GitHub CI test failed, empty log UI | Download workflow artifact `vitest-log-<node-version>` from the failed run; re-run locally with `CI=true pnpm test:full` |
 
 ## CI vs JSR publish

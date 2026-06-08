@@ -4,6 +4,7 @@ This folder is organized around stable documentation categories first, with vers
 
 ## Start Here
 
+- [**v5.0 Showcase**](guides/v5-showcase.md) — quality profiles, tree artifacts, demos to record
 - [Getting Started](guides/getting-started.md)
 - [Agent Quickstart](guides/agent-quickstart.md)
 - [Migration Guide](guides/migration.md)

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 5.0.1 - 2026-06-08
+
+### Fixed
+
+- **JSR / project install** — `src/cli-entry.ts` is the supported Node entrypoint; `import.meta.main` and Git Bash path normalization fix silent no-op runs.
+- **JSR publish** — stop shipping `dist/` in JSR tarballs (JSR rewrites those imports to `npm:` URLs, which break Node).
+- **`install-shim`** — resolves project-local `@signaler/cli/src/cli-entry.js` or portable global install instead of broken `npx jsr run`.
+- **Docs** — [Installation guide](./docs/guides/installation.md) documents correct JSR add commands and common `pnpm i jsr:…` failure.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.0.1.md`](docs/archive/release-notes/RELEASE-NOTES-v5.0.1.md).
+
 ## 5.0.0 - 2026-05-29
 
 ### Added

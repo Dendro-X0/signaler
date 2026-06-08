@@ -35,20 +35,22 @@ function getBinDir() {
 
 // Get the path to the actual CLI script
 function getCliPath() {
-  // Try to find the dist/bin.js relative to this script
-  const localPath = join(__dirname, '..', 'dist', 'bin.js');
-  if (existsSync(localPath)) {
-    return localPath;
+  const candidates = [
+    join(__dirname, '..', 'dist', 'cli-entry.js'),
+    join(__dirname, '..', 'dist', 'bin.js'),
+    join(__dirname, '..', 'src', 'cli-entry.js'),
+    join(__dirname, '..', '..', '@signaler', 'cli', 'dist', 'cli-entry.js'),
+    join(__dirname, '..', '..', '@signaler', 'cli', 'dist', 'bin.js'),
+    join(__dirname, '..', '..', '@jsr', 'signaler__cli', 'src', 'cli-entry.js'),
+  ];
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
-  
-  // Fallback: assume we're in node_modules
-  const nodeModulesPath = join(__dirname, '..', '..', '@signaler', 'cli', 'dist', 'bin.js');
-  if (existsSync(nodeModulesPath)) {
-    return nodeModulesPath;
-  }
-  
-  // Last resort: use relative path
-  return join(__dirname, '..', 'dist', 'bin.js');
+
+  return join(__dirname, '..', 'dist', 'cli-entry.js');
 }
 
 function createBashWrapper(binDir, cliPath) {

@@ -1,8 +1,10 @@
 /**
- * Signaler - Main Entry Point
- * 
- * This is the main entry point for the Signaler application.
- * It provides access to all modules through a clean, modular API.
+ * Signaler CLI — agent-first web quality audits.
+ *
+ * Route discovery, Lighthouse lab runs, v6 analyze/verify, and quality profiles
+ * (headers, links, health, console, measure, accessibility, bundle) with tree
+ * artifacts under `.signaler/`.
+ *
  * @module
  */
 

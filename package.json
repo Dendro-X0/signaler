@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
@@ -59,8 +59,8 @@
     "LICENSE"
   ],
   "bin": {
-    "signaler": "./dist/bin.js",
-    "signalar": "./dist/bin.js"
+    "signaler": "./dist/cli-entry.js",
+    "signalar": "./dist/cli-entry.js"
   },
   "exports": {
     ".": {
@@ -82,6 +82,10 @@
     "./bin": {
       "import": "./dist/bin.js",
       "types": "./dist/bin.d.ts"
+    },
+    "./cli-entry": {
+      "import": "./dist/cli-entry.js",
+      "types": "./dist/cli-entry.d.ts"
     }
   },
   "scripts": {

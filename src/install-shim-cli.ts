@@ -77,8 +77,22 @@ function defaultTargetDir(): string {
 function buildBashShim(): string {
   return [
     "#!/usr/bin/env bash",
-    "# Signaler shim: allows direct `signaler` and `signalar` commands from shell",
-    "exec npx jsr run @signaler/cli \"$@\"",
+    "set -euo pipefail",
+    "# Signaler shim: project-local @signaler/cli, then portable global install",
+    'if [ -x "${HOME}/.local/share/signaler/bin/signaler" ]; then',
+    '  exec "${HOME}/.local/share/signaler/bin/signaler" "$@"',
+    "fi",
+    'ROOT="$PWD"',
+    'while [ "$ROOT" != "/" ]; do',
+    '  CANDIDATE="$ROOT/node_modules/@signaler/cli/src/cli-entry.js"',
+    '  if [ -f "$CANDIDATE" ]; then',
+    '    exec node "$CANDIDATE" "$@"',
+    "  fi",
+    '  ROOT="$(dirname "$ROOT")"',
+    "done",
+    'echo "signaler: not found. Install globally: curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash" >&2',
+    'echo "Or add to this project: npx jsr add @signaler/cli --pnpm" >&2',
+    "exit 1",
     "",
   ].join("\n");
 }
@@ -86,8 +100,25 @@ function buildBashShim(): string {
 function buildCmdShim(): string {
   return [
     "@echo off",
-    "REM Signaler shim: allows direct `signaler` and `signalar` commands from shell",
-    "npx jsr run @signaler/cli %*",
+    "setlocal EnableExtensions",
+    "REM Signaler shim: project-local @signaler/cli, then portable global install",
+    "if exist \"%LOCALAPPDATA%\\signaler\\bin\\signaler.cmd\" (",
+    "  \"%LOCALAPPDATA%\\signaler\\bin\\signaler.cmd\" %*",
+    "  exit /b %ERRORLEVEL%",
+    ")",
+    "set \"ROOT=%CD%\"",
+    ":find_cli",
+    "if exist \"%ROOT%\\node_modules\\@signaler\\cli\\src\\cli-entry.js\" (",
+    "  node \"%ROOT%\\node_modules\\@signaler\\cli\\src\\cli-entry.js\" %*",
+    "  exit /b %ERRORLEVEL%",
+    ")",
+    "for %%I in (\"%ROOT%\\..\") do set \"PARENT=%%~fI\"",
+    "if /I \"%ROOT%\"==\"%PARENT%\" goto not_found",
+    "set \"ROOT=%PARENT%\"",
+    "goto find_cli",
+    ":not_found",
+    "echo signaler: not found. Install globally with release-assets/install.ps1 or add: npx jsr add @signaler/cli --pnpm 1>&2",
+    "exit /b 1",
     "",
   ].join("\r\n");
 }
