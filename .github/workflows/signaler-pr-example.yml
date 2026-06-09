@@ -27,7 +27,7 @@ jobs:
 
       - uses: ./.github/actions/signaler
         with:
-          cli-version: "4.3.0"
+          version: "5.0.1"
           run-profile: pr-quick
           base-url: http://127.0.0.1:3000
           cwd: .

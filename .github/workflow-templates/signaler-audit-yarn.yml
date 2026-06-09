@@ -21,9 +21,9 @@ on:
         required: false
         default: "ci"
       cli_version:
-        description: "JSR @signaler/cli version"
+        description: "GitHub Release Signaler version (semver or latest)"
         required: false
-        default: "4.2.0"
+        default: "latest"
 
 jobs:
   signaler:
@@ -33,7 +33,7 @@ jobs:
       SIGNALER_CONFIG_PATH: ${{ inputs.config_path || '' }}
       SIGNALER_ROUTES_SCOPE: ${{ inputs.routes_scope || 'full' }}
       SIGNALER_JOB_PRESET: ${{ inputs.job_preset || 'ci' }}
-      SIGNALER_CLI_VERSION: ${{ inputs.cli_version || '4.2.0' }}
+      SIGNALER_VERSION: ${{ inputs.cli_version || 'latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +50,7 @@ jobs:
       - name: Run Signaler
         uses: ./.github/actions/signaler
         with:
-          cli-version: ${{ env.SIGNALER_CLI_VERSION }}
+          version: ${{ env.SIGNALER_VERSION }}
           base-url: ${{ env.SIGNALER_BASE_URL }}
           scope: ${{ env.SIGNALER_ROUTES_SCOPE }}
           preset: ${{ env.SIGNALER_JOB_PRESET }}

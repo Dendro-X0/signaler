@@ -12,18 +12,21 @@ Use it from the same repo (or pin to a tag after release):
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "5.0.0"
+    version: "5.0.1"        # GitHub Release semver, or "latest"
     base-url: http://127.0.0.1:3000
     preset: ci              # audit | ci | pr | agent
     scope: full
     managed-serve-mode: auto
 ```
 
+The action installs Signaler from **GitHub Release** (`install.sh`) — not npm or JSR.
+
 ### Inputs
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `cli-version` | `5.0.0` | JSR `@signaler/cli` version |
+| `version` | `latest` | GitHub Release version (e.g. `5.0.1`) for the portable installer |
+| `cli-version` | (empty) | **Deprecated** — use `version` |
 | `base-url` | `http://127.0.0.1:3000` | App URL |
 | `cwd` | `.` | Project root |
 | `scope` | `full` | Discover scope for `audit` / `ci` / `agent` |
@@ -69,7 +72,7 @@ Do not combine `--preset`, `--run-profile`, and `--quality-profile`.
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "5.0.0"
+    version: "5.0.1"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
     scope: full
@@ -144,7 +147,7 @@ jobs:
 
       - uses: ./.github/actions/signaler
         with:
-          cli-version: "4.2.0"
+          version: "5.0.1"
           preset: pr
           managed-serve-mode: auto
 ```
@@ -154,7 +157,7 @@ jobs:
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "4.2.0"
+    version: "5.0.1"
     preset: ci
     scope: full
 ```
@@ -181,9 +184,9 @@ Set `cwd` to the app package:
 
 ## Versioning note
 
-**Bump `cli-version` when you publish a new JSR release.** JSR versions are immutable — you cannot republish the same semver.
+**Bump `version` when you cut a new GitHub Release** (tag `v<semver>`). The action installs from the portable release asset for that version, or `latest` for the most recent GitHub Release.
 
-See [`../operations/jsr-release.md`](../operations/jsr-release.md).
+See [Release playbook](../operations/release-playbook.md) and [Installation](./installation.md).
 
 ## Related
 

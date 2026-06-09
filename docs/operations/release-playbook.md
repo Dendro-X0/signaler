@@ -17,7 +17,6 @@ corepack pnpm run bench:workstream-j:overhead
 corepack pnpm run bench:workstream-k:rust-benchmark
 corepack pnpm run bench:v63:gate
 corepack pnpm run release -- --target-version <version>
-corepack pnpm run jsr:publish -- --dry-run
 ```
 
 What this does:
@@ -25,7 +24,8 @@ What this does:
 1. Runs release gate checks (v3 contract, phase6, and success-gate evaluators).
 2. Validates required docs and release manifest assets.
 3. Writes machine-readable output to `release/v3/release-preflight.json`.
-4. Confirms the JSR publish helper can run from the package root before the authenticated publish step.
+
+**Registry publish (npm / JSR) is deprecated** — do not run `jsr:publish`. See [Distribution policy](../specs/distribution-policy.md).
 
 Optional strict CI-equivalent check:
 
@@ -79,33 +79,14 @@ git tag v<version>
 git push origin v<version>
 ```
 
+GitHub Actions builds and uploads release assets automatically (see §4.1). No npm or JSR publish step.
+
 If a tag was pushed too early, move it to the version-bump commit (do not re-tag a different semver):
 
 ```bash
 git tag -f v<version> <commit-with-matching-package.json>
 git push origin v<version> --force
 ```
-
-Then publish from the `signaler` package directory (where `jsr.json` is present):
-
-```bash
-pnpm run jsr:publish
-```
-
-Optional sanity check first:
-
-```bash
-pnpm run jsr:publish -- --dry-run
-```
-
-If you are intentionally testing a publish from a dirty worktree, the helper can pass through JSR's dirty-worktree override:
-
-```bash
-pnpm run jsr:publish -- --allow-dirty
-```
-
-If you run from the parent workspace root by mistake, JSR will fail with:
-`Couldn't find a deno.json, deno.jsonc, jsr.json or jsr.jsonc configuration file`.
 
 ## 4.1 GitHub Release Assets
 
@@ -138,19 +119,17 @@ Manual recovery path for an existing tag/release:
 
 ## 5) Post-Publish Validation
 
-1. Confirm package visibility:
-   - `https://jsr.io/@signaler/cli`
-2. Run clean install smoke in a sample project:
+1. Confirm GitHub Release assets exist for `v<version>`:
+   - `signaler-<version>-portable.zip`
+   - `signaler-<version>-windows-setup.exe`
+2. Run clean install smoke:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 signaler --version
 ```
 
-3. Update:
-   - `CHANGELOG.md`
-   - `docs/operations/launch-checklist.md` (mark cross-platform matrix done when CI confirms)
-   - release notes draft to final versioned note
+3. Update launch checklist / release notes index as needed.
 
 ## 6) Rollback Rules
 

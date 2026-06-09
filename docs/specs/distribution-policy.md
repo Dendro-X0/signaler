@@ -1,124 +1,88 @@
 # Distribution Policy
 
-Status: Proposed
-Owner: Signaler core
-Last updated: 2026-04-10
+Status: Accepted  
+Owner: Signaler core  
+Last updated: 2026-06-09
 
 ## Goal
 
-Define a stable distribution model for Signaler so code agents and developers can reliably use a global `signaler` command with explicit install, upgrade, and uninstall behavior.
+Ship Signaler as a globally installable CLI on **Windows, macOS, and Linux** without relying on npm, JSR, or other JavaScript registries.
 
-## Product Position
+## Decision: registry channels abandoned
 
-Signaler is an agent-first CLI for batch review and optimization of web projects. The primary user experience is a globally available command that can be invoked by humans, editors, and terminal agents without per-project package-manager setup.
+**npm and JSR are no longer supported distribution or install paths** as of v5.1 policy (2026-06).
 
-## Policy Decisions
+Reasons:
 
-### 1. Primary Global Install Path
+- Registries do not expose reliable `bin` wiring for this CLI (JSR strips `bin`; npm was never the primary channel).
+- Immutable mis-published versions cannot be removed or renamed.
+- Auth tokens for registry publish do not belong in git; maintaining parallel registry flows added friction without adoption benefit.
+- v2.6.4 was the last era where JSR global install/uninstall felt complete; platform changes and Signaler scope growth made registry distribution a poor fit.
 
-The primary supported global install path is the portable GitHub Release installer.
+Historical registry packages may remain online but are **unsupported**. Do not document or depend on them for new installs.
 
-Supported commands after install:
+## Supported distribution (only)
 
-- `signaler`
+### 1. GitHub Release native packaging
+
+| Platform | Artifact / method |
+|----------|-------------------|
+| **Windows** | `signaler-<version>-windows-setup.exe` (Inno Setup) or portable zip + `install.ps1` |
+| **macOS / Linux** | `signaler-<version>-portable.zip` + `install.sh` |
+| **Git Bash on Windows** | `install.sh` (not PowerShell `irm` / `iex`) |
+
+Release flow: push tag `v<version>` → CI builds assets → users install via scripts or download zip/exe.
+
+### 2. Global lifecycle commands
+
+After install:
+
+- `signaler` / `signalar` (compatibility alias)
 - `signaler upgrade`
 - `signaler uninstall --global`
 
-Compatibility alias:
+### 3. Local development (maintainers only)
 
-- `signalar`
+```bash
+pnpm install && pnpm run build
+node dist/cli-entry.js --version
+```
 
-### 2. Primary Runtime Expectation
+Not a supported end-user install path.
 
-Signaler is a Node-based CLI, not a native single-binary product.
+## Runtime expectation
 
-Requirements:
+Signaler remains a **Node.js 18+** application bundled inside the portable release. Installers place compiled JS + production dependencies on disk and add shell launchers. Optional Rust launchers (`signaler-native`) may delegate to the bundled CLI where built.
 
-- Node.js 18 or newer must exist on the target machine
-- release installer creates launcher scripts, not a native binary bundle
+## Not supported
 
-### 3. JSR Role
+1. `npm install` / `npm i -g @signaler/cli`
+2. `pnpm add jsr:…` / `npx jsr add` / `npx jsr run`
+3. Registry-based global install or uninstall
+4. Expecting identical semantics across npm, pnpm, JSR, and shell environments
 
-JSR remains supported for:
+## Documentation rules
 
-- publishing
-- package consumption in projects
-- shim-based one-command workflows via `install-shim`
+All installation and release docs must:
 
-JSR is not the canonical global bootstrap path for Signaler.
+1. Lead with GitHub Release installers (bash / PowerShell / exe).
+2. State that npm and JSR are deprecated and unsupported.
+3. Document `signaler upgrade` and `signaler uninstall --global`.
+4. Treat `signalar` as a compatibility alias only.
 
-### 4. One-Word Command Contract
+## Release owner checklist
 
-The project must support a single-word global command after the primary install flow completes.
+1. Bump `package.json` version (single source of truth for release tags).
+2. Add `docs/archive/release-notes/RELEASE-NOTES-v<version>.md`.
+3. Commit, tag `v<version>`, push tag.
+4. Verify CI uploaded portable zip + Windows installer to GitHub Release.
+5. Post-publish smoke: run `install.sh` or `install.ps1`, then `signaler --version`.
 
-Supported launchers:
+No registry publish steps.
 
-- `signaler` as the primary command
-- `signalar` as a compatibility alias
+## Acceptance criteria
 
-### 5. Global Lifecycle Contract
-
-The project must provide all of the following:
-
-- install
-- upgrade
-- uninstall
-- clear user-facing documentation for each command
-
-Minimum expected behavior:
-
-1. install writes launchers to a predictable bin directory
-2. upgrade replaces the portable install in place
-3. uninstall removes install directory and launchers
-4. docs explain PATH requirements clearly
-
-## Supported Paths
-
-### Supported and Primary
-
-1. portable release installer
-2. direct global command usage via generated launchers
-
-### Supported but Secondary
-
-1. JSR package installation for project-local use
-2. JSR shim installation for direct shell usage
-3. local unpublished build execution via `node ./dist/bin.js`
-
-### Not Promised
-
-1. `jsr add` automatically creating a globally available shell command
-2. every shell behaving identically without PATH setup
-3. native binary packaging for the full CLI
-
-## Platform Scope
-
-Primary support targets:
-
-1. Windows PowerShell
-2. Windows CMD
-3. Bash-compatible Unix shells
-4. Git Bash on Windows as a documented compatibility path
-
-## Documentation Rules
-
-All top-level installation docs must reflect the same story:
-
-1. portable release installer is primary
-2. JSR is secondary
-3. `install-shim` is fallback/bridge behavior
-4. `signalar` is a compatibility alias, not primary branding
-
-## Acceptance Criteria
-
-1. A clean machine can install Signaler globally and run `signaler --version`.
-2. The same install also allows `signalar --version`.
-3. Upgrade and uninstall succeed without manual file deletion.
-4. Docs do not contain conflicting npm-global or registry-global guidance.
-5. JSR docs do not imply that `jsr add` alone creates a global command.
-
-## Non-Goals
-
-1. Restoring every historical install path as first-class behavior.
-2. Shipping a native binary for the full Signaler runtime.
-3. Making registry installation semantics identical across npm, pnpm, JSR, PowerShell, CMD, and Git Bash.
+1. A clean machine on each OS can install and run `signaler --version` via documented native packaging.
+2. Upgrade and uninstall work without manual file deletion.
+3. No current doc instructs npm/JSR as a primary or secondary install path.
+4. GitHub Action installs from GitHub Release, not `npx jsr run`.

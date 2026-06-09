@@ -5,10 +5,14 @@ branding:
   color: blue
 
 inputs:
-  cli-version:
-    description: JSR package version (e.g. 5.0.0). Bump before each release publish.
+  version:
+    description: GitHub Release version (e.g. 5.0.1) or latest for the portable installer.
     required: false
-    default: "5.0.0"
+    default: "latest"
+  cli-version:
+    description: Deprecated alias for version — use version instead.
+    required: false
+    default: ""
   base-url:
     description: Application base URL for audits
     required: false
@@ -70,6 +74,22 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Install Signaler from GitHub Release
+      shell: bash
+      run: |
+        set -euo pipefail
+        RESOLVED_VERSION="${{ inputs.version }}"
+        if [ -z "${RESOLVED_VERSION}" ] || [ "${RESOLVED_VERSION}" = "latest" ]; then
+          if [ -n "${{ inputs.cli-version }}" ]; then
+            RESOLVED_VERSION="${{ inputs.cli-version }}"
+          else
+            RESOLVED_VERSION="latest"
+          fi
+        fi
+        export SIGNALER_VERSION="${RESOLVED_VERSION}"
+        curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+        echo "${HOME}/.local/share/signaler/bin" >> "${GITHUB_PATH}"
+
     - name: Run Signaler (quality profile)
       if: inputs.quality-profile != ''
       shell: bash
@@ -91,7 +111,7 @@ runs:
         if [ -n "${{ inputs.config-path }}" ]; then
           ARGS+=(--config "${{ inputs.config-path }}")
         fi
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+        signaler "${ARGS[@]}"
 
     - name: Run Signaler (run profile)
       if: inputs.run-profile != '' && inputs.quality-profile == ''
@@ -116,7 +136,7 @@ runs:
         if [ -n "${{ inputs.config-path }}" ]; then
           ARGS+=(--config "${{ inputs.config-path }}")
         fi
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+        signaler "${ARGS[@]}"
 
     - name: Run Signaler (audit preset)
       if: inputs.preset == 'audit' && inputs.run-profile == '' && inputs.quality-profile == ''
@@ -126,7 +146,7 @@ runs:
         SIGNALER_BASE_URL: ${{ inputs.base-url }}
       run: |
         set -euo pipefail
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- audit \
+        signaler audit \
           --cwd . \
           --base-url "${SIGNALER_BASE_URL}" \
           --scope "${{ inputs.scope }}" \
@@ -159,7 +179,7 @@ runs:
         if [ -n "${{ inputs.config-path }}" ]; then
           ARGS+=(--config "${{ inputs.config-path }}")
         fi
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- "${ARGS[@]}"
+        signaler "${ARGS[@]}"
 
     - name: Baseline compare (PR regression)
       if: inputs.baseline-artifacts-path != ''
@@ -167,7 +187,7 @@ runs:
       working-directory: ${{ inputs.cwd }}
       run: |
         set -euo pipefail
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+        signaler query \
           --view delta \
           --dir "${{ inputs.output-dir }}" \
           --baseline "${{ inputs.baseline-artifacts-path }}" \
@@ -181,7 +201,7 @@ runs:
       run: |
         set -euo pipefail
         SUMMARY_FILE="${RUNNER_TEMP}/signaler-summary.md"
-        npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- report \
+        signaler report \
           --dir "${{ inputs.output-dir }}" \
           --summary > "${SUMMARY_FILE}" 2>/dev/null || true
         if [ -s "${SUMMARY_FILE}" ]; then
@@ -191,7 +211,7 @@ runs:
             cat "${SUMMARY_FILE}"
           } >> "${GITHUB_STEP_SUMMARY}"
         fi
-        PERF_JSON="$(npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+        PERF_JSON="$(signaler query \
           --view perf \
           --dir "${{ inputs.output-dir }}" \
           --json 2>/dev/null || echo '{}')"
@@ -219,7 +239,7 @@ runs:
           } >> "${GITHUB_STEP_SUMMARY}"
         fi
         if [ -n "${{ inputs.baseline-artifacts-path }}" ]; then
-          DELTA_JSON="$(npx jsr run "@signaler/cli@${{ inputs.cli-version }}" -- query \
+          DELTA_JSON="$(signaler query \
             --view delta \
             --dir "${{ inputs.output-dir }}" \
             --baseline "${{ inputs.baseline-artifacts-path }}" \

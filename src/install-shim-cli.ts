@@ -91,7 +91,7 @@ function buildBashShim(): string {
     '  ROOT="$(dirname "$ROOT")"',
     "done",
     'echo "signaler: not found. Install globally: curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash" >&2',
-    'echo "Or add to this project: npx jsr add @signaler/cli --pnpm" >&2',
+    'echo "signaler: not found. Install globally: curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash" >&2',
     "exit 1",
     "",
   ].join("\n");
@@ -117,7 +117,7 @@ function buildCmdShim(): string {
     "set \"ROOT=%PARENT%\"",
     "goto find_cli",
     ":not_found",
-    "echo signaler: not found. Install globally with release-assets/install.ps1 or add: npx jsr add @signaler/cli --pnpm 1>&2",
+    "echo signaler: not found. Install: release-assets/install.ps1 or install.sh from GitHub 1>&2",
     "exit /b 1",
     "",
   ].join("\r\n");
@@ -141,7 +141,7 @@ function printHelp(): void {
       "  signaler install-shim [--dir <path>] [--force] [--dry-run] [--json]",
       "",
       "Description:",
-      "  Installs lightweight shell wrappers so `signaler` and `signalar` work directly after JSR installs.",
+      "  Installs lightweight shell wrappers so `signaler` and `signalar` work when a portable global install or project checkout is present.",
       "",
       "Defaults:",
       `  Windows: ${join("%APPDATA%", "npm")}`,

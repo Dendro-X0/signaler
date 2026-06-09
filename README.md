@@ -41,25 +41,15 @@ signaler upgrade
 signaler uninstall --global
 ```
 
-### Project install (JSR)
+### Platform packages
 
-Do **not** run `pnpm i jsr:@signaler/cli` on pnpm 9 — it fails with `ERR_PNPM_SPEC_NOT_SUPPORTED_BY_ANY_RESOLVER`. Use:
+| Platform | Method |
+|----------|--------|
+| Windows | `install.ps1`, or `signaler-*-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) |
+| macOS / Linux | `install.sh`, or portable zip from Releases |
+| Git Bash (Windows) | `install.sh` only — not `irm` / `iex` |
 
-```bash
-npx jsr add @signaler/cli@5.0.0 --pnpm   # 5.0.1+ after JSR publish
-```
-
-Check [jsr.io/@signaler/cli](https://jsr.io/@signaler/cli) for the latest published version.
-
-JSR does not wire `node_modules/.bin/signaler`. Run via script or entrypoint:
-
-```json
-"scripts": {
-  "signaler": "node node_modules/@signaler/cli/src/cli-entry.js"
-}
-```
-
-Or install a shell shim from the project: `pnpm run signaler -- install-shim`.
+Pin a version: `SIGNALER_VERSION=5.0.1 curl -fsSL …/install.sh | bash`
 
 Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
 
@@ -69,7 +59,7 @@ Built-in lifecycle commands:
 - `signaler uninstall --global` removes the portable global install
 - `signalar` is a compatibility alias that launches the same CLI
 
-JSR remains useful as a package source for project dependencies and publishing, but it is not the primary direct global CLI bootstrap mechanism for Signaler.
+**npm and JSR are deprecated** — use GitHub Release installers only. See [Installation](./docs/guides/installation.md).
 
 **Requirements**: Node.js 18.x or higher on the target machine.
 
@@ -187,7 +177,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    cli-version: "5.0.0"
+    version: "5.0.1"   # GitHub Release tag, or "latest"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
