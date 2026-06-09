@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+## 5.0.2 - 2026-06-09
+
 ### Changed
 
 - **Distribution policy** — npm and JSR are deprecated; GitHub Release native packaging (portable zip, Windows installer, `install.sh` / `install.ps1`) is the only supported install path. GitHub Action installs from Release, not `npx jsr run`.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.0.2.md`](docs/archive/release-notes/RELEASE-NOTES-v5.0.2.md).
 
 ## 5.0.1 - 2026-06-08
 
