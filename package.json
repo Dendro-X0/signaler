@@ -153,6 +153,7 @@
     "release": "node scripts/release.js",
     "release:preflight": "node scripts/release.js",
     "release:preflight:strict": "node scripts/release.js --require-cross-platform --strict",
+    "release:check-tag": "node scripts/check-release-tag.js",
     "jsr:publish": "node scripts/jsr-publish.js",
     "jsr:publish:skip-build": "node scripts/jsr-publish.js --skip-build"
   },

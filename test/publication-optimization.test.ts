@@ -145,18 +145,24 @@ describe("Publication Optimization", () => {
       const packageContent = await readFile(packageJsonPath, 'utf-8');
       const packageJson = JSON.parse(packageContent);
       
-      // Essential files that should be included (excluding jsr.json and package.json as they're auto-included)
-      const essentialFiles = [
+      const jsrEssentialFiles = [
+        'src/',
+        'README.md',
+        'CHANGELOG.md',
+        'LICENSE',
+      ];
+
+      const npmEssentialFiles = [
         'dist/',
         'README.md',
         'CHANGELOG.md',
-        'LICENSE'
+        'LICENSE',
       ];
       
-      // Test JSR publish.include configuration
+      // Test JSR publish.include configuration (TypeScript sources, not dist/)
       if (jsrJson.publish && jsrJson.publish.include) {
         fc.assert(fc.property(
-          fc.constantFrom(...essentialFiles),
+          fc.constantFrom(...jsrEssentialFiles),
           (essentialFile) => {
             const includeList = jsrJson.publish.include;
             const isIncluded = includeList.some((includePattern: string) => 
@@ -172,10 +178,10 @@ describe("Publication Optimization", () => {
         ), { numRuns: 100 });
       }
       
-      // Test package.json files configuration
+      // Test package.json files configuration (portable / npm pack uses dist/)
       if (packageJson.files) {
         fc.assert(fc.property(
-          fc.constantFrom(...essentialFiles),
+          fc.constantFrom(...npmEssentialFiles),
           (essentialFile) => {
             const filesList = packageJson.files;
             const isIncluded = filesList.some((filePattern: string) => 

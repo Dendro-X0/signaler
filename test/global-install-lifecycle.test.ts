@@ -51,8 +51,8 @@ describe("global install lifecycle", () => {
     const pkg = JSON.parse(await readFile(resolve("package.json"), "utf8")) as {
       readonly bin?: Record<string, string>;
     };
-    expect(pkg.bin?.signaler).toBe("./dist/bin.js");
-    expect(pkg.bin?.signalar).toBe("./dist/bin.js");
+    expect(pkg.bin?.signaler).toBe("./dist/cli-entry.js");
+    expect(pkg.bin?.signalar).toBe("./dist/cli-entry.js");
   });
 
   it("keeps the PowerShell installer compatible with Windows PowerShell", async () => {

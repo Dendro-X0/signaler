@@ -79,7 +79,10 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
-      
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
     - name: Build project
       run: pnpm build
       

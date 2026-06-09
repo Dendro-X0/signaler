@@ -75,9 +75,13 @@ After CI is green and checklist is complete:
 3. Tag **only after** those files are merged — the GitHub Release workflow checks `tag === v${package.json.version}`.
 
 ```bash
+pnpm run release:check-tag -- v<version>   # must pass before tagging
 git tag v<version>
+git push origin main
 git push origin v<version>
 ```
+
+**Never tag a new version without bumping `package.json` first.** If you tagged by mistake, delete the bad tag (`git push origin :refs/tags/vX.Y.Z`) rather than creating another mismatched tag.
 
 GitHub Actions builds and uploads release assets automatically (see §4.1). No npm or JSR publish step.
 
