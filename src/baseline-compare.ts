@@ -97,6 +97,72 @@ export function evaluateBaselineCompare(params: {
     });
   }
 
+  const benchmarkPolicy = params.config.benchmarkFamilies;
+  if (benchmarkPolicy?.enabled !== false && params.delta.benchmarkSignals !== undefined) {
+    const maxRecordIncrease = benchmarkPolicy?.maxRecordIncrease ?? 0;
+    for (const family of params.delta.benchmarkSignals.families) {
+      if (family.delta.recordCount > maxRecordIncrease) {
+        violations.push({
+          id: `baseline-benchmark-${family.sourceId}-regression`,
+          message: `${family.sourceId} benchmark records increased by ${family.delta.recordCount} (max allowed increase: ${maxRecordIncrease}).`,
+          severity: "critical",
+        });
+      }
+    }
+  }
+
+  const qualityPackPolicy = params.config.qualityPack;
+  if (qualityPackPolicy?.enabled !== false && params.delta.qualityPack !== undefined) {
+    const packDelta = params.delta.qualityPack.delta;
+    const checks: readonly { readonly id: string; readonly value: number; readonly max?: number; readonly label: string }[] = [
+      {
+        id: "baseline-quality-pack-header-regression",
+        value: packDelta.headerFailures,
+        max: qualityPackPolicy?.maxHeaderFailureIncrease ?? 0,
+        label: "header failures",
+      },
+      {
+        id: "baseline-quality-pack-links-regression",
+        value: packDelta.brokenLinks,
+        max: qualityPackPolicy?.maxBrokenLinkIncrease ?? 0,
+        label: "broken links",
+      },
+      {
+        id: "baseline-quality-pack-health-regression",
+        value: packDelta.healthErrors,
+        max: qualityPackPolicy?.maxHealthErrorIncrease ?? 0,
+        label: "health errors",
+      },
+      {
+        id: "baseline-quality-pack-console-regression",
+        value: packDelta.consoleErrorCombos,
+        max: qualityPackPolicy?.maxConsoleErrorComboIncrease ?? 0,
+        label: "console error combos",
+      },
+      {
+        id: "baseline-quality-pack-a11y-critical-regression",
+        value: packDelta.accessibilityCritical,
+        max: qualityPackPolicy?.maxAccessibilityCriticalIncrease ?? 0,
+        label: "accessibility critical violations",
+      },
+      {
+        id: "baseline-quality-pack-a11y-serious-regression",
+        value: packDelta.accessibilitySerious,
+        max: qualityPackPolicy?.maxAccessibilitySeriousIncrease ?? 0,
+        label: "accessibility serious violations",
+      },
+    ];
+    for (const check of checks) {
+      if (typeof check.max === "number" && check.value > check.max) {
+        violations.push({
+          id: check.id,
+          message: `Quality pack ${check.label} increased by ${check.value} (max allowed increase: ${check.max}).`,
+          severity: "critical",
+        });
+      }
+    }
+  }
+
   return {
     passed: violations.length === 0,
     violations,

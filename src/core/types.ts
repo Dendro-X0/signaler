@@ -160,6 +160,22 @@ export interface BaselineCompareConfig {
   readonly maxActionableIncrease?: number;
   readonly requireComparabilityMatch?: boolean;
   readonly failOnIncomparable?: boolean;
+  /** Benchmark signal plane regression policy (v6C). */
+  readonly benchmarkFamilies?: {
+    readonly enabled?: boolean;
+    /** Max allowed increase in benchmark record count per family (default 0). */
+    readonly maxRecordIncrease?: number;
+  };
+  /** Quality pack summary regression policy (v6C). */
+  readonly qualityPack?: {
+    readonly enabled?: boolean;
+    readonly maxHeaderFailureIncrease?: number;
+    readonly maxBrokenLinkIncrease?: number;
+    readonly maxHealthErrorIncrease?: number;
+    readonly maxConsoleErrorComboIncrease?: number;
+    readonly maxAccessibilityCriticalIncrease?: number;
+    readonly maxAccessibilitySeriousIncrease?: number;
+  };
 }
 
 /**
@@ -189,6 +205,31 @@ export interface QualityPackConfig {
   readonly maxAccessibilityCriticalViolations?: number;
   readonly maxAccessibilitySeriousViolations?: number;
   readonly maxAccessibilityRuntimeErrors?: number;
+  /** Unified benchmark signal plane gates (v6B) — inherits runner limits when family limits omitted. */
+  readonly benchmarkSignals?: {
+    readonly enabled?: boolean;
+    readonly requireBridge?: boolean;
+    readonly highLatencyMs?: number;
+    readonly securityBaseline?: {
+      readonly maxRecords?: number;
+      readonly maxMissingHeaders?: number;
+      readonly maxTlsConfigIssues?: number;
+    };
+    readonly accessibilityExtended?: {
+      readonly maxRecords?: number;
+      readonly maxCriticalViolations?: number;
+      readonly maxSeriousViolations?: number;
+    };
+    readonly reliabilitySlo?: {
+      readonly maxRecords?: number;
+      readonly maxHighLatencyRoutes?: number;
+    };
+    readonly seoTechnical?: {
+      readonly maxRecords?: number;
+      readonly maxIndexabilityIssues?: number;
+      readonly maxCrawlabilityIssues?: number;
+    };
+  };
 }
 
 /**

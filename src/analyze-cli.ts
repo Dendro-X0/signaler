@@ -37,6 +37,7 @@ import {
   mergeAnalyzeCandidateDrafts,
   type AnalyzeCandidateDraft,
 } from "./analyze-performance-triage.js";
+import { buildAndWriteBenchmarkAutoBridge } from "./benchmark-auto-bridge.js";
 
 type AnalyzeExitCode = 0 | 1 | 2;
 
@@ -48,6 +49,7 @@ type AnalyzeArgs = {
   readonly tokenBudget: number;
   readonly externalSignalsPaths: readonly string[];
   readonly benchmarkSignalsPaths: readonly string[];
+  readonly autoBenchmarkBridge: boolean;
   readonly strict: boolean;
   readonly json: boolean;
   readonly contract?: string;
@@ -95,6 +97,7 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
   let tokenBudget: number | undefined;
   const externalSignalsPaths: string[] = [];
   const benchmarkSignalsPaths: string[] = [];
+  let autoBenchmarkBridge = false;
   let strict = false;
   let json = false;
   let contract: string | undefined;
@@ -160,6 +163,10 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
       benchmarkSignalsPaths.push(resolve(value));
       continue;
     }
+    if (arg === "--auto-benchmark-bridge") {
+      autoBenchmarkBridge = true;
+      continue;
+    }
     if (arg === "--strict") {
       strict = true;
       continue;
@@ -183,6 +190,7 @@ function parseArgs(argv: readonly string[]): AnalyzeArgs {
     tokenBudget: tokenBudget ?? getMachineProfileCaps(artifactProfile).defaultTokenBudget,
     externalSignalsPaths,
     benchmarkSignalsPaths,
+    autoBenchmarkBridge,
     strict,
     json,
     contract,
@@ -539,11 +547,42 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     return resolve(args.dir, name);
   };
   const writeArtifactPath = (id: string): string => resolve(args.dir, resolveFlatPathForId(id));
+  let benchmarkSignalsPaths = [...args.benchmarkSignalsPaths];
+  if (args.autoBenchmarkBridge) {
+    try {
+      const bridge = await buildAndWriteBenchmarkAutoBridge({ outputDir: args.dir });
+      const seen = new Set(benchmarkSignalsPaths.map((path) => resolve(path)));
+      for (const path of bridge.signalPaths) {
+        const absolute = resolve(path);
+        if (!seen.has(absolute)) {
+          seen.add(absolute);
+          benchmarkSignalsPaths.push(absolute);
+        }
+      }
+      if (bridge.families.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Benchmark auto-bridge: ${bridge.families.join(", ")} → ${bridge.signalPaths.length} file(s) in ${bridge.bridgeDir}`,
+        );
+      } else {
+        warnings.push("Benchmark auto-bridge: no side-runner signal families produced records.");
+      }
+      for (const skip of bridge.skipped) {
+        if (skip.family !== "issue-mapping") {
+          warnings.push(`Benchmark auto-bridge skipped ${skip.family}: ${skip.reason}`);
+        }
+      }
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+  }
   let loadedExternalSignals: Awaited<ReturnType<typeof loadExternalSignalsFromFiles>>;
   let benchmarkRustAttempt: Awaited<ReturnType<typeof loadMultiBenchmarkSignalsWithRust>>;
   try {
     loadedExternalSignals = await loadExternalSignalsFromFiles(args.externalSignalsPaths);
-    benchmarkRustAttempt = await loadMultiBenchmarkSignalsWithRust(args.benchmarkSignalsPaths);
+    benchmarkRustAttempt = await loadMultiBenchmarkSignalsWithRust(benchmarkSignalsPaths);
   } catch (error: unknown) {
     // eslint-disable-next-line no-console
     console.error(error instanceof Error ? error.message : String(error));
@@ -963,7 +1002,7 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const hasBenchmarkBoost: boolean = (benchmarkSignalsEval?.acceptedRecords.length ?? 0) > 0;
   const usesPerformanceTriage: boolean = triageDrafts.length > 0;
   const rustBenchmarkAccelerator = {
-    requested: args.benchmarkSignalsPaths.length > 0,
+    requested: benchmarkSignalsPaths.length > 0,
     enabled: benchmarkRustAttempt.enabled || benchmarkScoreAttempt.enabled,
     used: benchmarkRustAttempt.used || benchmarkScoreAttempt.used,
     ...(typeof benchmarkScoreAttempt.fallbackReason === "string"

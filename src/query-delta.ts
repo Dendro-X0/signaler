@@ -5,6 +5,7 @@ import type { RunProtocolV3 } from "./engine-contracts/artifacts/v3/run-v3.js";
 import type { VerifyReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isVerifyReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
+import { buildSignalPlaneDeltas, type BenchmarkSignalPlaneDelta, type QualityPackDelta } from "./query-delta-benchmark.js";
 
 export type DeltaComparability = {
   readonly matched: boolean;
@@ -47,6 +48,10 @@ export type DeltaProjection = {
     readonly after: { readonly actionable: number; readonly red: number; readonly yellow: number };
     readonly delta: { readonly actionable: number; readonly red: number; readonly yellow: number };
   };
+  /** Side-runner + benchmark bridge deltas (v6C). */
+  readonly qualityPack?: QualityPackDelta;
+  readonly benchmarkSignals?: BenchmarkSignalPlaneDelta;
+  readonly headlines?: readonly string[];
 };
 
 async function readJson(path: string): Promise<unknown> {
@@ -151,6 +156,15 @@ export async function buildDeltaProjection(params: {
     });
     const beforeTotals = totalsFromTriage(before);
     const afterTotals = totalsFromTriage(after);
+    const signalPlane = await buildSignalPlaneDeltas({
+      baselineDir: params.baselineDir,
+      compareDir: params.compareDir,
+    });
+    const headlines = [
+      `Performance red issues: ${afterTotals.red - beforeTotals.red >= 0 ? "+" : ""}${afterTotals.red - beforeTotals.red}`,
+      ...(signalPlane.qualityPack?.headlines ?? []),
+      ...(signalPlane.benchmarkSignals?.headlines ?? []),
+    ];
     return {
       view: "delta",
       source: "compare",
@@ -164,6 +178,9 @@ export async function buildDeltaProjection(params: {
           yellow: afterTotals.yellow - beforeTotals.yellow,
         },
       },
+      ...(signalPlane.qualityPack !== undefined ? { qualityPack: signalPlane.qualityPack } : {}),
+      ...(signalPlane.benchmarkSignals !== undefined ? { benchmarkSignals: signalPlane.benchmarkSignals } : {}),
+      ...(headlines.length > 0 ? { headlines } : {}),
     };
   }
 
@@ -216,6 +233,15 @@ export async function buildDeltaProjection(params: {
   if (beforeTriage !== undefined && afterTriage !== undefined) {
     const beforeTotals = totalsFromTriage(beforeTriage);
     const afterTotals = totalsFromTriage(afterTriage);
+    const signalPlane = await buildSignalPlaneDeltas({
+      baselineDir: verify.baseline.dir,
+      compareDir: verify.rerun.dir,
+    });
+    const headlines = [
+      `Performance red issues: ${afterTotals.red - beforeTotals.red >= 0 ? "+" : ""}${afterTotals.red - beforeTotals.red}`,
+      ...(signalPlane.qualityPack?.headlines ?? []),
+      ...(signalPlane.benchmarkSignals?.headlines ?? []),
+    ];
     return {
       ...projection,
       performance: {
@@ -227,6 +253,9 @@ export async function buildDeltaProjection(params: {
           yellow: afterTotals.yellow - beforeTotals.yellow,
         },
       },
+      ...(signalPlane.qualityPack !== undefined ? { qualityPack: signalPlane.qualityPack } : {}),
+      ...(signalPlane.benchmarkSignals !== undefined ? { benchmarkSignals: signalPlane.benchmarkSignals } : {}),
+      ...(headlines.length > 0 ? { headlines } : {}),
     };
   }
 

@@ -53,4 +53,81 @@ describe("baseline compare", () => {
     });
     expect(result.passed).toBe(true);
   });
+
+  it("fails when benchmark family records increase beyond policy", () => {
+    const result = evaluateBaselineCompare({
+      config: { maxRedIncrease: 99, benchmarkFamilies: { maxRecordIncrease: 0 } },
+      delta: {
+        ...baseDelta,
+        benchmarkSignals: {
+          families: [
+            {
+              sourceId: "security-baseline",
+              before: { recordCount: 1, metrics: {} },
+              after: { recordCount: 3, metrics: {} },
+              delta: { recordCount: 2, metrics: {} },
+            },
+          ],
+          headlines: ["+2 security benchmark record(s)"],
+        },
+      },
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.some((v) => v.id === "baseline-benchmark-security-baseline-regression")).toBe(true);
+  });
+
+  it("fails when quality pack header failures increase beyond policy", () => {
+    const result = evaluateBaselineCompare({
+      config: { maxRedIncrease: 99, qualityPack: { maxHeaderFailureIncrease: 0 } },
+      delta: {
+        ...baseDelta,
+        qualityPack: {
+          before: {
+            headerFailures: 0,
+            brokenLinks: 0,
+            linksDiscovered: 0,
+            linksStatus: "pass",
+            bundleScanned: false,
+            bundleFileCount: 0,
+            healthErrors: 0,
+            healthOk: 0,
+            consoleErrorCombos: 0,
+            consoleEventCount: 0,
+            measureRuntimeErrors: 0,
+            accessibilityCritical: 0,
+            accessibilitySerious: 0,
+            accessibilityRuntimeErrors: 0,
+          },
+          after: {
+            headerFailures: 2,
+            brokenLinks: 0,
+            linksDiscovered: 0,
+            linksStatus: "pass",
+            bundleScanned: false,
+            bundleFileCount: 0,
+            healthErrors: 0,
+            healthOk: 0,
+            consoleErrorCombos: 0,
+            consoleEventCount: 0,
+            measureRuntimeErrors: 0,
+            accessibilityCritical: 0,
+            accessibilitySerious: 0,
+            accessibilityRuntimeErrors: 0,
+          },
+          delta: {
+            headerFailures: 2,
+            brokenLinks: 0,
+            healthErrors: 0,
+            consoleErrorCombos: 0,
+            measureRuntimeErrors: 0,
+            accessibilityCritical: 0,
+            accessibilitySerious: 0,
+          },
+          headlines: ["+2 header failure(s)"],
+        },
+      },
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.some((v) => v.id === "baseline-quality-pack-header-regression")).toBe(true);
+  });
 });

@@ -43,19 +43,16 @@ export function shouldContinueQualityProfileJobAfterStepFailure(params: {
   readonly runStepSucceeded: boolean;
   readonly remainingSteps: readonly EngineJobStepV1[];
 }): boolean {
-  if (!params.qualityProfile) {
+  if (!params.qualityProfile || !params.runStepSucceeded) {
     return false;
   }
-  const hasRemainingSideRunners = params.remainingSteps.some((step) =>
-    isQualitySideRunnerCommand(step.command),
+  if (params.command === "analyze" || params.command === "run" || params.command === "discover") {
+    return false;
+  }
+  const hasRemainingWork = params.remainingSteps.some(
+    (step) => isQualitySideRunnerCommand(step.command) || step.command === "analyze",
   );
-  if (!hasRemainingSideRunners) {
-    return false;
-  }
-  if (params.command === "analyze" && params.runStepSucceeded) {
-    return true;
-  }
-  return isQualitySideRunnerCommand(params.command);
+  return hasRemainingWork && isQualitySideRunnerCommand(params.command);
 }
 
 function buildSideRunnerSteps(params: BuildPresetJobParams): EngineJobStepV1[] {
@@ -68,6 +65,34 @@ function buildSideRunnerSteps(params: BuildPresetJobParams): EngineJobStepV1[] {
     { command: "measure", args: cfg },
     { command: "accessibility", args: cfg },
     { command: "bundle", args: ["--project-root", params.cwd] },
+  ];
+}
+
+function patchAnalyzeStepForAutoBridge(step: EngineJobStepV1): EngineJobStepV1 {
+  if (step.command !== "analyze") {
+    return step;
+  }
+  const args = [...(step.args ?? [])];
+  if (!args.includes("--auto-benchmark-bridge")) {
+    args.push("--auto-benchmark-bridge");
+  }
+  return { ...step, args };
+}
+
+/** Side runners run after Lighthouse `run` and before `analyze` so auto-bridge can merge signals. */
+export function insertSideRunnersBeforeAnalyze(
+  steps: readonly EngineJobStepV1[],
+  sideRunners: readonly EngineJobStepV1[],
+): EngineJobStepV1[] {
+  const analyzeIndex = steps.findIndex((step) => step.command === "analyze");
+  if (analyzeIndex === -1) {
+    return [...steps, ...sideRunners];
+  }
+  return [
+    ...steps.slice(0, analyzeIndex),
+    ...sideRunners,
+    patchAnalyzeStepForAutoBridge(steps[analyzeIndex]!),
+    ...steps.slice(analyzeIndex + 1),
   ];
 }
 
@@ -84,7 +109,7 @@ export function buildQualityProfileJob(
         ...base,
         preset: "custom",
         qualityProfile: "web-quality",
-        steps: [...base.steps, ...buildSideRunnerSteps(params)],
+        steps: insertSideRunnersBeforeAnalyze(base.steps, buildSideRunnerSteps(params)),
       };
     }
     case "pr-quality": {
@@ -93,7 +118,7 @@ export function buildQualityProfileJob(
         ...base,
         preset: "custom",
         qualityProfile: "pr-quality",
-        steps: [...base.steps, ...buildSideRunnerSteps(params)],
+        steps: insertSideRunnersBeforeAnalyze(base.steps, buildSideRunnerSteps(params)),
       };
     }
     default: {

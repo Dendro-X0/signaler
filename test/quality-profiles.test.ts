@@ -21,11 +21,13 @@ describe("quality profiles", () => {
     expect(QUALITY_PROFILE_NAMES).toEqual(["web-quality", "pr-quality"]);
   });
 
-  it("web-quality extends ci-strict with all side runners", () => {
+  it("web-quality extends ci-strict with side runners before analyze and auto-bridge flag", () => {
     const job = buildQualityProfileJob({ ...baseParams, qualityProfile: "web-quality" });
     expect(job.qualityProfile).toBe("web-quality");
     expect(job.runProfile).toBe("ci-strict");
-    expect(job.steps.map((step) => step.command)).toEqual(["discover", "run", "analyze", ...sideRunnerCommands]);
+    expect(job.steps.map((step) => step.command)).toEqual(["discover", "run", ...sideRunnerCommands, "analyze"]);
+    const analyzeArgs = job.steps.find((step) => step.command === "analyze")?.args ?? [];
+    expect(analyzeArgs).toContain("--auto-benchmark-bridge");
     const runArgs = job.steps.find((step) => step.command === "run")?.args ?? [];
     expect(runArgs).toContain("--fail-on-quality-gate");
     expect(runArgs).toContain("--fail-on-baseline-compare");
@@ -50,10 +52,10 @@ describe("quality profiles", () => {
     }
   });
 
-  it("pr-quality uses changed-only run and side runners", () => {
+  it("pr-quality uses changed-only run, side runners, then analyze", () => {
     const job = buildQualityProfileJob({ ...baseParams, qualityProfile: "pr-quality" });
     expect(job.qualityProfile).toBe("pr-quality");
-    expect(job.steps.map((step) => step.command)).toEqual(["run", "analyze", ...sideRunnerCommands]);
+    expect(job.steps.map((step) => step.command)).toEqual(["run", ...sideRunnerCommands, "analyze"]);
     const runArgs = job.steps.find((step) => step.command === "run")?.args ?? [];
     expect(runArgs).toContain("--changed-only");
   });

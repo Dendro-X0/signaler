@@ -80,6 +80,32 @@ describe("quality pack", () => {
     expect(result.violations.map((v) => v.id)).toContain("max-console-error-combos");
   });
 
+  it("fails on benchmark security family when bridge metrics exceed inherited limits", () => {
+    const result = evaluateQualityPack({
+      profile: "web-quality",
+      headers: { results: [{ missing: [] }] },
+      links: { broken: [], discovered: { total: 2 }, checkStatus: "pass" },
+      bundle: { totals: { fileCount: 1 } },
+      ...extendedRunners,
+      benchmarkSignals: {
+        enabled: true,
+        bridgeDir: "runners/benchmark-bridge",
+        families: [
+          {
+            sourceId: "security-baseline",
+            recordCount: 1,
+            bridgeFile: "runners/benchmark-bridge/security-baseline.json",
+            metrics: { missingHeaderCount: 2 },
+            passed: true,
+          },
+        ],
+      },
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.map((v) => v.id)).toContain("benchmark-security-baseline-max-records");
+    expect(result.benchmarkSignals?.families[0]?.passed).toBe(false);
+  });
+
   it("fails on accessibility critical violations", () => {
     const result = evaluateQualityPack({
       profile: "web-quality",

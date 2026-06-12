@@ -102,6 +102,8 @@ export function buildQualityPackGuidance(pack: QualityPackResult): readonly Qual
     || violationIds.has("max-accessibility-serious")
     || violationIds.has("max-accessibility-runtime-errors")
     || violationIds.has("accessibility-missing")
+    || violationIds.has("benchmark-accessibility-max-critical")
+    || violationIds.has("benchmark-accessibility-max-serious")
   ) {
     sections.push({
       id: "accessibility-axe",
@@ -110,6 +112,52 @@ export function buildQualityPackGuidance(pack: QualityPackResult): readonly Qual
         "Inspect .signaler/accessibility-summary.json and runners/accessibility/ artifacts.",
         "Fix critical/serious violations first; rerun signaler accessibility --config signaler.config.json.",
         'Phased rollout: "qualityPack": { "maxAccessibilitySeriousViolations": 10 }',
+        "Unified plane: inspect runners/benchmark-bridge/accessibility-extended.json for WCAG metric totals.",
+      ],
+    });
+  }
+
+  if (
+    violationIds.has("benchmark-security-max-records")
+    || violationIds.has("benchmark-security-max-missing-headers")
+    || violationIds.has("benchmark-security-max-tls-issues")
+    || violationIds.has("benchmark-bridge-missing")
+  ) {
+    sections.push({
+      id: "benchmark-security",
+      title: "Benchmark security-baseline signals",
+      lines: [
+        "Inspect .signaler/runners/benchmark-bridge/security-baseline.json for OWASP-aligned header metrics.",
+        "Override family limits explicitly:",
+        '  "qualityPack": { "benchmarkSignals": { "securityBaseline": { "maxMissingHeaders": 12 } } }',
+      ],
+    });
+  }
+
+  if (
+    violationIds.has("benchmark-reliability-max-records")
+    || violationIds.has("benchmark-reliability-max-high-latency")
+  ) {
+    sections.push({
+      id: "benchmark-reliability",
+      title: "Benchmark reliability-slo signals",
+      lines: [
+        "Inspect .signaler/runners/benchmark-bridge/reliability-slo.json for availability/latency metrics.",
+        "Tune high-latency threshold: qualityPack.benchmarkSignals.highLatencyMs (default 400).",
+      ],
+    });
+  }
+
+  if (
+    violationIds.has("benchmark-seo-max-indexability")
+    || violationIds.has("benchmark-seo-max-crawlability")
+  ) {
+    sections.push({
+      id: "benchmark-seo",
+      title: "Benchmark seo-technical signals",
+      lines: [
+        "Inspect .signaler/runners/benchmark-bridge/seo-technical.json for indexability/crawlability metrics.",
+        "Cross-check .signaler/links.json and Lighthouse SEO audits in results.json.",
       ],
     });
   }

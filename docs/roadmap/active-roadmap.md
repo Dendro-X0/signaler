@@ -13,7 +13,9 @@ Updated: 2026-05-29
 ### Next
 
 - Optional bundle byte budgets in `qualityPack`
-- Multi-benchmark auto-bridge from runner outputs
+- ~~Multi-benchmark auto-bridge from runner outputs~~ **Shipped (6A)**
+- ~~Benchmark family gates in `quality-pack.json`~~ **Shipped (6B)** — per-family metrics + inherited thresholds
+- ~~Baseline/delta for benchmark signal plane~~ **Shipped (6C)** — `query --view delta` + baselineCompare policy
 
 ## Shipped — Phase 5 (v5.0.0)
 

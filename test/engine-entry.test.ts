@@ -124,8 +124,41 @@ describe("engine entry surface", () => {
     expect(outcome.result.steps.map((row) => row.command)).toEqual(["discover", "run", "analyze"]);
   });
 
-  it("continues quality-profile side runners when analyze fails after a successful run", async () => {
+  it("continues quality-profile side runners when a side runner fails after a successful run", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "signaler-engine-quality-profile-"));
+    const job = buildQualityProfileJob({ cwd, outputDir: ".signaler", qualityProfile: "web-quality" });
+    const calls: string[] = [];
+
+    const outcome = await executeEngineJob({
+      job,
+      writeArtifacts: false,
+      stepRunner: ({ step }) => {
+        calls.push(step.command);
+        return {
+          exitCode: step.command === "headers" ? 1 : 0,
+          elapsedMs: 1,
+        };
+      },
+    });
+
+    expect(calls).toEqual([
+      "discover",
+      "run",
+      "headers",
+      "links",
+      "health",
+      "console",
+      "measure",
+      "accessibility",
+      "bundle",
+      "analyze",
+    ]);
+    expect(outcome.exitCode).toBe(1);
+    expect(outcome.result.failedStep).toBe("headers");
+  });
+
+  it("stops quality-profile job when analyze fails after side runners", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "signaler-engine-quality-profile-analyze-"));
     const job = buildQualityProfileJob({ cwd, outputDir: ".signaler", qualityProfile: "web-quality" });
     const calls: string[] = [];
 
@@ -144,7 +177,6 @@ describe("engine entry surface", () => {
     expect(calls).toEqual([
       "discover",
       "run",
-      "analyze",
       "headers",
       "links",
       "health",
@@ -152,6 +184,7 @@ describe("engine entry surface", () => {
       "measure",
       "accessibility",
       "bundle",
+      "analyze",
     ]);
     expect(outcome.exitCode).toBe(2);
     expect(outcome.result.failedStep).toBe("analyze");

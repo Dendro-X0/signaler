@@ -234,10 +234,19 @@ function extractSitemapUrls(xml: string): readonly string[] {
   return urls;
 }
 
+export function decodeHtmlUrlEntities(value: string): string {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">");
+}
+
 function extractHtmlLinks(params: { readonly html: string; readonly baseUrl: string; readonly origin: string }): readonly string[] {
   const urls: string[] = [];
   const push = (raw: string): void => {
-    const value: string = raw.trim();
+    const value: string = decodeHtmlUrlEntities(raw.trim());
     if (value.length === 0) {
       return;
     }

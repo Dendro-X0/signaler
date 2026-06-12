@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 5.1.0 - 2026-05-28
+
+### Added
+
+- **Benchmark auto-bridge (6A)** — `signaler analyze --auto-benchmark-bridge` builds benchmark fixtures under `.signaler/runners/benchmark-bridge/` from side-runner outputs (headers, health, links, accessibility, SEO). Quality profiles pass this flag on the analyze step automatically.
+- **Benchmark family gates (6B)** — `qualityPack.benchmarkSignals` adds per-family limits (`security-baseline`, `reliability-slo`, `seo-technical`, `accessibility-extended`) to `gates/quality-pack.json`, with inherited thresholds from existing runner limits when family caps are omitted.
+- **Signal-plane baseline/delta (6C)** — `signaler query --view delta` includes `qualityPack`, `benchmarkSignals`, and combined `headlines`; `baselineCompare.benchmarkFamilies` and `baselineCompare.qualityPack` extend regression policy.
+
+### Fixed
+
+- **Links runner** — decode HTML entities (`&amp;` → `&`) when extracting URLs from page HTML, eliminating false broken-link reports on Next.js `/_next/image` optimizer URLs.
+
+### Changed
+
+- **`qualityPack` config parsing** — `normaliseQualityPack` now reads the full `benchmarkSignals` block (previously only parsed header/link limits).
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.0.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.0.md).
+
 ## 5.0.2 - 2026-06-09
 
 ### Changed

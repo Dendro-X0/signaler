@@ -7,6 +7,16 @@ import { loadConfig } from "./core/config.js";
 import type { QualityPackConfig } from "./core/types.js";
 import { evaluateLinksCheckStatus, type LinksCheckStatus } from "./links-check-status.js";
 import { buildQualityPackGuidance, formatQualityPackGuidanceText, type QualityPackGuidanceSection } from "./quality-pack-guidance.js";
+import { buildAndWriteBenchmarkAutoBridge } from "./benchmark-auto-bridge.js";
+import {
+  BENCHMARK_BRIDGE_DIR,
+  evaluateBenchmarkFamilyGates,
+  isBenchmarkSignalsEnabled,
+  loadBenchmarkBridgeFixtures,
+  summarizeBenchmarkBridgeFixtures,
+  type QualityPackBenchmarkSignalsSummary,
+} from "./quality-pack-benchmark.js";
+import { isAnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 
 export type QualityPackViolation = {
   readonly id: string;
@@ -47,6 +57,7 @@ export type QualityPackResult = {
     readonly accessibility: string;
   };
   readonly guidance?: readonly QualityPackGuidanceSection[];
+  readonly benchmarkSignals?: QualityPackBenchmarkSignalsSummary;
 };
 
 type HeadersArtifact = {
@@ -168,6 +179,7 @@ export function evaluateQualityPack(params: {
   readonly console?: ConsoleArtifact | null;
   readonly measure?: MeasureArtifact | null;
   readonly accessibility?: AxeSummary | null;
+  readonly benchmarkSignals?: QualityPackBenchmarkSignalsSummary;
 }): QualityPackResult {
   const limits = { ...DEFAULT_PACK, ...params.pack };
   const violations: QualityPackViolation[] = [];
@@ -303,6 +315,35 @@ export function evaluateQualityPack(params: {
     });
   }
 
+  let benchmarkSignalsSummary = params.benchmarkSignals;
+
+  if (benchmarkSignalsSummary?.enabled) {
+    if (params.pack?.benchmarkSignals?.requireBridge && benchmarkSignalsSummary.families.length === 0) {
+      violations.push({
+        id: "benchmark-bridge-missing",
+        message: "Benchmark auto-bridge produced no signal families; side runners may not have completed.",
+        severity: "critical",
+      });
+    } else if (benchmarkSignalsSummary.families.length > 0) {
+      const benchmarkEval = evaluateBenchmarkFamilyGates({
+        families: benchmarkSignalsSummary.families,
+        config: params.pack?.benchmarkSignals,
+        runnerLimits: {
+          maxHeaderFailures: limits.maxHeaderFailures,
+          maxBrokenLinks: limits.maxBrokenLinks,
+          maxHealthErrors: limits.maxHealthErrors,
+          maxAccessibilityCriticalViolations: limits.maxAccessibilityCriticalViolations,
+          maxAccessibilitySeriousViolations: limits.maxAccessibilitySeriousViolations,
+        },
+      });
+      violations.push(...benchmarkEval.violations);
+      benchmarkSignalsSummary = {
+        ...benchmarkSignalsSummary,
+        families: benchmarkEval.families,
+      };
+    }
+  }
+
   const result: QualityPackResult = {
     schemaVersion: 1,
     profile: params.profile,
@@ -335,6 +376,7 @@ export function evaluateQualityPack(params: {
       measure: "measure-summary.json",
       accessibility: "accessibility-summary.json",
     },
+    ...(benchmarkSignalsSummary !== undefined ? { benchmarkSignals: benchmarkSignalsSummary } : {}),
   };
   return {
     ...result,
@@ -372,6 +414,33 @@ export async function evaluateAndWriteQualityPack(params: {
   const measure = await readJsonIfExists<MeasureArtifact>(await resolveArtifactPath(outputDir, "measure-summary"));
   const accessibility = await readJsonIfExists<AxeSummary>(await resolveArtifactPath(outputDir, "accessibility-summary"));
 
+  let benchmarkSignalsSummary: QualityPackBenchmarkSignalsSummary | undefined;
+  if (isBenchmarkSignalsEnabled(packConfig?.benchmarkSignals)) {
+    await buildAndWriteBenchmarkAutoBridge({ outputDir });
+    const fixtures = await loadBenchmarkBridgeFixtures(outputDir);
+    const families = summarizeBenchmarkBridgeFixtures({
+      fixtures,
+      highLatencyMs: packConfig?.benchmarkSignals?.highLatencyMs,
+    });
+    const analyzeRaw = await readJsonIfExists<unknown>(await resolveArtifactPath(outputDir, "analyze"));
+    const analyzeMultiBenchmark =
+      analyzeRaw !== null && isAnalyzeReportV6(analyzeRaw) && analyzeRaw.multiBenchmark !== undefined
+        ? {
+            enabled: analyzeRaw.multiBenchmark.enabled,
+            accepted: analyzeRaw.multiBenchmark.accepted,
+            rejected: analyzeRaw.multiBenchmark.rejected,
+            sources: analyzeRaw.multiBenchmark.sources,
+            digest: analyzeRaw.multiBenchmark.digest,
+          }
+        : undefined;
+    benchmarkSignalsSummary = {
+      enabled: true,
+      bridgeDir: BENCHMARK_BRIDGE_DIR,
+      families,
+      ...(analyzeMultiBenchmark !== undefined ? { analyzeMultiBenchmark } : {}),
+    };
+  }
+
   const result = evaluateQualityPack({
     profile: params.profile,
     pack: packConfig,
@@ -382,6 +451,7 @@ export async function evaluateAndWriteQualityPack(params: {
     console: consoleReport,
     measure,
     accessibility,
+    benchmarkSignals: benchmarkSignalsSummary,
   });
 
   await writeFile(resolve(outputDir, "quality-pack.json"), `${JSON.stringify(result, null, 2)}\n`, "utf8");
@@ -420,6 +490,7 @@ export async function mergeQualityPackIntoAgentIndex(params: {
   entrypoints.measure = "measure-summary.json";
   entrypoints.accessibility = "accessibility-summary.json";
   entrypoints.qualityPack = "quality-pack.json";
+  entrypoints.benchmarkBridge = BENCHMARK_BRIDGE_DIR;
   const updated = {
     ...index,
     entrypoints,
@@ -438,6 +509,15 @@ export async function mergeQualityPackIntoAgentIndex(params: {
         measureRuntimeErrors: params.pack.summary.measureRuntimeErrors,
         accessibilityCritical: params.pack.summary.accessibilityCritical,
         accessibilitySerious: params.pack.summary.accessibilitySerious,
+        ...(params.pack.benchmarkSignals
+          ? {
+              benchmarkFamilies: params.pack.benchmarkSignals.families.map((family) => ({
+                sourceId: family.sourceId,
+                recordCount: family.recordCount,
+                passed: family.passed,
+              })),
+            }
+          : {}),
       },
       ...(params.pack.guidance && params.pack.guidance.length > 0
         ? { guidance: params.pack.guidance.map((section) => section.title) }

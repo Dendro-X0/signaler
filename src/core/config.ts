@@ -203,19 +203,76 @@ function normaliseQualityPack(
     throw new Error(`Invalid config at ${absolutePath}: qualityPack must be an object`);
   }
   const record = value as Record<string, unknown>;
-  const readNonNegative = (key: string): number | undefined => {
-    const raw = record[key];
+  const readNonNegative = (key: string, source: Record<string, unknown> = record, prefix = "qualityPack"): number | undefined => {
+    const raw = source[key];
     if (raw === undefined) {
       return undefined;
     }
     if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 0) {
-      throw new Error(`Invalid config at ${absolutePath}: qualityPack.${key} must be a non-negative number`);
+      throw new Error(`Invalid config at ${absolutePath}: ${prefix}.${key} must be a non-negative number`);
     }
     return raw;
   };
+  const readBoolean = (key: string, source: Record<string, unknown>, prefix: string): boolean | undefined => {
+    const raw = source[key];
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (typeof raw !== "boolean") {
+      throw new Error(`Invalid config at ${absolutePath}: ${prefix}.${key} must be a boolean`);
+    }
+    return raw;
+  };
+  const readFamilyLimits = (key: string, source: Record<string, unknown>, prefix: string) => {
+    const raw = source[key];
+    if (raw === undefined || raw === null) {
+      return undefined;
+    }
+    if (typeof raw !== "object") {
+      throw new Error(`Invalid config at ${absolutePath}: ${prefix}.${key} must be an object`);
+    }
+    const family = raw as Record<string, unknown>;
+    const familyPrefix = `${prefix}.${key}`;
+    return {
+      maxRecords: readNonNegative("maxRecords", family, familyPrefix),
+      maxMissingHeaders: readNonNegative("maxMissingHeaders", family, familyPrefix),
+      maxTlsConfigIssues: readNonNegative("maxTlsConfigIssues", family, familyPrefix),
+      maxCriticalViolations: readNonNegative("maxCriticalViolations", family, familyPrefix),
+      maxSeriousViolations: readNonNegative("maxSeriousViolations", family, familyPrefix),
+      maxHighLatencyRoutes: readNonNegative("maxHighLatencyRoutes", family, familyPrefix),
+      maxIndexabilityIssues: readNonNegative("maxIndexabilityIssues", family, familyPrefix),
+      maxCrawlabilityIssues: readNonNegative("maxCrawlabilityIssues", family, familyPrefix),
+    };
+  };
+
+  let benchmarkSignals: NonNullable<ApexConfig["qualityPack"]>["benchmarkSignals"];
+  const benchmarkRaw = record.benchmarkSignals;
+  if (benchmarkRaw !== undefined && benchmarkRaw !== null) {
+    if (typeof benchmarkRaw !== "object") {
+      throw new Error(`Invalid config at ${absolutePath}: qualityPack.benchmarkSignals must be an object`);
+    }
+    const benchmarkRecord = benchmarkRaw as Record<string, unknown>;
+    benchmarkSignals = {
+      enabled: readBoolean("enabled", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      requireBridge: readBoolean("requireBridge", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      highLatencyMs: readNonNegative("highLatencyMs", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      securityBaseline: readFamilyLimits("securityBaseline", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      accessibilityExtended: readFamilyLimits("accessibilityExtended", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      reliabilitySlo: readFamilyLimits("reliabilitySlo", benchmarkRecord, "qualityPack.benchmarkSignals"),
+      seoTechnical: readFamilyLimits("seoTechnical", benchmarkRecord, "qualityPack.benchmarkSignals"),
+    };
+  }
+
   return {
     maxHeaderFailures: readNonNegative("maxHeaderFailures"),
     maxBrokenLinks: readNonNegative("maxBrokenLinks"),
+    maxHealthErrors: readNonNegative("maxHealthErrors"),
+    maxConsoleErrorCombos: readNonNegative("maxConsoleErrorCombos"),
+    maxMeasureRuntimeErrors: readNonNegative("maxMeasureRuntimeErrors"),
+    maxAccessibilityCriticalViolations: readNonNegative("maxAccessibilityCriticalViolations"),
+    maxAccessibilitySeriousViolations: readNonNegative("maxAccessibilitySeriousViolations"),
+    maxAccessibilityRuntimeErrors: readNonNegative("maxAccessibilityRuntimeErrors"),
+    ...(benchmarkSignals !== undefined ? { benchmarkSignals } : {}),
   };
 }
 
@@ -236,6 +293,8 @@ function normaliseBaselineCompare(
     readonly maxActionableIncrease?: unknown;
     readonly requireComparabilityMatch?: unknown;
     readonly failOnIncomparable?: unknown;
+    readonly benchmarkFamilies?: unknown;
+    readonly qualityPack?: unknown;
   };
   const readNonNegativeInt = (field: keyof typeof record, label: string): number | undefined => {
     const raw = record[field];
@@ -247,6 +306,66 @@ function normaliseBaselineCompare(
     }
     return Math.floor(raw);
   };
+  const readNestedLimits = (prefix: string, raw: unknown) => {
+    if (raw === undefined || raw === null) {
+      return undefined;
+    }
+    if (typeof raw !== "object") {
+      throw new Error(`Invalid config at ${absolutePath}: baselineCompare.${prefix} must be an object`);
+    }
+    const nested = raw as Record<string, unknown>;
+    const readNestedNonNegative = (key: string): number | undefined => {
+      const value = nested[key];
+      if (value === undefined) {
+        return undefined;
+      }
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        throw new Error(`Invalid config at ${absolutePath}: baselineCompare.${prefix}.${key} must be a non-negative number`);
+      }
+      return Math.floor(value);
+    };
+    const readNestedBoolean = (key: string): boolean | undefined => {
+      const value = nested[key];
+      if (value === undefined) {
+        return undefined;
+      }
+      if (typeof value !== "boolean") {
+        throw new Error(`Invalid config at ${absolutePath}: baselineCompare.${prefix}.${key} must be a boolean`);
+      }
+      return value;
+    };
+    return {
+      enabled: readNestedBoolean("enabled"),
+      maxRecordIncrease: readNestedNonNegative("maxRecordIncrease"),
+      maxHeaderFailureIncrease: readNestedNonNegative("maxHeaderFailureIncrease"),
+      maxBrokenLinkIncrease: readNestedNonNegative("maxBrokenLinkIncrease"),
+      maxHealthErrorIncrease: readNestedNonNegative("maxHealthErrorIncrease"),
+      maxConsoleErrorComboIncrease: readNestedNonNegative("maxConsoleErrorComboIncrease"),
+      maxAccessibilityCriticalIncrease: readNestedNonNegative("maxAccessibilityCriticalIncrease"),
+      maxAccessibilitySeriousIncrease: readNestedNonNegative("maxAccessibilitySeriousIncrease"),
+    };
+  };
+  const benchmarkFamiliesRaw = readNestedLimits("benchmarkFamilies", record.benchmarkFamilies);
+  const qualityPackRaw = readNestedLimits("qualityPack", record.qualityPack);
+  const benchmarkFamilies =
+    benchmarkFamiliesRaw === undefined
+      ? undefined
+      : {
+          enabled: benchmarkFamiliesRaw.enabled,
+          maxRecordIncrease: benchmarkFamiliesRaw.maxRecordIncrease,
+        };
+  const qualityPack =
+    qualityPackRaw === undefined
+      ? undefined
+      : {
+          enabled: qualityPackRaw.enabled,
+          maxHeaderFailureIncrease: qualityPackRaw.maxHeaderFailureIncrease,
+          maxBrokenLinkIncrease: qualityPackRaw.maxBrokenLinkIncrease,
+          maxHealthErrorIncrease: qualityPackRaw.maxHealthErrorIncrease,
+          maxConsoleErrorComboIncrease: qualityPackRaw.maxConsoleErrorComboIncrease,
+          maxAccessibilityCriticalIncrease: qualityPackRaw.maxAccessibilityCriticalIncrease,
+          maxAccessibilitySeriousIncrease: qualityPackRaw.maxAccessibilitySeriousIncrease,
+        };
   const baselineDir =
     typeof record.baselineDir === "string" && record.baselineDir.trim().length > 0
       ? record.baselineDir.trim()
@@ -260,6 +379,8 @@ function normaliseBaselineCompare(
       typeof record.requireComparabilityMatch === "boolean" ? record.requireComparabilityMatch : undefined,
     failOnIncomparable:
       typeof record.failOnIncomparable === "boolean" ? record.failOnIncomparable : undefined,
+    ...(benchmarkFamilies !== undefined ? { benchmarkFamilies } : {}),
+    ...(qualityPack !== undefined ? { qualityPack } : {}),
   };
   if (
     gate.enabled === undefined
@@ -268,6 +389,8 @@ function normaliseBaselineCompare(
     && gate.maxActionableIncrease === undefined
     && gate.requireComparabilityMatch === undefined
     && gate.failOnIncomparable === undefined
+    && gate.benchmarkFamilies === undefined
+    && gate.qualityPack === undefined
   ) {
     return undefined;
   }
