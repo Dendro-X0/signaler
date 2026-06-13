@@ -60,7 +60,8 @@ describe("global install lifecycle", () => {
     expect(script).not.toContain("??");
     expect(script).toContain("signalar.cmd");
     expect(script).toContain("signaler.cmd");
-    expect(script).toContain("npm.cmd install");
+    expect(script).toContain("npm.cmd");
+    expect(script).toContain("package-lock.json");
     expect(script).toContain("SetEnvironmentVariable(\"Path\",");
   });
 
@@ -68,5 +69,7 @@ describe("global install lifecycle", () => {
     const script = await readFile(resolve("release-assets", "install.sh"), "utf8");
     expect(script).toContain("export PATH=\"$BIN_DIR:$PATH\"");
     expect(script).toContain(".bashrc");
+    expect(script).toContain("package-lock.json");
+    expect(script).toContain("npm ci");
   });
 });
