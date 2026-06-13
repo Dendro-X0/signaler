@@ -46,12 +46,12 @@ function withCleanServeEnv(run: () => void): void {
 }
 
 describe("orchestrator serve defaults", () => {
-  it("enables managed serve, in-process, and auto mode by default", () => {
+  it("enables managed serve, in-process, and production mode by default", () => {
     withCleanServeEnv(() => {
       expect(createOrchestratorServeDefaults()).toEqual({
         inProcess: true,
         managedServe: true,
-        managedServeMode: "auto",
+        managedServeMode: "production",
         managedServeSkipBuild: false,
         managedServeReuse: false,
       });
@@ -70,11 +70,11 @@ describe("orchestrator serve defaults", () => {
 });
 
 describe("audit and job serve flag parity", () => {
-  it("audit defaults to managed serve, auto mode, and in-process", () => {
+  it("audit defaults to managed serve, production mode, and in-process", () => {
     withCleanServeEnv(() => {
       const args = parseAuditOrchestratorArgs(["node", "signaler", "audit"]);
       expect(args.managedServe).toBe(true);
-      expect(args.managedServeMode).toBe("auto");
+      expect(args.managedServeMode).toBe("production");
       expect(args.inProcess).toBe(true);
     });
   });
@@ -83,7 +83,7 @@ describe("audit and job serve flag parity", () => {
     withCleanServeEnv(() => {
       const args = parseJobCliArgs(["node", "signaler", "job", "run"]);
       expect(args.managedServe).toBe(true);
-      expect(args.managedServeMode).toBe("auto");
+      expect(args.managedServeMode).toBe("production");
       expect(args.inProcess).toBe(true);
     });
   });

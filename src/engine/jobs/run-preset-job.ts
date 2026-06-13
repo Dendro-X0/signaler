@@ -164,7 +164,7 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       const managedServer = await ensureManagedServer({
         projectRoot: job.cwd,
         baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
-        mode: params.managedServeMode ?? "auto",
+        mode: params.managedServeMode ?? "production",
         skipBuild: params.managedServeSkipBuild ?? false,
         reuseUnhealthy: params.managedServeReuse ?? false,
       });

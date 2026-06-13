@@ -19,7 +19,7 @@ describe("wizard first audit argv", () => {
     expect(argv).toContain("audit");
     expect(argv).toContain("--managed-serve");
     expect(argv).toContain("--managed-serve-mode");
-    expect(argv[argv.indexOf("--managed-serve-mode") + 1]).toBe("auto");
+    expect(argv[argv.indexOf("--managed-serve-mode") + 1]).toBe("production");
     expect(argv).toContain("--skip-discover");
     expect(argv).toContain("--yes");
     expect(argv).toContain("--cwd");

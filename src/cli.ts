@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { exec } from "node:child_process";
+import { openLocalPath } from "./open-local-path.js";
 import { createHash } from "node:crypto";
 import { cpus, freemem } from "node:os";
 import { gzipSync } from "node:zlib";
@@ -3006,7 +3007,7 @@ function printAuditFlags(): void {
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
       "  --managed-serve | --auto-serve | --no-managed-serve  Start server when base URL is down (default on; SIGNALER_MANAGED_SERVE=0 to disable)",
-      "  --managed-serve-mode <mode>  dev | production | auto (default auto)",
+      "  --managed-serve-mode <mode>  dev | production | auto (default production)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
     ].join("\n"),
@@ -5590,21 +5591,7 @@ function addMetricViolation(
 }
 
 function openInBrowser(filePath: string): void {
-  const platform = process.platform;
-  let command: string;
-  if (platform === "win32") {
-    command = `start "" "${filePath}"`;
-  } else if (platform === "darwin") {
-    command = `open "${filePath}"`;
-  } else {
-    command = `xdg-open "${filePath}"`;
-  }
-  exec(command, (error) => {
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Could not open report: ${error.message}`);
-    }
-  });
+  openLocalPath(filePath);
 }
 
 function printReportLink(reportPath: string): void {

@@ -24,7 +24,7 @@ Accessibility, SEO, and best-practices category scores are more stable vs DevToo
 - **Accuracy:** reducing parallel workers does **not** improve measurement accuracy. Lower parallelism only trades speed for stability when workers crash or memory is exhausted.
 - **DevTools divergence:** lab scores under throughput + simulated throttling often differ from DevTools; that is expected — prioritize issue-count triage over chasing score parity.
 - **When to lower parallel:** only for flake recovery (`--stable` / `--parallel 1`) or genuine OOM — not to “improve” scores.
-- **Runtime backoff:** throughput mode may reduce active workers on low memory or worker failures. Backoff protects stability; it does not make results more accurate. Prefer production serve (`--managed-serve-mode production`) and closing other heavy apps before lowering parallel.
+- **Runtime backoff:** throughput mode may reduce active workers on low memory or worker failures. Backoff protects stability; it does not make results more accurate. Audits default to **production serve** (`next build` + `start`); use `--managed-serve-mode dev` only for local dev-server smoke runs.
 - **Large suites:** use `--plan` to preview; use `discover --scope quick` for smoke runs; use `--focus-worst` for targeted reruns instead of full-suite single-threaded fidelity.
 
 ```bash

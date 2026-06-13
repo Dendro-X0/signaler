@@ -14,7 +14,7 @@ Use Signaler to identify the highest-impact web quality issues and drive fix ver
 signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
 ```
 
-Defaults: discover (**full** — all static routes) → run → analyze; **managed serve (auto: dev first)** and **in-process** steps on by default. Opt out with `--no-managed-serve` / `--no-in-process`.
+Defaults: discover (**full** — all static routes) → run → analyze; **managed production serve** and **in-process** steps on by default. Opt out with `--no-managed-serve` / `--no-in-process` or use `--managed-serve-mode dev` for dev-server audits.
 
 After fixes, rerun with incremental skip:
 

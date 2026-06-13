@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.2-blue.svg)
+![Version](http://img.shields.io/badge/version-5.1.3-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -49,7 +49,7 @@ signaler uninstall --global
 | macOS / Linux | `install.sh`, or portable zip from Releases |
 | Git Bash (Windows) | `install.sh` only — not `irm` / `iex` |
 
-Pin a version: `SIGNALER_VERSION=5.1.2 curl -fsSL …/install.sh | bash`
+Pin a version: `SIGNALER_VERSION=5.1.3 curl -fsSL …/install.sh | bash`
 
 Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
 
@@ -177,7 +177,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    version: "5.1.2"   # GitHub Release tag, or "latest"
+    version: "5.1.3"   # GitHub Release tag, or "latest"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```

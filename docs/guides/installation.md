@@ -21,7 +21,7 @@ The install script prints **four numbered steps**, download timing, and **live n
 To pin a release without waiting on `latest` resolution:
 
 ```bash
-SIGNALER_VERSION=5.1.2 curl -fsSL …/install.sh | bash
+SIGNALER_VERSION=5.1.3 curl -fsSL …/install.sh | bash
 ```
 
 `irm` and `iex` are **PowerShell only**. In Bash:
@@ -35,7 +35,7 @@ signalar --version
 Install a specific release:
 
 ```bash
-SIGNALER_VERSION=5.1.2 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+SIGNALER_VERSION=5.1.3 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
 ## Windows PowerShell
@@ -48,7 +48,7 @@ signaler --version
 Specific version:
 
 ```powershell
-$env:SIGNALER_VERSION = "5.1.2"
+$env:SIGNALER_VERSION = "5.1.3"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 

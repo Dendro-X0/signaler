@@ -189,7 +189,7 @@ function printCommandHelp(topic: string): boolean {
       "",
       "Managed server when base URL is down (default on; auto mode tries dev first):",
       "  --managed-serve | --auto-serve | --no-managed-serve  (SIGNALER_MANAGED_SERVE=0 to disable)",
-      "  --managed-serve-mode <dev|production|auto>  (default auto; or SIGNALER_MANAGED_SERVE_MODE)",
+      "  --managed-serve-mode <dev|production|auto>  (default production; or SIGNALER_MANAGED_SERVE_MODE)",
       "  --managed-serve-skip-build",
       "  --managed-serve-reuse",
     ]);
@@ -642,7 +642,7 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  --incremental          Reuse cache for unchanged combos (requires --build-id)",
       "  --managed-serve        Start server when base URL is down (default on; auto mode tries dev first)",
       "  --no-managed-serve     Use existing server only",
-      "  --managed-serve-mode <dev|production|auto>  Serve strategy (default auto)",
+      "  --managed-serve-mode <dev|production|auto>  Serve strategy (default production)",
       "  --in-process           Run job steps in-process (default on)",
       "  --skip-discover        Skip discover when config already exists",
       "  --summary              Print one-screen summary after completion",

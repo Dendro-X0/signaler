@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 5.1.3 - 2026-06-13
+
+### Changed
+
+- **Managed serve default** — audits default to **production** (`build` + `start`) instead of dev server; `--managed-serve-mode auto` maps to production. Use `--managed-serve-mode dev` for dev-server smoke runs.
+- **Terminal colors** — job presets no longer force `--no-color`; interactive score tables use green/yellow/red again.
+- **Report open** — shell `open` resolves tree-layout path `.signaler/developer/report.html`; Windows paths with spaces open correctly.
+
+### Fixed
+
+- **`open` command** — fixed missing `report.html` after tree materialize prunes the flat root copy.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.3.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.3.md).
+
 ## 5.1.2 - 2026-06-13
 
 ### Changed

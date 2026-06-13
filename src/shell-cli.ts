@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { exec } from "node:child_process";
+import { openLocalPath } from "./open-local-path.js";
+import { resolveReportHtmlPath } from "./report-path.js";
 import readline from "node:readline";
 import type { ApexDevice, PageDeviceSummary, RunSummary } from "./core/types.js";
 import { runAuditCli } from "./cli.js";
@@ -53,7 +54,7 @@ const SESSION_FILE_NAME = "session.json" as const;
 const MIGRATION_HINT_FILE_NAME = "v3-shell-hint.seen" as const;
 const DEFAULT_CONFIG_PATH = "signaler.config.json" as const;
 const DEFAULT_PROMPT = "> " as const;
-const NO_COLOR: boolean = Boolean(process.env.NO_COLOR) || process.env.CI === "true";
+const NO_COLOR: boolean = Boolean(process.env.NO_COLOR);
 
 const theme: UiTheme = new UiTheme({ noColor: NO_COLOR });
 
@@ -374,14 +375,7 @@ function buildPrompt(session: ShellSessionState): string {
 }
 
 function openInBrowser(filePath: string): void {
-  const platform: string = process.platform;
-  const command: string = platform === "win32" ? `start "" "${filePath}"` : platform === "darwin" ? `open "${filePath}"` : `xdg-open "${filePath}"`;
-  exec(command, (error: Error | null) => {
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Could not open report: ${error.message}`);
-    }
-  });
+  openLocalPath(filePath);
 }
 
 async function snapshotPreviousSummary(projectRoot: string): Promise<void> {
@@ -537,7 +531,7 @@ function buildOrchestratorArgv(projectRoot: string, session: ShellSessionState, 
     "--skip-discover",
     "--managed-serve",
     "--managed-serve-mode",
-    "auto",
+    "production",
     "--yes",
   ];
   if (session.incremental) {
@@ -662,7 +656,7 @@ const HELP_OTHER_COMMANDS: readonly HelpLine[] = [
   { command: "clean", description: "Remove Signaler artifacts (reports/cache and optionally config)" },
   { command: "uninstall", description: "Remove .signaler and the current config file" },
   { command: "clear-screenshots", description: "Remove .signaler/screenshots/" },
-  { command: "open", description: "Open .signaler/report.html from the latest run/review" },
+  { command: "open", description: "Open .signaler/developer/report.html from the latest run/review" },
   { command: "open-analyze", description: "Open .signaler/analyze.md" },
   { command: "open-verify", description: "Open .signaler/verify.md" },
   { command: "open-triage", description: "Open legacy triage markdown (.signaler/triage.md)" },
@@ -930,7 +924,7 @@ function printHomeScreen(params: { readonly version: string; readonly session: S
   lines.push(theme.bold("Common commands"));
   lines.push(`${theme.cyan(padCmd("config <path>"))}Change config file (current: ${session.configPath})`);
   lines.push(`${theme.cyan(padCmd("help"))}Show all commands`);
-  lines.push(`${theme.cyan(padCmd("open"))}Open .signaler/report.html`);
+  lines.push(`${theme.cyan(padCmd("open"))}Open .signaler/developer/report.html`);
   lines.push(`${theme.cyan(padCmd("open-artifacts"))}Open .signaler/agent-index.json`);
   lines.push(`${theme.cyan(padCmd("open-analyze"))}Open .signaler/analyze.md`);
   lines.push(`${theme.cyan(padCmd("open-verify"))}Open .signaler/verify.md`);
@@ -1288,7 +1282,7 @@ async function runRunFromShell(projectRoot: string, session: ShellSessionState, 
       console.log("Audit cancelled. Back to shell.");
       return session;
     }
-    const reportPath: string = resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    const reportPath: string = resolveReportHtmlPath(resolve(projectRoot, SESSION_DIR_NAME));
     // eslint-disable-next-line no-console
     console.log(`Tip: ${theme.cyan("analyze --contract v6")} -> ${theme.cyan("verify --contract v6")} -> ${theme.cyan("report")}.`);
     // eslint-disable-next-line no-console
@@ -1327,7 +1321,7 @@ async function runOrchestratorFromShell(projectRoot: string, session: ShellSessi
       process.exitCode = 0;
       return session;
     }
-    const reportPath: string = resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    const reportPath: string = resolveReportHtmlPath(resolve(projectRoot, SESSION_DIR_NAME));
     // eslint-disable-next-line no-console
     console.log(`Tip: ${theme.cyan("report")} or ${theme.cyan("query --view perf")}.`);
     // eslint-disable-next-line no-console
@@ -1366,11 +1360,11 @@ async function runReviewFromShell(projectRoot: string, args: readonly string[]):
     return undefined;
   }
   // eslint-disable-next-line no-console
-  console.log(`Tip: type ${theme.cyan("open")} to view .signaler/report.html`);
+  console.log(`Tip: type ${theme.cyan("open")} to view ${theme.cyan(".signaler/developer/report.html")}`);
   // eslint-disable-next-line no-console
   console.log(`Agent loop: ${theme.cyan("analyze --contract v6")} -> ${theme.cyan("verify --contract v6")} (artifacts: .signaler/analyze.json, .signaler/verify.json)`);
   await printReportSummary(projectRoot);
-  return resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+  return resolveReportHtmlPath(resolve(projectRoot, SESSION_DIR_NAME));
 }
 
 async function runAnalyzeFromShell(projectRoot: string, args: readonly string[]): Promise<void> {
@@ -1558,7 +1552,7 @@ async function printRunStrategySummary(projectRoot: string): Promise<void> {
 
 async function printReportSummary(projectRoot: string): Promise<void> {
   const lines: string[] = [
-    `.signaler/report.html`,
+    `.signaler/developer/report.html`,
     `.signaler/analyze.json`,
     `.signaler/verify.json`,
     `.signaler/agent-index.json`,
@@ -1769,7 +1763,7 @@ async function handleShellCommand(projectRoot: string, session: ShellSessionStat
     return { session, shouldExit: false };
   }
   if (command.id === "open") {
-    const path: string = session.lastReportPath ?? resolve(projectRoot, SESSION_DIR_NAME, "report.html");
+    const path: string = session.lastReportPath ?? resolveReportHtmlPath(resolve(projectRoot, SESSION_DIR_NAME));
     openInBrowser(path);
     return { session, shouldExit: false };
   }

@@ -1477,7 +1477,7 @@ export function buildWizardFirstAuditArgv(params: {
     "--skip-discover",
     "--managed-serve",
     "--managed-serve-mode",
-    "auto",
+    "production",
     "--yes",
   ];
 }
@@ -1566,7 +1566,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
       }
     } else {
       console.log(
-        `Next step: signaler audit --cwd "${projectRoot}" --config "${absolutePath}" --skip-discover --managed-serve --managed-serve-mode auto --yes`,
+        `Next step: signaler audit --cwd "${projectRoot}" --config "${absolutePath}" --skip-discover --managed-serve --managed-serve-mode production --yes`,
       );
     }
   } catch (error: unknown) {

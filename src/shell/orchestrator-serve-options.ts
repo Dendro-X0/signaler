@@ -13,7 +13,7 @@ export function createOrchestratorServeDefaults(): OrchestratorServeOptions {
   return {
     inProcess: process.env.SIGNALER_JOB_IN_PROCESS !== "0",
     managedServe: process.env.SIGNALER_MANAGED_SERVE !== "0",
-    managedServeMode: resolveManagedServeModeFromEnv() ?? "auto",
+    managedServeMode: resolveManagedServeModeFromEnv() ?? "production",
     managedServeSkipBuild: false,
     managedServeReuse: process.env.SIGNALER_MANAGED_SERVE_REUSE === "1",
   };

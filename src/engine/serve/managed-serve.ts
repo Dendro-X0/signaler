@@ -1,6 +1,5 @@
 import { ensureManagedDevServer } from "./managed-dev-server.js";
 import { ensureManagedProductionServer } from "./managed-production-server.js";
-import { resolveDevServePlan } from "./resolve-serve-plan.js";
 
 export type ManagedServeMode = "dev" | "production" | "auto";
 
@@ -25,7 +24,7 @@ export type EnsureManagedServerOptions = {
 export function parseManagedServeMode(raw: string | undefined): ManagedServeMode {
   const normalized = raw?.trim().toLowerCase();
   if (normalized === undefined || normalized.length === 0) {
-    return "auto";
+    return "production";
   }
   if (normalized === "dev" || normalized === "production" || normalized === "auto") {
     return normalized;
@@ -41,33 +40,19 @@ export function resolveManagedServeModeFromEnv(): ManagedServeMode | undefined {
   return parseManagedServeMode(raw);
 }
 
-async function canUseDevServe(projectRoot: string): Promise<boolean> {
-  try {
-    await resolveDevServePlan({ projectRoot });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function resolveEffectiveMode(
-  projectRoot: string,
-  mode: ManagedServeMode,
-): Promise<"dev" | "production"> {
+function resolveEffectiveMode(mode: ManagedServeMode): "dev" | "production" {
   if (mode === "dev") {
     return "dev";
   }
-  if (mode === "production") {
-    return "production";
-  }
-  return (await canUseDevServe(projectRoot)) ? "dev" : "production";
+  // production and auto: prefer production build (next build + start) for lab accuracy.
+  return "production";
 }
 
 export async function ensureManagedServer(
   options: EnsureManagedServerOptions,
 ): Promise<ManagedServerHandle> {
-  const mode: ManagedServeMode = options.mode ?? resolveManagedServeModeFromEnv() ?? "auto";
-  const effective = await resolveEffectiveMode(options.projectRoot, mode);
+  const mode: ManagedServeMode = options.mode ?? resolveManagedServeModeFromEnv() ?? "production";
+  const effective = resolveEffectiveMode(mode);
 
   if (effective === "dev") {
     const dev = await ensureManagedDevServer({
