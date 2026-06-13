@@ -226,6 +226,16 @@ function buildPortablePackage({ root, version, outDir, skipBuild }) {
 
   writeFileSync(resolve(packageRoot, "package.json"), `${JSON.stringify(runtimePackageJson, null, 2)}\n`, "utf8");
 
+  console.log("[portable-release] generating package-lock.json for faster end-user installs...");
+  runOrFail(npmCommand("npm"), [
+    "install",
+    "--omit=dev",
+    "--ignore-scripts",
+    "--package-lock-only",
+    "--no-audit",
+    "--no-fund",
+  ], { cwd: packageRoot });
+
   const hasNativeLauncher = buildRustLauncherIfAvailable(root, packageRoot);
   createLauncherFiles(packageRoot, { hasNativeLauncher });
   createInstallReadme(packageRoot, version);

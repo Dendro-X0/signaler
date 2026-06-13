@@ -40,16 +40,33 @@ function Install-RuntimeDependencies {
     [string]$InstallDir
   )
 
-  Write-Host "Installing runtime dependencies..." -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "==> Step 4/4: Installing runtime dependencies" -ForegroundColor Cyan
+  Write-Host "    First install usually takes 5-15 minutes (Lighthouse, Playwright, axe-core, and related tooling)." -ForegroundColor DarkGray
+  Write-Host "    npm may look idle while resolving the dependency tree." -ForegroundColor DarkGray
+  Write-Host ""
+
+  $startedAt = Get-Date
   Push-Location $InstallDir
   try {
-    & npm.cmd install --omit=dev --ignore-scripts --no-audit --no-fund
+    $npmArgs = @("--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=info")
+    $npmCommand = "install"
+    if (Test-Path (Join-Path $InstallDir "package-lock.json")) {
+      $npmCommand = "ci"
+      Write-Host "    Using package-lock.json (npm ci) for a faster, reproducible install." -ForegroundColor DarkGray
+      Write-Host ""
+    }
+
+    & npm.cmd $npmCommand @npmArgs
     if ($LASTEXITCODE -ne 0) {
-      throw "npm install failed with exit code $LASTEXITCODE."
+      throw "npm $npmCommand failed with exit code $LASTEXITCODE."
     }
   } finally {
     Pop-Location
   }
+
+  $elapsed = (Get-Date) - $startedAt
+  Write-Host ("    Dependencies ready in {0:mm\:ss}." -f $elapsed) -ForegroundColor DarkGray
 }
 
 function Get-ReleaseApiUrl {
@@ -105,14 +122,24 @@ function Write-Launcher {
   Set-Content -Path $bashAliasPath -Value $bashContent -Encoding Utf8 -NoNewline
 }
 
-Write-Host "Installing Signaler..." -ForegroundColor Cyan
+$InstallStartedAt = Get-Date
+
+Write-Host "==> Step 1/4: Resolving Signaler release" -ForegroundColor Cyan
 Write-Host "Repo: $Repo" -ForegroundColor DarkGray
 Write-Host "Version: $Version" -ForegroundColor DarkGray
 
 $asset = Get-PortableAssetUrl -Repo $Repo -Version $Version
 New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
 
+Write-Host ""
+Write-Host "==> Step 2/4: Downloading portable release ($($asset.tag))" -ForegroundColor Cyan
+$downloadStartedAt = Get-Date
 Invoke-WebRequest -Headers @{ "User-Agent" = "signaler-install-script" } -Uri $asset.url -OutFile $ZipPath
+$downloadElapsed = (Get-Date) - $downloadStartedAt
+Write-Host ("    Download complete in {0:mm\:ss}." -f $downloadElapsed) -ForegroundColor DarkGray
+
+Write-Host ""
+Write-Host "==> Step 3/4: Extracting to $InstallDir" -ForegroundColor Cyan
 Expand-Archive -LiteralPath $ZipPath -DestinationPath $TempRoot -Force
 
 $root = Get-ChildItem -Path $TempRoot | Select-Object -First 1
@@ -136,6 +163,8 @@ Remove-Item $ZipPath -Force
 Write-Host ""
 Write-Host "Installed $($asset.tag) to $InstallDir" -ForegroundColor Green
 Write-Host "Launcher directory: $BinDir" -ForegroundColor Green
+$totalElapsed = (Get-Date) - $InstallStartedAt
+Write-Host ("Total install time: {0:mm\:ss}" -f $totalElapsed) -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. PATH was updated for the current user and this session." -ForegroundColor White

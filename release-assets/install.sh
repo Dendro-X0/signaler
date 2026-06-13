@@ -9,6 +9,63 @@ BIN_DIR="$BASE_DIR/bin"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/signaler-install-XXXXXX")"
 ZIP_PATH="${TMP_ROOT}/signaler-portable.zip"
 
+log_step() {
+  printf '\n==> %s\n' "$1"
+}
+
+log_note() {
+  printf '    %s\n' "$1"
+}
+
+is_tty() {
+  [ -t 1 ] || [ -t 2 ]
+}
+
+elapsed_label() {
+  local start="$1"
+  local now
+  now=$(date +%s)
+  local elapsed=$((now - start))
+  printf '%dm %ds' $((elapsed / 60)) $((elapsed % 60))
+}
+
+run_npm_install() {
+  local dir="$1"
+  local start
+  start=$(date +%s)
+
+  log_step "Step 4/4: Installing runtime dependencies"
+  log_note "First install usually takes 5–15 minutes (Lighthouse, Playwright, axe-core, and related tooling)."
+  log_note "npm may look idle while resolving the dependency tree — elapsed time updates below."
+  printf '\n'
+
+  (
+    cd "$dir"
+    local npm_args=(--omit=dev --ignore-scripts --no-audit --no-fund)
+    local npm_cmd="install"
+    if [ -f package-lock.json ]; then
+      npm_cmd="ci"
+      log_note "Using package-lock.json (npm ci) for a faster, reproducible install."
+      printf '\n'
+    fi
+
+    if is_tty; then
+      npm "$npm_cmd" "${npm_args[@]}" --loglevel=info
+    else
+      npm "$npm_cmd" "${npm_args[@]}" --loglevel=warn &
+      local npm_pid=$!
+      while kill -0 "$npm_pid" 2>/dev/null; do
+        printf '\r[signaler] installing dependencies... %s elapsed' "$(elapsed_label "$start")"
+        sleep 3
+      done
+      wait "$npm_pid"
+      printf '\n'
+    fi
+  )
+
+  printf '    Dependencies ready in %s.\n' "$(elapsed_label "$start")"
+}
+
 ensure_path_line() {
   local shell_rc="$1"
   local path_line="export PATH=\"$BIN_DIR:\$PATH\""
@@ -52,7 +109,9 @@ require_cmd unzip
 require_cmd node
 require_cmd npm
 
-printf 'Installing Signaler...\n'
+INSTALL_START=$(date +%s)
+
+log_step "Step 1/4: Resolving Signaler release"
 printf 'Repo: %s\n' "$REPO"
 printf 'Version: %s\n' "$VERSION"
 
@@ -63,7 +122,19 @@ ASSET_URL="$(printf '%s' "$RELEASE_JSON" | node -e "const fs=require('fs'); cons
 }
 RELEASE_TAG="$(printf '%s' "$RELEASE_JSON" | node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(data.tag_name || 'unknown');")"
 
-curl -fsSL -H 'User-Agent: signaler-install-script' "$ASSET_URL" -o "$ZIP_PATH"
+log_step "Step 2/4: Downloading portable release (${RELEASE_TAG})"
+DOWNLOAD_START=$(date +%s)
+if is_tty; then
+  curl -fSL --progress-bar -H 'User-Agent: signaler-install-script' "$ASSET_URL" -o "$ZIP_PATH"
+  printf '\n'
+else
+  curl -fsSL -H 'User-Agent: signaler-install-script' "$ASSET_URL" -o "$ZIP_PATH"
+fi
+log_note "Download complete in $(elapsed_label "$DOWNLOAD_START")."
+
+log_step "Step 3/4: Extracting to ${INSTALL_DIR}"
+rm -rf "$INSTALL_DIR"
+mkdir -p "$(dirname "$INSTALL_DIR")" "$BIN_DIR"
 unzip -q "$ZIP_PATH" -d "$TMP_ROOT/extracted"
 
 EXTRACTED_ROOT="$(find "$TMP_ROOT/extracted" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
@@ -72,15 +143,8 @@ if [ -z "$EXTRACTED_ROOT" ]; then
   exit 1
 fi
 
-rm -rf "$INSTALL_DIR"
-mkdir -p "$(dirname "$INSTALL_DIR")" "$BIN_DIR"
 mv "$EXTRACTED_ROOT" "$INSTALL_DIR"
-
-printf 'Installing runtime dependencies...\n'
-(
-  cd "$INSTALL_DIR"
-  npm install --omit=dev --ignore-scripts --no-audit --no-fund
-)
+run_npm_install "$INSTALL_DIR"
 
 cat > "$BIN_DIR/signaler" <<'EOF'
 #!/usr/bin/env bash
@@ -113,6 +177,7 @@ export PATH="$BIN_DIR:$PATH"
 
 printf '\nInstalled %s to %s\n' "$RELEASE_TAG" "$INSTALL_DIR"
 printf 'Launcher directory: %s\n' "$BIN_DIR"
+printf 'Total install time: %s\n' "$(elapsed_label "$INSTALL_START")"
 printf '\nNext steps:\n'
 printf '  1. PATH was updated for this shell and appended to your shell profile.\n'
 printf '  2. Restart your terminal if it was already open in another window.\n'

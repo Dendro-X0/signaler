@@ -12,7 +12,17 @@ Signaler is distributed **only** through GitHub Release native packaging — not
 | **Upgrade** | `signaler upgrade` |
 | **Uninstall** | `signaler uninstall --global` |
 
-## Git Bash / macOS / Linux
+### Install time
+
+The portable installer downloads a zip, then runs **`npm ci`/`npm install`** for Lighthouse, Playwright, axe-core, and related audit tooling (~180 packages). **First install usually takes 5–15 minutes** depending on network and disk speed.
+
+The install script prints **four numbered steps**, download timing, and **live npm output** (or an elapsed-time counter when stdout is not a TTY). `signaler upgrade` uses the same dependency step with progress messages.
+
+To pin a release without waiting on `latest` resolution:
+
+```bash
+SIGNALER_VERSION=5.1.1 curl -fsSL …/install.sh | bash
+```
 
 `irm` and `iex` are **PowerShell only**. In Bash:
 
@@ -25,7 +35,7 @@ signalar --version
 Install a specific release:
 
 ```bash
-SIGNALER_VERSION=5.0.1 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+SIGNALER_VERSION=5.1.1 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
 ## Windows PowerShell
@@ -38,7 +48,7 @@ signaler --version
 Specific version:
 
 ```powershell
-$env:SIGNALER_VERSION = "5.0.1"
+$env:SIGNALER_VERSION = "5.1.1"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
@@ -46,7 +56,7 @@ irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/ins
 
 From [GitHub Releases](https://github.com/Dendro-X0/signaler/releases):
 
-1. **`signaler-<version>-portable.zip`** — unpack; run `npm install --omit=dev` inside; use bundled launchers or `node dist/cli-entry.js`.
+1. **`signaler-<version>-portable.zip`** — unpack; dependencies install automatically via `install.sh` / `install.ps1` (or `npm ci` when `package-lock.json` is bundled).
 2. **`signaler-<version>-windows-setup.exe`** — guided Windows install.
 
 ## Requirements

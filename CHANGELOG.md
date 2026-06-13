@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 5.1.1 - 2026-05-29
+
+### Changed
+
+- **Install progress** — `install.sh`, `install.ps1`, and `signaler upgrade` show four numbered steps, download timing, npm output (or elapsed counter when piped), and total install duration.
+- **Faster installs** — portable release zips now include `package-lock.json`; installers use `npm ci` when present.
+- **Installation docs** — expected first-install duration (5–15 min) and dependency step explained.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.1.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.1.md).
+
 ## 5.1.0 - 2026-05-28
 
 ### Added

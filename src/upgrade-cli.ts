@@ -1,4 +1,5 @@
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
@@ -227,13 +228,25 @@ async function writeLauncher(params: { readonly binDir: string; readonly install
 }
 
 async function installRuntimeDependencies(installDir: string): Promise<void> {
+  const lockPath = join(installDir, "package-lock.json");
+  const useCi = existsSync(lockPath);
+  const startedAt = Date.now();
+  process.stdout.write("\n==> Installing runtime dependencies\n");
+  process.stdout.write("    First install usually takes 5–15 minutes (Lighthouse, Playwright, axe-core, and related tooling).\n");
+  if (useCi) {
+    process.stdout.write("    Using package-lock.json (npm ci) for a faster, reproducible install.\n");
+  }
+  process.stdout.write("\n");
   await execFileAsync(nodeToolCommand("npm"), [
-    "install",
+    useCi ? "ci" : "install",
     "--omit=dev",
     "--ignore-scripts",
     "--no-audit",
     "--no-fund",
+    "--loglevel=info",
   ], installDir);
+  const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  process.stdout.write(`    Dependencies ready in ${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s.\n`);
 }
 
 function buildResult(params: {
