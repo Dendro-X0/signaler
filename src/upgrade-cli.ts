@@ -210,6 +210,13 @@ export function buildWindowsExpandArchiveCommand(params: {
 }
 
 async function extractZip(params: { readonly zipPath: string; readonly destDir: string }): Promise<void> {
+  await mkdir(params.destDir, { recursive: true });
+  try {
+    await execFileAsync("tar", ["-xf", params.zipPath, "-C", params.destDir]);
+    return;
+  } catch {
+    // Fall back when tar is missing or cannot read the archive.
+  }
   if (process.platform === "win32") {
     await execFileAsync("powershell", [
       "-NoProfile",
@@ -217,9 +224,9 @@ async function extractZip(params: { readonly zipPath: string; readonly destDir: 
       "-Command",
       buildWindowsExpandArchiveCommand(params),
     ]);
-  } else {
-    await execFileAsync("unzip", ["-q", params.zipPath, "-d", params.destDir]);
+    return;
   }
+  await execFileAsync("unzip", ["-q", params.zipPath, "-d", params.destDir]);
 }
 
 async function writeLauncher(params: { readonly binDir: string; readonly installDir: string }): Promise<void> {
