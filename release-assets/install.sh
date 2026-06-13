@@ -20,11 +20,23 @@ ensure_path_line() {
   printf '\n# Signaler CLI\n%s\n' "$path_line" >> "$shell_rc"
 }
 
+normalize_release_tag() {
+  if [ "$1" = "latest" ]; then
+    printf '%s' "latest"
+    return
+  fi
+  case "$1" in
+    v*) printf '%s' "$1" ;;
+    *) printf 'v%s' "$1" ;;
+  esac
+}
+
 get_release_api_url() {
   if [ "$VERSION" = "latest" ]; then
     printf 'https://api.github.com/repos/%s/releases/latest\n' "$REPO"
   else
-    printf 'https://api.github.com/repos/%s/releases/tags/%s\n' "$REPO" "$VERSION"
+    TAG="$(normalize_release_tag "$VERSION")"
+    printf 'https://api.github.com/repos/%s/releases/tags/%s\n' "$REPO" "$TAG"
   fi
 }
 

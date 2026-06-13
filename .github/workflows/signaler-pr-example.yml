@@ -3,9 +3,8 @@
 
 name: Signaler PR (example)
 
+# Example for app repos — not run on PRs to signaler itself (no web app to audit).
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -27,7 +26,7 @@ jobs:
 
       - uses: ./.github/actions/signaler
         with:
-          version: "5.0.1"
+          version: "latest"
           run-profile: pr-quick
           base-url: http://127.0.0.1:3000
           cwd: .

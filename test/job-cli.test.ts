@@ -89,7 +89,6 @@ describe("job-cli", () => {
     expect(payload.steps.map((step) => step.command)).toEqual([
       "discover",
       "run",
-      "analyze",
       "headers",
       "links",
       "health",
@@ -97,7 +96,10 @@ describe("job-cli", () => {
       "measure",
       "accessibility",
       "bundle",
+      "analyze",
     ]);
+    const analyzeArgs = payload.steps.find((step) => step.command === "analyze")?.args ?? [];
+    expect(analyzeArgs).toContain("--auto-benchmark-bridge");
   });
 
   it("prints release-full run profile with fidelity mode", async () => {

@@ -62,7 +62,8 @@ function Get-ReleaseApiUrl {
     return "https://api.github.com/repos/$Repo/releases/latest"
   }
 
-  return "https://api.github.com/repos/$Repo/releases/tags/$Version"
+  $tag = if ($Version.StartsWith("v")) { $Version } else { "v$Version" }
+  return "https://api.github.com/repos/$Repo/releases/tags/$tag"
 }
 
 function Get-PortableAssetUrl {

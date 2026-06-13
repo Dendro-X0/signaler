@@ -12,7 +12,7 @@ export function normalizeExecPath(path: string): string {
   }
 
   const msysMatch = trimmed.match(/^\/([a-zA-Z])\/(.*)$/);
-  if (msysMatch) {
+  if (msysMatch && process.platform === "win32") {
     const drive = msysMatch[1]?.toUpperCase() ?? "";
     const rest = msysMatch[2]?.replace(/\//g, "\\") ?? "";
     return resolve(`${drive}:\\${rest}`);
