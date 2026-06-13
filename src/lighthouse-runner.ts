@@ -401,7 +401,9 @@ async function runParallelInProcesses(
     }
     reductions += 1;
     stableSuccesses = 0;
-    logLinePreservingProgress(`Runner backoff (${reason}): active workers reduced to ${currentActiveWorkers}.`);
+    logLinePreservingProgress(
+      `Runner backoff (${reason}): active workers reduced to ${currentActiveWorkers}. Fewer workers improve stability, not measurement accuracy — use --parallel 6 when memory allows.`,
+    );
   };
 
   const maybeRecoverWorker = async (): Promise<void> => {

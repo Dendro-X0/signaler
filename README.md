@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.1-blue.svg)
+![Version](http://img.shields.io/badge/version-5.1.2-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -49,7 +49,7 @@ signaler uninstall --global
 | macOS / Linux | `install.sh`, or portable zip from Releases |
 | Git Bash (Windows) | `install.sh` only — not `irm` / `iex` |
 
-Pin a version: `SIGNALER_VERSION=5.1.1 curl -fsSL …/install.sh | bash`
+Pin a version: `SIGNALER_VERSION=5.1.2 curl -fsSL …/install.sh | bash`
 
 Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
 
@@ -177,7 +177,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    version: "5.1.1"   # GitHub Release tag, or "latest"
+    version: "5.1.2"   # GitHub Release tag, or "latest"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
@@ -322,7 +322,7 @@ Create a `signaler.config.json` file in your project root:
 {
   "baseUrl": "http://localhost:3000",
   "throttlingMethod": "simulate",
-  "parallel": 2,
+  "parallel": 6,
   "warmUp": true,
   "pages": [
     { "path": "/", "label": "Home", "devices": ["mobile", "desktop"] }
@@ -336,7 +336,7 @@ Create a `signaler.config.json` file in your project root:
 
 **Key Options**:
 - `baseUrl` - Base URL of your application
-- `parallel` - Number of concurrent audits (default: auto-detected)
+- `parallel` - Number of concurrent audits (default: **6** on most machines; auto-capped on low-memory hosts)
 - `warmUp` - Run warm-up request before auditing (recommended)
 - `budgets` - Performance budgets for CI/CD gates
 
@@ -396,8 +396,8 @@ More examples in [`/docs/examples`](./docs/examples).
 **Issue**: Low performance scores vs DevTools
 **Solution**: This is expected. Signaler runs in headless mode with simulated throttling. Scores are 10-30 points lower but consistent for comparisons.
 
-**Issue**: Out of memory errors
-**Solution**: Reduce `parallel` workers or enable incremental mode with `incremental: true` in config.
+**Issue**: Out of memory errors or very slow audits (single worker)
+**Solution**: Use `--parallel 6` on most machines (fewer workers do not improve accuracy). If workers still disconnect, reduce scope (`discover --scope quick`), use production serve, or lower parallel only for stability — not score tuning. See [Lab Semantics](./docs/guides/lab-semantics.md).
 
 **Issue**: Missing routes
 **Solution**: Use `signaler wizard` to auto-detect routes, or manually add them to `signaler.config.json`.

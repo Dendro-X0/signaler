@@ -26,19 +26,19 @@ afterEach(() => {
 });
 
 describe("resolveAutoResourceProfile", () => {
-  it("caps at 5 parallel for upper-mid CPU with a large suite (90 combos)", () => {
+  it("caps at 6 parallel for upper-mid CPU with a large suite (90 combos)", () => {
     withForcedResources(12, 3848, () => {
       const profile = resolveAutoResourceProfile({ plannedCombos: 90 });
-      expect(profile.appliedParallelCap).toBe(5);
+      expect(profile.appliedParallelCap).toBe(6);
       expect(profile.reasons).toContain("upper-mid-cpu");
       expect(profile.reasons).toContain("large-suite-cap");
     });
   });
 
-  it("uses 4 parallel for mid-tier CPU on medium suites", () => {
+  it("uses 6 parallel for mid-tier CPU on medium suites", () => {
     withForcedResources(8, 8192, () => {
       const profile = resolveAutoResourceProfile({ plannedCombos: 50 });
-      expect(profile.appliedParallelCap).toBe(4);
+      expect(profile.appliedParallelCap).toBe(6);
       expect(profile.reasons).toContain("mid-cpu");
     });
   });

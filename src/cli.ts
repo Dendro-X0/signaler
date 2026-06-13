@@ -2816,8 +2816,8 @@ function resolveV3ModeDefaults(mode: RunnerMode | undefined): V3ModeDefaults {
     mode: "throughput",
     profile: "throughput-balanced",
     throttlingMethod: "simulate",
-    // Balanced default for common laptops/desktops; auto profile may raise to 4–6 on capable hardware.
-    parallel: 4,
+    // Optimal default for most machines; auto profile may cap lower on constrained hosts.
+    parallel: 6,
     sessionIsolation: "shared",
     throughputBackoff: "auto",
     warmUp: true,
@@ -2857,7 +2857,7 @@ export function resolveAutoResourceProfile(params: { readonly plannedCombos: num
     reasons.push("forced-resource-profile");
   }
 
-  let baseParallelCap = 4;
+  let baseParallelCap = 6;
   if (freeMemoryMB < 2048 || cpuCount <= 2) {
     baseParallelCap = 1;
     reasons.push(freeMemoryMB < 2048 ? "low-memory" : "low-cpu");
@@ -2865,10 +2865,10 @@ export function resolveAutoResourceProfile(params: { readonly plannedCombos: num
     baseParallelCap = 2;
     reasons.push(freeMemoryMB < 3072 ? "low-memory" : "low-cpu");
   } else if (cpuCount <= 8) {
-    baseParallelCap = 4;
+    baseParallelCap = 6;
     reasons.push("mid-cpu");
   } else if (cpuCount <= 16) {
-    baseParallelCap = 5;
+    baseParallelCap = 6;
     reasons.push("upper-mid-cpu");
   } else {
     baseParallelCap = 6;
@@ -3378,7 +3378,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const profileCaps = getMachineProfileCaps(args.artifactProfile);
   const effectiveMachineTokenBudget: number = args.machineTokenBudgetOverride ?? profileCaps.defaultTokenBudget;
 
-  const DEFAULT_PARALLEL: number = 4;
+  const DEFAULT_PARALLEL: number = 6;
   const DEFAULT_WARM_UP: boolean = true;
   const DEFAULT_THROTTLING: ApexThrottlingMethod = "simulate";
   const DEVTOOLS_ACCURATE_DEFAULT_PARALLEL: number = 4;
@@ -3624,12 +3624,14 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   if (isTty && !args.ci && !args.jsonOutput && plannedCombos >= LARGE_RUN_HINT_COMBOS_THRESHOLD) {
     // eslint-disable-next-line no-console
-    console.log(`Tip: large run (${plannedCombos} combos). Use --plan to preview, and retry with --stable if parallel mode flakes.`);
+    console.log(
+      `Tip: large run (${plannedCombos} combos). Use --plan to preview. For speed on most machines use --parallel 6 (fewer workers do not improve accuracy).`,
+    );
   }
   if (autoSafeParallel && isTty && !args.ci && !args.jsonOutput) {
     // eslint-disable-next-line no-console
     console.log(
-      `Auto resource profile applied: parallel capped to ${resolvedConfigForRun.parallel} (cpu=${resourceProfile.cpuCount}, freeMem=${resourceProfile.freeMemoryMB}MB, reasons=${resourceProfile.reasons.join(",")}). Override with --parallel <n> or --stable (parallel=1).`,
+      `Auto resource profile applied: parallel capped to ${resolvedConfigForRun.parallel} (cpu=${resourceProfile.cpuCount}, freeMem=${resourceProfile.freeMemoryMB}MB, reasons=${resourceProfile.reasons.join(",")}). Use --parallel 6 on most machines; fewer workers do not improve accuracy. Override with --parallel <n> or --stable (parallel=1) only for flake recovery.`,
     );
     if (resourceProfile.reasons.includes("low-memory")) {
       // eslint-disable-next-line no-console

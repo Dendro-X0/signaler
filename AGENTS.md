@@ -40,6 +40,8 @@ signaler job run --preset agent \
 
 Use `--scope quick` only for a capped starter subset. Use `--incremental-skip` after fixes.
 
+**Parallelism:** throughput runs default to **6 workers** on most machines (`audit`, agent preset, and `run` without overrides). Fewer workers do **not** improve accuracy; performance scores often diverge from DevTools — use issue-count triage (`query --view perf`). Lower parallel only for flake/OOM recovery (`--stable`), not score tuning. See `docs/guides/lab-semantics.md`.
+
 **Manual steps** (when you need finer control):
 
 ```bash

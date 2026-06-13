@@ -27,7 +27,7 @@ Common fields:
 - `query` (optional query string appended to every URL)
 - `throttlingMethod` (`simulate` or `devtools`)
 - `cpuSlowdownMultiplier` (default 4)
-- `parallel` (optional; the CLI will auto-tune a sensible default)
+- `parallel` (optional; default **6** on most machines when omitted; CLI may cap lower on low-memory hosts)
 - `sessionIsolation` (optional; `shared` or `per-audit`)
 - `throughputBackoff` (optional; `auto`, `aggressive`, or `off`)
 - `warmUp` (optional)

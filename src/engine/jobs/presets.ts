@@ -141,6 +141,7 @@ export function buildCiPresetJob(params: BuildPresetJobParams): EngineJobV1 {
 
 export function buildPrPresetJob(params: BuildPresetJobParams): EngineJobV1 {
   const outputDirArg = resolveOutputDirArg(params);
+  const parallel = resolveAgentJobParallel(params.parallel);
   let runArgs: string[] = [
     "--contract",
     "v3",
@@ -151,6 +152,8 @@ export function buildPrPresetJob(params: BuildPresetJobParams): EngineJobV1 {
     "--ci",
     "--no-color",
     "--yes",
+    "--parallel",
+    String(parallel),
     "--changed-only",
   ];
   runArgs = appendConfigArg(runArgs, params.configPath);

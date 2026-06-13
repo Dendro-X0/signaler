@@ -20,15 +20,26 @@ Accessibility, SEO, and best-practices category scores are more stable vs DevToo
 
 ## Parallelism guidance
 
-- Throughput default parallel is conservative (`2` in v3 defaults) and may be capped further by host memory.
-- Higher parallelism speeds scans but increases score depression from shared CPU/network contention.
-- Use `--stable` or `--parallel 1` when parallel mode flakes; use focused reruns instead of full-suite fidelity.
+- **Default:** throughput runs use **6 parallel workers** on most machines (`signaler audit` and `signaler run` without overrides). Set `SIGNALER_PARALLEL=6` or pass `--parallel 6` explicitly.
+- **Accuracy:** reducing parallel workers does **not** improve measurement accuracy. Lower parallelism only trades speed for stability when workers crash or memory is exhausted.
+- **DevTools divergence:** lab scores under throughput + simulated throttling often differ from DevTools; that is expected — prioritize issue-count triage over chasing score parity.
+- **When to lower parallel:** only for flake recovery (`--stable` / `--parallel 1`) or genuine OOM — not to “improve” scores.
+- **Runtime backoff:** throughput mode may reduce active workers on low memory or worker failures. Backoff protects stability; it does not make results more accurate. Prefer production serve (`--managed-serve-mode production`) and closing other heavy apps before lowering parallel.
+- **Large suites:** use `--plan` to preview; use `discover --scope quick` for smoke runs; use `--focus-worst` for targeted reruns instead of full-suite single-threaded fidelity.
+
+```bash
+# Recommended default (6 workers)
+signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
+
+# Explicit throughput run after discover
+signaler run --contract v3 --mode throughput --parallel 6 --artifact-profile lean --ci --no-color --yes
+```
 
 ## Agent workflow
 
 ```bash
 signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000
-signaler run --contract v3 --mode throughput --artifact-profile lean --ci --no-color --yes
+signaler run --contract v3 --mode throughput --parallel 6 --artifact-profile lean --ci --no-color --yes
 signaler analyze --contract v6 --artifact-profile lean
 signaler query --view perf
 signaler explain --id <top-issue-id>

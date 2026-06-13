@@ -225,12 +225,13 @@ Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
    signaler run --stable  # Forces single-worker mode
    ```
 
-2. **Reduce parallelism:**
+2. **Reduce parallelism only for stability** (not accuracy):
    ```json
    {
-     "parallel": 1,  // Reduce from default
+     "parallel": 1,  // Last resort when workers disconnect/OOM — does not improve scores
    }
    ```
+   Prefer `--parallel 6` on most machines. See [Lab Semantics](./lab-semantics.md).
 
 3. **Increase timeout:**
    ```json
@@ -253,10 +254,10 @@ Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
 
 **Solutions:**
 
-1. **Reduce parallel workers:**
+1. **Use `--parallel 6` first** on most machines; only reduce workers for OOM (not score tuning):
    ```json
    {
-     "parallel": 1,  // Start with 1, increase gradually
+     "parallel": 6,  // Default on capable hosts
    }
    ```
 

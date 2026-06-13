@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 5.1.2 - 2026-06-13
+
+### Changed
+
+- **Throughput parallelism** — default parallel is **6** for throughput runs on most machines (`run`, `audit`, PR preset). Fewer workers do not improve accuracy; lab scores often diverge from DevTools — see `docs/guides/lab-semantics.md`.
+- **Wizard / CLI tips** — recommend `--parallel 6`; backoff messages clarify stability vs accuracy.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.2.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.2.md).
+
 ## 5.1.1 - 2026-05-29
 
 ### Changed

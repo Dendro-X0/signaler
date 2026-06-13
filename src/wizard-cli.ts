@@ -1378,7 +1378,9 @@ async function buildConfigAndDiscoveryForMode(params: {
         initial: true,
       })).value;
     if (useDetectedProfile) {
-      console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
+      console.log(
+        "Tip: use --parallel 6 for throughput runs on most machines (default for signaler audit). Fewer workers do not improve accuracy; lab scores often differ from DevTools. Override with --parallel <n> or inspect with --show-parallel.",
+      );
       const detected = await maybeDetectPages({
         profile: detectedProfile,
         baseUrl: baseAnswers.baseUrl,
@@ -1419,7 +1421,9 @@ async function buildConfigAndDiscoveryForMode(params: {
   const profileAnswer = params.nonInteractive
     ? { profile: detectedProfile ?? "custom" as ProjectProfileId }
     : await ask<ProjectProfileAnswer>(buildProfileQuestion({ detectedProfile }));
-  console.log("Tip: parallel workers auto-tune from CPU/memory. Override later with --parallel <n> or inspect with --show-parallel.");
+  console.log(
+    "Tip: use --parallel 6 for throughput runs on most machines (default for signaler audit). Fewer workers do not improve accuracy; lab scores often differ from DevTools. Override with --parallel <n> or inspect with --show-parallel.",
+  );
   const detected = await maybeDetectPages({
     profile: profileAnswer.profile,
     baseUrl: baseAnswers.baseUrl,
