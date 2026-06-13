@@ -51,7 +51,7 @@ Pick the install command for **your shell** — see [install matrix](/docs/signa
 **Windows + Git Bash** (Cursor / VS Code default):
 
 ```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 source ~/.bashrc
 signaler --version
 ```
@@ -59,7 +59,6 @@ signaler --version
 **Windows PowerShell:**
 
 ```powershell
-$env:SIGNALER_VERSION = "5.1.5"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 signaler --version
 ```
@@ -67,10 +66,12 @@ signaler --version
 **macOS / Linux / WSL:**
 
 ```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 source ~/.bashrc
 signaler --version
 ```
+
+Optional pin: `SIGNALER_VERSION=<tag>` before the command (CI / reproducibility).
 
 Verify after install:
 
@@ -79,7 +80,7 @@ signaler --version
 signalar --version
 ```
 
-**Update:** re-run the same install script with a new `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
+**Update:** re-run the same install command (latest), or `signaler upgrade`.
 
 **Remove** the global install:
 

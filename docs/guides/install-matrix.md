@@ -2,6 +2,8 @@
 
 Signaler ships through **GitHub Release portable installers** only — not npm or JSR. Pick **one install command** for your shell and stick with it on that machine.
 
+**Default:** installers resolve **`latest`** from GitHub Releases. You do not need to set `SIGNALER_VERSION` for a normal install.
+
 ## Pick your command
 
 | Environment | Install command | Install location |
@@ -11,21 +13,35 @@ Signaler ships through **GitHub Release portable installers** only — not npm o
 | **macOS / Linux / WSL** | `curl -fsSL …/install.sh \| bash` | `~/.local/share/signaler/` |
 | **Windows (GUI)** | `signaler-<version>-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) | `%LOCALAPPDATA%\signaler\` |
 
-Full URLs (main branch scripts; pin `SIGNALER_VERSION` for reproducibility):
+### Bash / Git Bash / macOS / Linux / WSL
 
 ```bash
-# Bash / Git Bash / macOS / Linux / WSL
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 source ~/.bashrc   # or open a new terminal
 signaler --version
 ```
 
+### Windows PowerShell (not Git Bash)
+
 ```powershell
-# Windows PowerShell only — not Git Bash
-$env:SIGNALER_VERSION = "5.1.5"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 signaler --version
 ```
+
+### Pin a version (optional)
+
+Use a fixed tag for CI reproducibility or when you must match a release note:
+
+```bash
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+```powershell
+$env:SIGNALER_VERSION = "5.1.5"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+Omit `SIGNALER_VERSION` (or set `latest`) for the current GitHub Release.
 
 ## Common mistakes
 
@@ -37,9 +53,22 @@ signaler --version
 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
+### GitHub API rate limit during install
+
+If PowerShell shows `API rate limit exceeded`, the installer is calling the GitHub REST API without authentication. Options:
+
+1. **Retry after a few minutes** (unauthenticated limit is low per IP).
+2. **Use a token** (recommended on shared networks):
+   ```powershell
+   $env:GITHUB_TOKEN = "<read-only PAT>"
+   irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+   ```
+   Bash/Git Bash: `export GITHUB_TOKEN=...` before running `install.sh`.
+3. **Download the portable zip** from [Releases](https://github.com/Dendro-X0/signaler/releases) and run `install.ps1` / `install.sh` from the extracted folder.
+
 ### Mixing install scripts on Windows
 
-Both `install.sh` (Git Bash) and `install.ps1` (PowerShell) now install to **`%LOCALAPPDATA%\signaler\`**. If you previously installed with an older `install.sh` that wrote to `~/.local/share/signaler/`, remove that copy and reinstall once with the current script so `signaler upgrade` and `signaler uninstall --global` find the same paths.
+Both `install.sh` (Git Bash) and `install.ps1` (PowerShell) install to **`%LOCALAPPDATA%\signaler\`**. If you previously installed with an older `install.sh` that wrote to `~/.local/share/signaler/`, remove that copy and reinstall once with the current script.
 
 ### Expecting npm / JSR
 
@@ -57,13 +86,13 @@ First install runs **`npm ci` / `npm install`** inside the portable bundle (~180
 
 ## Update
 
-Preferred: re-run the **same** install script with a pinned version:
+**Default:** re-run the **same** install command (still resolves `latest`), or:
 
 ```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL …/install.sh | bash
+signaler upgrade
 ```
 
-Alternative: `signaler upgrade` (in-place update). On Windows, use **5.1.4+** — earlier builds had broken PowerShell archive extraction during upgrade.
+**Pin:** set `SIGNALER_VERSION=<tag>` when re-running the install script. On Windows, use Signaler **5.1.4+** for reliable in-place upgrade.
 
 ## Uninstall
 
@@ -71,15 +100,13 @@ Alternative: `signaler upgrade` (in-place update). On Windows, use **5.1.4+** �
 signaler uninstall --global
 ```
 
-**Known gap:** uninstall removes files under the install directory but does **not** remove the PATH entry your shell profile or the Windows installer added. After uninstall, manually:
+**Known gap:** uninstall removes install files but **not** PATH entries. See manual cleanup below.
 
 - **Git Bash / macOS / Linux:** remove the `# Signaler CLI` block from `~/.bashrc` or `~/.zshrc`
-- **Windows (PowerShell installer):** remove `%LOCALAPPDATA%\signaler\bin` from the user PATH in System Settings
-- **Legacy Git Bash install:** also check `~/.local/share/signaler/` if you used an older `install.sh`
+- **Windows (PowerShell installer):** remove `%LOCALAPPDATA%\signaler\bin` from user PATH
+- **Legacy Git Bash install:** also check `~/.local/share/signaler/`
 
 ## CI without a global install
-
-You do not need a global install in CI. Options:
 
 1. **[GitHub Action](../.github/actions/signaler/action.yml)** — installs from Release inside the job
 2. **`install.sh` in the workflow** — same as local Bash install
@@ -96,5 +123,5 @@ See [GitHub Actions guide](./github-actions.md).
 
 - [Installation](./installation.md)
 - [Troubleshooting](./troubleshooting.md)
-- [Known limits](./known-limits.md) — distribution and scoring caveats
+- [Known limits](./known-limits.md)
 - [Distribution policy](../specs/distribution-policy.md)

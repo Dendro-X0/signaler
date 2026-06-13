@@ -91,6 +91,11 @@ function Get-PortableAssetUrl {
 
   $apiUrl = Get-ReleaseApiUrl -Repo $Repo -Version $Version
   $headers = @{ "User-Agent" = "signaler-install-script" }
+  if ($env:GITHUB_TOKEN) {
+    $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
+  } elseif ($env:GH_TOKEN) {
+    $headers["Authorization"] = "Bearer $($env:GH_TOKEN)"
+  }
   $release = Invoke-RestMethod -Headers $headers -Uri $apiUrl
   $asset = $release.assets | Where-Object { $_.name -like "*-portable.zip" } | Select-Object -First 1
   if (-not $asset) {

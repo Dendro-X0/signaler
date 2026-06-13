@@ -3,10 +3,15 @@
 import React, { useState } from "react"
 import { Copy, Check, Terminal } from "lucide-react"
 
+const INSTALL_BASH =
+  "curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
+
+const INSTALL_PS =
+  "irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex"
+
 export function HeroStartCommand(): React.ReactElement {
   const [copied, setCopied] = useState<boolean>(false)
-  const cmd: string =
-    "SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
+  const cmd: string = INSTALL_BASH
 
   async function copy(): Promise<void> {
     try {
@@ -38,7 +43,8 @@ export function HeroStartCommand(): React.ReactElement {
         </span>
       </button>
       <p className="text-sm text-muted-foreground max-w-2xl text-center">
-        Git Bash / macOS / Linux. Windows PowerShell: use <code className="text-xs">install.ps1</code> — see{" "}
+        Installs <strong>latest</strong> from GitHub Releases. PowerShell:{" "}
+        <code className="text-xs">{INSTALL_PS}</code> — see{" "}
         <a href="/docs/signaler/install-matrix" className="underline hover:text-foreground">install matrix</a>.
       </p>
     </div>

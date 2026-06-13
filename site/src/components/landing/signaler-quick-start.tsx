@@ -8,10 +8,10 @@ type Cmd = { readonly key: string; readonly label: string; readonly code: string
 type Shell = "bash" | "powershell"
 
 const INSTALL_BASH =
-  "SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
+  "curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
 
-const INSTALL_PS = `$env:SIGNALER_VERSION = "5.1.5"
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex`
+const INSTALL_PS =
+  "irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex"
 
 export function SignalerQuickStart(): React.ReactElement {
   const [copiedKey, setCopiedKey] = useState<string>("")
@@ -20,7 +20,7 @@ export function SignalerQuickStart(): React.ReactElement {
   const installCmd = shell === "bash" ? INSTALL_BASH : INSTALL_PS
 
   const commands: ReadonlyArray<Cmd> = [
-    { key: "install", label: "# 1. Install (GitHub Release)", code: installCmd },
+    { key: "install", label: "# 1. Install latest (GitHub Release)", code: installCmd },
     { key: "version", label: "# 2. Verify", code: "signaler --version" },
     {
       key: "audit",
@@ -94,7 +94,7 @@ export function SignalerQuickStart(): React.ReactElement {
         </div>
         <div className="p-6 font-mono text-sm leading-7 space-y-4">
           <div className="text-xs text-muted-foreground pb-2">
-            // GitHub Release install — not npm or JSR. First install: 5–15 min.
+            // Latest release from GitHub — not npm/JSR. First install: 5–15 min. Pin with SIGNALER_VERSION for CI.
           </div>
 
           {commands.map((c) => (

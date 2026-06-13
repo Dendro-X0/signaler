@@ -4,100 +4,100 @@ Signaler is distributed **only** through GitHub Release native packaging — not
 
 **Start here:** [Install matrix (OS × shell)](/docs/signaler/install-matrix) — pick the right command for your terminal.
 
+Install scripts default to **`latest`** (the current GitHub Release). Set `SIGNALER_VERSION` only when you need a pinned tag (CI, reproducibility, or matching release notes).
+
 ## Quick reference
 
-| Environment | Install |
-|-------------|---------|
+| Environment | Install (latest) |
+|-------------|------------------|
 | **Windows + Git Bash** (Cursor, VS Code) | `curl -fsSL …/install.sh \| bash` |
 | **Windows PowerShell / CMD** | `irm …/install.ps1 \| iex` |
 | **macOS / Linux / WSL** | `curl -fsSL …/install.sh \| bash` |
 | **Windows (GUI)** | `signaler-<version>-windows-setup.exe` from [GitHub Releases](https://github.com/Dendro-X0/signaler/releases) |
 
-Pin a release (recommended for first install and CI):
+### Bash / Git Bash / macOS / Linux / WSL
 
 ```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-```
-
-```powershell
-$env:SIGNALER_VERSION = "5.1.5"
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
-```
-
-Verify:
-
-```bash
-signaler --version
-signalar --version
-```
-
-## Windows + Git Bash (Cursor default)
-
-Many Windows developers use **Git Bash** as the default terminal in Cursor or VS Code. Use **`install.sh`**, not PowerShell `irm | iex`:
-
-```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 source ~/.bashrc
 signaler --version
 ```
 
-Install location: `%LOCALAPPDATA%\signaler\` (same as the PowerShell installer). Launchers: `signaler`, `signalar`, and `.cmd` wrappers for CMD.
-
-## Windows PowerShell
+### Windows PowerShell
 
 ```powershell
-$env:SIGNALER_VERSION = "5.1.5"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 signaler --version
 ```
 
-`irm` and `iex` are **PowerShell only**. Do not run them in Bash.
+`irm` and `iex` are **PowerShell only**. Do not run them in Git Bash.
 
-## macOS / Linux / WSL
+### Pin a version (optional)
 
 ```bash
 SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-source ~/.bashrc   # or ~/.zshrc
+```
+
+```powershell
+$env:SIGNALER_VERSION = "5.1.5"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+## Windows + Git Bash (Cursor default)
+
+Use **`install.sh`**, not PowerShell `irm | iex`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+source ~/.bashrc
 signaler --version
 ```
 
-Install location: `~/.local/share/signaler/`. PATH is appended to your shell profile.
+Install location: `%LOCALAPPDATA%\signaler\` (same as the PowerShell installer).
+
+## GitHub API rate limits
+
+Installers call the GitHub API to resolve `latest` or a tag. On busy networks you may see `API rate limit exceeded` in PowerShell.
+
+Fix: set a read-only token, then re-run the install command:
+
+```powershell
+$env:GITHUB_TOKEN = "<read-only PAT>"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+```
+
+```bash
+export GITHUB_TOKEN="<read-only PAT>"
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Or download `signaler-*-portable.zip` from [Releases](https://github.com/Dendro-X0/signaler/releases) and install locally.
 
 ## Install time
 
-The portable installer downloads a zip, then runs **`npm ci`/`npm install`** for Lighthouse, Playwright, axe-core, and related audit tooling (~180 packages). **First install usually takes 5–15 minutes** depending on network and disk speed.
-
-The install script prints **four numbered steps**, download timing, and **live npm output** (or an elapsed-time counter when stdout is not a TTY).
+First install runs **`npm ci`/`npm install`** for Lighthouse, Playwright, axe-core, and related tooling (~180 packages). **Expect 5–15 minutes.** The script prints four numbered steps and timing.
 
 ## Update and uninstall
 
-**Update (preferred):** re-run the same install script with a new `SIGNALER_VERSION`.
+**Update:** re-run the same install command (resolves `latest` again), or `signaler upgrade`.
 
-**Update (alternative):** `signaler upgrade` — on Windows, use Signaler **5.1.4+** (earlier builds had broken upgrade extraction).
-
-**Uninstall:** `signaler uninstall --global` — see [install matrix](/docs/signaler/install-matrix) for manual PATH cleanup (uninstall does not remove PATH entries).
+**Uninstall:** `signaler uninstall --global` — see [install matrix](/docs/signaler/install-matrix) for PATH cleanup.
 
 ## Manual download
 
 From [GitHub Releases](https://github.com/Dendro-X0/signaler/releases):
 
-1. **`signaler-<version>-portable.zip`** — unpack; run `install.sh` or `install.ps1` from the release assets, or `npm ci` when `package-lock.json` is bundled.
+1. **`signaler-<version>-portable.zip`** — unpack; run bundled `install.sh` / `install.ps1`, or `npm ci` when `package-lock.json` is present.
 2. **`signaler-<version>-windows-setup.exe`** — guided Windows install.
 
 ## Requirements
 
-- **Node.js 18+** on the target machine (installer verifies this).
-- Chrome/Chromium for Lighthouse audits (managed serve can start your app when configured).
+- **Node.js 18+** on the target machine.
+- Chrome/Chromium for Lighthouse audits.
 
 ## Deprecated: npm and JSR
 
-npm and JSR installs are **unsupported** and may break without notice. Do not use:
-
-- `npm i -g @signaler/cli`
-- `pnpm i jsr:@signaler/cli`
-- `npx jsr add @signaler/cli`
-
-For CI, use the [GitHub Action](/docs/signaler/github-actions) (installs from GitHub Release) or run `install.sh` in the workflow.
+Do not use `npm i -g @signaler/cli`, JSR packages, or `npx jsr run`. For CI, use the [GitHub Action](/docs/signaler/github-actions) or `install.sh` in the workflow.
 
 ## Local development (maintainers)
 
@@ -110,7 +110,6 @@ node dist/cli-entry.js audit --help
 ## See also
 
 - [Install matrix](/docs/signaler/install-matrix)
-- [Distribution policy](/docs/signaler/distribution-policy)
-- [Release playbook](/docs/signaler/release-playbook)
 - [Troubleshooting](/docs/signaler/troubleshooting)
 - [Known limits](/docs/signaler/known-limits)
+- [Distribution policy](/docs/signaler/distribution-policy)

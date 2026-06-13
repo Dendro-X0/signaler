@@ -23,15 +23,14 @@ Legacy aliases: `init`, `wizard`, `guide` → `discover`; `review` → `report`.
 1. **Use the install script for your shell** — see [install matrix](/docs/signaler/install-matrix):
    ```bash
    # Git Bash / macOS / Linux / WSL (Windows + Cursor: use this)
-   SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
    source ~/.bashrc
    ```
    ```powershell
    # Windows PowerShell only — not Git Bash
-   $env:SIGNALER_VERSION = "5.1.5"
    irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
    ```
-2. **Update or repair** — re-run the install script with `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
+2. **Update or repair** — re-run the install command, or `signaler upgrade`.
 3. **Restart your terminal** to refresh PATH variables.
 4. **Verify Node.js:**
    ```bash
@@ -84,17 +83,37 @@ Legacy aliases: `init`, `wizard`, `guide` → `discover`; `review` → `report`.
 
 **Solution:** Use **`install.sh`** in Git Bash — not PowerShell `irm install.ps1 | iex`. After install, `source ~/.bashrc` or open a new terminal. Launchers live under `%LOCALAPPDATA%\signaler\bin\`. See [install matrix](/docs/signaler/install-matrix).
 
+### GitHub API rate limit during install
+
+**Problem:** `API rate limit exceeded` when running `install.ps1` or `install.sh` (resolving `latest` or a tag).
+
+**Solutions:**
+
+1. Wait a few minutes and retry (unauthenticated GitHub API limits are per IP).
+2. Set a read-only token, then re-run the install command:
+   ```powershell
+   $env:GITHUB_TOKEN = "<read-only PAT>"
+   irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+   ```
+   ```bash
+   export GITHUB_TOKEN="<read-only PAT>"
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   ```
+3. Download `signaler-*-portable.zip` from [GitHub Releases](https://github.com/Dendro-X0/signaler/releases) and install from the extracted folder.
+
 ### Upgrade Fails on Windows
 
 **Problem:** `signaler upgrade` downloads 100% then fails with path or archive extraction errors (e.g. `\C:` drive errors).
 
-**Solution:** You may be on a build before **5.1.4**. Reinstall with a pinned version instead:
+**Solution:** You may be on a build before **5.1.4**. Reinstall with the install script for your shell:
 
-```bash
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-Use the **same** install method you used originally (`install.sh` vs `install.ps1`).
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
 
 ### Node.js Version Compatibility
 

@@ -28,9 +28,11 @@ Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serv
 
    ```bash
    # Git Bash / macOS / Linux / WSL (Windows + Cursor: use this, not irm | iex)
-   SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
    source ~/.bashrc && signaler --version
    ```
+
+   Windows PowerShell: `irm …/install.ps1 | iex` — see [install matrix](./docs/guides/install-matrix.md).
 
 2. **Audit** from your project root:
 
@@ -54,6 +56,8 @@ First install takes **5–15 minutes** (npm pulls Lighthouse, Playwright, axe-co
 
 → [Installation guide](./docs/guides/installation.md) · [Install matrix (OS × shell)](./docs/guides/install-matrix.md)
 
+Install scripts default to **`latest`** from GitHub Releases. Pin `SIGNALER_VERSION` only for CI or reproducibility.
+
 | Your environment | Command |
 |------------------|---------|
 | **Windows + Git Bash** (Cursor, VS Code default) | `curl -fsSL …/install.sh \| bash` |
@@ -62,19 +66,22 @@ First install takes **5–15 minutes** (npm pulls Lighthouse, Playwright, axe-co
 | Windows GUI | `signaler-*-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) |
 
 ```bash
-# Bash / Git Bash / macOS / Linux / WSL
-SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+# Bash / Git Bash / macOS / Linux / WSL — installs latest release
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
 ```powershell
-# Windows PowerShell only
-$env:SIGNALER_VERSION = "5.1.5"
+# Windows PowerShell only — installs latest release
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
+Optional pin: `SIGNALER_VERSION=5.1.5` (bash) or `$env:SIGNALER_VERSION = "5.1.5"` (PowerShell) before the command above.
+
 After install: `signaler --version` · compatibility alias: `signalar`
 
-**Update:** re-run the **same** install script with a new `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
+**Update:** re-run the same install command, or `signaler upgrade`.
+
+**GitHub rate limit?** Set `GITHUB_TOKEN` to a read-only PAT and retry — see [installation guide](./docs/guides/installation.md).
 
 **Uninstall:** `signaler uninstall --global` — see [install matrix](./docs/guides/install-matrix.md) for PATH cleanup.
 
@@ -196,7 +203,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    version: "5.1.5"   # GitHub Release tag, or "latest"
+    version: "latest"   # GitHub Release tag, or pin e.g. "5.1.5"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
@@ -415,7 +422,10 @@ More examples in [`/docs/examples`](./docs/examples).
 **Solution**: Use `install.sh` in Bash — not `irm install.ps1 | iex`. Restart the terminal or `source ~/.bashrc`. See [Install matrix](./docs/guides/install-matrix.md).
 
 **Issue**: `signaler upgrade` fails on Windows (path / extract errors)  
-**Solution**: Reinstall with a pinned version: `SIGNALER_VERSION=5.1.5 curl -fsSL …/install.sh | bash`. Upgrade requires 5.1.4+ on Windows.
+**Solution**: Re-run the install script for your shell. Upgrade requires 5.1.4+ on Windows.
+
+**Issue**: `API rate limit exceeded` during `install.ps1` / `install.sh`  
+**Solution**: Set `GITHUB_TOKEN` to a read-only PAT and retry, or download the portable zip from [Releases](https://github.com/Dendro-X0/signaler/releases). See [Installation](./docs/guides/installation.md).
 
 **Issue**: Connection refused errors
 **Solution**: Ensure your dev server is running before auditing. Use `baseUrl: "http://localhost:3000"` matching your server port.

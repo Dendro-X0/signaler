@@ -143,6 +143,13 @@ require_cmd unzip
 require_cmd node
 require_cmd npm
 
+CURL_GITHUB_HEADERS=(-H 'User-Agent: signaler-install-script')
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  CURL_GITHUB_HEADERS+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+elif [ -n "${GH_TOKEN:-}" ]; then
+  CURL_GITHUB_HEADERS+=(-H "Authorization: Bearer ${GH_TOKEN}")
+fi
+
 resolve_install_paths
 
 INSTALL_START=$(date +%s)
@@ -151,7 +158,7 @@ log_step "Step 1/4: Resolving Signaler release"
 printf 'Repo: %s\n' "$REPO"
 printf 'Version: %s\n' "$VERSION"
 
-RELEASE_JSON="$(curl -fsSL -H 'User-Agent: signaler-install-script' "$(get_release_api_url)")"
+RELEASE_JSON="$(curl -fsSL "${CURL_GITHUB_HEADERS[@]}" "$(get_release_api_url)")"
 ASSET_URL="$(printf '%s' "$RELEASE_JSON" | node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(0,'utf8')); const asset=(data.assets||[]).find((entry)=>typeof entry.name==='string' && entry.name.endsWith('-portable.zip')); if(!asset){process.exit(1);} process.stdout.write(asset.browser_download_url);")" || {
   printf 'Could not find a portable release asset for %s (%s).\n' "$REPO" "$VERSION" >&2
   exit 1
