@@ -3,6 +3,8 @@
 Practical onboarding and operator guidance.
 
 - `getting-started.md`
+- `install-matrix.md`
+- `installation.md`
 - `agent-quickstart.md`
 - `migration.md`
 - `ai-optimized-reports.md`

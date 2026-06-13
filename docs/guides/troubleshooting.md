@@ -4,11 +4,13 @@ This guide helps resolve common issues when using Signaler for web performance a
 
 Canonical commands:
 
+- `audit` (one-shot: discover + run + analyze)
 - `discover` (setup)
-- `run` (primary Lighthouse runner)
+- `run` (Lighthouse runner)
+- `analyze` / `verify` (agent loop)
 - `report` (report regeneration from artifacts)
 
-Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
+Legacy aliases: `init`, `wizard`, `guide` → `discover`; `review` → `report`.
 
 ## Installation Issues
 
@@ -18,46 +20,31 @@ Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
 
 **Solutions:**
 
-1. **Install Signaler globally using the release installer:**
+1. **Use the install script for your shell** — see [install matrix](./install-matrix.md):
+   ```bash
+   # Git Bash / macOS / Linux / WSL (Windows + Cursor: use this)
+   SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   source ~/.bashrc
+   ```
    ```powershell
+   # Windows PowerShell only — not Git Bash
+   $env:SIGNALER_VERSION = "5.1.5"
    irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
    ```
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-   ```
-2. **If you already have Signaler installed and only need to repair or refresh the portable global install, use the built-in global lifecycle commands:**
-   ```bash
-   signaler upgrade
-   signaler uninstall --global
-   ```
-   `signalar` is also installed as a compatibility alias by the portable release flow.
-3. **If you only need a lightweight wrapper, install the Signaler shell shim after a portable global install:**
-   ```bash
-   signaler install-shim
-   ```
-4. **Restart your terminal** to refresh PATH variables
-5. **Verify Node.js installation:**
+2. **Update or repair** — re-run the install script with `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
+3. **Restart your terminal** to refresh PATH variables.
+4. **Verify Node.js:**
    ```bash
    node --version  # Should be 18.0.0 or higher
    npm --version
    ```
-7. **Check launcher/shim location and PATH:**
+5. **Check launcher location:**
    ```bash
-   # Windows portable install launcher
-   %LOCALAPPDATA%\signaler\bin\signaler.cmd
-   %LOCALAPPDATA%\signaler\bin\signalar.cmd
+   # Windows (install.sh and install.ps1)
+   ls "$LOCALAPPDATA/signaler/bin/signaler" 2>/dev/null || ls "$LOCALAPPDATA/signaler/bin/signaler.cmd"
 
-   # Windows shim target
-   %APPDATA%\npm\signaler.cmd
-   %APPDATA%\npm\signalar.cmd
-
-   # Unix/macOS portable install launcher
-   ~/.local/share/signaler/bin/signaler
-   ~/.local/share/signaler/bin/signalar
-
-   # Unix/macOS (default shim target)
-   ~/.local/bin/signaler
-   ~/.local/bin/signalar
+   # macOS / Linux / WSL
+   ls ~/.local/share/signaler/bin/signaler
    ```
 
 ### Permission Errors on Unix/macOS
@@ -93,9 +80,21 @@ Legacy aliases remain supported: `init`, `wizard`, `audit`, `review`.
 
 ### Windows Git Bash Issues
 
-**Problem:** Signaler doesn't work properly in Git Bash on Windows.
+**Problem:** Signaler doesn't work properly in Git Bash on Windows, or `irm | iex` fails.
 
-**Solution:** Use the global installer first, then verify `%LOCALAPPDATA%\signaler\bin` is reachable from Git Bash. If you still only want a wrapper, use `install-shim`.
+**Solution:** Use **`install.sh`** in Git Bash — not PowerShell `irm install.ps1 | iex`. After install, `source ~/.bashrc` or open a new terminal. Launchers live under `%LOCALAPPDATA%\signaler\bin\`. See [install matrix](./install-matrix.md).
+
+### Upgrade Fails on Windows
+
+**Problem:** `signaler upgrade` downloads 100% then fails with path or archive extraction errors (e.g. `\C:` drive errors).
+
+**Solution:** You may be on a build before **5.1.4**. Reinstall with a pinned version instead:
+
+```bash
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+Use the **same** install method you used originally (`install.sh` vs `install.ps1`).
 
 ### Node.js Version Compatibility
 

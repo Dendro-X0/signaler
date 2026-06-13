@@ -13,6 +13,8 @@ const STATUS_ERROR = "error";
 const REQUIRED_DOCS = [
   "README.md",
   "docs/README.md",
+  "docs/guides/installation.md",
+  "docs/guides/install-matrix.md",
   "docs/reference/cli.md",
   "docs/operations/launch-checklist.md",
   "docs/roadmap/active-roadmap.md",

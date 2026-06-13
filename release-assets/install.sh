@@ -3,9 +3,9 @@ set -euo pipefail
 
 REPO="${SIGNALER_REPO:-Dendro-X0/signaler}"
 VERSION="${SIGNALER_VERSION:-latest}"
-BASE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/signaler"
-INSTALL_DIR="$BASE_DIR/current"
-BIN_DIR="$BASE_DIR/bin"
+BASE_DIR=""
+INSTALL_DIR=""
+BIN_DIR=""
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/signaler-install-XXXXXX")"
 ZIP_PATH="${TMP_ROOT}/signaler-portable.zip"
 
@@ -66,6 +66,40 @@ run_npm_install() {
   printf '    Dependencies ready in %s.\n' "$(elapsed_label "$start")"
 }
 
+is_windows_unix_shell() {
+  [ "${OS:-}" = "Windows_NT" ] || [[ "$(uname -s 2>/dev/null)" =~ ^MINGW|^MSYS ]]
+}
+
+resolve_install_paths() {
+  if is_windows_unix_shell && [ -n "${LOCALAPPDATA:-}" ]; then
+    local appdata_unix=""
+    if command -v cygpath >/dev/null 2>&1; then
+      appdata_unix="$(cygpath -u "$LOCALAPPDATA")"
+    else
+      appdata_unix="${LOCALAPPDATA//\\//}"
+    fi
+    BASE_DIR="$appdata_unix/signaler"
+  else
+    BASE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/signaler"
+  fi
+  INSTALL_DIR="$BASE_DIR/current"
+  BIN_DIR="$BASE_DIR/bin"
+}
+
+write_cmd_launcher() {
+  local name="$1"
+  local root_for_cmd="$INSTALL_DIR"
+  if command -v cygpath >/dev/null 2>&1; then
+    root_for_cmd="$(cygpath -w "$INSTALL_DIR")"
+  fi
+  cat > "$BIN_DIR/${name}.cmd" <<EOF
+@echo off
+setlocal
+set "ROOT=${root_for_cmd}"
+node "%ROOT%\\dist\\bin.js" %*
+EOF
+}
+
 ensure_path_line() {
   local shell_rc="$1"
   local path_line="export PATH=\"$BIN_DIR:\$PATH\""
@@ -108,6 +142,8 @@ require_cmd curl
 require_cmd unzip
 require_cmd node
 require_cmd npm
+
+resolve_install_paths
 
 INSTALL_START=$(date +%s)
 
@@ -162,6 +198,12 @@ EOF
 
 chmod +x "$BIN_DIR/signaler"
 chmod +x "$BIN_DIR/signalar"
+
+if is_windows_unix_shell; then
+  write_cmd_launcher signaler
+  write_cmd_launcher signalar
+fi
+
 rm -rf "$TMP_ROOT"
 
 case "${SHELL:-}" in
@@ -182,5 +224,5 @@ printf '\nNext steps:\n'
 printf '  1. PATH was updated for this shell and appended to your shell profile.\n'
 printf '  2. Restart your terminal if it was already open in another window.\n'
 printf '  3. Run: signaler --version (or: signalar --version)\n'
-printf '  4. Update later with: signaler upgrade\n'
-printf '  5. Remove later with: signaler uninstall --global\n'
+printf '  4. Update: re-run this install script with SIGNALER_VERSION=<tag>, or signaler upgrade\n'
+printf '  5. Remove: signaler uninstall --global (see docs/guides/install-matrix.md for PATH cleanup)\n'

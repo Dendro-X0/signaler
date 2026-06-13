@@ -2,7 +2,7 @@
 
 Signaler is distributed **only** through GitHub Release native packaging — not npm or JSR.
 
-**Start here:** [Install matrix (OS × shell)](./install-matrix.md) — pick the right command for your terminal.
+**Start here:** [Install matrix (OS × shell)](/docs/signaler/install-matrix) — pick the right command for your terminal.
 
 ## Quick reference
 
@@ -75,7 +75,7 @@ The install script prints **four numbered steps**, download timing, and **live n
 
 **Update (alternative):** `signaler upgrade` — on Windows, use Signaler **5.1.4+** (earlier builds had broken upgrade extraction).
 
-**Uninstall:** `signaler uninstall --global` — see [install matrix](./install-matrix.md) for manual PATH cleanup (uninstall does not remove PATH entries).
+**Uninstall:** `signaler uninstall --global` — see [install matrix](/docs/signaler/install-matrix) for manual PATH cleanup (uninstall does not remove PATH entries).
 
 ## Manual download
 
@@ -97,7 +97,7 @@ npm and JSR installs are **unsupported** and may break without notice. Do not us
 - `pnpm i jsr:@signaler/cli`
 - `npx jsr add @signaler/cli`
 
-For CI, use the [GitHub Action](./github-actions.md) (installs from GitHub Release) or run `install.sh` in the workflow.
+For CI, use the [GitHub Action](/docs/signaler/github-actions) (installs from GitHub Release) or run `install.sh` in the workflow.
 
 ## Local development (maintainers)
 
@@ -109,8 +109,8 @@ node dist/cli-entry.js audit --help
 
 ## See also
 
-- [Install matrix](./install-matrix.md)
-- [Distribution policy](../specs/distribution-policy.md)
-- [Release playbook](../operations/release-playbook.md)
-- [Troubleshooting](./troubleshooting.md)
-- [Known limits](./known-limits.md)
+- [Install matrix](/docs/signaler/install-matrix)
+- [Distribution policy](/docs/signaler/distribution-policy)
+- [Release playbook](/docs/signaler/release-playbook)
+- [Troubleshooting](/docs/signaler/troubleshooting)
+- [Known limits](/docs/signaler/known-limits)

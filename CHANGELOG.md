@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 5.1.5 - 2026-05-28
+
+### Fixed
+
+- **Windows Git Bash install path** — `install.sh` on MSYS/Git Bash now installs to `%LOCALAPPDATA%\signaler\` (same as `install.ps1`) so `signaler upgrade` and `signaler uninstall --global` resolve one location. Adds `.cmd` launchers alongside bash wrappers.
+
+### Changed
+
+- **Documentation** — README restructured for OSS onboarding (15-minute eval, install matrix, honest limits). New guides: [install matrix](./docs/guides/install-matrix.md), expanded [installation](./docs/guides/installation.md), [known limits](./docs/guides/known-limits.md), [troubleshooting](./docs/guides/troubleshooting.md). Site landing quick-start uses GitHub Release install instead of JSR.
+- **Release preflight** — `docs/guides/installation.md` and `docs/guides/install-matrix.md` are required release docs.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.5.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.5.md).
+
 ## 5.1.4 - 2026-06-13
 
 ### Fixed

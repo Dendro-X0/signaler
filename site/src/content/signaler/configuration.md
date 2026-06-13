@@ -27,7 +27,7 @@ Common fields:
 - `query` (optional query string appended to every URL)
 - `throttlingMethod` (`simulate` or `devtools`)
 - `cpuSlowdownMultiplier` (default 4)
-- `parallel` (optional; the CLI will auto-tune a sensible default)
+- `parallel` (optional; default **6** on most machines when omitted; CLI may cap lower on low-memory hosts)
 - `sessionIsolation` (optional; `shared` or `per-audit`)
 - `throughputBackoff` (optional; `auto`, `aggressive`, or `off`)
 - `warmUp` (optional)
@@ -89,6 +89,95 @@ Rules:
 
 - Category budgets are minimum scores (0-100).
 - Metric budgets are maximum values.
+
+## 3b. Quality gate (v4.3, policy-as-code)
+
+Use `qualityGate` for issue-count performance limits and category floors. Evaluated after each run when the block is present and `enabled` is not `false`, in `--ci` mode, or with `--fail-on-quality-gate`.
+
+```json
+{
+  "qualityGate": {
+    "enabled": true,
+    "maxRedPerfIssues": 0,
+    "maxUniqueRedIssues": 5,
+    "minCategoryScores": {
+      "accessibility": 90,
+      "bestPractices": 90,
+      "seo": 90
+    },
+    "requireHeadersPass": true
+  }
+}
+```
+
+Writes `.signaler/quality-gate.json`. Pair with `signaler job run --run-profile ci-strict` for a single CI policy bundle.
+
+- `maxRedPerfIssues` — cap on `performance-triage.json` `totals.red` (issue instances).
+- `maxUniqueRedIssues` — cap on deduplicated red rows in `uniqueIssues`.
+- `minCategoryScores` — minimum **median** suite scores from triage (not Lighthouse performance score).
+- `requireHeadersPass` — fails if `headers.json` is missing or any route has missing headers.
+
+## 3c. Baseline compare (v4.3, PR vs main)
+
+Compare the current run to a **baseline artifact directory** (typically main-branch CI output).
+
+```json
+{
+  "baselineCompare": {
+    "enabled": true,
+    "baselineDir": ".signaler-main",
+    "maxRedIncrease": 0,
+    "maxActionableIncrease": 0,
+    "requireComparabilityMatch": true,
+    "failOnIncomparable": true
+  }
+}
+```
+
+- Evaluated after run in CI when the block is present (or `--fail-on-baseline-compare`).
+- Writes `.signaler/baseline-compare.json` with delta + comparability warnings.
+- Override path with env `SIGNALER_BASELINE_DIR`.
+
+CLI equivalent:
+
+```bash
+signaler query --view delta --dir .signaler --baseline .signaler-main --fail-on-regression
+```
+
+See [When deltas lie](/docs/signaler/when-deltas-lie).
+
+## 3d. Quality pack (v5, `--quality-profile`)
+
+Evaluated after side runners when using `--quality-profile web-quality` or `pr-quality` (headers, links, health, console, measure, accessibility, bundle).
+
+```json
+{
+  "qualityPack": {
+    "maxHeaderFailures": 0,
+    "maxBrokenLinks": 0,
+    "maxHealthErrors": 0,
+    "maxConsoleErrorCombos": 0,
+    "maxMeasureRuntimeErrors": 0,
+    "maxAccessibilityCriticalViolations": 0,
+    "maxAccessibilitySeriousViolations": 0,
+    "maxAccessibilityRuntimeErrors": 0
+  }
+}
+```
+
+- Writes `.signaler/quality-pack.json` with pass/fail and counts.
+- On failure, includes **onboarding guidance** in CLI output and `quality-pack.json` (`guidance` sections for headers, links, health, console, measure, bundle).
+- Merges pack summary into `agent-index.json` (`qualityPack` block + entrypoints).
+- Pair with `signaler audit --quality-profile web-quality` for a single CI exit code.
+
+CLI:
+
+```bash
+signaler audit --quality-profile web-quality --managed-serve --in-process
+signaler job run --quality-profile pr-quality --managed-serve --in-process
+```
+
+Do not combine `--quality-profile` with `--preset` or `--run-profile`.
 
 ## 4. Warm-up
 

@@ -4,7 +4,10 @@ This folder is organized around stable documentation categories first, with vers
 
 ## Start Here
 
+- [**v5.0 Showcase**](/docs/signaler/v5-showcase) — quality profiles, tree artifacts, demos to record
 - [Getting Started](/docs/signaler/getting-started)
+- [Install matrix (OS × shell)](/docs/signaler/install-matrix)
+- [Installation](/docs/signaler/installation)
 - [Agent Quickstart](/docs/signaler/agent-quickstart)
 - [Migration Guide](/docs/signaler/migration)
 - [CLI Reference](/docs/signaler/cli)
@@ -14,6 +17,9 @@ This folder is organized around stable documentation categories first, with vers
 - [Release Playbook](/docs/signaler/release-playbook)
 - [Release Notes](/docs/signaler/release-notes)
 - [Active Roadmap](/docs/signaler/active-roadmap)
+- [Phase 2 — v4.2 Team CI](/docs/signaler/phase2-v4.2-team-ci)
+- [GitHub Actions](/docs/signaler/github-actions)
+- [B2B / Team Value](/docs/signaler/b2b-team-value)
 - [Repository Agent Defaults](/docs/signaler/AGENTS)
 
 ## Guides
@@ -25,6 +31,7 @@ This folder is organized around stable documentation categories first, with vers
 - [AI-Optimized Reports](/docs/signaler/ai-optimized-reports)
 - [Troubleshooting](/docs/signaler/troubleshooting)
 - [Known Limits](/docs/signaler/known-limits)
+- [When Deltas Lie](/docs/signaler/when-deltas-lie)
 - [Signaler vs Alternatives](/docs/signaler/signaler-vs-alternatives)
 
 ## Reference
@@ -52,7 +59,13 @@ This folder is organized around stable documentation categories first, with vers
 
 ## Roadmap and Specs
 
+- [Roadmap Index](/docs/signaler/README)
 - [Active Roadmap](/docs/signaler/active-roadmap)
+- [v4 B2B Roadmap](/docs/signaler/v4-b2b-roadmap)
+- [Phase 2 — v4.2 Team CI](/docs/signaler/phase2-v4.2-team-ci)
+- [GitHub Actions](/docs/signaler/github-actions)
+- [Phase 1 — v4.1 Adoptability](/docs/signaler/phase1-v4.1-adoptability) (shipped)
+- [B2B Team Value](/docs/signaler/b2b-team-value)
 - [Specs Index](/docs/signaler/README)
 - [Spec: Multi-Benchmark Expansion](/docs/signaler/multi-benchmark-expansion)
 - [Spec: Workstream J Implementation Plan](/docs/signaler/workstream-j-implementation-plan)

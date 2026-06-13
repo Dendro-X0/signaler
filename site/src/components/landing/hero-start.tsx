@@ -5,7 +5,8 @@ import { Copy, Check, Terminal } from "lucide-react"
 
 export function HeroStartCommand(): React.ReactElement {
   const [copied, setCopied] = useState<boolean>(false)
-  const cmd: string = "npx jsr run @signaler/cli wizard"
+  const cmd: string =
+    "SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
 
   async function copy(): Promise<void> {
     try {
@@ -22,13 +23,13 @@ export function HeroStartCommand(): React.ReactElement {
       <button
         type="button"
         onClick={copy}
-        className="group relative flex items-center gap-3 rounded-xl border border-gray-200 bg-white/70 px-5 py-3 text-base font-mono text-gray-900 shadow-md backdrop-blur-md hover:bg-white dark:border-gray-800 dark:bg-gray-950/70 dark:text-gray-100 dark:hover:bg-gray-900 transition-all duration-300 hover:shadow-blue-500/20"
+        className="group relative flex items-center gap-3 rounded-xl border border-gray-200 bg-white/70 px-5 py-3 text-base font-mono text-gray-900 shadow-md backdrop-blur-md hover:bg-white dark:border-gray-800 dark:bg-gray-950/70 dark:text-gray-100 dark:hover:bg-gray-900 transition-all duration-300 hover:shadow-blue-500/20 max-w-full"
         aria-label={`Copy: ${cmd}`}
       >
         <div className="absolute inset-0 bg-blue-500/5 blur-xl group-hover:bg-blue-500/10 transition-colors -z-10" />
-        <Terminal className="h-5 w-5 text-gray-600 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400" />
-        <span className="select-none">{cmd}</span>
-        <span className="ml-2 rounded-md border px-2 py-0.5 text-xs text-gray-600 group-hover:border-blue-500 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400 dark:group-hover:border-blue-400">
+        <Terminal className="h-5 w-5 shrink-0 text-gray-600 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400" />
+        <span className="select-none text-left text-sm sm:text-base break-all">{cmd}</span>
+        <span className="ml-2 shrink-0 rounded-md border px-2 py-0.5 text-xs text-gray-600 group-hover:border-blue-500 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400 dark:group-hover:border-blue-400">
           {copied ? (
             <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Copied</span>
           ) : (
@@ -37,7 +38,8 @@ export function HeroStartCommand(): React.ReactElement {
         </span>
       </button>
       <p className="text-sm text-muted-foreground max-w-2xl text-center">
-        Verifies your environment (Node + supported browser) so the launcher can orchestrate engine runs.
+        Git Bash / macOS / Linux. Windows PowerShell: use <code className="text-xs">install.ps1</code> — see{" "}
+        <a href="/docs/signaler/install-matrix" className="underline hover:text-foreground">install matrix</a>.
       </p>
     </div>
   )

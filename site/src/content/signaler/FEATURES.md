@@ -1,11 +1,20 @@
 # Features
 
-This document summarizes the current Signaler CLI feature set.
+This document summarizes the Signaler CLI feature set (**v5.0**). See also [v5 showcase](/docs/signaler/v5-showcase).
+
+## Quality profiles (v5)
+
+- `--quality-profile web-quality` — full discover + ci-strict Lighthouse + side runners + `gates/quality-pack.json`
+- `--quality-profile pr-quality` — changed-only Lighthouse + same side runners
+- Side runners in profile order: headers, links, health, console, measure, accessibility, bundle
+- `signaler accessibility` — standalone axe-core pass (also in profiles)
 
 ## Core Auditing
 
-- Canonical Lighthouse runner: `run` (`audit` remains a legacy alias)
-- Canonical review command: `review` (`report` remains a legacy alias)
+- One-shot orchestrator: `signaler audit` (discover → run → analyze)
+- Lighthouse runner: `signaler run`
+- Agent projections: `signaler query`, `signaler explain`
+- Review: `signaler report` (`review` is a legacy alias)
 - Route/device batching from `signaler.config.json`
 - Auto-tuned parallel workers (with `--parallel` override)
 - Stability fallback via `--stable`
@@ -15,34 +24,36 @@ This document summarizes the current Signaler CLI feature set.
 
 ## Additional Runners
 
+Orchestrated by quality profiles or run standalone:
+
+- `headers`, `links`, `health`, `console`, `measure`, `accessibility`, `bundle`
 - `measure`: fast CDP-based metrics
-- `bundle`: JS/CSS bundle-size scan
-- `health`: HTTP status and latency checks
-- `links`: broken-link checks
-- `headers`: security header checks
-- `console`: console/runtime error capture
+- `quick`: bundled fast pack (measure + headers + links + bundle + accessibility)
+
+## Artifact layout (v4.5+)
+
+- Default **tree** layout: `agent/`, `developer/`, `runners/`, `gates/`, `runs/`, `INDEX.md`, `manifest.json`
+- `--artifact-layout flat` deprecated
 
 ## Interactive Workflows
 
-- `init` for project setup and route detection (`wizard` remains available)
+- `discover` for route setup (`init` / `wizard` / `guide` are legacy aliases)
 - `shell` as interactive command hub
 - `quick` for fast multi-check workflows
 - `folder` for static output auditing
 
 ## Reporting Outputs
 
-Typical `.signaler/` outputs include:
+**Agents:** `signaler query --view agent|perf` (prefer over reading the full tree).
 
-- `run.json`, `results.json`, `suggestions.json`, `agent-index.json` (canonical v3)
-- `summary.json`, `summary-lite.json`, `summary.md`
-- `report.html`
-- `triage.md`
-- `issues.json`
-- `red-issues.md`
-- `ai-ledger.json`
-- `AI-ANALYSIS.json`, `AI-SUMMARY.json`, `QUICK-FIXES.md`
+**Tree layout paths (examples):**
 
-Optional/flag-dependent outputs include diagnostics, screenshots, LHR files, and export bundles.
+- `agent/index.json`, `agent/analyze.json`, `agent/performance-triage.json`
+- `developer/report.html`, `developer/reports/*.report.md`
+- `gates/quality-pack.json`, `gates/quality-gate.json`
+- `runs/lighthouse/run.json`, `runs/lighthouse/results.json`
+
+Legacy flat-root names still resolve via `manifest.json` during migration.
 
 ## CI and Budgets
 

@@ -91,5 +91,8 @@ describe("global install lifecycle", () => {
     expect(script).toContain(".bashrc");
     expect(script).toContain("package-lock.json");
     expect(script).toContain("npm ci");
+    expect(script).toContain("LOCALAPPDATA");
+    expect(script).toContain("resolve_install_paths");
+    expect(script).toContain("write_cmd_launcher");
   });
 });

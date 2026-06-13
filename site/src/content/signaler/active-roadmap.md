@@ -1,66 +1,39 @@
 # Active Roadmap
 
-This roadmap tracks the active reboot direction. Historical CLI-centric roadmap material is preserved under `docs/archive/roadmaps/`.
+Status: Active  
+Updated: 2026-05-29
 
-## Current Reboot Objective
+## Current focus
 
-Keep the core Signaler goal intact:
+**v5.0.0 shipped** — quality profiles bundle Lighthouse + side runners with a unified pack gate.
 
-1. help developers and code agents audit and optimize web projects
-2. preserve machine-readable artifacts and verification loops
-3. move toward software surfaces that are easier to install and operate than the current CLI distribution model
+- Release: [`../archive/release-notes/RELEASE-NOTES-v5.0.0.md`](/docs/signaler/RELEASE-NOTES-v5.0.0)
+- Plan: [`phase4-v5.0-quality-profiles.md`](/docs/signaler/phase4-v5.0-quality-profiles)
 
-## Reboot Workstreams
+### Next
 
-### Workstream R1: Preserve the Core
+- Optional bundle byte budgets in `qualityPack`
+- ~~Multi-benchmark auto-bridge from runner outputs~~ **Shipped (6A)**
+- ~~Benchmark family gates in `quality-pack.json`~~ **Shipped (6B)** — per-family metrics + inherited thresholds
+- ~~Baseline/delta for benchmark signal plane~~ **Shipped (6C)** — `query --view delta` + baselineCompare policy
 
-- [ ] Capture the durable artifact model and workflow expectations from the current repo.
-- [ ] Define which parts of the old CLI are product-critical versus implementation-specific.
-- [ ] Document what is being frozen in the current codebase.
+## Shipped — Phase 5 (v5.0.0)
 
-### Workstream R2: Choose the New Shell
+`--quality-profile web-quality|pr-quality`: headers, links, health, console, measure, accessibility, bundle + `gates/quality-pack.json`.
 
-- [ ] Decide the primary successor surface:
-  - Windows-native installer + local engine
-  - desktop app
-  - VS Code extension
-  - hybrid app + engine
-- [ ] Define install/update/uninstall expectations for the new shell.
-- [ ] Define how code agents trigger work and retrieve artifacts.
+## Shipped — Phase 4.5 (v4.5.0)
 
-Current preferred direction:
+Tree `.signaler/` layout: `manifest.json`, `INDEX.md`, `agent/`, `developer/`, `runners/`, `gates/`, root prune.
 
-- desktop-first shell over a shared local engine
+## Shipped — Phase 4.4 (v4.4.0)
 
-### Workstream R3: Shared Engine Protocol
+Details: [`phase4.4-v4x-stabilization.md`](/docs/signaler/phase4.4-v4x-stabilization)
 
-- [ ] Define the local runtime/engine contract independent of the existing CLI shell.
-- [ ] Choose the job interface:
-  - file-based
-  - local HTTP
-  - IPC
-- [ ] Preserve the canonical artifact outputs where possible.
+## Shipped — Phase 3 (v4.3.0)
 
-Current preferred baseline:
+Policy gates and run profiles. Details: [`phase3-v4.3-policy-gates.md`](/docs/signaler/phase3-v4.3-policy-gates)
 
-- file-based jobs first, optional local HTTP later
+## Index
 
-### Workstream R4: Windows Usability
-
-- [ ] Validate the Inno Setup-based installer path or replace it with a better Windows-native installer option.
-- [ ] Ensure Windows install does not require manual PATH editing.
-- [ ] Ensure uninstall and update behavior are standard and predictable.
-
-## Success Criteria
-
-- [ ] A human user can install the product without reasoning about shell-specific PATH behavior.
-- [ ] A code agent can run the product locally without registry-specific setup.
-- [ ] Canonical artifacts remain deterministic and easy to consume.
-- [ ] The successor product shell is easier to ship than the current CLI distribution path.
-
-## Archive
-
-- Historical roadmaps: `docs/archive/roadmaps/`
-- Historical release notes: `docs/archive/release-notes/`
-- Active specs: `docs/specs/`
-- Desktop execution plan: `docs/specs/desktop-implementation-plan.md`
+- [`roadmap/README.md`](/docs/signaler/overview)
+- [`v4-b2b-roadmap.md`](/docs/signaler/v4-b2b-roadmap)

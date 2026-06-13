@@ -6,6 +6,8 @@ This folder is organized around stable documentation categories first, with vers
 
 - [**v5.0 Showcase**](guides/v5-showcase.md) — quality profiles, tree artifacts, demos to record
 - [Getting Started](guides/getting-started.md)
+- [Install matrix (OS × shell)](guides/install-matrix.md)
+- [Installation](guides/installation.md)
 - [Agent Quickstart](guides/agent-quickstart.md)
 - [Migration Guide](guides/migration.md)
 - [CLI Reference](reference/cli.md)

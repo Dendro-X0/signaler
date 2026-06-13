@@ -26,9 +26,10 @@ CLI onboarding shortcut:
 
 Legacy aliases remain supported:
 
-- `init` (legacy alias of `discover`)
-- `audit` (legacy alias of `run`)
-- `review` (legacy alias of `report`)
+- `init` / `wizard` / `guide` → `discover`
+- `review` → `report`
+
+`signaler audit` is the **one-shot orchestrator** (discover + run + analyze). `signaler run` is Lighthouse-only.
 
 Helpful navigation shortcuts:
 
@@ -45,18 +46,30 @@ Optional audits:
 
 ## 1. Install / run
 
-Recommended global install:
+Pick the install command for **your shell** — see [install matrix](./install-matrix.md).
 
-Windows (PowerShell):
-
-```powershell
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
-```
-
-macOS/Linux:
+**Windows + Git Bash** (Cursor / VS Code default):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+source ~/.bashrc
+signaler --version
+```
+
+**Windows PowerShell:**
+
+```powershell
+$env:SIGNALER_VERSION = "5.1.5"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+signaler --version
+```
+
+**macOS / Linux / WSL:**
+
+```bash
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+source ~/.bashrc
+signaler --version
 ```
 
 Verify after install:
@@ -66,30 +79,28 @@ signaler --version
 signalar --version
 ```
 
-Update later:
+**Update:** re-run the same install script with a new `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
 
-```bash
-signaler upgrade
-```
-
-Remove the global install later:
+**Remove** the global install:
 
 ```bash
 signaler uninstall --global
 ```
 
-Built-in lifecycle commands:
-
-- `signaler upgrade`
-- `signaler uninstall --global`
-- `signalar <command>` if you prefer the compatibility alias
+See [install matrix](./install-matrix.md) for PATH cleanup after uninstall.
 
 Prerequisites:
 
 - Your app must be reachable at a stable URL (for example `http://localhost:3000`).
 - For folder mode, you need a built static output folder (for example `dist/`, `out/`, `build/`).
 
-Recommended first run:
+Recommended first run (one-shot):
+
+```bash
+signaler audit --cwd . --base-url http://127.0.0.1:3000
+```
+
+Or step-by-step:
 
 ```bash
 signaler discover --scope full

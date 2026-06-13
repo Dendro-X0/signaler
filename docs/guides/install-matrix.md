@@ -1,0 +1,100 @@
+# Install matrix (OS × shell)
+
+Signaler ships through **GitHub Release portable installers** only — not npm or JSR. Pick **one install command** for your shell and stick with it on that machine.
+
+## Pick your command
+
+| Environment | Install command | Install location |
+|-------------|-----------------|------------------|
+| **Windows + Git Bash** (Cursor, VS Code, MSYS) | `curl -fsSL …/install.sh \| bash` | `%LOCALAPPDATA%\signaler\` |
+| **Windows PowerShell / CMD** | `irm …/install.ps1 \| iex` | `%LOCALAPPDATA%\signaler\` |
+| **macOS / Linux / WSL** | `curl -fsSL …/install.sh \| bash` | `~/.local/share/signaler/` |
+| **Windows (GUI)** | `signaler-<version>-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) | `%LOCALAPPDATA%\signaler\` |
+
+Full URLs (main branch scripts; pin `SIGNALER_VERSION` for reproducibility):
+
+```bash
+# Bash / Git Bash / macOS / Linux / WSL
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+source ~/.bashrc   # or open a new terminal
+signaler --version
+```
+
+```powershell
+# Windows PowerShell only — not Git Bash
+$env:SIGNALER_VERSION = "5.1.5"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+signaler --version
+```
+
+## Common mistakes
+
+### Using PowerShell install in Git Bash
+
+`irm … | iex` is **PowerShell only**. In Git Bash (including Cursor’s default terminal on Windows), use `install.sh`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+```
+
+### Mixing install scripts on Windows
+
+Both `install.sh` (Git Bash) and `install.ps1` (PowerShell) now install to **`%LOCALAPPDATA%\signaler\`**. If you previously installed with an older `install.sh` that wrote to `~/.local/share/signaler/`, remove that copy and reinstall once with the current script so `signaler upgrade` and `signaler uninstall --global` find the same paths.
+
+### Expecting npm / JSR
+
+These are **deprecated** and unsupported:
+
+- `npm i -g @signaler/cli`
+- `pnpm i jsr:@signaler/cli`
+- `npx jsr add @signaler/cli`
+
+Use the GitHub Release installers or the [GitHub Action](./github-actions.md) in CI.
+
+## Install time
+
+First install runs **`npm ci` / `npm install`** inside the portable bundle (~180 packages: Lighthouse, Playwright, axe-core, etc.). Expect **5–15 minutes** depending on network and disk. The script prints numbered steps and timing.
+
+## Update
+
+Preferred: re-run the **same** install script with a pinned version:
+
+```bash
+SIGNALER_VERSION=5.1.5 curl -fsSL …/install.sh | bash
+```
+
+Alternative: `signaler upgrade` (in-place update). On Windows, use **5.1.4+** — earlier builds had broken PowerShell archive extraction during upgrade.
+
+## Uninstall
+
+```bash
+signaler uninstall --global
+```
+
+**Known gap:** uninstall removes files under the install directory but does **not** remove the PATH entry your shell profile or the Windows installer added. After uninstall, manually:
+
+- **Git Bash / macOS / Linux:** remove the `# Signaler CLI` block from `~/.bashrc` or `~/.zshrc`
+- **Windows (PowerShell installer):** remove `%LOCALAPPDATA%\signaler\bin` from the user PATH in System Settings
+- **Legacy Git Bash install:** also check `~/.local/share/signaler/` if you used an older `install.sh`
+
+## CI without a global install
+
+You do not need a global install in CI. Options:
+
+1. **[GitHub Action](../.github/actions/signaler/action.yml)** — installs from Release inside the job
+2. **`install.sh` in the workflow** — same as local Bash install
+3. **Download portable zip** — unpack and invoke `node dist/bin.js` directly
+
+See [GitHub Actions guide](./github-actions.md).
+
+## Requirements
+
+- **Node.js 18+** on the target machine
+- Chrome/Chromium for Lighthouse (Playwright may download browsers on first run)
+
+## See also
+
+- [Installation](./installation.md)
+- [Troubleshooting](./troubleshooting.md)
+- [Known limits](./known-limits.md) — distribution and scoring caveats
+- [Distribution policy](../specs/distribution-policy.md)

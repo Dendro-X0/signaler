@@ -2,66 +2,85 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.4-blue.svg)
+![Version](http://img.shields.io/badge/version-5.1.5-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
 → [v5 showcase guide](./docs/guides/v5-showcase.md) · [Release notes](./docs/archive/release-notes/RELEASE-NOTES-v5.0.0.md)
 
+## What Signaler does
+
+Signaler is a **CLI for route-scale web quality audits** for teams shipping Next.js (and similar) apps — and for the coding agents that fix them.
+
+- **One command** — `signaler audit` discovers routes, runs Lighthouse (+ optional side runners), and writes agent-ready artifacts.
+- **Fix loop** — `query`, `explain`, and `verify` give agents and CI pass/fail without ingesting all of `.signaler/`.
+- **Production-like defaults** — managed production serve, parallel 6, tree artifact layout.
+
+**Not a DevTools score clone.** Throughput-mode performance uses **issue-count triage** (P(ref)), not manual Lighthouse parity. See [Lab semantics](./docs/guides/lab-semantics.md).
+
+**Distribution:** GitHub Release installers only — not npm or JSR. See [Install matrix](./docs/guides/install-matrix.md).
+
+## Try it in 15 minutes
+
+Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serve production builds when configured).
+
+1. **Install** — pick your shell ([install matrix](./docs/guides/install-matrix.md)):
+
+   ```bash
+   # Git Bash / macOS / Linux / WSL (Windows + Cursor: use this, not irm | iex)
+   SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   source ~/.bashrc && signaler --version
+   ```
+
+2. **Audit** from your project root:
+
+   ```bash
+   cd /path/to/your-app
+   signaler audit --cwd . --base-url http://127.0.0.1:3000
+   ```
+
+3. **Read results** (agents):
+
+   ```bash
+   signaler query --view agent --dir .signaler
+   signaler query --view perf --dir .signaler
+   ```
+
+4. **Human report:** `.signaler/INDEX.md` → `developer/report.html`
+
+First install takes **5–15 minutes** (npm pulls Lighthouse, Playwright, axe-core inside the portable bundle). CI can skip a global install — use the [GitHub Action](./docs/guides/github-actions.md).
+
 ## Installation
 
-Signaler is distributed through portable GitHub Release installers. The recommended path is a one-time install script that creates direct global `signaler` and `signalar` launchers without trying to bundle the entire package into a native binary.
+→ [Installation guide](./docs/guides/installation.md) · [Install matrix (OS × shell)](./docs/guides/install-matrix.md)
 
-→ Full guide: [Installation](./docs/guides/installation.md)
-
-**Git Bash / WSL / macOS / Linux** (use this in Bash — not `irm` / `iex`):
+| Your environment | Command |
+|------------------|---------|
+| **Windows + Git Bash** (Cursor, VS Code default) | `curl -fsSL …/install.sh \| bash` |
+| Windows PowerShell / CMD | `irm …/install.ps1 \| iex` |
+| macOS / Linux / WSL | `curl -fsSL …/install.sh \| bash` |
+| Windows GUI | `signaler-*-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) |
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+# Bash / Git Bash / macOS / Linux / WSL
+SIGNALER_VERSION=5.1.5 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
-**Windows PowerShell only:**
-
 ```powershell
+# Windows PowerShell only
+$env:SIGNALER_VERSION = "5.1.5"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-**macOS/Linux terminal** (same as Git Bash):
+After install: `signaler --version` · compatibility alias: `signalar`
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-```
+**Update:** re-run the **same** install script with a new `SIGNALER_VERSION`, or `signaler upgrade` (Windows: 5.1.4+).
 
-After install:
+**Uninstall:** `signaler uninstall --global` — see [install matrix](./docs/guides/install-matrix.md) for PATH cleanup.
 
-```bash
-signaler --version
-signalar --version
-signaler upgrade
-signaler uninstall --global
-```
+**Requirements:** Node.js 18+. **npm and JSR are deprecated.**
 
-### Platform packages
-
-| Platform | Method |
-|----------|--------|
-| Windows | `install.ps1`, or `signaler-*-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) |
-| macOS / Linux | `install.sh`, or portable zip from Releases |
-| Git Bash (Windows) | `install.sh` only — not `irm` / `iex` |
-
-Pin a version: `SIGNALER_VERSION=5.1.4 curl -fsSL …/install.sh | bash`
-
-Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI—useful when global `node` is not on PATH. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
-
-Built-in lifecycle commands:
-
-- `signaler upgrade` updates the portable global install in place
-- `signaler uninstall --global` removes the portable global install
-- `signalar` is a compatibility alias that launches the same CLI
-
-**npm and JSR are deprecated** — use GitHub Release installers only. See [Installation](./docs/guides/installation.md).
-
-**Requirements**: Node.js 18.x or higher on the target machine.
+Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
 
 ## Quick Start
 
@@ -177,7 +196,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    version: "5.1.4"   # GitHub Release tag, or "latest"
+    version: "5.1.5"   # GitHub Release tag, or "latest"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
@@ -189,20 +208,22 @@ Signaler provides a CLI for auditing web applications that works well for both h
 ### Basic Commands
 
 ```bash
-# Canonical workflow (transition-safe)
+# One-shot orchestrator (discover + run + analyze)
+signaler audit --cwd . --base-url http://127.0.0.1:3000
+
+# Step-by-step (finer control)
 signaler discover --scope full
 signaler run --mode throughput
 signaler analyze --contract v6
 signaler verify --contract v6
 signaler report
 
-# Legacy-compatible commands (still supported)
-signaler audit
-signaler review
-
-# Legacy setup aliases
+# Setup aliases (still supported)
 signaler init
 signaler wizard
+
+# Report alias
+signaler review
 
 # Quick performance check
 signaler measure
@@ -390,7 +411,13 @@ More examples in [`/docs/examples`](./docs/examples).
 
 ### Common Issues
 
-**Issue**: "Connection refused" errors
+**Issue**: `signaler: command not found` after install (Windows Git Bash)  
+**Solution**: Use `install.sh` in Bash — not `irm install.ps1 | iex`. Restart the terminal or `source ~/.bashrc`. See [Install matrix](./docs/guides/install-matrix.md).
+
+**Issue**: `signaler upgrade` fails on Windows (path / extract errors)  
+**Solution**: Reinstall with a pinned version: `SIGNALER_VERSION=5.1.5 curl -fsSL …/install.sh | bash`. Upgrade requires 5.1.4+ on Windows.
+
+**Issue**: Connection refused errors
 **Solution**: Ensure your dev server is running before auditing. Use `baseUrl: "http://localhost:3000"` matching your server port.
 
 **Issue**: Low performance scores vs DevTools
@@ -419,6 +446,7 @@ For more solutions, see [Troubleshooting Guide](./docs/guides/troubleshooting.md
 
 Comprehensive guides available in [`/docs`](./docs):
 
+- [**Install matrix**](./docs/guides/install-matrix.md) — OS × shell install commands
 - [**v5 Showcase**](./docs/guides/v5-showcase.md) — quality profiles, tree layout, agent vs CI flows
 - [Docs Index](./docs/README.md)
 - [Getting Started](./docs/guides/getting-started.md)

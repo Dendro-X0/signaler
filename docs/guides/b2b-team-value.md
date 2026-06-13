@@ -76,6 +76,18 @@ Prefer projections over ingesting all of `.signaler/`:
 4. `.signaler/verify.json`
 5. `signaler explain --id <issue-id>` before loading full `results.json`
 
+## Adoption and install (today)
+
+Signaler is distributed through **GitHub Release installers only** — not npm or JSR. Teams should standardize on one install path per OS family:
+
+- **Windows + Git Bash** (common in Cursor/VS Code): `install.sh`
+- **Windows PowerShell**: `install.ps1`
+- **macOS / Linux / CI**: `install.sh` or the [GitHub Action](./github-actions.md)
+
+See [install matrix](./install-matrix.md) for shell-specific commands, upgrade rules, and PATH cleanup after uninstall.
+
+**First install takes 5–15 minutes** while npm pulls Lighthouse, Playwright, and related tooling inside the portable bundle. Plan onboarding accordingly — CI should use the Action or `install.sh` in the workflow, not expect instant `npx` installs.
+
 ## Cost controls teams care about
 
 - Artifact profiles: `lean` (default for agents), `standard`, `diagnostics`
@@ -90,5 +102,6 @@ Use Signaler as the **horizontal DX product**; dogfood it in other public repos 
 
 - [`../roadmap/v4-b2b-roadmap.md`](../roadmap/v4-b2b-roadmap.md) — post-v4.0 release phases
 - [`../roadmap/phase1-v4.1-adoptability.md`](../roadmap/phase1-v4.1-adoptability.md) — current phase
+- [`install-matrix.md`](./install-matrix.md) — OS × shell install contract
 - [`agent-quickstart.md`](./agent-quickstart.md)
 - [`migration-v4.md`](./migration-v4.md)

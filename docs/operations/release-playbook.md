@@ -126,14 +126,25 @@ Manual recovery path for an existing tag/release:
 1. Confirm GitHub Release assets exist for `v<version>`:
    - `signaler-<version>-portable.zip`
    - `signaler-<version>-windows-setup.exe`
-2. Run clean install smoke:
+2. Run clean install smoke per shell ([install matrix](../guides/install-matrix.md)):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+# Bash / Git Bash / macOS / Linux / WSL
+SIGNALER_VERSION=<version> curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+signaler --version
+signalar --version
+```
+
+```powershell
+# Windows PowerShell
+$env:SIGNALER_VERSION = "<version>"
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 signaler --version
 ```
 
-3. Update launch checklist / release notes index as needed.
+3. On Windows Git Bash, confirm install dir is `%LOCALAPPDATA%\signaler\current` (not `~/.local/share/signaler/`).
+4. Run `pnpm exec vitest run test/global-install-lifecycle.test.ts` — install script contract tests must pass.
+5. Update launch checklist / release notes index as needed.
 
 ## 6) Rollback Rules
 

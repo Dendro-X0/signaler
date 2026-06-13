@@ -19,6 +19,15 @@ export const navigationItems: ReadonlyArray<NavItem> = [
     url: "/docs/signaler/getting-started",
   },
   {
+    title: "Installation",
+    icon: Cloud,
+    items: [
+      { title: "Install matrix", url: "/docs/signaler/install-matrix" },
+      { title: "Installation guide", url: "/docs/signaler/installation" },
+      { title: "Troubleshooting", url: "/docs/signaler/troubleshooting" },
+    ],
+  },
+  {
     title: "Core",
     icon: Terminal,
     items: [
