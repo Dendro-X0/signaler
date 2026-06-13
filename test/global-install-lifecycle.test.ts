@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DEFAULT_SIGNALER_REPO, parseUpgradeArgs, resolveGlobalInstallPaths, resolveUpgradeDefaults } from "../src/upgrade-cli.js";
+import { DEFAULT_SIGNALER_REPO, buildWindowsExpandArchiveCommand, parseUpgradeArgs, resolveGlobalInstallPaths, resolveUpgradeDefaults } from "../src/upgrade-cli.js";
 import { buildUninstallPlan, parseUninstallArgs } from "../src/uninstall-cli.js";
 
 describe("global install lifecycle", () => {
+  it("builds Windows Expand-Archive command without broken escape sequences", () => {
+    const command = buildWindowsExpandArchiveCommand({
+      zipPath: "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\signaler-portable.zip",
+      destDir: "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\signaler-staging",
+    });
+    expect(command).toBe(
+      "Expand-Archive -LiteralPath 'C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\signaler-portable.zip' -DestinationPath 'C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\signaler-staging' -Force",
+    );
+    expect(command).not.toContain('\\"');
+    expect(command).not.toContain("\\C:");
+  });
+
+  it("escapes single quotes in Windows Expand-Archive paths", () => {
+    const command = buildWindowsExpandArchiveCommand({
+      zipPath: "C:\\temp\\o'brien.zip",
+      destDir: "C:\\temp\\dest",
+    });
+    expect(command).toContain("o''brien.zip");
+  });
+
   it("uses the canonical repo and latest version by default", () => {
     const parsed = parseUpgradeArgs(["node", "signaler"]);
     const resolved = resolveUpgradeDefaults(parsed);

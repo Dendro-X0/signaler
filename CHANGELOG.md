@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 5.1.4 - 2026-06-13
+
+### Fixed
+
+- **Windows `signaler upgrade`** — PowerShell `Expand-Archive` command used broken `\\\"` quoting, causing `\C:` drive errors on extract. Paths now use single-quoted literals.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.4.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.4.md).
+
 ## 5.1.3 - 2026-06-13
 
 ### Changed

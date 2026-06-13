@@ -195,11 +195,28 @@ function nodeToolCommand(base: "npm"): string {
   return process.platform === "win32" ? `${base}.cmd` : base;
 }
 
+function escapePowerShellSingleQuotedString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+/** Exported for tests. Builds Expand-Archive -Command for Windows upgrade/install. */
+export function buildWindowsExpandArchiveCommand(params: {
+  readonly zipPath: string;
+  readonly destDir: string;
+}): string {
+  const zipPath = escapePowerShellSingleQuotedString(params.zipPath);
+  const destDir = escapePowerShellSingleQuotedString(params.destDir);
+  return `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`;
+}
+
 async function extractZip(params: { readonly zipPath: string; readonly destDir: string }): Promise<void> {
   if (process.platform === "win32") {
-    const ps: string = "powershell";
-    const args: readonly string[] = ["-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -LiteralPath \\\"${params.zipPath}\\\" -DestinationPath \\\"${params.destDir}\\\" -Force`];
-    await execFileAsync(ps, args);
+    await execFileAsync("powershell", [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      buildWindowsExpandArchiveCommand(params),
+    ]);
   } else {
     await execFileAsync("unzip", ["-q", params.zipPath, "-d", params.destDir]);
   }
