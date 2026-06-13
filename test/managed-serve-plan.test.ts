@@ -9,7 +9,7 @@ describe("managed serve plans", () => {
   it("parses managed serve mode", () => {
     expect(parseManagedServeMode("dev")).toBe("dev");
     expect(parseManagedServeMode("auto")).toBe("auto");
-    expect(parseManagedServeMode(undefined)).toBe("auto");
+    expect(parseManagedServeMode(undefined)).toBe("production");
   });
 
   it("resolves dev script from project root", async () => {
