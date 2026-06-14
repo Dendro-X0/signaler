@@ -73,6 +73,12 @@ describe("performance-triage", () => {
     expect(triage.totals.red).toBeGreaterThan(0);
     expect(triage.totals.yellow).toBe(0);
     expect(triage.uniqueIssues.every((issue) => issue.severity === "red")).toBe(true);
+    expect(triage.combos).toHaveLength(1);
+    expect(triage.combos[0]?.counts.red).toBeGreaterThan(0);
+    expect(triage.combos[0]?.issues.length).toBeGreaterThan(0);
+    expect(triage.combos[0]?.auditStatus).toBe("scored");
+    expect(triage.coverage.scored).toBe(1);
+    expect(triage.coverage.artifact).toBe("coverage.json");
   });
 
   it("trims lean results lines", () => {

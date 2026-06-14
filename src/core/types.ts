@@ -62,6 +62,15 @@ export interface ApexBudgets {
   readonly metrics?: MetricBudgetThresholds;
 }
 
+export interface ApexAuthConfig {
+  /** Raw Cookie header value, e.g. `session=abc; role=admin`. */
+  readonly cookies?: string;
+  /** Path relative to config file; lines joined as Cookie header (# comments allowed). */
+  readonly cookieFile?: string;
+  /** GET this path before audit to obtain Set-Cookie (e.g. `/api/demo-auth`). */
+  readonly warmupUrl?: string;
+}
+
 /**
  * Top-level configuration for an audit run.
  */
@@ -110,6 +119,22 @@ export interface ApexConfig {
    * Helps avoid cold start penalties on the first audit.
    */
   readonly warmUp?: boolean;
+  /**
+   * Fast HTTP probe before Lighthouse; skips auth-wall and unreachable routes (default true).
+   */
+  readonly routePreflight?: boolean;
+  /** Session cookies for authenticated route audits (preflight + Lighthouse). */
+  readonly auth?: ApexAuthConfig;
+  /**
+   * Ephemeral env vars injected only into Signaler's managed `start` process.
+   * Use app audit-bypass flags (e.g. DEMO_AUTH_BYPASS) without editing project .env or using dev mode.
+   */
+  readonly serveEnv?: Readonly<Record<string, string>>;
+  /**
+   * Include yellow performance issues in triage and TUI (default: off on lean / when omitted).
+   * `false` = red-only — recommended for production optimization rounds.
+   */
+  readonly perfIncludeYellow?: boolean;
   readonly incremental?: boolean;
   readonly pages: readonly ApexPageConfig[];
   readonly budgets?: ApexBudgets;
@@ -367,6 +392,13 @@ export interface RunMeta {
     readonly cooldownMsTotal?: number;
     readonly recoveryIncreases?: number;
     readonly status?: "stable" | "degraded" | "unstable";
+  };
+  readonly scoreCoverage?: {
+    readonly scored: number;
+    readonly total: number;
+    readonly skipped: number;
+    readonly expectedToScore: number;
+    readonly rate: number;
   };
 }
 

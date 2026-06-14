@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.5-blue.svg)
+![Version](http://img.shields.io/badge/version-5.1.6-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -75,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-ass
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
-Optional pin: `SIGNALER_VERSION=5.1.5` (bash) or `$env:SIGNALER_VERSION = "5.1.5"` (PowerShell) before the command above.
+Optional pin: `SIGNALER_VERSION=5.1.6` (bash) or `$env:SIGNALER_VERSION = "5.1.6"` (PowerShell) before the command above.
 
 After install: `signaler --version` · compatibility alias: `signalar`
 
@@ -203,7 +203,7 @@ Official GitHub Action: [`.github/actions/signaler`](./.github/actions/signaler/
 ```yaml
 - uses: ./.github/actions/signaler
   with:
-    version: "latest"   # GitHub Release tag, or pin e.g. "5.1.5"
+    version: "latest"   # GitHub Release tag, or pin e.g. "5.1.6"
     quality-profile: web-quality
     base-url: http://127.0.0.1:3000
 ```
@@ -267,14 +267,13 @@ Supported providers:
 
 ### Demos
 
-> **GIFs below are from v2.6.4** (init/wizard + flat artifacts). v5 uses `audit`, tree layout, and `quality-pack`.  
-> Recording storyboard for replacements: [docs/assets/README.md](./docs/assets/README.md)
+> **GIFs below are from v2.6.4.** v5.1.6 recording script (monorepo audit, dashboard, fix-queue, coverage): [docs/guides/gif-demo-script.md](./docs/guides/gif-demo-script.md)
 
-| Clip | Status | v5 equivalent |
-|------|--------|----------------|
-| Init & audit | Legacy GIF | `signaler audit --quality-profile web-quality` |
-| File tree | Legacy GIF | `.signaler/INDEX.md` + `manifest.json` |
-| HTML report | Still representative | `developer/report.html` |
+| Clip | Status | v5.1.6 equivalent |
+|------|--------|-------------------|
+| Init & audit | Legacy GIF | Monorepo `signaler audit` (~90 combos / ~2 min) |
+| File tree | Legacy GIF | `query --view coverage` + tree `INDEX.md` |
+| HTML report | Partially current | `developer/report.html` dashboard (KPI + triage) |
 
 ![Init and Audit Workflow](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif)
 *Legacy: init/wizard — use `signaler audit` or `discover` today*

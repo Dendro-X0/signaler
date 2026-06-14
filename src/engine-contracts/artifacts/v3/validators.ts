@@ -105,6 +105,9 @@ export function isAgentIndexV3(value: unknown): value is AgentIndexV3 {
   if (value.entrypoints.run !== "run.json") return false;
   if (value.entrypoints.results !== "results.json") return false;
   if (value.entrypoints.suggestions !== "suggestions.json") return false;
+  if (value.entrypoints.coverage !== undefined && value.entrypoints.coverage !== "coverage.json") {
+    return false;
+  }
   if (
     value.entrypoints.performanceTriage !== undefined
     && value.entrypoints.performanceTriage !== "performance-triage.json"

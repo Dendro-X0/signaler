@@ -199,7 +199,7 @@ function printCommandHelp(topic: string): boolean {
   if (normalizedTopic === "query") {
     print([
       "Usage:",
-      "  signaler query --view <agent|actions|perf|run|evidence|delta> [--dir <path>] [--json]",
+      "  signaler query --view <agent|actions|perf|coverage|run|evidence|delta> [--dir <path>] [--json]",
       "",
       "Views:",
       "  agent     compact agent-index projection",

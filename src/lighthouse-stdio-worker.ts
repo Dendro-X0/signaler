@@ -6,6 +6,7 @@ import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
 import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, ComboRunStats, FailedAuditSummary, MetricValues, NumericStats, OpportunitySummary, PageDeviceSummary } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./runners/lighthouse/capture.js";
+import { lighthouseExtraHeaders } from "./runners/lighthouse/auth-session.js";
 
 type LighthouseLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -41,6 +42,7 @@ type AuditTask = {
   readonly captureLevel?: "diagnostics" | "lhr";
   readonly outputDir: string;
   readonly runs: number;
+  readonly cookieHeader?: string;
 };
 
 type ChromeSession = {
@@ -95,6 +97,7 @@ function isTransientLighthouseError(error: unknown): boolean {
     message.includes("setAutoAttach") ||
     message.includes("LanternError") ||
     message.includes("top level events") ||
+    message.includes("trace engine differed") ||
     message.includes("CDP") ||
     message.includes("disconnected") ||
     message.includes("Signaler timeout") ||
@@ -207,6 +210,7 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
           onlyCategories: task.onlyCategories,
           captureLevel: task.captureLevel,
           outputDir: task.outputDir,
+          cookieHeader: task.cookieHeader,
         }),
         task.timeoutMs,
       );
@@ -238,6 +242,7 @@ async function runSingleAudit(params: {
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
   readonly outputDir: string;
+  readonly cookieHeader?: string;
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
   const options: Record<string, unknown> = {
@@ -260,6 +265,10 @@ async function runSingleAudit(params: {
       downloadThroughputKbps: 1638.4,
       uploadThroughputKbps: 750,
     };
+  }
+  const extraHeaders = lighthouseExtraHeaders(params.cookieHeader);
+  if (extraHeaders) {
+    options.extraHeaders = extraHeaders;
   }
   const runnerResult = await lighthouse(params.url, options);
   const lhrUnknown: unknown = runnerResult.lhr as unknown;

@@ -309,6 +309,13 @@ export interface RunMeta {
     readonly recoveryIncreases?: number;
     readonly status?: "stable" | "degraded" | "unstable";
   };
+  readonly scoreCoverage?: {
+    readonly scored: number;
+    readonly total: number;
+    readonly skipped: number;
+    readonly expectedToScore: number;
+    readonly rate: number;
+  };
 }
 
 /**

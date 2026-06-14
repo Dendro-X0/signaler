@@ -2,10 +2,12 @@ import type { ArtifactRule } from "./types.js";
 
 /** Known artifacts: flat path (legacy writers) → tree path (v4.5 layout). */
 export const ARTIFACT_RULES: readonly ArtifactRule[] = [
-  { id: "agent-index", flatPath: "agent-index.json", treePath: "agent/index.json", audience: "agent", runner: "lighthouse", weight: "entrypoint", contract: "v3", agentReadOrder: 1 },
-  { id: "analyze", flatPath: "analyze.json", treePath: "agent/analyze.json", audience: "agent", runner: "analyze", weight: "entrypoint", contract: "v6", agentReadOrder: 2 },
-  { id: "performance-triage", flatPath: "performance-triage.json", treePath: "agent/performance-triage.json", audience: "agent", runner: "lighthouse", weight: "entrypoint", contract: "v3", agentReadOrder: 3 },
-  { id: "suggestions", flatPath: "suggestions.json", treePath: "agent/suggestions.json", audience: "agent", runner: "lighthouse", weight: "summary", contract: "v3", agentReadOrder: 4 },
+  { id: "fix-queue", flatPath: "fix-queue.json", treePath: "agent/fix-queue.json", audience: "agent", runner: "analyze", weight: "entrypoint", contract: "v1", agentReadOrder: 1 },
+  { id: "coverage", flatPath: "coverage.json", treePath: "agent/coverage.json", audience: "agent", runner: "lighthouse", weight: "entrypoint", contract: "v1", agentReadOrder: 2 },
+  { id: "agent-index", flatPath: "agent-index.json", treePath: "agent/index.json", audience: "agent", runner: "lighthouse", weight: "entrypoint", contract: "v3", agentReadOrder: 3 },
+  { id: "analyze", flatPath: "analyze.json", treePath: "agent/analyze.json", audience: "agent", runner: "analyze", weight: "entrypoint", contract: "v6", agentReadOrder: 4 },
+  { id: "performance-triage", flatPath: "performance-triage.json", treePath: "agent/performance-triage.json", audience: "agent", runner: "lighthouse", weight: "entrypoint", contract: "v3", agentReadOrder: 5 },
+  { id: "suggestions", flatPath: "suggestions.json", treePath: "agent/suggestions.json", audience: "agent", runner: "lighthouse", weight: "summary", contract: "v3", agentReadOrder: 6 },
   { id: "quality-pack", flatPath: "quality-pack.json", treePath: "gates/quality-pack.json", audience: "ci", runner: "gate", weight: "entrypoint", agentReadOrder: 5 },
   { id: "job-latest", flatPath: "job-latest.json", treePath: "orchestration/job-latest.json", audience: "agent", runner: "orchestration", weight: "entrypoint", contract: "job-v1", agentReadOrder: 0 },
 

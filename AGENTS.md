@@ -59,6 +59,22 @@ signaler query --view perf --json
 - **`routes.includePaths` / `routes.excludePaths`**: glob-like filters (`/blog/*`) applied before each run.
 - **`discover --scope file --routes-file paths.json`**: replace discovery with a fixed route list.
 
+## Protected routes (production lab auth)
+
+Audit protected pages on a **production build** without editing project `.env` or running dev mode:
+
+```json
+{
+  "serveEnv": { "DEMO_AUTH_BYPASS": "true" },
+  "auth": { "warmupUrl": "/api/demo-auth?callbackUrl=/admin" },
+  "perfIncludeYellow": false
+}
+```
+
+- `serveEnv` — injected into Signaler's managed `start` child only (never written to the repo).
+- `auth` — session cookies for preflight + Lighthouse (`cookies`, `cookieFile`, or `warmupUrl`).
+- `perfIncludeYellow: false` — **red-only** performance triage (default on lean). TUI shows Red/Yel counts per route; details in `performance-triage.json#/combos`.
+
 ## Incremental skip (rerun after fixes)
 
 Skip combos that already passed in the previous run (reads `.signaler/summary.json` or `results.json`):
@@ -111,6 +127,8 @@ Roadmap: `docs/roadmap/active-roadmap.md` (Phase 1: `docs/roadmap/phase1-v4.1-ad
 
 ```bash
 signaler query --view agent --dir .signaler
+signaler query --view fix-queue --dir .signaler --json
+signaler query --view coverage --dir .signaler
 signaler query --view perf --dir .signaler
 signaler query --view delta --dir .signaler
 signaler explain --id <issue-id> --dir .signaler
@@ -122,10 +140,12 @@ Do not read the entire `.signaler/` directory. Use projections only.
 
 Tree layout (default since v4.5): start from `.signaler/INDEX.md` or `manifest.json`.
 
-1. `agent/analyze.json` or `runs/analyze/analyze.json` (after `signaler analyze --contract v6`)
-2. `agent/performance-triage.json` (issue-count performance triage; not score parity)
-3. `agent/index.json` (agent-index)
-4. `agent/suggestions.json` only when `explain` or evidence pointers require it
+1. `agent/fix-queue.json` — ranked surgical fix list (path, device, url, savings, pointers)
+2. `agent/coverage.json` — scored vs skipped routes
+3. `agent/performance-triage.json` (issue-count performance triage; not score parity)
+4. `agent/analyze.json` or `runs/analyze/analyze.json` (after `signaler analyze --contract v6`)
+5. `agent/index.json` (agent-index)
+6. `agent/suggestions.json` only when `explain` or evidence pointers require it
 
 Legacy flat paths (`analyze.json` at root) are removed after tree materialize; use `signaler query` or paths above.
 

@@ -28,6 +28,8 @@ export interface AgentIndexV3 {
     readonly run: "run.json";
     readonly results: "results.json";
     readonly suggestions: "suggestions.json";
+    readonly coverage?: "coverage.json";
+    readonly fixQueue?: "fix-queue.json";
     readonly performanceTriage?: "performance-triage.json";
     readonly analyze?: "analyze.json";
     readonly headers?: "headers.json";

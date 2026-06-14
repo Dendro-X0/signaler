@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, ApexThroughputBackoffPolicy, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
+import type { ApexAuthConfig, ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, ApexThroughputBackoffPolicy, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
  * Load and minimally validate the Signaler configuration file.
@@ -95,6 +95,10 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly parallel?: unknown;
     readonly sessionIsolation?: unknown;
     readonly warmUp?: unknown;
+    readonly routePreflight?: unknown;
+    readonly auth?: unknown;
+    readonly serveEnv?: unknown;
+    readonly perfIncludeYellow?: unknown;
     readonly incremental?: unknown;
     readonly throughputBackoff?: unknown;
     readonly budgets?: unknown;
@@ -158,6 +162,12 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
       : undefined;
   const warmUp: boolean | undefined =
     typeof maybeConfig.warmUp === "boolean" ? maybeConfig.warmUp : undefined;
+  const routePreflight: boolean | undefined =
+    typeof maybeConfig.routePreflight === "boolean" ? maybeConfig.routePreflight : undefined;
+  const auth = normaliseAuth(maybeConfig.auth, absolutePath);
+  const serveEnv = normaliseServeEnv(maybeConfig.serveEnv, absolutePath);
+  const perfIncludeYellow: boolean | undefined =
+    typeof maybeConfig.perfIncludeYellow === "boolean" ? maybeConfig.perfIncludeYellow : undefined;
   const incremental: boolean | undefined =
     typeof maybeConfig.incremental === "boolean" ? maybeConfig.incremental : undefined;
   const budgets: ApexBudgets | undefined = normaliseBudgets(maybeConfig.budgets, absolutePath);
@@ -181,6 +191,10 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     sessionIsolation,
     throughputBackoff,
     warmUp,
+    routePreflight,
+    auth,
+    serveEnv,
+    perfIncludeYellow,
     incremental,
     pages,
     budgets,
@@ -190,6 +204,97 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     baselineCompare,
     qualityPack,
   };
+}
+
+function normaliseAuth(value: unknown, absolutePath: string): ApexAuthConfig | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: auth must be an object`);
+  }
+  const raw = value as { readonly cookies?: unknown; readonly cookieFile?: unknown; readonly warmupUrl?: unknown };
+  const cookies = typeof raw.cookies === "string" && raw.cookies.trim().length > 0 ? raw.cookies.trim() : undefined;
+  const cookieFile = typeof raw.cookieFile === "string" && raw.cookieFile.trim().length > 0 ? raw.cookieFile.trim() : undefined;
+  const warmupUrl = typeof raw.warmupUrl === "string" && raw.warmupUrl.trim().length > 0 ? raw.warmupUrl.trim() : undefined;
+  if (!cookies && !cookieFile && !warmupUrl) {
+    return undefined;
+  }
+  return { cookies, cookieFile, warmupUrl };
+}
+
+function normaliseServeEnv(value: unknown, absolutePath: string): Readonly<Record<string, string>> | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid config at ${absolutePath}: serveEnv must be an object of string keys to string values`);
+  }
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw !== "string" || raw.length === 0) {
+      throw new Error(`Invalid config at ${absolutePath}: serveEnv.${key} must be a non-empty string`);
+    }
+    out[key] = raw;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+export function parseServeEnvPair(raw: string): { readonly key: string; readonly value: string } {
+  const trimmed = raw.trim();
+  const eq = trimmed.indexOf("=");
+  if (eq <= 0) {
+    throw new Error(`Invalid serve env pair: ${raw}. Expected KEY=VALUE.`);
+  }
+  const key = trimmed.slice(0, eq).trim();
+  const value = trimmed.slice(eq + 1);
+  if (key.length === 0) {
+    throw new Error(`Invalid serve env pair: ${raw}. Expected KEY=VALUE.`);
+  }
+  return { key, value };
+}
+
+function readServeEnvFromProcessEnv(): Readonly<Record<string, string>> | undefined {
+  const raw = process.env.SIGNALER_SERVE_ENV?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("SIGNALER_SERVE_ENV must be valid JSON object of string keys to string values");
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("SIGNALER_SERVE_ENV must be a JSON object of string keys to string values");
+  }
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof value !== "string" || value.length === 0) {
+      throw new Error(`SIGNALER_SERVE_ENV.${key} must be a non-empty string`);
+    }
+    out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Merge lab env for managed production start: SIGNALER_SERVE_ENV → config → CLI (CLI wins). */
+export function resolveServeEnv(params: {
+  readonly fromConfig?: Readonly<Record<string, string>>;
+  readonly fromCli?: Readonly<Record<string, string>>;
+}): Readonly<Record<string, string>> | undefined {
+  const merged: Record<string, string> = {};
+  const fromEnv = readServeEnvFromProcessEnv();
+  if (fromEnv) {
+    Object.assign(merged, fromEnv);
+  }
+  if (params.fromConfig) {
+    Object.assign(merged, params.fromConfig);
+  }
+  if (params.fromCli && Object.keys(params.fromCli).length > 0) {
+    Object.assign(merged, params.fromCli);
+  }
+  return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
 function normaliseQualityPack(

@@ -36,6 +36,7 @@ export type JobCliArgs = BuildPresetJobParams & {
   readonly managedServeReuse: boolean;
   readonly artifactLayout: ArtifactLayoutMode;
   readonly json: boolean;
+  readonly serveEnvOverrides: Readonly<Record<string, string>>;
 };
 
 function parsePreset(value: string): EngineJobPreset {
@@ -195,6 +196,7 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
     parallel,
     routesFile,
     json,
+    serveEnvOverrides: serveOptions.serveEnvOverrides,
   };
 }
 
@@ -252,6 +254,7 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     managedServeSkipBuild: args.managedServeSkipBuild,
     managedServeReuse: args.managedServeReuse,
     artifactLayout: args.artifactLayout,
+    serveEnvOverrides: args.serveEnvOverrides,
   });
 
   if (args.json) {

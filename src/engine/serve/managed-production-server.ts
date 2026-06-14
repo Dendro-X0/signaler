@@ -21,6 +21,8 @@ export type ManagedProductionServerOptions = {
   readonly reuseUnhealthy?: boolean;
   readonly buildTimeoutMs?: number;
   readonly startTimeoutMs?: number;
+  /** Merged into the managed `start` child process only (not written to project .env). */
+  readonly serveEnv?: Readonly<Record<string, string>>;
 };
 
 export type ManagedProductionServerHandle = {
@@ -175,6 +177,7 @@ function spawnStartProcess(params: {
   readonly packageManager: PackageManagerId;
   readonly script: string;
   readonly port: number;
+  readonly serveEnv?: Readonly<Record<string, string>>;
 }): ChildProcess {
   const command = packageManagerCommand(params.packageManager);
   return spawn(command, ["run", params.script], {
@@ -182,6 +185,7 @@ function spawnStartProcess(params: {
     stdio: "ignore",
     env: {
       ...process.env,
+      ...params.serveEnv,
       PORT: String(params.port),
       HOSTNAME: "127.0.0.1",
       HOST: "127.0.0.1",
@@ -249,11 +253,17 @@ export async function ensureManagedProductionServer(
 
   // eslint-disable-next-line no-console
   console.log(`Managed serve: starting production server at ${baseUrl} ...`);
+  if (options.serveEnv && Object.keys(options.serveEnv).length > 0) {
+    const keys = Object.keys(options.serveEnv).join(", ");
+    // eslint-disable-next-line no-console
+    console.log(`Managed serve: audit lab env on start process only (${keys}) — production build unchanged.`);
+  }
   const child = spawnStartProcess({
     cwd: plan.projectRoot,
     packageManager: plan.packageManager,
     script: plan.startScript,
     port,
+    serveEnv: options.serveEnv,
   });
 
   if (!child.pid) {

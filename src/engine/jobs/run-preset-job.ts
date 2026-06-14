@@ -1,8 +1,10 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { markAgentIndexPartialSuccess } from "../../agent-artifacts.js";
 import type { EngineJobResultV1, EngineJobV1 } from "../../engine-contracts/jobs/index.js";
 import { isEngineJobV1 } from "../../engine-contracts/jobs/index.js";
+import { loadConfig, resolveServeEnv } from "../../core/config.js";
 import {
   buildAgentPresetJob,
   buildPresetJob,
@@ -39,6 +41,7 @@ export type RunPresetJobParams = BuildPresetJobParams & {
   readonly skipDiscover?: boolean;
   readonly incrementalSkipPassing?: boolean;
   readonly routesFile?: string;
+  readonly serveEnvOverrides?: Readonly<Record<string, string>>;
 };
 
 export type RunPresetJobOutcome = {
@@ -161,12 +164,20 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
   let managedBaseUrl: string | undefined;
   if (params.managedServe) {
     try {
+      let fromConfig: Readonly<Record<string, string>> | undefined;
+      const resolvedConfigPath = resolve(job.cwd, params.configPath ?? "signaler.config.json");
+      if (existsSync(resolvedConfigPath)) {
+        const loaded = await loadConfig({ configPath: resolvedConfigPath });
+        fromConfig = loaded.config.serveEnv;
+      }
+      const serveEnv = resolveServeEnv({ fromConfig, fromCli: params.serveEnvOverrides });
       const managedServer = await ensureManagedServer({
         projectRoot: job.cwd,
         baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
         mode: params.managedServeMode ?? "production",
         skipBuild: params.managedServeSkipBuild ?? false,
         reuseUnhealthy: params.managedServeReuse ?? false,
+        serveEnv,
       });
       managedBaseUrl = managedServer.baseUrl;
       if (managedServer.startedBySignaler) {

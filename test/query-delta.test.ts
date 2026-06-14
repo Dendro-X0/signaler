@@ -45,6 +45,7 @@ describe("query-delta", () => {
           ...triageBase,
           totals: { red: 4, yellow: 1, green: 0, actionable: 5 },
           uniqueIssues: [],
+          combos: [],
         }),
         "utf8",
       );
@@ -54,6 +55,7 @@ describe("query-delta", () => {
           ...triageBase,
           totals: { red: 2, yellow: 0, green: 0, actionable: 2 },
           uniqueIssues: [],
+          combos: [],
         }),
         "utf8",
       );

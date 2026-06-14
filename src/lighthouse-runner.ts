@@ -1,9 +1,10 @@
 import { mkdtemp, rm, mkdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { cpus, freemem, tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
@@ -24,6 +25,21 @@ import type {
   RunSummary,
 } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./lighthouse-capture.js";
+import {
+  isRouteScopedRunnerFailure,
+  maxAttemptsForRunnerFailure,
+  shouldReplaceWorkerAfterFailure,
+} from "./runners/lighthouse/runner-failure-policy.js";
+import {
+  auditScoreCoverage,
+  formatPreflightSkipMessage,
+  MIN_AUDIT_SCORE_COVERAGE_RATE,
+  probeAppHealth,
+  probeRoutesParallel,
+  type RoutePreflightResult,
+} from "./runners/lighthouse/route-preflight.js";
+import { lighthouseExtraHeaders, resolveAuditAuthCookieHeader } from "./runners/lighthouse/auth-session.js";
+import { usesInProcessParallelRunner } from "./runners/lighthouse/in-process-parallel-policy.js";
 import { Spinner } from "./utils/progress.js";
 import { runRustCorePipeline, type RustCoreRunAttempt } from "./rust/core-adapter.js";
 import type { RunCoreInput } from "./rust/core-contracts.js";
@@ -78,7 +94,7 @@ const DEFAULT_WORKER_TASK_TIMEOUT_MS: number = 5 * 60 * 1000;
 const WORKER_RESPONSE_TIMEOUT_GRACE_MS: number = 15 * 1000;
 const MAX_PARENT_TASK_ATTEMPTS: number = 5;
 const MAX_PARENT_BACKOFF_MS: number = 3000;
-const LOW_MEMORY_REDUCTION_THRESHOLD_BYTES: number = 3 * 1024 * 1024 * 1024;
+const LOW_MEMORY_REDUCTION_THRESHOLD_BYTES: number = 2 * 1024 * 1024 * 1024;
 
 let lastProgressLine: string | undefined;
 
@@ -111,6 +127,23 @@ function buildFailureSummary(task: AuditTask, errorMessage: string): PageDeviceS
     failedAudits: [],
     runtimeErrorMessage: errorMessage,
   };
+}
+
+function buildPreflightSkipSummary(task: AuditTask, preflight: RoutePreflightResult): PageDeviceSummary {
+  return buildFailureSummary(task, formatPreflightSkipMessage(preflight));
+}
+
+function formatAuditPlanEstimate(params: {
+  readonly totalCombos: number;
+  readonly routeCount: number;
+  readonly tasksToRun: number;
+  readonly skippedPreflight: number;
+  readonly parallel: number;
+}): string {
+  const secondsPerCombo = 28;
+  const estSeconds = Math.ceil((params.tasksToRun / Math.max(1, params.parallel)) * secondsPerCombo);
+  const estMinutes = Math.max(1, Math.round(estSeconds / 60));
+  return `Audit plan: ${params.totalCombos} combos (${params.routeCount} routes), ${params.tasksToRun} Lighthouse tasks, ${params.skippedPreflight} preflight skip(s), parallel ${params.parallel}, est. ~${estMinutes} min`;
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -228,11 +261,416 @@ function resolveStdioWorkerCommand(): { readonly command: string; readonly args:
   return { command: process.execPath, args: [entryPath] };
 }
 
+function spawnStdioWorker(): ReturnType<typeof spawn> {
+  const resolved = resolveStdioWorkerCommand();
+  return spawn(resolved.command, [...resolved.args], { stdio: ["pipe", "pipe", "pipe"], shell: false });
+}
+
 function spawnWorker(): ReturnType<typeof spawn> {
   const resolved = resolveWorkerEntryUrl();
   const entryPath: string = fileURLToPath(resolved.entry);
   const args: string[] = resolved.useTsx ? ["--import", "tsx", entryPath] : [entryPath];
   return spawn(process.execPath, args, { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+}
+
+type StdioWorkerTask = WorkerTask & { readonly runs: number };
+
+async function runParallelInStdioWorkers(
+  tasks: AuditTask[],
+  parallelCount: number,
+  auditTimeoutMs: number,
+  signal: AbortSignal | undefined,
+  updateProgress: (path: string, device: ApexDevice) => void,
+  captureLevel: "diagnostics" | "lhr" | undefined,
+  outputDir: string,
+  backoffPolicy: ApexThroughputBackoffPolicy,
+): Promise<{ readonly results: PageDeviceSummary[]; readonly stability: RunnerStabilityMeta }> {
+  const initialParallel: number = Math.min(parallelCount, tasks.length);
+  type WorkerSlot = {
+    child: ReturnType<typeof spawn>;
+    busy: boolean;
+    active: boolean;
+    inFlightId?: string;
+    inFlightTaskIndex?: number;
+    lineReader?: ReturnType<typeof createInterface>;
+  };
+  const workers: WorkerSlot[] = [];
+  for (let i = 0; i < initialParallel; i += 1) {
+    if (i > 0) {
+      await delayMs(200 * i);
+    }
+    workers.push({ child: spawnStdioWorker(), busy: false, active: true });
+  }
+  type PendingItem = { readonly taskIndex: number; readonly attempts: number };
+  const results: PageDeviceSummary[] = new Array(tasks.length);
+  const pending: PendingItem[] = tasks.map((_, taskIndex) => ({ taskIndex, attempts: 0 }));
+  const inFlight: Map<string, PendingItem> = new Map();
+  const waiters: Map<string, { resolve: (msg: WorkerResponseMessage) => void; reject: (err: Error) => void }> = new Map();
+
+  const attachStdioListeners = (child: ReturnType<typeof spawn>, workerIndex: number): void => {
+    const lineReader = createInterface({ input: child.stdout!, crlfDelay: Infinity });
+    workers[workerIndex] = { ...workers[workerIndex], lineReader };
+    lineReader.on("line", (line: string) => {
+      const trimmed: string = line.trim();
+      if (trimmed.length === 0) {
+        return;
+      }
+      try {
+        const msg = JSON.parse(trimmed) as WorkerResponseMessage;
+        if (!msg || typeof msg.id !== "string") {
+          return;
+        }
+        const waiter = waiters.get(msg.id);
+        if (!waiter) {
+          return;
+        }
+        waiters.delete(msg.id);
+        waiter.resolve(msg);
+      } catch {
+        return;
+      }
+    });
+    child.on("error", (error: Error) => {
+      const worker = workers[workerIndex];
+      if (worker?.inFlightId) {
+        const waiter = waiters.get(worker.inFlightId);
+        if (waiter) {
+          waiters.delete(worker.inFlightId);
+          waiter.reject(error);
+        }
+      }
+    });
+    child.on("exit", () => {
+      const worker = workers[workerIndex];
+      if (worker?.inFlightId) {
+        const waiter = waiters.get(worker.inFlightId);
+        if (waiter) {
+          waiters.delete(worker.inFlightId);
+          waiter.reject(new Error("Worker exited"));
+        }
+      }
+    });
+  };
+
+  for (let workerIndex = 0; workerIndex < workers.length; workerIndex += 1) {
+    attachStdioListeners(workers[workerIndex].child, workerIndex);
+  }
+
+  if (signal) {
+    const onAbort = (): void => {
+      for (const worker of workers) {
+        try {
+          worker.child.stdin?.write('{"type":"shutdown"}\n');
+          worker.child.kill();
+        } catch {
+          continue;
+        }
+      }
+    };
+    if (signal.aborted) {
+      onAbort();
+    } else {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  }
+
+  let consecutiveRetries = 0;
+  let totalFailures = 0;
+  let totalAttempts = 0;
+  let totalRetries = 0;
+  let reductions = 0;
+  let cooldownPauses = 0;
+  let currentActiveWorkers = initialParallel;
+  let maxConsecutiveRetries = 0;
+  let cooldownMsTotal = 0;
+  let recoveryIncreases = 0;
+  let stableSuccesses = 0;
+  const recentFailures: number[] = [];
+  const failureWindowSize: number = backoffPolicy === "aggressive" ? 6 : 8;
+  const reductionRetryThreshold: number = backoffPolicy === "aggressive" ? 2 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 3;
+  const reductionFailureRateThreshold: number = backoffPolicy === "aggressive" ? 0.25 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 0.35;
+  const cooldownRetryThreshold: number = backoffPolicy === "aggressive" ? 1 : backoffPolicy === "off" ? Number.POSITIVE_INFINITY : 2;
+  const recoveryStableWindow: number = backoffPolicy === "aggressive" ? 4 : 6;
+
+  const rollingFailureRate = (): number => {
+    if (recentFailures.length === 0) {
+      return 0;
+    }
+    const failures: number = recentFailures.reduce((sum, value) => sum + value, 0);
+    return failures / recentFailures.length;
+  };
+
+  const pushFailureSample = (sample: 0 | 1): void => {
+    recentFailures.push(sample);
+    while (recentFailures.length > failureWindowSize) {
+      recentFailures.shift();
+    }
+  };
+
+  const replaceWorker = async (workerIndex: number): Promise<void> => {
+    const worker = workers[workerIndex];
+    if (!worker || !worker.active) {
+      return;
+    }
+    try {
+      worker.lineReader?.close();
+      worker.child.stdin?.write('{"type":"shutdown"}\n');
+      worker.child.kill();
+    } catch {
+      // Ignore replacement errors.
+    }
+    const replacement = spawnStdioWorker();
+    attachStdioListeners(replacement, workerIndex);
+    workers[workerIndex] = { child: replacement, busy: false, active: true };
+  };
+
+  const deactivateWorker = (workerIndex: number): void => {
+    const worker = workers[workerIndex];
+    if (!worker || !worker.active) {
+      return;
+    }
+    worker.active = false;
+    worker.busy = false;
+    worker.inFlightId = undefined;
+    worker.inFlightTaskIndex = undefined;
+    try {
+      worker.lineReader?.close();
+      worker.child.stdin?.write('{"type":"shutdown"}\n');
+      worker.child.kill();
+    } catch {
+      // Ignore shutdown errors on deactivation.
+    }
+    currentActiveWorkers = Math.max(1, currentActiveWorkers - 1);
+  };
+
+  const reduceActiveWorkers = (reason: "failure-storm" | "low-memory"): void => {
+    if (backoffPolicy === "off" || currentActiveWorkers <= 1) {
+      return;
+    }
+    const targetParallel: number = Math.max(1, Math.floor(currentActiveWorkers / 2));
+    for (let i = workers.length - 1; i >= 0 && currentActiveWorkers > targetParallel; i -= 1) {
+      if (!workers[i]?.active) {
+        continue;
+      }
+      deactivateWorker(i);
+    }
+    reductions += 1;
+    stableSuccesses = 0;
+    logLinePreservingProgress(
+      `Runner backoff (${reason}): active workers reduced to ${currentActiveWorkers}. Fewer workers improve stability, not measurement accuracy — use --parallel 6 when memory allows.`,
+    );
+  };
+
+  const maybeRecoverWorker = async (): Promise<void> => {
+    if (backoffPolicy === "off" || currentActiveWorkers >= initialParallel || stableSuccesses < recoveryStableWindow) {
+      return;
+    }
+    const recoveryIndex: number = workers.findIndex((worker) => worker.active === false);
+    if (recoveryIndex < 0) {
+      return;
+    }
+    const replacement = spawnStdioWorker();
+    attachStdioListeners(replacement, recoveryIndex);
+    workers[recoveryIndex] = { child: replacement, busy: false, active: true };
+    currentActiveWorkers += 1;
+    recoveryIncreases += 1;
+    stableSuccesses = 0;
+    logLinePreservingProgress(`Runner recovery: active workers increased to ${currentActiveWorkers}.`);
+  };
+
+  let lowMemoryReductionApplied = false;
+  const runOnWorker = async (workerIndex: number): Promise<void> => {
+    const worker = workers[workerIndex];
+    if (!worker || !worker.active || signal?.aborted) {
+      return;
+    }
+    const next = pending.shift();
+    if (!next) {
+      return;
+    }
+    const task: AuditTask = tasks[next.taskIndex];
+    const id: string = `${workerIndex}-${next.taskIndex}-${Date.now()}`;
+    totalAttempts += 1;
+
+    const workerTask: StdioWorkerTask = {
+      url: task.url,
+      path: task.path,
+      label: task.label,
+      device: task.device,
+      pageScope: task.pageScope,
+      logLevel: task.logLevel,
+      throttlingMethod: task.throttlingMethod,
+      cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
+      timeoutMs: auditTimeoutMs,
+      onlyCategories: task.onlyCategories,
+      captureLevel,
+      outputDir,
+      cookieHeader: task.cookieHeader,
+      runs: task.runs,
+    };
+    worker.busy = true;
+    worker.inFlightId = id;
+    worker.inFlightTaskIndex = next.taskIndex;
+    inFlight.set(id, next);
+
+    const responseTimeoutMs: number = auditTimeoutMs * Math.max(1, task.runs) + WORKER_RESPONSE_TIMEOUT_GRACE_MS;
+    const response: WorkerResponseMessage = await new Promise<WorkerResponseMessage>((resolve, reject) => {
+      const timeoutHandle: NodeJS.Timeout = setTimeout(() => {
+        waiters.delete(id);
+        reject(new Error(`Worker response timeout after ${responseTimeoutMs}ms`));
+      }, responseTimeoutMs);
+      const abortListener = (): void => {
+        clearTimeout(timeoutHandle);
+        waiters.delete(id);
+        reject(new Error("Aborted"));
+      };
+      signal?.addEventListener("abort", abortListener, { once: true });
+      waiters.set(id, {
+        resolve: (msg: WorkerResponseMessage) => {
+          clearTimeout(timeoutHandle);
+          signal?.removeEventListener("abort", abortListener);
+          resolve(msg);
+        },
+        reject: (err: Error) => {
+          clearTimeout(timeoutHandle);
+          signal?.removeEventListener("abort", abortListener);
+          reject(err);
+        },
+      });
+      const request: WorkerRequestMessage = { type: "run", id, task: workerTask };
+      try {
+        worker.child.stdin!.write(`${JSON.stringify(request)}\n`);
+      } catch (error) {
+        clearTimeout(timeoutHandle);
+        waiters.delete(id);
+        reject(error instanceof Error ? error : new Error("Worker send failed"));
+      }
+    }).catch((error: unknown) => {
+      return { type: "error", id, errorMessage: error instanceof Error ? error.message : "Worker failure" } as WorkerResponseMessage;
+    });
+
+    inFlight.delete(id);
+    worker.busy = false;
+    worker.inFlightId = undefined;
+    worker.inFlightTaskIndex = undefined;
+
+    if (response.type === "error") {
+      totalFailures += 1;
+      totalRetries += 1;
+      const isTimeout: boolean = response.errorMessage.includes("timeout") || response.errorMessage.includes("Timeout") || response.errorMessage.includes("Signaler timeout");
+      const prefix: string = isTimeout ? "Timeout" : "Worker error";
+      logLinePreservingProgress(`${prefix}: ${task.path} [${task.device}] (run 1/${task.runs}). Retrying... (${response.errorMessage})`);
+      const retryItem: PendingItem = { taskIndex: next.taskIndex, attempts: next.attempts + 1 };
+      const maxAttempts = maxAttemptsForRunnerFailure(response.errorMessage);
+      if (retryItem.attempts >= maxAttempts) {
+        logLinePreservingProgress(`Giving up: ${task.path} [${task.device}] after ${retryItem.attempts} attempts.`);
+        results[next.taskIndex] = buildFailureSummary(task, response.errorMessage);
+        for (let runIndex = 0; runIndex < task.runs; runIndex += 1) {
+          updateProgress(task.path, task.device);
+        }
+        if (isRouteScopedRunnerFailure(response.errorMessage)) {
+          consecutiveRetries = 0;
+        }
+      } else {
+        pending.unshift(retryItem);
+      }
+      if (!isRouteScopedRunnerFailure(response.errorMessage)) {
+        consecutiveRetries += 1;
+        maxConsecutiveRetries = Math.max(maxConsecutiveRetries, consecutiveRetries);
+        stableSuccesses = 0;
+        pushFailureSample(1);
+        await delayMs(computeParentRetryDelayMs({ attempt: retryItem.attempts }));
+      } else {
+        await delayMs(retryItem.attempts > 0 ? 200 : 0);
+      }
+
+      if (shouldReplaceWorkerAfterFailure(response.errorMessage) && workers[workerIndex]?.active) {
+        await replaceWorker(workerIndex);
+      }
+      return;
+    }
+
+    consecutiveRetries = 0;
+    stableSuccesses += 1;
+    pushFailureSample(0);
+    results[next.taskIndex] = response.result;
+    for (let runIndex = 0; runIndex < task.runs; runIndex += 1) {
+      updateProgress(task.path, task.device);
+    }
+    await maybeRecoverWorker();
+  };
+
+  try {
+    while (pending.length > 0) {
+      if (signal?.aborted) {
+        throw new Error("Aborted");
+      }
+      if (backoffPolicy !== "off" && !lowMemoryReductionApplied && currentActiveWorkers > 3 && freemem() < LOW_MEMORY_REDUCTION_THRESHOLD_BYTES) {
+        reduceActiveWorkers("low-memory");
+        lowMemoryReductionApplied = true;
+      }
+      if (consecutiveRetries >= cooldownRetryThreshold) {
+        const cooldownMs: number = computeCooldownDelayMs({ backoffPolicy, consecutiveRetries });
+        if (cooldownMs > 0) {
+          logLinePreservingProgress(`Cooldown: pausing ${cooldownMs}ms after ${consecutiveRetries} consecutive retries.`);
+          await delayMs(cooldownMs);
+          cooldownMsTotal += cooldownMs;
+        }
+        consecutiveRetries = 0;
+        cooldownPauses += 1;
+      }
+      if (consecutiveRetries >= reductionRetryThreshold || rollingFailureRate() >= reductionFailureRateThreshold) {
+        reduceActiveWorkers("failure-storm");
+      }
+      const idle: number[] = workers
+        .map((slot, index) => (slot.active && !slot.busy ? index : -1))
+        .filter((index) => index >= 0);
+      if (idle.length === 0) {
+        await delayMs(50);
+        continue;
+      }
+      await Promise.all(idle.map(async (workerIndex) => runOnWorker(workerIndex)));
+    }
+  } finally {
+    logLinePreservingProgress("Cleaning up workers...");
+    const cleanupPromises = workers.map(async (worker, index) => {
+      try {
+        worker.lineReader?.close();
+        worker.child.stdin?.write('{"type":"shutdown"}\n');
+        worker.child.kill("SIGTERM");
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 400));
+        if (!worker.child.killed) {
+          worker.child.kill("SIGKILL");
+        }
+      } catch (error) {
+        logLinePreservingProgress(`Warning: Worker ${index} cleanup error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+    await Promise.allSettled(cleanupPromises);
+  }
+
+  const failureRate: number = totalAttempts > 0 ? totalFailures / totalAttempts : 0;
+  const retryRate: number = totalAttempts > 0 ? totalRetries / totalAttempts : 0;
+  const status: "stable" | "degraded" | "unstable" = classifyRunnerStability({ failureRate, retryRate, reductions });
+  return {
+    results,
+    stability: {
+      backoffPolicy,
+      initialParallel,
+      finalParallel: currentActiveWorkers,
+      totalAttempts,
+      totalFailures,
+      totalRetries,
+      reductions,
+      cooldownPauses,
+      failureRate,
+      retryRate,
+      maxConsecutiveRetries,
+      cooldownMsTotal,
+      recoveryIncreases,
+      status,
+    },
+  };
 }
 
 async function runParallelInProcesses(
@@ -423,6 +861,7 @@ async function runParallelInProcesses(
     logLinePreservingProgress(`Runner recovery: active workers increased to ${currentActiveWorkers}.`);
   };
 
+  let lowMemoryReductionApplied = false;
   const runOnWorker = async (workerIndex: number): Promise<void> => {
     const worker = workers[workerIndex];
     if (!worker || !worker.active || signal?.aborted) {
@@ -449,6 +888,7 @@ async function runParallelInProcesses(
       onlyCategories: task.onlyCategories,
       captureLevel,
       outputDir,
+      cookieHeader: task.cookieHeader,
     };
     worker.busy = true;
     worker.inFlightId = id;
@@ -506,30 +946,31 @@ async function runParallelInProcesses(
       const retryItem = flight
         ? { taskIndex: flight.taskIndex, runIndex: flight.runIndex, attempts: next.attempts + 1 }
         : { taskIndex: next.taskIndex, runIndex: next.runIndex, attempts: next.attempts + 1 };
-      if (retryItem.attempts >= MAX_PARENT_TASK_ATTEMPTS) {
+      const maxAttempts = maxAttemptsForRunnerFailure(response.errorMessage);
+      if (retryItem.attempts >= maxAttempts) {
         logLinePreservingProgress(`Giving up: ${task.path} [${task.device}] (run ${next.runIndex + 1}/${task.runs}) after ${retryItem.attempts} attempts.`);
         summariesByTask[next.taskIndex].push(buildFailureSummary(task, response.errorMessage));
         updateProgress(task.path, task.device);
         if (summariesByTask[next.taskIndex].length === task.runs) {
           results[next.taskIndex] = aggregateSummaries(summariesByTask[next.taskIndex]);
         }
+        if (isRouteScopedRunnerFailure(response.errorMessage)) {
+          consecutiveRetries = 0;
+        }
       } else {
         pending.unshift(retryItem);
       }
-      consecutiveRetries += 1;
-      maxConsecutiveRetries = Math.max(maxConsecutiveRetries, consecutiveRetries);
-      stableSuccesses = 0;
-      pushFailureSample(1);
-
-      const rollingRate: number = rollingFailureRate();
-      const reduceByRetries: boolean = consecutiveRetries >= reductionRetryThreshold;
-      const reduceByRate: boolean = recentFailures.length >= failureWindowSize && rollingRate >= reductionFailureRateThreshold;
-      if (currentActiveWorkers > 1 && (reduceByRetries || reduceByRate)) {
-        reduceActiveWorkers("failure-storm");
+      if (!isRouteScopedRunnerFailure(response.errorMessage)) {
+        consecutiveRetries += 1;
+        maxConsecutiveRetries = Math.max(maxConsecutiveRetries, consecutiveRetries);
+        stableSuccesses = 0;
+        pushFailureSample(1);
+        await delayMs(computeParentRetryDelayMs({ attempt: retryItem.attempts }));
+      } else {
+        await delayMs(retryItem.attempts > 0 ? 200 : 0);
       }
 
-      await delayMs(computeParentRetryDelayMs({ attempt: retryItem.attempts }));
-      if (workers[workerIndex]?.active) {
+      if (shouldReplaceWorkerAfterFailure(response.errorMessage) && workers[workerIndex]?.active) {
         await replaceWorker(workerIndex);
       }
       return;
@@ -551,8 +992,9 @@ async function runParallelInProcesses(
       if (signal?.aborted) {
         throw new Error("Aborted");
       }
-      if (backoffPolicy !== "off" && currentActiveWorkers > 1 && freemem() < LOW_MEMORY_REDUCTION_THRESHOLD_BYTES) {
+      if (backoffPolicy !== "off" && !lowMemoryReductionApplied && currentActiveWorkers > 3 && freemem() < LOW_MEMORY_REDUCTION_THRESHOLD_BYTES) {
         reduceActiveWorkers("low-memory");
+        lowMemoryReductionApplied = true;
       }
       if (consecutiveRetries >= cooldownRetryThreshold) {
         const cooldownMs: number = computeCooldownDelayMs({ backoffPolicy, consecutiveRetries });
@@ -658,6 +1100,7 @@ interface RunAuditParams {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly cookieHeader?: string;
 }
 
 type AuditOutcome = {
@@ -676,6 +1119,7 @@ interface AuditTask {
   readonly throttlingMethod: ApexThrottlingMethod;
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
+  readonly cookieHeader?: string;
 }
 
 type WorkerTask = {
@@ -691,6 +1135,7 @@ type WorkerTask = {
   readonly onlyCategories?: readonly ApexCategory[];
   readonly captureLevel?: "diagnostics" | "lhr";
   readonly outputDir: string;
+  readonly cookieHeader?: string;
 };
 
 type WorkerRequestMessage = {
@@ -919,6 +1364,18 @@ export async function runAuditsForConfig({
     throw new Error("Aborted");
   }
   await ensureUrlReachable(healthCheckUrl, signal);
+  const authCookieHeader = await resolveAuditAuthCookieHeader({
+    auth: config.auth,
+    baseUrl: config.baseUrl,
+    configDir: dirname(configPath),
+  });
+  if (authCookieHeader) {
+    logLinePreservingProgress("Auth session: cookies configured for preflight and Lighthouse.");
+  }
+  const appHealth = await probeAppHealth({ baseUrl: config.baseUrl, cookieHeader: authCookieHeader });
+  if (!appHealth.ok) {
+    throw new Error(`App health check failed before audit: ${appHealth.reason ?? "unknown"}`);
+  }
   const throttlingMethod: ApexThrottlingMethod = config.throttlingMethod ?? "simulate";
   const cpuSlowdownMultiplier: number = config.cpuSlowdownMultiplier ?? 4;
   const logLevel = config.logLevel ?? "error";
@@ -964,6 +1421,7 @@ export async function runAuditsForConfig({
       throttlingMethod,
       cpuSlowdownMultiplier,
       onlyCategories,
+      cookieHeader: authCookieHeader,
     }));
   });
   const queueBuildStartedAtMs: number = Date.now();
@@ -984,14 +1442,55 @@ export async function runAuditsForConfig({
   }
   const queueBuildMs: number = Date.now() - queueBuildStartedAtMs;
 
+  const routePreflightEnabled = config.routePreflight !== false;
+  let preflightByPath = new Map<string, RoutePreflightResult>();
+  if (routePreflightEnabled && tasks.length > 0) {
+    preflightByPath = await probeRoutesParallel({
+      baseUrl: config.baseUrl,
+      paths: config.pages.map((page) => page.path),
+      query: config.query,
+      concurrency: 12,
+      cookieHeader: authCookieHeader,
+    });
+    const skippedPreflight = [...preflightByPath.values()].filter((entry) => entry.status !== "ok");
+    if (skippedPreflight.length > 0) {
+      logLinePreservingProgress(
+        `Route preflight: skipping ${skippedPreflight.length} path(s) (${skippedPreflight.filter((entry) => entry.status === "auth-wall").length} auth-wall).`,
+      );
+      for (const entry of skippedPreflight.slice(0, 6)) {
+        logLinePreservingProgress(`  ${formatPreflightSkipMessage(entry)}`);
+      }
+      if (skippedPreflight.length > 6) {
+        logLinePreservingProgress(`  ... and ${skippedPreflight.length - 6} more`);
+      }
+    }
+  }
+
   const results: PageDeviceSummary[] = new Array(tasks.length);
   const tasksToRun: AuditTask[] = [];
   const taskIndexByRunIndex: number[] = [];
   let cachedSteps = 0;
   let cachedCombos = 0;
+  let preflightSkippedCombos = 0;
+
+  const assignPreflightSkipIfNeeded = (task: AuditTask, index: number): boolean => {
+    const preflight = preflightByPath.get(task.path);
+    if (!preflight || preflight.status === "ok") {
+      return false;
+    }
+    results[index] = buildPreflightSkipSummary(task, preflight);
+    cachedSteps += task.runs;
+    cachedCombos += 1;
+    preflightSkippedCombos += 1;
+    return true;
+  };
+
   if (incrementalEnabled) {
     for (let i = 0; i < tasks.length; i += 1) {
       const task: AuditTask = tasks[i];
+      if (assignPreflightSkipIfNeeded(task, i)) {
+        continue;
+      }
       const key: string = buildCacheKey({
         buildId: config.buildId as string,
         url: task.url,
@@ -1015,6 +1514,9 @@ export async function runAuditsForConfig({
     }
   } else {
     for (let i = 0; i < tasks.length; i += 1) {
+      if (assignPreflightSkipIfNeeded(tasks[i], i)) {
+        continue;
+      }
       taskIndexByRunIndex.push(i);
       tasksToRun.push(tasks[i]);
     }
@@ -1026,6 +1528,15 @@ export async function runAuditsForConfig({
     // eslint-disable-next-line no-console
     console.log(`Resolved parallel workers: ${parallelCount}`);
   }
+  logLinePreservingProgress(
+    formatAuditPlanEstimate({
+      totalCombos: tasks.length,
+      routeCount: config.pages.length,
+      tasksToRun: tasksToRun.length,
+      skippedPreflight: preflightSkippedCombos,
+      parallel: parallelCount,
+    }),
+  );
   const totalSteps: number = tasks.length * runs;
   const executedCombos: number = tasksToRun.length;
   const executedSteps: number = executedCombos * runs;
@@ -1142,7 +1653,32 @@ export async function runAuditsForConfig({
         captureLevel,
         outputDir,
         sessionIsolation,
+        cookieHeader: authCookieHeader,
       });
+    } else if (usesInProcessParallelRunner()) {
+      rustCoreMeta = {
+        enabled: rustAttempt.enabled,
+        used: false,
+        fallbackReason: rustAttempt.fallbackReason,
+        sidecarElapsedMs: rustAttempt.sidecarElapsedMs,
+      };
+      const backoffPolicy: ApexThroughputBackoffPolicy = config.throughputBackoff ?? "auto";
+      // eslint-disable-next-line no-console
+      console.log(
+        `Parallel runner: stdio worker pool (${parallelCount} workers, no fork IPC — Windows-safe path).`,
+      );
+      const parallelRun = await runParallelInStdioWorkers(
+        tasksToRun,
+        parallelCount,
+        auditTimeoutMs,
+        signal,
+        updateProgress,
+        captureLevel,
+        outputDir,
+        backoffPolicy,
+      );
+      resultsFromRunner = parallelRun.results;
+      runnerStability = parallelRun.stability;
     } else {
       rustCoreMeta = {
         enabled: rustAttempt.enabled,
@@ -1207,6 +1743,18 @@ export async function runAuditsForConfig({
   const completedAtMs: number = Date.now();
   const elapsedMs: number = completedAtMs - startedAtMs;
   const averageStepMs: number = totalSteps > 0 ? elapsedMs / totalSteps : 0;
+  const scoreCoverage = auditScoreCoverage({ summaries: results });
+  if (scoreCoverage.expectedToScore > 0 && scoreCoverage.rate < MIN_AUDIT_SCORE_COVERAGE_RATE) {
+    const pct = Math.round(scoreCoverage.rate * 100);
+    const stabilityNote =
+      runnerStability && runnerStability.failureRate > 0.5
+        ? ` Runner instability: ${Math.round(runnerStability.failureRate * 100)}% task failure rate.`
+        : "";
+    throw new Error(
+      `Partial audit: only ${scoreCoverage.scored}/${scoreCoverage.expectedToScore} combos produced scores (${pct}%).` +
+        ` Check app env (BETTER_AUTH_SECRET, DATABASE_URL) and server logs.${stabilityNote}`,
+    );
+  }
   return {
     meta: {
       configPath,
@@ -1228,6 +1776,7 @@ export async function runAuditsForConfig({
       elapsedMs,
       averageStepMs,
       runnerStability,
+      scoreCoverage,
     },
     results,
   };
@@ -1242,6 +1791,7 @@ async function runSequential(params: {
   readonly captureLevel: "diagnostics" | "lhr" | undefined;
   readonly outputDir: string;
   readonly sessionIsolation: "shared" | "per-audit";
+  readonly cookieHeader?: string;
 }): Promise<PageDeviceSummary[]> {
   const results: PageDeviceSummary[] = [];
   const sessionRef: { session: ChromeSession } = { session: await createChromeSession(params.chromePort) };
@@ -1274,6 +1824,7 @@ async function runSequential(params: {
             throttlingMethod: task.throttlingMethod,
             cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
             onlyCategories: task.onlyCategories,
+            cookieHeader: params.cookieHeader ?? task.cookieHeader,
           });
         };
         const outcome = await withTimeout(attemptAudit(), params.auditTimeoutMs).catch(async (error: unknown) => {
@@ -1313,72 +1864,6 @@ async function runSequential(params: {
   return results;
 }
 
-async function runParallel(
-  tasks: AuditTask[],
-  parallelCount: number,
-  updateProgress: (path: string, device: ApexDevice) => void,
-  captureLevel: "diagnostics" | "lhr" | undefined,
-  outputDir: string,
-): Promise<PageDeviceSummary[]> {
-  // Create a pool of Chrome sessions
-  const sessions: { session: ChromeSession }[] = [];
-  const effectiveParallel: number = Math.min(parallelCount, tasks.length);
-
-  for (let i = 0; i < effectiveParallel; i += 1) {
-    if (i > 0) {
-      await delayMs(200 * i);
-    }
-    sessions.push({ session: await createChromeSession() });
-  }
-
-  const results: PageDeviceSummary[] = new Array(tasks.length);
-  let taskIndex = 0;
-
-  const runWorker = async (sessionRef: { session: ChromeSession }, workerIndex: number): Promise<void> => {
-    while (taskIndex < tasks.length) {
-      const currentIndex = taskIndex;
-      taskIndex += 1;
-      const task = tasks[currentIndex];
-
-      const summaries: PageDeviceSummary[] = [];
-      for (let run = 0; run < task.runs; run += 1) {
-        const outcome: AuditOutcome = await runSingleAuditWithRetry({
-          task,
-          sessionRef,
-          updateProgress,
-          maxRetries: 2,
-        });
-        if (captureLevel !== undefined) {
-          await captureLighthouseArtifacts({
-            outputRoot: resolve(outputDir),
-            captureLevel,
-            key: { label: task.label, path: task.path, device: task.device },
-            lhr: outcome.lhr,
-          });
-        }
-        summaries.push(outcome.summary);
-        updateProgress(task.path, task.device);
-      }
-      results[currentIndex] = aggregateSummaries(summaries);
-    }
-  };
-
-  try {
-    await Promise.all(sessions.map((sessionRef, index) => runWorker(sessionRef, index)));
-  } finally {
-    // Close all Chrome sessions
-    await Promise.all(
-      sessions.map(async (sessionRef) => {
-        if (sessionRef.session.close) {
-          await sessionRef.session.close();
-        }
-      }),
-    );
-  }
-
-  return results;
-}
-
 function isTransientLighthouseError(error: unknown): boolean {
   const message: string = error instanceof Error && typeof error.message === "string" ? error.message : "";
   return (
@@ -1388,6 +1873,7 @@ function isTransientLighthouseError(error: unknown): boolean {
     message.includes("setAutoAttach") ||
     message.includes("LanternError") ||
     message.includes("top level events") ||
+    message.includes("trace engine differed") ||
     message.includes("CDP") ||
     message.includes("disconnected") ||
     // Additional transient errors for better retry handling
@@ -1403,13 +1889,13 @@ function isTransientLighthouseError(error: unknown): boolean {
 async function runSingleAuditWithRetry({
   task,
   sessionRef,
-  updateProgress,
   maxRetries,
+  cookieHeader,
 }: {
   readonly task: AuditTask;
   readonly sessionRef: { session: ChromeSession };
-  readonly updateProgress: (path: string, device: ApexDevice) => void;
   readonly maxRetries: number;
+  readonly cookieHeader?: string;
 }): Promise<AuditOutcome> {
   let attempt = 0;
   let lastError: unknown;
@@ -1420,11 +1906,13 @@ async function runSingleAuditWithRetry({
         path: task.path,
         label: task.label,
         device: task.device,
+        pageScope: task.pageScope,
         port: sessionRef.session.port,
         logLevel: task.logLevel,
         throttlingMethod: task.throttlingMethod,
         cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
         onlyCategories: task.onlyCategories,
+        cookieHeader: cookieHeader ?? task.cookieHeader,
       });
     } catch (error: unknown) {
       lastError = error;
@@ -1501,6 +1989,10 @@ async function runSingleAudit(params: RunAuditParams): Promise<AuditOutcome> {
       downloadThroughputKbps: 1638.4,
       uploadThroughputKbps: 750,
     };
+  }
+  const extraHeaders = lighthouseExtraHeaders(params.cookieHeader);
+  if (extraHeaders) {
+    options.extraHeaders = extraHeaders;
   }
   const runnerResult = await lighthouse(params.url, options);
   const lhrUnknown: unknown = runnerResult.lhr as unknown;

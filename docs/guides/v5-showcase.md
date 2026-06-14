@@ -37,11 +37,21 @@ Do **not** list the whole `.signaler/` tree. Use projections:
 
 ```bash
 signaler query --view agent --dir .signaler --json
+signaler query --view fix-queue --dir .signaler --json
+signaler query --view coverage --dir .signaler --json
 signaler query --view perf --dir .signaler --json
-signaler explain --id <issue-id> --dir .signaler
+signaler explain --id <action-id> --dir .signaler
 ```
 
+Read order: `fix-queue.json` → `coverage.json` → `performance-triage.json` → `analyze.json`.
+
 Fallback entrypoints: `.signaler/agent/entrypoints.json`, `.signaler/manifest.json`.
+
+## Demo media (GIF refresh)
+
+**v5.1.6 recording script:** [gif-demo-script.md](./gif-demo-script.md) — monorepo audit, dashboard, fix-queue, coverage (copy-paste commands, captions, launch thread outline).
+
+Legacy GIFs under `docs/assets/` were recorded on v2.6.4. Replace using the storyboard in [docs/assets/README.md](../assets/README.md).
 
 ## Quality pack (tune for rollout)
 

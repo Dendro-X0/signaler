@@ -24,6 +24,11 @@ describe("engine entry surface", () => {
     const runArgs = job.steps[1]?.args ?? [];
     expect(runArgs).toContain("--parallel");
     expect(runArgs).toContain("6");
+    if (process.env.CI === "true") {
+      expect(runArgs).toContain("--ci");
+    } else {
+      expect(runArgs).not.toContain("--ci");
+    }
   });
 
   it("executes jobs via injectable step runner and writes artifacts", async () => {

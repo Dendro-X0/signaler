@@ -1,3 +1,4 @@
+import { parseServeEnvPair } from "../core/config.js";
 import { parseManagedServeMode, resolveManagedServeModeFromEnv, type ManagedServeMode } from "../engine/serve/index.js";
 
 export type OrchestratorServeOptions = {
@@ -6,6 +7,7 @@ export type OrchestratorServeOptions = {
   managedServeMode: ManagedServeMode;
   managedServeSkipBuild: boolean;
   managedServeReuse: boolean;
+  serveEnvOverrides: Record<string, string>;
 };
 
 /** Shared defaults for audit, job, and run when auto-serving the target app. */
@@ -16,6 +18,7 @@ export function createOrchestratorServeDefaults(): OrchestratorServeOptions {
     managedServeMode: resolveManagedServeModeFromEnv() ?? "production",
     managedServeSkipBuild: false,
     managedServeReuse: process.env.SIGNALER_MANAGED_SERVE_REUSE === "1",
+    serveEnvOverrides: {},
   };
 }
 
@@ -59,6 +62,14 @@ export function applyOrchestratorServeFlag(
   if (arg === "--managed-serve-reuse") {
     options.managedServeReuse = true;
     return 0;
+  }
+  if (arg === "--serve-env") {
+    if (index + 1 >= argv.length) {
+      throw new Error("--serve-env requires KEY=VALUE");
+    }
+    const pair = parseServeEnvPair(argv[index + 1] ?? "");
+    options.serveEnvOverrides[pair.key] = pair.value;
+    return 1;
   }
   return -1;
 }

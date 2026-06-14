@@ -96,5 +96,9 @@ describe("EnhancedTriageGenerator", () => {
         expect(report).toContain("ARIA attributes must be allowed for an element's role");
         expect(report).toContain("Document does not have a meta description");
         expect(report).toContain("Page lacks the HTML doctype");
+
+        expect(report).toContain("### Phase 1: Critical Issues");
+        expect(report).not.toMatch(/Week \d/);
+        expect(report).not.toContain("this sprint");
     });
 });

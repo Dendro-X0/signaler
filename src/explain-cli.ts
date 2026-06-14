@@ -54,6 +54,15 @@ export async function runExplainCli(argv: readonly string[]): Promise<void> {
   const args = parseArgs(argv);
   const artifacts = await loadAgentArtifacts(args.dir);
 
+  if (artifacts.fixQueue !== undefined) {
+    const item = artifacts.fixQueue.items.find((entry) => entry.actionId === args.id);
+    if (item !== undefined) {
+      const text = JSON.stringify({ kind: "fix-queue-item", item }, null, args.json ? 2 : undefined);
+      console.log(text);
+      return;
+    }
+  }
+
   if (artifacts.analyze !== undefined) {
     const action = artifacts.analyze.actions.find((entry) => entry.id === args.id);
     if (action !== undefined) {

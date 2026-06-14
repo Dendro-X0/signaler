@@ -5,8 +5,10 @@ import { findPerformanceIssueById, findSuggestionById, loadAgentArtifacts } from
 import { shouldFailOnDeltaProjection } from "./baseline-compare.js";
 import type { BaselineCompareConfig } from "./core/types.js";
 import { buildDeltaProjection } from "./query-delta.js";
+import { buildCoverageProjection } from "./query-coverage.js";
+import { resolveArtifactPath } from "./artifact-layout/index.js";
 
-type QueryView = "agent" | "actions" | "perf" | "run" | "evidence" | "delta";
+type QueryView = "agent" | "actions" | "perf" | "run" | "evidence" | "delta" | "coverage" | "fix-queue";
 
 type QueryArgs = {
   readonly dir: string;
@@ -42,8 +44,8 @@ function parseArgs(argv: readonly string[]): QueryArgs {
     }
     if (arg === "--view" && i + 1 < argv.length) {
       const value = argv[i + 1] ?? "";
-      if (value !== "agent" && value !== "actions" && value !== "perf" && value !== "run" && value !== "evidence" && value !== "delta") {
-        throw new Error(`Invalid --view value: ${value}. Expected agent|actions|perf|run|evidence|delta.`);
+      if (value !== "agent" && value !== "actions" && value !== "perf" && value !== "run" && value !== "evidence" && value !== "delta" && value !== "coverage" && value !== "fix-queue") {
+        throw new Error(`Invalid --view value: ${value}. Expected agent|actions|perf|run|evidence|delta|coverage|fix-queue.`);
       }
       view = value;
       i += 1;
@@ -152,6 +154,37 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
   }
 
   if (args.view === "agent") {
+    if (artifacts.fixQueue !== undefined) {
+      emit(
+        {
+          view: "agent",
+          primaryArtifact: "fix-queue.json",
+          comparabilityHash: artifacts.fixQueue.comparabilityHash,
+          fixLoop: artifacts.fixQueue.fixLoop,
+          itemCount: artifacts.fixQueue.items.length,
+          topItems: artifacts.fixQueue.items.slice(0, args.top).map((item) => ({
+            rank: item.rank,
+            actionId: item.actionId,
+            title: item.title,
+            category: item.category,
+            priorityScore: item.priorityScore,
+            targetCount: item.targets.length,
+            topTarget: item.targets[0],
+            source: item.source,
+          })),
+          agentProtocol: {
+            mandatoryReads: ["fix-queue.json", "coverage.json"],
+            optionalReads: ["analyze.json", "performance-triage.json", "verify.json"],
+            expandCommand: "signaler explain --id <action-id>",
+            fixQueueCommand: "signaler query --view fix-queue --dir .signaler --json",
+            coverageCommand: "signaler query --view coverage --dir .signaler",
+          },
+          artifactStatus,
+        },
+        args,
+      );
+      return;
+    }
     if (artifacts.analyze !== undefined) {
       emit(
         {
@@ -167,8 +200,9 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
           })),
           agentProtocol: {
             mandatoryReads: ["analyze.json"],
-            optionalReads: ["verify.json", "performance-triage.json"],
+            optionalReads: ["coverage.json", "verify.json", "performance-triage.json"],
             expandCommand: "signaler explain --id <action-id>",
+            coverageCommand: "signaler query --view coverage --dir .signaler",
           },
           artifactStatus,
         },
@@ -188,6 +222,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
         performanceReporting: artifacts.agentIndex.performanceReporting ?? "issue-count",
         performanceScoreSemantics: artifacts.agentIndex.performanceScoreSemantics,
         entrypoints: artifacts.agentIndex.entrypoints,
+        coverage: artifacts.coverage?.totals,
         agentProtocol: artifacts.agentIndex.agentProtocol,
         partialSuccess: artifacts.agentIndex.partialSuccess,
         artifactStatus,
@@ -225,6 +260,32 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
     throw new Error(`No actions found in ${args.dir}.`);
   }
 
+  if (args.view === "fix-queue") {
+    if (artifacts.fixQueue === undefined) {
+      throw new Error(`Missing fix-queue.json in ${args.dir}. Run signaler analyze --contract v6 after audit.`);
+    }
+    emit(
+      {
+        view: "fix-queue",
+        comparabilityHash: artifacts.fixQueue.comparabilityHash,
+        fixLoop: artifacts.fixQueue.fixLoop,
+        totals: artifacts.fixQueue.totals,
+        items: artifacts.fixQueue.items.slice(0, args.top),
+        artifactStatus,
+      },
+      args,
+    );
+    return;
+  }
+
+  if (args.view === "coverage") {
+    if (artifacts.coverage === undefined) {
+      throw new Error(`Missing coverage.json in ${args.dir}. Re-run with signaler run --contract v3 or signaler audit.`);
+    }
+    emit({ ...buildCoverageProjection({ coverage: artifacts.coverage, top: args.top }), artifactStatus }, args);
+    return;
+  }
+
   if (args.view === "perf") {
     if (artifacts.performanceTriage === undefined) {
       throw new Error(`Missing performance-triage.json in ${args.dir}. Re-run with signaler run --contract v3.`);
@@ -233,6 +294,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
       {
         view: "perf",
         reportingModel: artifacts.performanceTriage.reportingModel,
+        coverage: artifacts.performanceTriage.coverage,
         totals: artifacts.performanceTriage.totals,
         categoryScores: artifacts.performanceTriage.categoryScores,
         uniqueIssues: artifacts.performanceTriage.uniqueIssues.slice(0, args.top),
@@ -245,7 +307,7 @@ export async function runQueryCli(argv: readonly string[]): Promise<void> {
   }
 
   if (args.view === "run") {
-    const runPath = resolve(args.dir, "run.json");
+    const runPath = await resolveArtifactPath(args.dir, "run");
     const raw = await readFile(runPath, "utf8");
     const parsed = JSON.parse(raw) as unknown;
     const protocol =

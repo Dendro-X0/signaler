@@ -47,6 +47,7 @@ describe("report summary", () => {
               totalEstimatedSavingsMs: 1200,
             },
           ],
+          combos: [],
         },
         null,
         2,

@@ -2,12 +2,15 @@ import type { PageDeviceSummary } from "./core/types.js";
 import type {
   PerformanceIssueKind,
   PerformanceIssueSeverity,
+  PerformanceTriageComboIssueV3,
+  PerformanceTriageComboV3,
   PerformanceTriageIssueV3,
   PerformanceTriageV3,
   ResultsV3Line,
   RunProtocolV3,
 } from "./engine-contracts/artifacts/v3/index.js";
 import type { MachineArtifactProfile } from "./machine-output-profile.js";
+import { auditScoreCoverage, classifyComboAuditStatus } from "./runners/lighthouse/route-preflight.js";
 
 const PERFORMANCE_SCORE_DISCLAIMER =
   "Performance category scores are lab-oriented and may differ from DevTools one-off runs under parallel load. Prefer issue-count triage (red/yellow) and verify deltas after fixes.";
@@ -77,6 +80,116 @@ function getProfileCaps(profile: MachineArtifactProfile): { readonly maxOpportun
     return { maxOpportunities: 10, maxFailedAudits: 20 };
   }
   return { maxOpportunities: 5, maxFailedAudits: 12 };
+}
+
+export function countComboPerformanceIssues(
+  combo: PageDeviceSummary,
+  includeYellow: boolean,
+): { readonly red: number; readonly yellow: number } {
+  let red = 0;
+  let yellow = 0;
+  for (const audit of combo.failedAudits) {
+    const severity = classifyAuditSeverity({ score: audit.score, scoreDisplayMode: audit.scoreDisplayMode });
+    if (severity === null || severity === "green") {
+      continue;
+    }
+    if (!includeYellow && severity === "yellow") {
+      continue;
+    }
+    if (severity === "red") {
+      red += 1;
+    } else {
+      yellow += 1;
+    }
+  }
+  for (const opportunity of combo.opportunities) {
+    const severity = classifyOpportunitySeverity({
+      estimatedSavingsMs: opportunity.estimatedSavingsMs,
+      estimatedSavingsBytes: opportunity.estimatedSavingsBytes,
+    });
+    if (severity === null) {
+      continue;
+    }
+    if (!includeYellow && severity === "yellow") {
+      continue;
+    }
+    if (severity === "red") {
+      red += 1;
+    } else {
+      yellow += 1;
+    }
+  }
+  return { red, yellow };
+}
+
+export function listComboPerformanceIssues(
+  combo: PageDeviceSummary,
+  includeYellow: boolean,
+): readonly PerformanceTriageComboIssueV3[] {
+  const issueMap: Map<string, PerformanceTriageComboIssueV3> = new Map();
+  const upsert = (key: string, issue: PerformanceTriageComboIssueV3): void => {
+    const existing = issueMap.get(key);
+    if (existing === undefined) {
+      issueMap.set(key, issue);
+      return;
+    }
+    issueMap.set(key, {
+      ...existing,
+      severity: existing.severity === "red" || issue.severity === "red" ? "red" : "yellow",
+      estimatedSavingsMs: Math.max(existing.estimatedSavingsMs ?? 0, issue.estimatedSavingsMs ?? 0) || undefined,
+      estimatedSavingsBytes: Math.max(existing.estimatedSavingsBytes ?? 0, issue.estimatedSavingsBytes ?? 0) || undefined,
+    });
+  };
+  for (const audit of combo.failedAudits) {
+    const severity = classifyAuditSeverity({ score: audit.score, scoreDisplayMode: audit.scoreDisplayMode });
+    if (severity === null || severity === "green") {
+      continue;
+    }
+    if (!includeYellow && severity === "yellow") {
+      continue;
+    }
+    const actionableSeverity: "red" | "yellow" = severity === "red" ? "red" : "yellow";
+    upsert(`audit:${audit.id}`, {
+      id: audit.id,
+      title: audit.title,
+      severity: actionableSeverity,
+      kind: "audit",
+    });
+  }
+  for (const opportunity of combo.opportunities) {
+    const severity = classifyOpportunitySeverity({
+      estimatedSavingsMs: opportunity.estimatedSavingsMs,
+      estimatedSavingsBytes: opportunity.estimatedSavingsBytes,
+    });
+    if (severity === null) {
+      continue;
+    }
+    if (!includeYellow && severity === "yellow") {
+      continue;
+    }
+    const actionableSeverity: "red" | "yellow" = severity === "red" ? "red" : "yellow";
+    const ms = opportunity.estimatedSavingsMs ?? 0;
+    const bytes = opportunity.estimatedSavingsBytes ?? 0;
+    upsert(`opportunity:${opportunity.id}`, {
+      id: opportunity.id,
+      title: opportunity.title,
+      severity: actionableSeverity,
+      kind: "opportunity",
+      ...(ms > 0 ? { estimatedSavingsMs: ms } : {}),
+      ...(bytes > 0 ? { estimatedSavingsBytes: bytes } : {}),
+    });
+  }
+  return [...issueMap.values()].sort((a, b) => {
+    if (a.severity !== b.severity) {
+      return a.severity === "red" ? -1 : 1;
+    }
+    const impactA = (a.estimatedSavingsMs ?? 0) + (a.estimatedSavingsBytes ?? 0) / 1024;
+    const impactB = (b.estimatedSavingsMs ?? 0) + (b.estimatedSavingsBytes ?? 0) / 1024;
+    if (impactB !== impactA) {
+      return impactB - impactA;
+    }
+    return a.id.localeCompare(b.id);
+  });
 }
 
 export function trimResultsLineForMachineProfile(params: {
@@ -232,6 +345,54 @@ export function buildPerformanceTriageV3(params: {
       pointer: `performance-triage.json#/uniqueIssues/${index}`,
     }));
 
+  const combos: PerformanceTriageComboV3[] = params.results.map((combo, index) => {
+    const counts = countComboPerformanceIssues(combo, params.includeYellow);
+    const issues = listComboPerformanceIssues(combo, params.includeYellow);
+    const auditStatus = classifyComboAuditStatus(combo);
+    const categoryScores =
+      auditStatus === "scored" || auditStatus === "partial"
+        ? {
+            ...(typeof combo.scores.performance === "number" ? { performance: combo.scores.performance } : {}),
+            ...(typeof combo.scores.accessibility === "number" ? { accessibility: combo.scores.accessibility } : {}),
+            ...(typeof combo.scores.bestPractices === "number" ? { bestPractices: combo.scores.bestPractices } : {}),
+            ...(typeof combo.scores.seo === "number" ? { seo: combo.scores.seo } : {}),
+          }
+        : undefined;
+    return {
+      label: combo.label,
+      path: combo.path,
+      device: combo.device,
+      url: combo.url,
+      auditStatus,
+      ...(combo.runtimeErrorMessage ? { runtimeErrorMessage: combo.runtimeErrorMessage } : {}),
+      ...(categoryScores && Object.keys(categoryScores).length > 0 ? { categoryScores } : {}),
+      counts: {
+        red: counts.red,
+        yellow: counts.yellow,
+        actionable: counts.red + counts.yellow,
+      },
+      issues,
+      pointer: `performance-triage.json#/combos/${index}`,
+    };
+  });
+
+  const scoreCoverage = auditScoreCoverage({ summaries: params.results });
+  let skippedAuth = 0;
+  let skippedUnreachable = 0;
+  let runnerErrors = 0;
+  let partial = 0;
+  for (const combo of combos) {
+    if (combo.auditStatus === "skipped-auth") {
+      skippedAuth += 1;
+    } else if (combo.auditStatus === "skipped-unreachable") {
+      skippedUnreachable += 1;
+    } else if (combo.auditStatus === "runner-error") {
+      runnerErrors += 1;
+    } else if (combo.auditStatus === "partial") {
+      partial += 1;
+    }
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     contractVersion: "v3",
@@ -242,6 +403,18 @@ export function buildPerformanceTriageV3(params: {
       includeYellow: params.includeYellow,
     },
     disclaimer: PERFORMANCE_SCORE_DISCLAIMER,
+    coverage: {
+      combos: scoreCoverage.total,
+      scored: scoreCoverage.scored,
+      skipped: scoreCoverage.skipped,
+      skippedAuth,
+      skippedUnreachable,
+      runnerErrors,
+      partial,
+      expectedToScore: scoreCoverage.expectedToScore,
+      scoreRate: scoreCoverage.rate,
+      artifact: "coverage.json",
+    },
     categoryScores: {
       accessibility: medianRounded(params.results.map((r) => r.scores.accessibility).filter((v): v is number => typeof v === "number")),
       bestPractices: medianRounded(params.results.map((r) => r.scores.bestPractices).filter((v): v is number => typeof v === "number")),
@@ -255,6 +428,7 @@ export function buildPerformanceTriageV3(params: {
       actionable: red + yellow,
     },
     uniqueIssues,
+    combos,
   };
 }
 
@@ -263,5 +437,10 @@ export function isPerformanceTriageV3(value: unknown): value is PerformanceTriag
     return false;
   }
   const record = value as Record<string, unknown>;
-  return record.contractVersion === "v3" && record.reportingModel === "issue-count" && Array.isArray(record.uniqueIssues);
+  return (
+    record.contractVersion === "v3"
+    && record.reportingModel === "issue-count"
+    && Array.isArray(record.uniqueIssues)
+    && Array.isArray(record.combos)
+  );
 }

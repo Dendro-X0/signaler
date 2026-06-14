@@ -7,6 +7,10 @@ import type { AnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import { isAnalyzeReportV6 } from "./engine-contracts/artifacts/v6/index.js";
 import type { PerformanceTriageV3 } from "./engine-contracts/artifacts/v3/index.js";
 import { isPerformanceTriageV3 } from "./performance-triage.js";
+import type { AuditCoverageV1 } from "./audit-coverage.js";
+import { isAuditCoverageV1 } from "./audit-coverage.js";
+import type { FixQueueV1 } from "./fix-queue.js";
+import { isFixQueueV1 } from "./fix-queue.js";
 
 export type LoadedAgentArtifacts = {
   readonly dir: string;
@@ -15,6 +19,8 @@ export type LoadedAgentArtifacts = {
   readonly results?: ResultsV3;
   readonly analyze?: AnalyzeReportV6;
   readonly performanceTriage?: PerformanceTriageV3;
+  readonly coverage?: AuditCoverageV1;
+  readonly fixQueue?: FixQueueV1;
 };
 
 async function readJson(path: string): Promise<unknown> {
@@ -29,6 +35,8 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
   let results: ResultsV3 | undefined;
   let analyze: AnalyzeReportV6 | undefined;
   let performanceTriage: PerformanceTriageV3 | undefined;
+  let coverage: AuditCoverageV1 | undefined;
+  let fixQueue: FixQueueV1 | undefined;
 
   try {
     const parsed = await readJson(await resolveArtifactPath(root, "agent-index"));
@@ -75,7 +83,25 @@ export async function loadAgentArtifacts(dir: string): Promise<LoadedAgentArtifa
     // optional
   }
 
-  return { dir: root, agentIndex, suggestions, results, analyze, performanceTriage };
+  try {
+    const parsed = await readJson(await resolveArtifactPath(root, "coverage"));
+    if (isAuditCoverageV1(parsed)) {
+      coverage = parsed;
+    }
+  } catch {
+    // optional
+  }
+
+  try {
+    const parsed = await readJson(await resolveArtifactPath(root, "fix-queue"));
+    if (isFixQueueV1(parsed)) {
+      fixQueue = parsed;
+    }
+  } catch {
+    // optional
+  }
+
+  return { dir: root, agentIndex, suggestions, results, analyze, performanceTriage, coverage, fixQueue };
 }
 
 export function findSuggestionById(suggestions: SuggestionsV3, id: string): SuggestionV3 | undefined {

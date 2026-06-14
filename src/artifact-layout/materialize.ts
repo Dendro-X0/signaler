@@ -1,4 +1,4 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { ARTIFACT_DIRECTORY_RULES, ARTIFACT_RULES } from "./registry.js";
@@ -40,7 +40,12 @@ function buildAgentEntrypoints(artifacts: readonly ManifestArtifactEntry[], gene
     readOrder.push({
       id: rule.id,
       path: entry.path,
-      note: rule.id === "agent-index" ? "Prefer signaler query --view agent" : undefined,
+      note:
+        rule.id === "agent-index"
+          ? "Prefer signaler query --view agent"
+          : rule.id === "coverage"
+            ? "Audit reachability: scored vs skipped routes"
+            : undefined,
     });
   }
   return {
@@ -49,6 +54,7 @@ function buildAgentEntrypoints(artifacts: readonly ManifestArtifactEntry[], gene
     readOrder,
     preferCli: [
       "signaler query --view agent --dir .signaler --json",
+      "signaler query --view coverage --dir .signaler --json",
       "signaler query --view perf --dir .signaler --json",
       "signaler explain --id <issue-id> --dir .signaler",
     ],
@@ -61,11 +67,19 @@ Prefer CLI projections — do not list the entire \`.signaler/\` tree:
 
 \`\`\`bash
 signaler query --view agent --dir .signaler --json
+signaler query --view fix-queue --dir .signaler --json
+signaler query --view coverage --dir .signaler --json
 signaler query --view perf --dir .signaler --json
-signaler explain --id <issue-id> --dir .signaler
+signaler explain --id <action-id> --dir .signaler
 \`\`\`
 
-Fallback read order: \`entrypoints.json\` in this directory.
+Canonical read order (see \`entrypoints.json\`):
+
+1. \`fix-queue.json\` — ranked surgical fix list (path, device, url, savings, pointers)
+2. \`coverage.json\` — what was scored vs skipped (auth/env/runner errors)
+3. \`performance-triage.json\` — issue-count triage per combo
+4. \`analyze.json\` — ranked actions (after analyze step)
+5. \`index.json\` — protocol + top suggestion pointers
 `;
 
 const DEVELOPER_README = `# Developer reports
@@ -87,6 +101,32 @@ export type MaterializeResult = {
   readonly archivedFiles: number;
 };
 
+async function loadExistingManifestArtifacts(root: string): Promise<Map<string, ManifestArtifactEntry>> {
+  const manifestPath = resolve(root, "manifest.json");
+  if (!existsSync(manifestPath)) {
+    return new Map();
+  }
+  try {
+    const raw = await readFile(manifestPath, "utf8");
+    const parsed = JSON.parse(raw) as ArtifactManifestV1;
+    return new Map((parsed.artifacts ?? []).map((entry) => [entry.id, entry] as const));
+  } catch {
+    return new Map();
+  }
+}
+
+function manifestEntryForRule(rule: (typeof ARTIFACT_RULES)[number]): ManifestArtifactEntry {
+  return {
+    id: rule.id,
+    path: rule.treePath,
+    legacyPath: rule.flatPath,
+    audience: rule.audience,
+    runner: rule.runner,
+    weight: rule.weight,
+    contract: rule.contract,
+  };
+}
+
 export async function materializeArtifactLayout(params: {
   readonly outputDir: string;
   readonly layout: ArtifactLayoutMode;
@@ -98,24 +138,24 @@ export async function materializeArtifactLayout(params: {
   const root = resolve(params.outputDir);
   const generatedAt = new Date().toISOString();
   let copiedCount = 0;
-  const manifestArtifacts: ManifestArtifactEntry[] = [];
+  const manifestById = await loadExistingManifestArtifacts(root);
 
   for (const rule of ARTIFACT_RULES) {
     const source = resolve(root, rule.flatPath);
     const destination = resolve(root, rule.treePath);
-    if (await copyIfExists(source, destination)) {
+    if (existsSync(source)) {
+      await mkdir(dirname(destination), { recursive: true });
+      await cp(source, destination, { force: true });
       copiedCount += 1;
-      manifestArtifacts.push({
-        id: rule.id,
-        path: rule.treePath,
-        legacyPath: rule.flatPath,
-        audience: rule.audience,
-        runner: rule.runner,
-        weight: rule.weight,
-        contract: rule.contract,
-      });
+    }
+    if (existsSync(destination)) {
+      manifestById.set(rule.id, manifestEntryForRule(rule));
+    } else {
+      manifestById.delete(rule.id);
     }
   }
+
+  const manifestArtifacts: ManifestArtifactEntry[] = [...manifestById.values()];
 
   for (const dirRule of ARTIFACT_DIRECTORY_RULES) {
     const source = resolve(root, dirRule.flatDir);

@@ -443,10 +443,10 @@ export function parseWizardArgs(argv: readonly string[]): WizardArgs {
       index += 1;
     } else if (arg.startsWith("--base-url=")) {
       baseUrl = arg.split("=")[1];
-    } else if ((arg === "--project-root" || arg === "--root") && index + 1 < argv.length) {
+    } else if ((arg === "--project-root" || arg === "--root" || arg === "--cwd") && index + 1 < argv.length) {
       projectRoot = argv[index + 1];
       index += 1;
-    } else if (arg.startsWith("--project-root=") || arg.startsWith("--root=")) {
+    } else if (arg.startsWith("--project-root=") || arg.startsWith("--root=") || arg.startsWith("--cwd=")) {
       projectRoot = arg.split("=")[1];
     } else if (arg === "--profile" && index + 1 < argv.length) {
       const value = argv[index + 1];

@@ -15,6 +15,8 @@ export type {
 export type {
   PerformanceIssueKind,
   PerformanceIssueSeverity,
+  PerformanceTriageComboIssueV3,
+  PerformanceTriageComboV3,
   PerformanceTriageIssueV3,
   PerformanceTriageV3,
 } from "./performance-triage-v3.js";

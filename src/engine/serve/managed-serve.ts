@@ -19,6 +19,7 @@ export type EnsureManagedServerOptions = {
   readonly reuseUnhealthy?: boolean;
   readonly buildTimeoutMs?: number;
   readonly startTimeoutMs?: number;
+  readonly serveEnv?: Readonly<Record<string, string>>;
 };
 
 export function parseManagedServeMode(raw: string | undefined): ManagedServeMode {
@@ -77,6 +78,7 @@ export async function ensureManagedServer(
     reuseUnhealthy: options.reuseUnhealthy,
     buildTimeoutMs: options.buildTimeoutMs,
     startTimeoutMs: options.startTimeoutMs,
+    serveEnv: options.serveEnv,
   });
   return {
     baseUrl: production.baseUrl,

@@ -32,6 +32,7 @@ export type AuditOrchestratorCliArgs = {
   readonly json: boolean;
   readonly summary: boolean;
   readonly artifactLayout: ArtifactLayoutMode;
+  readonly serveEnvOverrides: Readonly<Record<string, string>>;
 };
 
 export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrchestratorCliArgs {
@@ -167,6 +168,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     json,
     summary,
     artifactLayout,
+    serveEnvOverrides: serveOptions.serveEnvOverrides,
   };
 }
 
@@ -192,6 +194,7 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     runProfile: args.runProfile,
     qualityProfile: args.qualityProfile,
     artifactLayout: args.artifactLayout,
+    serveEnvOverrides: args.serveEnvOverrides,
   });
 
   if (args.json) {

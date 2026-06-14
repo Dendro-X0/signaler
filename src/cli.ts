@@ -5,7 +5,7 @@ import { openLocalPath } from "./open-local-path.js";
 import { createHash } from "node:crypto";
 import { cpus, freemem } from "node:os";
 import { gzipSync } from "node:zlib";
-import { loadConfig } from "./core/config.js";
+import { loadConfig, resolveServeEnv } from "./core/config.js";
 import {
   applyConfigRoutePlan,
   applyRouteListFilter,
@@ -42,12 +42,10 @@ import {
   type OrchestratorServeOptions,
 } from "./shell/orchestrator-serve-options.js";
 import { buildExportBundle } from "./build-export-bundle.js";
+import { buildHtmlReport } from "./report-html.js";
 import {
   avgPerformanceSummaryLabel,
   buildAgentIndexPerformanceScoreSemantics,
-  buildHtmlPerformanceTrustBannerLines,
-  buildStatsPanelContentLines,
-  buildTrustNoteLines,
   performanceColumnLabel,
   performanceInlineLabel,
   type PerformanceScoreDisplayMode,
@@ -101,7 +99,8 @@ import {
   type MachineArtifactProfile,
 } from "./machine-output-profile.js";
 import { buildRunSuggestionCommand } from "./cli-invocation.js";
-import { buildPerformanceTriageV3, isPerformanceTriageV3, trimResultsLineForMachineProfile } from "./performance-triage.js";
+import { buildPerformanceTriageV3, countComboPerformanceIssues, isPerformanceTriageV3, listComboPerformanceIssues, trimResultsLineForMachineProfile } from "./performance-triage.js";
+import { buildAuditCoverageV1, isAuditCoverageV1 } from "./audit-coverage.js";
 import {
   getBaselineCompareExitCode,
   isBaselineCompareActive,
@@ -198,6 +197,7 @@ interface CliArgs {
   readonly managedServeMode: ManagedServeMode;
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
+  readonly serveEnvOverrides: Readonly<Record<string, string>>;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -234,7 +234,7 @@ type V3ModeDefaults = {
 
 function colorScore(score: number | undefined, theme: UiTheme): string {
   if (score === undefined) {
-    return "-";
+    return theme.dim("-");
   }
   if (score >= 90) {
     return theme.green(score.toString());
@@ -243,6 +243,39 @@ function colorScore(score: number | undefined, theme: UiTheme): string {
     return theme.yellow(score.toString());
   }
   return theme.red(score.toString());
+}
+
+function isSkippedSummary(result: PageDeviceSummary): boolean {
+  return typeof result.runtimeErrorMessage === "string" && result.runtimeErrorMessage.startsWith("Skipped (");
+}
+
+function skipStatusShort(runtimeErrorMessage: string): string {
+  if (runtimeErrorMessage.includes("auth-wall")) {
+    return "skip:auth";
+  }
+  if (runtimeErrorMessage.includes("unreachable")) {
+    return "skip:err";
+  }
+  return "skip";
+}
+
+function colorScoreOrStatus(params: {
+  readonly score: number | undefined;
+  readonly runtimeErrorMessage?: string;
+  readonly theme: UiTheme;
+}): string {
+  if (params.score !== undefined) {
+    return colorScore(params.score, params.theme);
+  }
+  const message = params.runtimeErrorMessage;
+  if (typeof message === "string" && message.startsWith("Skipped (")) {
+    const label = skipStatusShort(message);
+    return message.includes("auth-wall") ? params.theme.cyan(label) : params.theme.yellow(label);
+  }
+  if (typeof message === "string" && message.length > 0) {
+    return params.theme.red("fail");
+  }
+  return params.theme.dim("-");
 }
 
 function colorDevice(device: ApexDevice, theme: UiTheme): string {
@@ -254,7 +287,7 @@ type SummaryPanelParams = {
   readonly useColor: boolean;
   readonly regressionsOnly: boolean;
   readonly previousSummary?: RunSummary;
-  readonly scoreDisplayMode?: PerformanceScoreDisplayMode;
+  readonly includeYellow: boolean;
 };
 
 function isPublicCombo(r: PageDeviceSummary): boolean {
@@ -326,7 +359,13 @@ type ShareableExport = {
   readonly configFileName: string;
   readonly regressions: readonly RegressionLine[];
   readonly topIssues: readonly { readonly title: string; readonly count: number; readonly totalMs: number }[];
-  readonly deepAuditTargets: readonly { readonly label: string; readonly path: string; readonly device: ApexDevice; readonly score: number }[];
+  readonly deepAuditTargets: readonly {
+    readonly label: string;
+    readonly path: string;
+    readonly device: ApexDevice;
+    readonly red: number;
+    readonly yellow: number;
+  }[];
   readonly suggestedCommands: readonly string[];
   readonly budgets?: ApexBudgets;
   readonly budgetViolations: readonly BudgetViolationLine[];
@@ -1821,7 +1860,7 @@ function buildSectionIndex(useColor: boolean): string {
     `  5) Summary`,
     `  6) Issues`,
     `  7) Top fixes`,
-    `  8) Lowest performance`,
+    `  8) Worst triage`,
     `  9) Export (regressions/issues)`,
   ];
   return lines.join("\n");
@@ -1951,51 +1990,100 @@ function formatDelta(curr: number | undefined, prev: number | undefined, theme: 
   return delta > 0 ? theme.green(text) : theme.red(text);
 }
 
+function colorIssueCount(count: number, severity: "red" | "yellow", theme: UiTheme): string {
+  if (count <= 0) {
+    return theme.dim("0");
+  }
+  return severity === "red" ? theme.red(String(count)) : theme.yellow(String(count));
+}
+
+function formatComboIssueStatus(runtimeErrorMessage: string | undefined, theme: UiTheme): string {
+  if (!runtimeErrorMessage) {
+    return theme.dim("-");
+  }
+  return skipStatusShort(runtimeErrorMessage);
+}
+
 function buildSummaryPanel(params: SummaryPanelParams): string {
   const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
-  const hasPrev: boolean = params.previousSummary !== undefined;
-  const perfLabel: string = performanceColumnLabel(params.scoreDisplayMode ?? "throughput");
   const headers: readonly string[] = params.useColor
     ? [
       theme.bold("Label"),
       theme.bold("Path"),
       theme.bold("Device"),
-      theme.green(perfLabel),
-      hasPrev ? theme.cyan("ΔP") : "",
+      theme.red("Red"),
+      theme.yellow("Yel"),
       theme.cyan("A"),
       theme.magenta("BP"),
       theme.yellow("SEO"),
-    ].filter((h) => h !== "")
-    : ["Label", "Path", "Device", perfLabel, ...(hasPrev ? ["ΔP"] : []), "A", "BP", "SEO"];
-  const prevMap: Map<string, PageDeviceSummary> | undefined =
-    params.previousSummary !== undefined
-      ? new Map(params.previousSummary.results.map((r) => [`${r.label}:::${r.path}:::${r.device}`, r]))
-      : undefined;
-  const filtered: readonly PageDeviceSummary[] = params.regressionsOnly && prevMap !== undefined
+    ]
+    : ["Label", "Path", "Device", "Red", "Yel", "A", "BP", "SEO"];
+  const filtered: readonly PageDeviceSummary[] = params.regressionsOnly
     ? params.results.filter((r) => {
-      const key: string = `${r.label}:::${r.path}:::${r.device}`;
-      const prev: PageDeviceSummary | undefined = prevMap.get(key);
-      const prevScore: number | undefined = prev?.scores.performance;
-      const currScore: number | undefined = r.scores.performance;
-      return prevScore !== undefined && currScore !== undefined && currScore < prevScore;
+      if (isSkippedSummary(r)) {
+        return false;
+      }
+      const counts = countComboPerformanceIssues(r, params.includeYellow);
+      return counts.red > 0;
     })
     : params.results;
   const rows: readonly (readonly string[])[] = filtered.map((r) => {
     const scores = r.scores;
-    const prevScore: number | undefined = prevMap?.get(`${r.label}:::${r.path}:::${r.device}`)?.scores.performance;
-    const baseRow: readonly string[] = [
-      r.label,
+    if (isSkippedSummary(r)) {
+      const status = formatComboIssueStatus(r.runtimeErrorMessage, theme);
+      return [
+        theme.dim(r.label),
+        r.path,
+        colorDevice(r.device, theme),
+        status,
+        status,
+        theme.dim("-"),
+        theme.dim("-"),
+        theme.dim("-"),
+      ];
+    }
+    const counts = countComboPerformanceIssues(r, params.includeYellow);
+    const scoreCell = (value: number | undefined): string =>
+      colorScoreOrStatus({ score: value, runtimeErrorMessage: r.runtimeErrorMessage, theme });
+    return [
+      counts.red > 0 || counts.yellow > 0 ? r.label : theme.dim(r.label),
       r.path,
       colorDevice(r.device, theme),
-      colorScore(scores.performance, theme),
-      ...(hasPrev ? [formatDelta(scores.performance, prevScore, theme)] : []),
-      colorScore(scores.accessibility, theme),
-      colorScore(scores.bestPractices, theme),
-      colorScore(scores.seo, theme),
+      colorIssueCount(counts.red, "red", theme),
+      colorIssueCount(counts.yellow, "yellow", theme),
+      scoreCell(scores.accessibility),
+      scoreCell(scores.bestPractices),
+      scoreCell(scores.seo),
     ];
-    return applyRowBackground(baseRow, scores.performance, params.useColor);
   });
   return renderTable({ headers, rows });
+}
+
+function buildSkippedRoutesPanel(params: {
+  readonly results: readonly PageDeviceSummary[];
+  readonly useColor: boolean;
+}): string | undefined {
+  const skipped = params.results.filter(isSkippedSummary);
+  if (skipped.length === 0) {
+    return undefined;
+  }
+  const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const authWall = skipped.filter((r) => r.runtimeErrorMessage?.includes("auth-wall")).length;
+  const unreachable = skipped.filter((r) => r.runtimeErrorMessage?.includes("unreachable")).length;
+  const scored = params.results.length - skipped.length;
+  const lines: string[] = [
+    `${theme.bold(String(skipped.length))} combo(s) skipped (${theme.cyan(`${authWall} auth-wall`)}, ${theme.yellow(`${unreachable} unreachable`)}); ${theme.green(String(scored))} scored.`,
+    theme.dim("skip:auth = login required (no session). skip:err = server error or unreachable."),
+  ];
+  const examples = skipped.slice(0, 6).map((r) => {
+    const reason = r.runtimeErrorMessage?.replace(/^Skipped \([^)]+\): /, "") ?? r.path;
+    return `${r.path} [${r.device}] — ${reason}`;
+  });
+  lines.push(...examples.map((line) => theme.dim(line)));
+  if (skipped.length > examples.length) {
+    lines.push(theme.dim(`… and ${skipped.length - examples.length} more (see summary.json runtimeErrorMessage)`));
+  }
+  return renderPanel({ title: theme.bold("Skipped routes"), lines });
 }
 
 function collectRegressions(previous: RunSummary | undefined, current: RunSummary): readonly RegressionLine[] {
@@ -2026,21 +2114,33 @@ function collectRegressions(previous: RunSummary | undefined, current: RunSummar
   return lines.sort((a, b) => a.deltaP - b.deltaP).slice(0, 10);
 }
 
-function collectDeepAuditTargets(results: readonly PageDeviceSummary[]): readonly {
+function collectDeepAuditTargets(
+  results: readonly PageDeviceSummary[],
+  includeYellow: boolean,
+): readonly {
   readonly label: string;
   readonly path: string;
   readonly device: ApexDevice;
-  readonly score: number;
+  readonly red: number;
+  readonly yellow: number;
 }[] {
   return [...results]
-    .sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101))
+    .filter((r) => !isSkippedSummary(r))
+    .map((r) => {
+      const counts = countComboPerformanceIssues(r, includeYellow);
+      return {
+        label: r.label,
+        path: r.path,
+        device: r.device,
+        red: counts.red,
+        yellow: counts.yellow,
+        sortKey: counts.red * 1000 + counts.yellow,
+      };
+    })
+    .filter((r) => r.sortKey > 0)
+    .sort((a, b) => b.sortKey - a.sortKey)
     .slice(0, 5)
-    .map((r) => ({
-      label: r.label,
-      path: r.path,
-      device: r.device,
-      score: r.scores.performance ?? 0,
-    }));
+    .map(({ label, path, device, red, yellow }) => ({ label, path, device, red, yellow }));
 }
 
 function collectTopIssues(results: readonly PageDeviceSummary[]): readonly {
@@ -2088,10 +2188,11 @@ function buildShareableExport(params: {
   readonly previousSummary: RunSummary | undefined;
   readonly current: RunSummary;
   readonly budgets: ApexBudgets | undefined;
+  readonly includeYellow: boolean;
 }): ShareableExport {
   const configFileName: string = getFileNameFromPath(params.configPath);
   const regressions: readonly RegressionLine[] = collectRegressions(params.previousSummary, params.current);
-  const deepAuditTargets = collectDeepAuditTargets(params.current.results);
+  const deepAuditTargets = collectDeepAuditTargets(params.current.results, params.includeYellow);
   const suggestedCommands: readonly string[] = buildSuggestedCommands(
     configFileName,
     deepAuditTargets.map((t) => ({ path: t.path, device: t.device })),
@@ -2216,16 +2317,17 @@ function buildExportPanel(params: {
   divider();
 
   // Deep audit targets
-  lines.push(`${theme.bold("Deep audit targets")} ${theme.dim(`(worst 5 by ${perfLabel})`)}`);
+  lines.push(`${theme.bold("Deep audit targets")} ${theme.dim("(worst 5 by red/yellow issues)")}`);
   const deepRows: readonly (readonly string[])[] = params.share.deepAuditTargets.map((t) => [
     t.label,
     t.path,
     colorDevice(t.device, theme),
-    colorScore(t.score, theme),
+    colorIssueCount(t.red, "red", theme),
+    colorIssueCount(t.yellow, "yellow", theme),
   ]);
   lines.push(
     renderTable({
-      headers: ["Label", "Path", "Device", perfLabel],
+      headers: ["Label", "Path", "Device", "Red", "Yel"],
       rows: deepRows,
     }),
   );
@@ -2251,23 +2353,26 @@ function buildExportPanel(params: {
 function buildIssuesPanel(
   results: readonly PageDeviceSummary[],
   useColor: boolean,
-  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+  includeYellow: boolean,
 ): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
-  const perfLabel: string = performanceInlineLabel(scoreDisplayMode);
-  const reds = results.filter((r) => (r.scores.performance ?? 100) < 50);
+  const reds = results.filter((r) => !isSkippedSummary(r) && countComboPerformanceIssues(r, includeYellow).red > 0);
   if (reds.length === 0) {
-    return renderPanel({ title: theme.bold("Issues"), lines: [theme.green("No red issues.")] });
+    return renderPanel({ title: theme.bold("Issues"), lines: [theme.green("No red performance issues.")] });
   }
-  const lines: string[] = reds.map((r) => {
-    const meaningful: OpportunitySummary[] = r.opportunities.filter((opp) => hasMeaningfulSavings(opp));
-    const source: readonly OpportunitySummary[] = meaningful.length > 0 ? meaningful : r.opportunities;
-    const top = source[0];
-    const issue: string = top ? `${top.title}${top.estimatedSavingsMs ? ` (${Math.round(top.estimatedSavingsMs)}ms)` : ""}` : "No top issue reported";
-    const perfText: string = colorScore(r.scores.performance, theme);
+  const lines: string[] = reds.slice(0, 12).map((r) => {
+    const counts = countComboPerformanceIssues(r, includeYellow);
+    const issues = listComboPerformanceIssues(r, includeYellow);
+    const top = issues.find((issue) => issue.severity === "red") ?? issues[0];
+    const issue: string = top
+      ? `${top.title}${top.estimatedSavingsMs ? ` (${Math.round(top.estimatedSavingsMs)}ms)` : ""}`
+      : "No issue detail";
     const deviceText: string = colorDevice(r.device, theme);
-    return `${r.label} ${r.path} [${deviceText}] – ${perfLabel}:${perfText} – ${issue}`;
+    return `${r.label} ${r.path} [${deviceText}] – ${colorIssueCount(counts.red, "red", theme)} red${counts.yellow > 0 && includeYellow ? ` / ${colorIssueCount(counts.yellow, "yellow", theme)} yel` : ""} – ${issue}`;
   });
+  if (reds.length > lines.length) {
+    lines.push(theme.dim(`… and ${reds.length - lines.length} more (see performance-triage.json#/combos)`));
+  }
   return renderPanel({ title: theme.bold("Issues"), lines });
 }
 
@@ -2296,28 +2401,37 @@ function buildTopFixesPanel(results: readonly PageDeviceSummary[], useColor: boo
   return renderPanel({ title: theme.bold("Top fixes"), lines });
 }
 
-function buildTrustNotePanel(params: { readonly useColor: boolean; readonly protocol: RunProtocolV3 }): string {
+function buildTrustNotePanel(params: { readonly useColor: boolean; readonly includeYellow: boolean }): string {
   const theme: UiTheme = new UiTheme({ noColor: !params.useColor });
+  const lines: string[] = [
+    "Performance reporting uses Lighthouse issue-count triage (red/yellow), not lab P(ref) scores.",
+    params.includeYellow
+      ? "Yellow issues are included. Set perfIncludeYellow:false or --no-perf-include-yellow for red-only."
+      : "Red-only mode: fixing listed reds typically clears the performance category in production lab runs.",
+    "Per-route issue details: performance-triage.json#/combos. Agents: signaler query --view perf",
+  ];
   return renderPanel({
     title: theme.bold("Trust note"),
-    lines: [...buildTrustNoteLines(params.protocol.mode)],
+    lines,
   });
 }
 
-function buildLowestPerformancePanel(
+function buildWorstTriagePanel(
   results: readonly PageDeviceSummary[],
   useColor: boolean,
-  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+  includeYellow: boolean,
 ): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
-  const perfLabel: string = performanceInlineLabel(scoreDisplayMode);
-  const sorted = [...results].sort((a, b) => (a.scores.performance ?? 101) - (b.scores.performance ?? 101)).slice(0, 5);
-  const lines: string[] = sorted.map((r) => {
-    const perfText: string = colorScore(r.scores.performance, theme);
+  const targets = collectDeepAuditTargets(results, includeYellow);
+  if (targets.length === 0) {
+    return renderPanel({ title: theme.bold("Worst triage"), lines: [theme.green("No actionable performance issues.")] });
+  }
+  const lines: string[] = targets.map((r) => {
     const deviceText: string = colorDevice(r.device, theme);
-    return `${r.label} ${r.path} [${deviceText}] ${perfLabel}:${perfText}`;
+    const yelPart = includeYellow && r.yellow > 0 ? ` ${colorIssueCount(r.yellow, "yellow", theme)} yel` : "";
+    return `${r.label} ${r.path} [${deviceText}] ${colorIssueCount(r.red, "red", theme)} red${yelPart}`;
   });
-  return renderPanel({ title: theme.bold("Lowest performance"), lines });
+  return renderPanel({ title: theme.bold("Worst triage"), lines });
 }
 
 function buildBudgetsPanel(params: {
@@ -2797,6 +2911,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     managedServeMode: serveOptions.managedServeMode,
     managedServeSkipBuild: serveOptions.managedServeSkipBuild,
     managedServeReuse: serveOptions.managedServeReuse,
+    serveEnvOverrides: serveOptions.serveEnvOverrides,
   };
 }
 
@@ -3010,6 +3125,7 @@ function printAuditFlags(): void {
       "  --managed-serve-mode <mode>  dev | production | auto (default production)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
+      "  --serve-env KEY=VALUE  Ephemeral env for managed production start only (repeatable; overrides config)",
     ].join("\n"),
   );
 }
@@ -3209,60 +3325,38 @@ function buildMetaPanel(meta: RunSummary["meta"], useColor: boolean): string {
 function buildStatsPanel(
   results: readonly PageDeviceSummary[],
   useColor: boolean,
-  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
+  includeYellow: boolean,
 ): string {
   const theme: UiTheme = new UiTheme({ noColor: !useColor });
-  let pSum = 0;
+  let perfRed = 0;
+  let perfYellow = 0;
   let aSum = 0;
   let bpSum = 0;
   let seoSum = 0;
-  let count = 0;
-  let green = 0;
-  let yellow = 0;
-  let red = 0;
+  let scoredCombos = 0;
   for (const r of results) {
-    const p = r.scores.performance;
-    if (p !== undefined) {
-      count += 1;
-      pSum += p;
-      if (p >= 90) {
-        green += 1;
-      } else if (p >= 50) {
-        yellow += 1;
-      } else {
-        red += 1;
-      }
+    if (isSkippedSummary(r)) {
+      continue;
     }
+    scoredCombos += 1;
+    const counts = countComboPerformanceIssues(r, includeYellow);
+    perfRed += counts.red;
+    perfYellow += counts.yellow;
     if (r.scores.accessibility !== undefined) aSum += r.scores.accessibility;
     if (r.scores.bestPractices !== undefined) bpSum += r.scores.bestPractices;
     if (r.scores.seo !== undefined) seoSum += r.scores.seo;
   }
-  const avgP = count > 0 ? Math.round(pSum / count) : 0;
-  const avgA = results.length > 0 ? Math.round(aSum / results.length) : 0;
-  const avgBP = results.length > 0 ? Math.round(bpSum / results.length) : 0;
-  const avgSEO = results.length > 0 ? Math.round(seoSum / results.length) : 0;
-  const contentLines: readonly string[] = buildStatsPanelContentLines({
-    mode: scoreDisplayMode,
-    avgP,
-    avgA,
-    avgBP,
-    avgSEO,
-    green,
-    yellow,
-    red,
-    count,
-  });
-  const lines: string[] = contentLines.map((line, index) => {
-    if (index === 0) {
-      const avgLabel: string = avgPerformanceSummaryLabel(scoreDisplayMode);
-      return `${theme.dim("Summary")}: ${theme.dim(avgLabel)}:${avgP} A:${avgA} BP:${avgBP} SEO:${avgSEO}`;
-    }
-    if (index === 1) {
-      return `${theme.dim("Scores")}: ${theme.green(`${green} green (90+)`)} | ${theme.yellow(`${yellow} yellow (50-89)`)} | ${theme.red(`${red} red (<50)`)} of ${count} total`;
-    }
-    return theme.dim(line);
-  });
-  return renderPanel({ title: theme.bold("Stats"), lines });
+  const avgA = scoredCombos > 0 ? Math.round(aSum / scoredCombos) : 0;
+  const avgBP = scoredCombos > 0 ? Math.round(bpSum / scoredCombos) : 0;
+  const avgSEO = scoredCombos > 0 ? Math.round(seoSum / scoredCombos) : 0;
+  const contentLines: readonly string[] = [
+    `Performance issues: ${perfRed} red${includeYellow ? ` | ${perfYellow} yellow` : ""} (across ${scoredCombos} scored combos)`,
+    `Category scores (avg): A:${avgA} BP:${avgBP} SEO:${avgSEO}`,
+    includeYellow
+      ? "Triage includes red and yellow Lighthouse audits/opportunities. Details: performance-triage.json"
+      : "Triage is red-only (perfIncludeYellow=false). Details: performance-triage.json#/combos",
+  ];
+  return renderPanel({ title: theme.bold("Stats"), lines: contentLines });
 }
 
 type ChangeLine = {
@@ -3744,6 +3838,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       mode: args.managedServeMode,
       skipBuild: args.managedServeSkipBuild,
       reuseUnhealthy: args.managedServeReuse,
+      serveEnv: resolveServeEnv({ fromConfig: auditConfig.serveEnv, fromCli: args.serveEnvOverrides }),
     });
     auditConfig = { ...auditConfig, baseUrl: managedServer.baseUrl };
     if (managedServer.startedBySignaler) {
@@ -4052,7 +4147,20 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   await writeJsonWithOptionalGzip(resolve(outputDir, "pwa.json"), pwa);
   const markdown: string = buildMarkdown(summary);
   await writeFile(resolve(outputDir, "summary.md"), markdown, "utf8");
-  const html: string = buildHtmlReport(summary, protocol.mode);
+  const effectivePerfIncludeYellow: boolean =
+    args.perfIncludeYellow ?? effectiveConfig.perfIncludeYellow ?? args.artifactProfile !== "lean";
+  const performanceTriageV3 = buildPerformanceTriageV3({
+    results: summary.results,
+    protocol,
+    includeYellow: effectivePerfIncludeYellow,
+  });
+  if (!isPerformanceTriageV3(performanceTriageV3)) {
+    throw new Error("Internal contract error: performance-triage.json failed validation.");
+  }
+  const html: string = buildHtmlReport(summary, protocol.mode, {
+    triage: performanceTriageV3,
+    includeYellow: effectivePerfIncludeYellow,
+  });
   const reportPath: string = resolve(outputDir, "report.html");
   await writeFile(reportPath, html, "utf8");
   const budgetViolations: readonly BudgetViolation[] =
@@ -4133,6 +4241,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     previousSummary: comparisonSummary,
     current: summary,
     budgets: effectiveConfig.budgets,
+    includeYellow: effectivePerfIncludeYellow,
   });
   if (!args.noExport) {
     await writeJsonWithOptionalGzip(exportPath, shareable);
@@ -4185,7 +4294,6 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
     });
   }
 
-  const effectivePerfIncludeYellow: boolean = args.perfIncludeYellow ?? args.artifactProfile !== "lean";
   const resultsV3: ResultsV3 = buildResultsV3({
     summary,
     outputDir,
@@ -4198,15 +4306,12 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   }
   await writeJsonWithOptionalGzip(resolve(outputDir, "results.json"), resultsV3);
   await writeJsonWithOptionalGzip(resolve(outputDir, "suggestions.json"), suggestionsV3, { pretty: false });
-  const performanceTriageV3 = buildPerformanceTriageV3({
-    results: summary.results,
-    protocol,
-    includeYellow: effectivePerfIncludeYellow,
-  });
-  if (!isPerformanceTriageV3(performanceTriageV3)) {
-    throw new Error("Internal contract error: performance-triage.json failed validation.");
-  }
   await writeJsonWithOptionalGzip(resolve(outputDir, "performance-triage.json"), performanceTriageV3, { pretty: false });
+  const auditCoverage = buildAuditCoverageV1({ results: summary.results, meta: summary.meta });
+  if (!isAuditCoverageV1(auditCoverage)) {
+    throw new Error("Internal contract error: coverage.json failed validation.");
+  }
+  await writeJsonWithOptionalGzip(resolve(outputDir, "coverage.json"), auditCoverage, { pretty: false });
   let qualityGateResult: QualityGateResult | undefined;
   if (
     effectiveConfig.qualityGate !== undefined
@@ -4429,7 +4534,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   // eslint-disable-next-line no-console
   console.log(buildMetaPanel(summary.meta, useColor));
   // eslint-disable-next-line no-console
-  console.log(buildStatsPanel(summary.results, useColor, protocol.mode));
+  console.log(buildStatsPanel(summary.results, useColor, effectivePerfIncludeYellow));
   if (comparisonSummary !== undefined) {
     printSectionHeader("Changes", useColor);
     printDivider();
@@ -4445,17 +4550,22 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       useColor,
       regressionsOnly: args.regressionsOnly,
       previousSummary: comparisonSummary,
-      scoreDisplayMode: protocol.mode,
+      includeYellow: effectivePerfIncludeYellow,
     }),
   );
+  const skippedPanel = buildSkippedRoutesPanel({ results: summary.results, useColor });
+  if (skippedPanel !== undefined) {
+    // eslint-disable-next-line no-console
+    console.log(skippedPanel);
+  }
   printSectionHeader("Issues", useColor);
   // eslint-disable-next-line no-console
-  console.log(buildIssuesPanel(summary.results, useColor, protocol.mode));
+  console.log(buildIssuesPanel(summary.results, useColor, effectivePerfIncludeYellow));
   printSectionHeader("Top fixes", useColor);
   // eslint-disable-next-line no-console
   console.log(buildTopFixesPanel(summary.results, useColor));
   // eslint-disable-next-line no-console
-  console.log(buildTrustNotePanel({ useColor, protocol }));
+  console.log(buildTrustNotePanel({ useColor, includeYellow: effectivePerfIncludeYellow }));
   const budgetsPanel: string | undefined = buildBudgetsPanel({
     budgets: effectiveConfig.budgets,
     violations: budgetViolations,
@@ -4541,9 +4651,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   if (policyExitCode !== 0) {
     process.exitCode = policyExitCode;
   }
-  printSectionHeader("Lowest performance", useColor);
+  printSectionHeader("Worst triage", useColor);
   // eslint-disable-next-line no-console
-  console.log(buildLowestPerformancePanel(summary.results, useColor, protocol.mode));
+  console.log(buildWorstTriagePanel(summary.results, useColor, effectivePerfIncludeYellow));
   printSectionHeader("Export", useColor);
   // eslint-disable-next-line no-console
   console.log(buildExportPanel({ exportPath, useColor, share: shareable, scoreDisplayMode: protocol.mode }));
@@ -4666,236 +4776,6 @@ function escapeMarkdownTableCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
 }
 
-function buildHtmlReport(summary: RunSummary, scoreDisplayMode: PerformanceScoreDisplayMode = "throughput"): string {
-  const results = summary.results;
-  const meta = summary.meta;
-  const timestamp: string = new Date().toISOString();
-  const perfLabel: string = performanceColumnLabel(scoreDisplayMode);
-  const rows: string = results.map((result) => buildHtmlRow(result, scoreDisplayMode)).join("\n");
-  const trustBanner: string = buildHtmlTrustBanner(scoreDisplayMode);
-  const cacheSummary: string = meta.incremental
-    ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached`
-    : "disabled";
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Signaler Report</title>
-  <style>
-    :root {
-      --green: #0cce6b;
-      --yellow: #ffa400;
-      --red: #ff4e42;
-      --bg: #0f172a;
-      --panel: #0b1224;
-      --card: #111a33;
-      --border: #27324d;
-      --text: #e8edf7;
-      --muted: #93a4c3;
-      --accent: #7c3aed;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Inter", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: radial-gradient(circle at 20% 20%, #122042, #0a1020 45%), #0a0f1f;
-      color: var(--text);
-      padding: 2rem;
-      line-height: 1.5;
-    }
-    h1 { margin-bottom: 0.5rem; letter-spacing: 0.02em; }
-    .meta { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    .meta-card {
-      background: linear-gradient(135deg, var(--panel), #0f1a33);
-      border-radius: 12px;
-      padding: 1rem;
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-    }
-    .meta-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    .meta-value { font-size: 1.05rem; font-weight: 650; color: var(--text); }
-    .cards { display: grid; gap: 1.5rem; }
-    .card {
-      background: linear-gradient(180deg, var(--card), #0e1a31);
-      border-radius: 14px;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 1rem;
-    }
-    .card-title { font-size: 1.1rem; font-weight: 650; }
-    .card-title span { color: var(--muted); font-weight: 500; }
-    .device-badge {
-      font-size: 0.78rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 999px;
-      background: #1f2937;
-      border: 1px solid var(--border);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .device-badge.mobile { background: linear-gradient(135deg, #0ea5e9, #0891b2); color: #e6f6ff; border-color: #0ea5e9; }
-    .device-badge.desktop { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #f5efff; border-color: #8b5cf6; }
-    .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
-    .score-item { text-align: center; }
-    .score-circle {
-      width: 64px;
-      height: 64px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin: 0 auto 0.35rem;
-      border: 2px solid var(--border);
-      background: #0c152a;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-    .score-circle.green { border-color: var(--green); color: var(--green); box-shadow: 0 0 0 1px rgba(12, 206, 107, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-    .score-circle.yellow { border-color: var(--yellow); color: var(--yellow); box-shadow: 0 0 0 1px rgba(255, 164, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-    .score-circle.red { border-color: var(--red); color: var(--red); box-shadow: 0 0 0 1px rgba(255, 78, 66, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-    .score-label { font-size: 0.78rem; color: var(--muted); }
-    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
-    .metric {
-      background: #0c152a;
-      padding: 0.85rem;
-      border-radius: 10px;
-      text-align: center;
-      border: 1px solid var(--border);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    }
-    .metric-value { font-size: 1.05rem; font-weight: 650; }
-    .metric-value.green { color: var(--green); }
-    .metric-value.yellow { color: var(--yellow); }
-    .metric-value.red { color: var(--red); }
-    .metric-label { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; letter-spacing: 0.04em; }
-    .issues {
-      margin-top: 1rem;
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0c152a;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    }
-    .issues-title { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
-    .issue {
-      font-size: 0.88rem;
-      color: var(--text);
-      padding: 0.35rem 0.25rem;
-      border-bottom: 1px dashed var(--border);
-    }
-    .issue:last-child { border-bottom: none; }
-    .trust-banner {
-      margin-bottom: 1.5rem;
-      padding: 1rem 1.1rem;
-      border-radius: 12px;
-      border: 1px solid #334155;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(14, 165, 233, 0.08));
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-    .trust-banner strong { color: var(--text); display: block; margin-bottom: 0.45rem; }
-    .trust-banner p { margin: 0.25rem 0; }
-  </style>
-</head>
-<body>
-  <h1>Signaler Report</h1>
-  ${trustBanner}
-  <p class="meta">Generated: ${timestamp} · Mode: ${scoreDisplayMode} · Performance label: ${perfLabel}</p>
-  <div class="meta-grid">
-    ${buildMetaCard("Build ID", meta.buildId ?? "-")}
-    ${buildMetaCard("Incremental", meta.incremental ? "Yes" : "No")}
-    ${buildMetaCard("Cache", cacheSummary)}
-    ${buildMetaCard("Resolved parallel", meta.resolvedParallel.toString())}
-    ${buildMetaCard("Elapsed", formatElapsedTime(meta.elapsedMs))}
-    ${buildMetaCard("Avg / step", formatElapsedTime(meta.averageStepMs))}
-    ${buildMetaCard("Combos", meta.comboCount.toString())}
-    ${buildMetaCard("Runs per combo", meta.runsPerCombo.toString())}
-    ${buildMetaCard("Throttling", meta.throttlingMethod)}
-    ${buildMetaCard("CPU slowdown", meta.cpuSlowdownMultiplier.toString())}
-    ${buildMetaCard("Warm-up", meta.warmUp ? "Yes" : "No")}
-  </div>
-  <div class="cards">
-${rows}
-  </div>
-</body>
-</html>`;
-}
-
-function buildHtmlTrustBanner(scoreDisplayMode: PerformanceScoreDisplayMode): string {
-  const lines: readonly string[] = buildHtmlPerformanceTrustBannerLines(scoreDisplayMode);
-  const title: string = scoreDisplayMode === "throughput"
-    ? "Performance score reference (P(ref))"
-    : "Performance score (DevTools parity mode)";
-  const body: string = lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("\n    ");
-  return `<div class="trust-banner"><strong>${escapeHtml(title)}</strong>\n    ${body}\n  </div>`;
-}
-
-function buildHtmlRow(
-  result: PageDeviceSummary,
-  scoreDisplayMode: PerformanceScoreDisplayMode = "throughput",
-): string {
-  const scores = result.scores;
-  const perfLabel: string = performanceColumnLabel(scoreDisplayMode);
-  const metrics = result.metrics;
-  const lcpSeconds: string = metrics.lcpMs !== undefined ? (metrics.lcpMs / 1000).toFixed(1) + "s" : "-";
-  const fcpSeconds: string = metrics.fcpMs !== undefined ? (metrics.fcpMs / 1000).toFixed(1) + "s" : "-";
-  const tbtMs: string = metrics.tbtMs !== undefined ? Math.round(metrics.tbtMs) + "ms" : "-";
-  const clsVal: string = metrics.cls !== undefined ? metrics.cls.toFixed(3) : "-";
-  const inpMs: string = metrics.inpMs !== undefined ? Math.round(metrics.inpMs) + "ms" : "-";
-  const issues: string = result.opportunities.slice(0, 3).map((o) =>
-    `<div class="issue">${escapeHtml(o.title)}${o.estimatedSavingsMs ? ` (${Math.round(o.estimatedSavingsMs)}ms)` : ""}</div>`
-  ).join("");
-  return `    <div class="card">
-      <div class="card-header">
-        <div class="card-title">${escapeHtml(result.label)} <span style="color:#888">${escapeHtml(result.path)}</span></div>
-        <span class="device-badge ${result.device}">${result.device}</span>
-      </div>
-      <div class="scores">
-        ${buildScoreCircle(perfLabel, scores.performance)}
-        ${buildScoreCircle("A", scores.accessibility)}
-        ${buildScoreCircle("BP", scores.bestPractices)}
-        ${buildScoreCircle("SEO", scores.seo)}
-      </div>
-      <div class="metrics">
-        ${buildMetricBox("LCP", lcpSeconds, getMetricClass(metrics.lcpMs, 2500, 4000))}
-        ${buildMetricBox("FCP", fcpSeconds, getMetricClass(metrics.fcpMs, 1800, 3000))}
-        ${buildMetricBox("TBT", tbtMs, getMetricClass(metrics.tbtMs, 200, 600))}
-        ${buildMetricBox("CLS", clsVal, getMetricClass(metrics.cls, 0.1, 0.25))}
-        ${buildMetricBox("INP", inpMs, getMetricClass(metrics.inpMs, 200, 500))}
-      </div>
-      ${issues ? `<div class="issues"><div class="issues-title">Top Issues</div>${issues}</div>` : ""}
-    </div>`;
-}
-
-function buildScoreCircle(label: string, score: number | undefined): string {
-  const value: string = score !== undefined ? score.toString() : "-";
-  const colorClass: string = score === undefined ? "" : score >= 90 ? "green" : score >= 50 ? "yellow" : "red";
-  return `<div class="score-item"><div class="score-circle ${colorClass}">${value}</div><div class="score-label">${label}</div></div>`;
-}
-
-function buildMetricBox(label: string, value: string, colorClass: string): string {
-  return `<div class="metric"><div class="metric-value ${colorClass}">${value}</div><div class="metric-label">${label}</div></div>`;
-}
-
-function buildMetaCard(label: string, value: string): string {
-  return `<div class="meta-card"><div class="meta-label">${escapeHtml(label)}</div><div class="meta-value">${escapeHtml(value)}</div></div>`;
-}
-
 function printRunMeta(meta: RunSummary["meta"], useColor: boolean): void {
   const incrementalSummary: string = meta.incremental
     ? `${meta.executedCombos} executed / ${meta.cachedCombos} cached (${meta.executedSteps} executed steps, ${meta.cachedSteps} cached steps)`
@@ -4922,15 +4802,6 @@ function printRunMeta(meta: RunSummary["meta"], useColor: boolean): void {
     // eslint-disable-next-line no-console
     console.log(`  ${padLabel(row.label)} ${value}`);
   }
-}
-
-function getMetricClass(value: number | undefined, good: number, warn: number): string {
-  if (value === undefined) return "";
-  return value <= good ? "green" : value <= warn ? "yellow" : "red";
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function buildConsoleTable(results: readonly PageDeviceSummary[], useColor: boolean): string {
@@ -5311,6 +5182,12 @@ function shouldUseColor(ci: boolean, colorMode: CliColorMode): boolean {
     return false;
   }
   if (ci) {
+    return false;
+  }
+  if (process.env.FORCE_COLOR === "1" || process.env.FORCE_COLOR === "true") {
+    return true;
+  }
+  if (process.env.NO_COLOR !== undefined && process.env.NO_COLOR !== "") {
     return false;
   }
   return typeof process !== "undefined" && Boolean(process.stdout && process.stdout.isTTY);
@@ -6546,16 +6423,18 @@ function buildAgentIndexV3(params: {
       run: "run.json" as const,
       results: "results.json" as const,
       suggestions: "suggestions.json" as const,
+      coverage: "coverage.json" as const,
+      fixQueue: "fix-queue.json" as const,
       ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
     },
     performanceReporting: "issue-count" as const,
     performanceScoreSemantics,
     agentProtocol: {
       mandatoryReads: params.includePerformanceTriage
-        ? ["agent-index.json", "performance-triage.json"]
-        : ["agent-index.json"],
-      optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
-      queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
+        ? ["fix-queue.json", "coverage.json", "performance-triage.json"]
+        : ["fix-queue.json", "coverage.json"],
+      optionalReads: ["analyze.json", "verify.json", "agent-index.json", "suggestions.json"],
+      queryCommand: "signaler query --view <agent|fix-queue|coverage|perf|actions|evidence|delta> [--id <id>]",
       explainCommand: "signaler explain --id <suggestion-or-issue-id>",
       jobExitCodes: {
         "0": "All job steps succeeded",
@@ -6611,16 +6490,18 @@ function buildAgentIndexV3(params: {
       run: "run.json",
       results: "results.json",
       suggestions: "suggestions.json",
+      coverage: "coverage.json",
+      fixQueue: "fix-queue.json",
       ...(params.includePerformanceTriage ? { performanceTriage: "performance-triage.json" as const } : {}),
     },
     performanceReporting: "issue-count",
     performanceScoreSemantics,
     agentProtocol: {
       mandatoryReads: params.includePerformanceTriage
-        ? ["agent-index.json", "performance-triage.json"]
-        : ["agent-index.json"],
-      optionalReads: ["analyze.json", "verify.json", "suggestions.json"],
-      queryCommand: "signaler query --view <agent|actions|perf|evidence> [--id <id>]",
+        ? ["fix-queue.json", "coverage.json", "performance-triage.json"]
+        : ["fix-queue.json", "coverage.json"],
+      optionalReads: ["analyze.json", "verify.json", "agent-index.json", "suggestions.json"],
+      queryCommand: "signaler query --view <agent|fix-queue|coverage|perf|actions|evidence|delta> [--id <id>]",
       explainCommand: "signaler explain --id <suggestion-or-issue-id>",
       jobExitCodes: {
         "0": "All job steps succeeded",

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 5.1.6 - 2026-06-14
+
+### Added
+
+- **`agent/fix-queue.json`** — ranked surgical fix list (path, device, url, issueIds, savings, pointers); `query --view fix-queue`; `explain --id` resolves fix-queue first; `query --view agent` prefers fix-queue.
+- **`agent/coverage.json`** — scored vs skipped routes (auth-wall, unreachable, runner errors); `query --view coverage`.
+- **Developer dashboard** — refreshed `.signaler/developer/report.html` with KPI strip (LCP, red/yellow triage, category medians), route grid, lab-semantics trust banner.
+- **Issue-count performance TUI** — summary table shows **Red/Yel** issue counts per route (not P(ref)); `performance-triage.json#/combos` holds per-route issue details for agents.
+- **`perfIncludeYellow` config** — red-only triage by default on lean profile; set `true` or use `--perf-include-yellow` to include yellow issues.
+- **Route preflight** — skip auth-wall and unreachable routes before Lighthouse (`skip:auth`, `skip:err`).
+- **`auth` config block** — cookies / cookie file / warmup URL for protected routes.
+
+### Fixed
+
+- **Windows parallel throughput** — parallel Lighthouse uses an NDJSON stdio worker subprocess pool (no fork+IPC); eliminates `Worker disconnected` at `--parallel 6`. Opt out with `SIGNALER_IN_PROCESS_PARALLEL=0`.
+- **`signaler audit`** — loads `serveEnv` from default `signaler.config.json` when `--config` is omitted.
+- **`discover --cwd`** — `--cwd` alias for `--project-root` (monorepo discovery).
+
+### Changed
+
+- **Agent read order** — fix-queue → coverage → performance-triage → analyze (see `AGENTS.md`).
+- **Triage roadmap markdown** — removed sprint/week scheduling language from generated reports.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.1.6.md`](docs/archive/release-notes/RELEASE-NOTES-v5.1.6.md). Demo recording: [`docs/guides/gif-demo-script.md`](docs/guides/gif-demo-script.md).
+
 ## 5.1.5 - 2026-05-28
 
 ### Fixed

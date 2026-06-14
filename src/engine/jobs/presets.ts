@@ -18,6 +18,11 @@ export type BuildPresetJobParams = {
 
 const DEFAULT_AGENT_PARALLEL = 6;
 
+/** `--ci` disables color and enables strict exit codes — only for real CI, not local `signaler audit`. */
+function ciRunFlags(): readonly string[] {
+  return process.env.CI === "true" ? ["--ci"] : [];
+}
+
 export function resolveAgentJobParallel(explicit?: number): number {
   if (typeof explicit === "number" && Number.isFinite(explicit) && explicit >= 1 && explicit <= 10) {
     return Math.floor(explicit);
@@ -90,7 +95,7 @@ export function buildAgentPresetJob(params: BuildPresetJobParams): EngineJobV1 {
       "throughput",
       "--artifact-profile",
       "lean",
-      "--ci",
+      ...ciRunFlags(),
       "--yes",
       "--parallel",
       String(parallel),

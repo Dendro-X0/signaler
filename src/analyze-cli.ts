@@ -37,6 +37,9 @@ import {
   mergeAnalyzeCandidateDrafts,
   type AnalyzeCandidateDraft,
 } from "./analyze-performance-triage.js";
+import { buildCandidateDraftsFromAuditCoverage } from "./analyze-audit-coverage.js";
+import { isAuditCoverageV1, type AuditCoverageV1 } from "./audit-coverage.js";
+import { buildFixQueueV1, isFixQueueV1 } from "./fix-queue.js";
 import { buildAndWriteBenchmarkAutoBridge } from "./benchmark-auto-bridge.js";
 
 type AnalyzeExitCode = 0 | 1 | 2;
@@ -736,9 +739,30 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
     warnings.push("performance-triage.json could not be read; performance actions rely on suggestions.json only.");
   }
 
+  let auditCoverage: AuditCoverageV1 | undefined;
+  try {
+    const coveragePath = await artifactPath("coverage.json");
+    if (await fileExists(coveragePath)) {
+      const parsed = await readJson(coveragePath);
+      if (isAuditCoverageV1(parsed)) {
+        auditCoverage = parsed;
+      } else {
+        warnings.push("coverage.json present but invalid; skipped-route actions omitted.");
+      }
+    }
+  } catch {
+    warnings.push("coverage.json could not be read; skipped-route actions omitted.");
+  }
+
   const hasSuggestionCandidates: boolean = Boolean(suggestions && suggestions.suggestions.length > 0);
   const hasTriageCandidates: boolean = Boolean(performanceTriage && performanceTriage.totals.actionable > 0);
-  if (!results || (!hasSuggestionCandidates && !hasTriageCandidates)) {
+  const hasCoverageCandidates: boolean = Boolean(
+    auditCoverage
+    && (auditCoverage.skippedByReason.authWall.length > 0
+      || auditCoverage.skippedByReason.unreachable.length > 0
+      || auditCoverage.runnerErrors.length > 0),
+  );
+  if (!results || (!hasSuggestionCandidates && !hasTriageCandidates && !hasCoverageCandidates)) {
     // eslint-disable-next-line no-console
     console.error("Analyze could not build actions from artifacts. Ensure run/results/suggestions exist and are valid.");
     return 1;
@@ -892,10 +916,16 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const triageDrafts: CandidateDraft[] = performanceTriage
     ? buildCandidateDraftsFromPerformanceTriage({ triage: performanceTriage, results: allResults })
     : [];
-  const mergedCandidateDrafts: CandidateDraft[] = [...mergeAnalyzeCandidateDrafts({
-    suggestionDrafts: candidateDrafts,
-    triageDrafts,
-  })];
+  const coverageDrafts: CandidateDraft[] = auditCoverage
+    ? [...buildCandidateDraftsFromAuditCoverage({ coverage: auditCoverage })]
+    : [];
+  const mergedCandidateDrafts: CandidateDraft[] = [
+    ...mergeAnalyzeCandidateDrafts({
+      suggestionDrafts: candidateDrafts,
+      triageDrafts,
+    }),
+    ...coverageDrafts,
+  ];
   for (const draft of triageDrafts) {
     if (draft.benchmarkQuery) {
       benchmarkScoreQueries.push(draft.benchmarkQuery);
@@ -1074,6 +1104,20 @@ async function runAnalyzeCliInternal(argv: readonly string[]): Promise<AnalyzeEx
   const analyzeMdPath: string = writeArtifactPath("analyze-md");
   await writeFile(analyzeJsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   await writeFile(analyzeMdPath, formatAnalyzeMarkdown(report), "utf8");
+
+  const fixQueue = buildFixQueueV1({
+    actions: tokenTrimmedActions,
+    comparabilityHash: report.source.runComparabilityHash,
+    performanceTriage,
+    results: allResults,
+    coverage: auditCoverage,
+  });
+  if (!isFixQueueV1(fixQueue)) {
+    // eslint-disable-next-line no-console
+    console.error("Internal contract error: fix-queue.json failed validation.");
+    return 1;
+  }
+  await writeFile(writeArtifactPath("fix-queue"), `${JSON.stringify(fixQueue, null, 2)}\n`, "utf8");
 
   if (args.json) {
     printJsonSummary({

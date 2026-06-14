@@ -224,8 +224,8 @@ export class EnhancedTriageGenerator {
       '',
       `### Issue Breakdown`,
       `- 🚨 **${criticalIssues.length} Critical Issues** - Immediate attention required`,
-      `- ⚠️ **${highIssues.length} High Priority Issues** - Address within this sprint`,
-      `- ⚡ **${issues.filter(i => i.severity === 'medium').length} Medium Issues** - Plan for next iteration`,
+      `- ⚠️ **${highIssues.length} High Priority Issues** - High-value optimizations`,
+      `- ⚡ **${issues.filter(i => i.severity === 'medium').length} Medium Issues** - Remaining opportunities`,
       `- ℹ️ **${issues.filter(i => i.severity === 'low').length} Low Priority Issues** - Technical debt cleanup`
     ].join('\n');
   }
@@ -361,21 +361,21 @@ export class EnhancedTriageGenerator {
     return [
       '## 🗺️ Implementation Roadmap',
       '',
-      '### Phase 1: Critical Issues (Week 1)',
+      '### Phase 1: Critical Issues',
       '> **Goal:** Address performance blockers and critical user experience issues',
       '',
       ...criticalIssues.slice(0, 3).map(issue =>
         `- [ ] **${issue.title}** - ${issue.affectedPages.length} pages, ${Math.round(issue.totalImpact.timeMs / 1000)}s savings`
       ),
       '',
-      '### Phase 2: High Impact Issues (Week 2-3)',
+      '### Phase 2: High Impact Issues',
       '> **Goal:** Implement high-value optimizations with measurable performance gains',
       '',
       ...highIssues.slice(0, 5).map(issue =>
         `- [ ] **${issue.title}** - ${issue.affectedPages.length} pages, ${Math.round(issue.totalImpact.timeMs / 1000)}s savings`
       ),
       '',
-      '### Phase 3: Medium Priority Issues (Week 4-6)',
+      '### Phase 3: Medium Priority Issues',
       '> **Goal:** Address remaining performance opportunities and technical debt',
       '',
       ...mediumIssues.slice(0, 5).map(issue =>
@@ -402,8 +402,8 @@ export class EnhancedTriageGenerator {
       '1. **Review Prioritization Matrix** - Focus on high-impact, low-effort wins',
       '2. **Assign Issues to Team Members** - Distribute work based on expertise',
       '3. **Set Performance Budgets** - Prevent future regressions',
-      '4. **Schedule Regular Audits** - Monitor progress and catch new issues',
-      '5. **Measure Impact** - Re-run audits after each phase to validate improvements',
+      '4. **Re-run Audits** - Verify fixes and catch regressions',
+      '5. **Measure Impact** - Compare issue-count and verify results after fixes',
       '',
       '## 📚 Additional Resources',
       '',

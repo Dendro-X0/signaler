@@ -27,6 +27,7 @@ const triageFixture: PerformanceTriageV3 = {
       pointer: "performance-triage.json#/uniqueIssues/0",
     },
   ],
+  combos: [],
 };
 
 const results: ResultsV3Line[] = [
