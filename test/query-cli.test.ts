@@ -82,6 +82,25 @@ async function withArtifacts(
             pointer: "performance-triage.json#/uniqueIssues/0",
           },
         ],
+        combos: [
+          {
+            label: "home",
+            path: "/",
+            device: "mobile",
+            auditStatus: "scored",
+            counts: { red: 2, yellow: 0, actionable: 2 },
+            issues: [
+              {
+                id: "unused-javascript",
+                title: "Reduce unused JavaScript",
+                severity: "red",
+                kind: "opportunity",
+                estimatedSavingsMs: 900,
+              },
+            ],
+            pointer: "performance-triage.json#/combos/0",
+          },
+        ],
       }),
       "utf8",
     );

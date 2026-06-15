@@ -113,12 +113,12 @@ describe("query-delta benchmark plane", () => {
 
     await writeFile(
       resolve(baselineDir, "performance-triage.json"),
-      JSON.stringify({ ...triageBase, totals: { red: 4, yellow: 0, green: 0, actionable: 4 }, uniqueIssues: [] }),
+      JSON.stringify({ ...triageBase, totals: { red: 4, yellow: 0, green: 0, actionable: 4 }, uniqueIssues: [], combos: [] }),
       "utf8",
     );
     await writeFile(
       resolve(compareDir, "performance-triage.json"),
-      JSON.stringify({ ...triageBase, totals: { red: 2, yellow: 0, green: 0, actionable: 2 }, uniqueIssues: [] }),
+      JSON.stringify({ ...triageBase, totals: { red: 2, yellow: 0, green: 0, actionable: 2 }, uniqueIssues: [], combos: [] }),
       "utf8",
     );
 

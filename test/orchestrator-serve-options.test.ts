@@ -54,6 +54,7 @@ describe("orchestrator serve defaults", () => {
         managedServeMode: "production",
         managedServeSkipBuild: false,
         managedServeReuse: false,
+        serveEnvOverrides: {},
       });
     });
   });
