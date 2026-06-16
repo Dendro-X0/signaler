@@ -6,7 +6,7 @@ import lighthouse from "lighthouse";
 import { launch as launchChrome } from "chrome-launcher";
 import type { ApexCategory, ApexDevice, ApexPageScope, ApexThrottlingMethod, CategoryScores, ComboRunStats, FailedAuditSummary, MetricValues, NumericStats, OpportunitySummary, PageDeviceSummary } from "./core/types.js";
 import { captureLighthouseArtifacts } from "./runners/lighthouse/capture.js";
-import { lighthouseExtraHeaders } from "./runners/lighthouse/auth-session.js";
+import { buildLighthouseExtraHeaders } from "./runners/lighthouse/auth-session.js";
 
 type LighthouseLogLevel = "silent" | "error" | "info" | "verbose";
 
@@ -43,6 +43,7 @@ type AuditTask = {
   readonly outputDir: string;
   readonly runs: number;
   readonly cookieHeader?: string;
+  readonly authHeaders?: Readonly<Record<string, string>>;
 };
 
 type ChromeSession = {
@@ -211,6 +212,7 @@ async function runTaskWithRetry(task: AuditTask, sessionRef: ChromeSessionRef, m
           captureLevel: task.captureLevel,
           outputDir: task.outputDir,
           cookieHeader: task.cookieHeader,
+          authHeaders: task.authHeaders,
         }),
         task.timeoutMs,
       );
@@ -243,6 +245,7 @@ async function runSingleAudit(params: {
   readonly captureLevel?: "diagnostics" | "lhr";
   readonly outputDir: string;
   readonly cookieHeader?: string;
+  readonly authHeaders?: Readonly<Record<string, string>>;
 }): Promise<PageDeviceSummary> {
   const onlyCategories: readonly ApexCategory[] = params.onlyCategories ?? ["performance", "accessibility", "best-practices", "seo"];
   const options: Record<string, unknown> = {
@@ -266,7 +269,10 @@ async function runSingleAudit(params: {
       uploadThroughputKbps: 750,
     };
   }
-  const extraHeaders = lighthouseExtraHeaders(params.cookieHeader);
+  const extraHeaders = buildLighthouseExtraHeaders({
+    cookieHeader: params.cookieHeader,
+    headers: params.authHeaders,
+  });
   if (extraHeaders) {
     options.extraHeaders = extraHeaders;
   }

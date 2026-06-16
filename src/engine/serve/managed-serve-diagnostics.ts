@@ -1,3 +1,18 @@
+export function formatManagedServePortConflict(params: {
+  readonly port: number;
+  readonly baseUrl: string;
+}): string {
+  return [
+    `Managed serve: port ${params.port} is already in use but ${params.baseUrl} is not healthy.`,
+    "A stale or hung server process is likely blocking the port.",
+    "",
+    "Next checks:",
+    `  - Stop the process on port ${params.port} (Windows: netstat -ano | findstr :${params.port}, then taskkill /F /PID <pid>).`,
+    `  - Start manually: DEMO_AUTH_BYPASS=true pnpm run start (from project root), then rerun with --no-managed-serve.`,
+    "  - Or retry with --managed-serve-reuse if the existing server is intentionally running.",
+  ].join("\n");
+}
+
 export function formatManagedServeStartTimeout(params: {
   readonly mode: "dev" | "production";
   readonly baseUrl: string;

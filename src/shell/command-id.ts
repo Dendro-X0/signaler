@@ -34,6 +34,7 @@ export type ShellCommandId =
   | "export"
   | "ai"
   | "cortex"
+  | "auth"
   | "version"
   | "install-shim";
 

@@ -35,10 +35,11 @@ import {
   formatPreflightSkipMessage,
   MIN_AUDIT_SCORE_COVERAGE_RATE,
   probeAppHealth,
-  probeRoutesParallel,
   type RoutePreflightResult,
 } from "./runners/lighthouse/route-preflight.js";
-import { lighthouseExtraHeaders, resolveAuditAuthCookieHeader } from "./runners/lighthouse/auth-session.js";
+import { buildLighthouseExtraHeaders } from "./runners/lighthouse/auth-session.js";
+import { prepareLabAuth, resolveSessionForPage } from "./lab-auth/resolve-auth-session.js";
+import { probePagesWithSessions } from "./lab-auth/probe-pages.js";
 import { usesInProcessParallelRunner } from "./runners/lighthouse/in-process-parallel-policy.js";
 import { Spinner } from "./utils/progress.js";
 import { runRustCorePipeline, type RustCoreRunAttempt } from "./rust/core-adapter.js";
@@ -506,6 +507,7 @@ async function runParallelInStdioWorkers(
       captureLevel,
       outputDir,
       cookieHeader: task.cookieHeader,
+      authHeaders: task.authHeaders,
       runs: task.runs,
     };
     worker.busy = true;
@@ -889,6 +891,7 @@ async function runParallelInProcesses(
       captureLevel,
       outputDir,
       cookieHeader: task.cookieHeader,
+      authHeaders: task.authHeaders,
     };
     worker.busy = true;
     worker.inFlightId = id;
@@ -1101,6 +1104,7 @@ interface RunAuditParams {
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly cookieHeader?: string;
+  readonly authHeaders?: Readonly<Record<string, string>>;
 }
 
 type AuditOutcome = {
@@ -1120,6 +1124,7 @@ interface AuditTask {
   readonly cpuSlowdownMultiplier: number;
   readonly onlyCategories?: readonly ApexCategory[];
   readonly cookieHeader?: string;
+  readonly authHeaders?: Readonly<Record<string, string>>;
 }
 
 type WorkerTask = {
@@ -1136,6 +1141,7 @@ type WorkerTask = {
   readonly captureLevel?: "diagnostics" | "lhr";
   readonly outputDir: string;
   readonly cookieHeader?: string;
+  readonly authHeaders?: Readonly<Record<string, string>>;
 };
 
 type WorkerRequestMessage = {
@@ -1344,6 +1350,7 @@ export async function runAuditsForConfig({
   onAfterWarmUp,
   onProgress,
   onRustCoreMeta,
+  labAuthFlag,
 }: {
   readonly config: ApexConfig;
   readonly configPath: string;
@@ -1355,6 +1362,7 @@ export async function runAuditsForConfig({
   readonly onAfterWarmUp?: () => void;
   readonly onProgress?: (params: { readonly completed: number; readonly total: number; readonly path: string; readonly device: ApexDevice; readonly etaMs?: number }) => void;
   readonly onRustCoreMeta?: (meta: RunnerRustCoreMeta) => void;
+  readonly labAuthFlag?: boolean;
 }): Promise<RunSummary> {
   const runs: number = typeof config.runs === "number" && Number.isFinite(config.runs) ? Math.max(1, Math.floor(config.runs)) : 1;
   const sessionIsolation: "shared" | "per-audit" = config.sessionIsolation ?? "shared";
@@ -1364,15 +1372,27 @@ export async function runAuditsForConfig({
     throw new Error("Aborted");
   }
   await ensureUrlReachable(healthCheckUrl, signal);
-  const authCookieHeader = await resolveAuditAuthCookieHeader({
-    auth: config.auth,
-    baseUrl: config.baseUrl,
-    configDir: dirname(configPath),
+  const configDir = dirname(configPath);
+  const labAuthPlan = await prepareLabAuth({
+    config,
+    configDir,
+    labAuthFlag,
+    pages: config.pages,
   });
-  if (authCookieHeader) {
-    logLinePreservingProgress("Auth session: cookies configured for preflight and Lighthouse.");
+  const defaultSession = labAuthPlan.defaultSession;
+  const authCookieHeader = defaultSession.cookieHeader;
+  const authHeaders = defaultSession.headers;
+  if (authCookieHeader || authHeaders) {
+    logLinePreservingProgress("Auth session: cookies/headers configured for preflight and Lighthouse.");
   }
-  const appHealth = await probeAppHealth({ baseUrl: config.baseUrl, cookieHeader: authCookieHeader });
+  if (labAuthPlan.enabled) {
+    logLinePreservingProgress(`Lab auth: mode=${labAuthPlan.mode}${labAuthPlan.probeValidated ? " (probe OK)" : ""}`);
+  }
+  const appHealth = await probeAppHealth({
+    baseUrl: config.baseUrl,
+    cookieHeader: authCookieHeader,
+    extraHeaders: authHeaders,
+  });
   if (!appHealth.ok) {
     throw new Error(`App health check failed before audit: ${appHealth.reason ?? "unknown"}`);
   }
@@ -1410,6 +1430,7 @@ export async function runAuditsForConfig({
   // Build list of all audit tasks using deterministic round-robin order (page/device).
   const perPageTasks: readonly (readonly AuditTask[])[] = config.pages.map((page) => {
     const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
+    const pageSession = resolveSessionForPage({ plan: labAuthPlan, authProfile: page.authProfile });
     return page.devices.map((device) => ({
       url,
       path: page.path,
@@ -1421,7 +1442,8 @@ export async function runAuditsForConfig({
       throttlingMethod,
       cpuSlowdownMultiplier,
       onlyCategories,
-      cookieHeader: authCookieHeader,
+      cookieHeader: pageSession.cookieHeader,
+      authHeaders: pageSession.headers,
     }));
   });
   const queueBuildStartedAtMs: number = Date.now();
@@ -1445,12 +1467,12 @@ export async function runAuditsForConfig({
   const routePreflightEnabled = config.routePreflight !== false;
   let preflightByPath = new Map<string, RoutePreflightResult>();
   if (routePreflightEnabled && tasks.length > 0) {
-    preflightByPath = await probeRoutesParallel({
+    preflightByPath = await probePagesWithSessions({
       baseUrl: config.baseUrl,
-      paths: config.pages.map((page) => page.path),
+      pages: config.pages,
       query: config.query,
+      plan: labAuthPlan,
       concurrency: 12,
-      cookieHeader: authCookieHeader,
     });
     const skippedPreflight = [...preflightByPath.values()].filter((entry) => entry.status !== "ok");
     if (skippedPreflight.length > 0) {
@@ -1653,7 +1675,6 @@ export async function runAuditsForConfig({
         captureLevel,
         outputDir,
         sessionIsolation,
-        cookieHeader: authCookieHeader,
       });
     } else if (usesInProcessParallelRunner()) {
       rustCoreMeta = {
@@ -1777,6 +1798,15 @@ export async function runAuditsForConfig({
       averageStepMs,
       runnerStability,
       scoreCoverage,
+      ...(labAuthPlan.enabled || labAuthPlan.mode !== "none"
+        ? {
+            labAuth: {
+              enabled: labAuthPlan.enabled,
+              mode: labAuthPlan.mode,
+              ...(labAuthPlan.probeValidated !== undefined ? { probeValidated: labAuthPlan.probeValidated } : {}),
+            },
+          }
+        : {}),
     },
     results,
   };
@@ -1824,7 +1854,8 @@ async function runSequential(params: {
             throttlingMethod: task.throttlingMethod,
             cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
             onlyCategories: task.onlyCategories,
-            cookieHeader: params.cookieHeader ?? task.cookieHeader,
+            cookieHeader: task.cookieHeader,
+            authHeaders: task.authHeaders,
           });
         };
         const outcome = await withTimeout(attemptAudit(), params.auditTimeoutMs).catch(async (error: unknown) => {
@@ -1912,7 +1943,8 @@ async function runSingleAuditWithRetry({
         throttlingMethod: task.throttlingMethod,
         cpuSlowdownMultiplier: task.cpuSlowdownMultiplier,
         onlyCategories: task.onlyCategories,
-        cookieHeader: cookieHeader ?? task.cookieHeader,
+        cookieHeader: task.cookieHeader,
+        authHeaders: task.authHeaders,
       });
     } catch (error: unknown) {
       lastError = error;
@@ -1990,7 +2022,10 @@ async function runSingleAudit(params: RunAuditParams): Promise<AuditOutcome> {
       uploadThroughputKbps: 750,
     };
   }
-  const extraHeaders = lighthouseExtraHeaders(params.cookieHeader);
+  const extraHeaders = buildLighthouseExtraHeaders({
+    cookieHeader: params.cookieHeader,
+    headers: params.authHeaders,
+  });
   if (extraHeaders) {
     options.extraHeaders = extraHeaders;
   }

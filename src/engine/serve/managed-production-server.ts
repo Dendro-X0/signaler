@@ -5,13 +5,14 @@ import {
   buildLoopbackBaseUrl,
   findAvailablePort,
   hasFreshProductionBuild,
+  isPortAvailable,
   normalizeLoopbackBaseUrl,
   parseBaseUrlPort,
   resolveProductionServePlan,
   type PackageManagerId,
   type ProductionServePlan,
 } from "./resolve-serve-plan.js";
-import { formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
+import { formatManagedServePortConflict, formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
 import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedProductionServerOptions = {
@@ -232,6 +233,9 @@ export async function ensureManagedProductionServer(
   }
 
   const preferredPort = parseBaseUrlPort(requestedBaseUrl);
+  if (!(await isPortAvailable(preferredPort)) && !(await probeUrlReachable(healthUrl))) {
+    throw new Error(formatManagedServePortConflict({ port: preferredPort, baseUrl }));
+  }
   const port = await findAvailablePort(preferredPort);
   if (port !== preferredPort) {
     // eslint-disable-next-line no-console

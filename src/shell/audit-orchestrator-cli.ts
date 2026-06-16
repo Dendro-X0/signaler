@@ -33,6 +33,7 @@ export type AuditOrchestratorCliArgs = {
   readonly summary: boolean;
   readonly artifactLayout: ArtifactLayoutMode;
   readonly serveEnvOverrides: Readonly<Record<string, string>>;
+  readonly labAuth: boolean;
 };
 
 export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrchestratorCliArgs {
@@ -53,6 +54,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let json = false;
   let summary = false;
   let artifactLayout: ArtifactLayoutMode = resolveArtifactLayoutFromEnv();
+  let labAuth = false;
 
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -125,6 +127,10 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       incrementalSkipPassing = true;
       continue;
     }
+    if (arg === "--lab-auth") {
+      labAuth = true;
+      continue;
+    }
     if (arg === "--json") {
       json = true;
       continue;
@@ -169,6 +175,7 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     summary,
     artifactLayout,
     serveEnvOverrides: serveOptions.serveEnvOverrides,
+    labAuth,
   };
 }
 
@@ -195,6 +202,7 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     qualityProfile: args.qualityProfile,
     artifactLayout: args.artifactLayout,
     serveEnvOverrides: args.serveEnvOverrides,
+    labAuth: args.labAuth,
   });
 
   if (args.json) {

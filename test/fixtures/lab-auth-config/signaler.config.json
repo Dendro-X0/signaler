@@ -1,0 +1,22 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "pages": [
+    {
+      "path": "/dashboard/user/wishlist",
+      "label": "wishlist",
+      "devices": ["desktop"],
+      "scope": "requires-auth",
+      "authProfile": "user"
+    }
+  ],
+  "auth": {
+    "lab": true,
+    "warmupUrl": "/api/demo-auth",
+    "protectedPathPrefixes": ["/dashboard/"],
+    "profiles": {
+      "user": {
+        "warmupUrl": "/api/demo-auth"
+      }
+    }
+  }
+}

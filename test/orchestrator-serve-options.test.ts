@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseJobCliArgs } from "../src/job-cli.js";
+import { buildAgentPresetJob } from "../src/engine/jobs/presets.js";
+import { patchJobRunStepArgs } from "../src/engine/jobs/run-preset-job.js";
 import { createOrchestratorServeDefaults } from "../src/shell/orchestrator-serve-options.js";
 import { parseAuditOrchestratorArgs } from "../src/shell/audit-orchestrator-cli.js";
 
@@ -121,5 +123,18 @@ describe("audit and job serve flag parity", () => {
     expect(args.skipDiscover).toBe(true);
     expect(args.managedServe).toBe(false);
     expect(args.cwd.replace(/\\/g, "/")).toContain("/tmp/project");
+  });
+});
+
+describe("preset job run step serve flags", () => {
+  it("adds --no-managed-serve to inner run so audit/job flags are not ignored", () => {
+    const job = patchJobRunStepArgs(
+      buildAgentPresetJob({ cwd: "/tmp/project", outputDir: ".signaler", labAuth: true }),
+      { noManagedServe: true },
+    );
+    const runStep = job.steps.find((step) => step.command === "run");
+    expect(runStep?.args).toContain("--no-managed-serve");
+    expect(runStep?.args).toContain("--lab-auth");
+    expect(runStep?.args).not.toContain("--managed-serve");
   });
 });

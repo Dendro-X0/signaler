@@ -42,6 +42,7 @@ export type RunPresetJobParams = BuildPresetJobParams & {
   readonly incrementalSkipPassing?: boolean;
   readonly routesFile?: string;
   readonly serveEnvOverrides?: Readonly<Record<string, string>>;
+  readonly labAuth?: boolean;
 };
 
 export type RunPresetJobOutcome = {
@@ -127,6 +128,31 @@ export function patchBundleStepArgs(job: EngineJobV1, params: {
   };
 }
 
+/**
+ * The preset job orchestrator owns managed-serve lifecycle (`runPresetJob`).
+ * The inner `run` step must not start a second server (including when the user passed `--no-managed-serve`).
+ */
+export function patchJobRunStepArgs(
+  job: EngineJobV1,
+  params: { readonly noManagedServe?: boolean },
+): EngineJobV1 {
+  if (!params.noManagedServe) {
+    return job;
+  }
+  return {
+    ...job,
+    steps: job.steps.map((step) => {
+      if (step.command !== "run") {
+        return step;
+      }
+      const args = (step.args ?? []).filter(
+        (arg) => arg !== "--managed-serve" && arg !== "--auto-serve" && arg !== "--no-managed-serve",
+      );
+      return { ...step, args: [...args, "--no-managed-serve"] };
+    }),
+  };
+}
+
 export async function runPresetJob(params: RunPresetJobParams): Promise<RunPresetJobOutcome> {
   let job: EngineJobV1;
   if (params.jobFile) {
@@ -160,6 +186,7 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       outputDir: resolve(job.cwd, job.outputDir),
     });
   }
+  job = patchJobRunStepArgs(job, { noManagedServe: true });
 
   let managedBaseUrl: string | undefined;
   if (params.managedServe) {

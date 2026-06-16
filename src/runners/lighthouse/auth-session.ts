@@ -135,8 +135,16 @@ export async function resolveAuditAuthCookieHeader(params: {
 }
 
 export function lighthouseExtraHeaders(cookieHeader: string | undefined): Record<string, string> | undefined {
-  if (!cookieHeader) {
-    return undefined;
+  return buildLighthouseExtraHeaders({ cookieHeader });
+}
+
+export function buildLighthouseExtraHeaders(params: {
+  readonly cookieHeader?: string;
+  readonly headers?: Readonly<Record<string, string>>;
+}): Record<string, string> | undefined {
+  const out: Record<string, string> = { ...(params.headers ?? {}) };
+  if (params.cookieHeader) {
+    out.Cookie = params.cookieHeader;
   }
-  return { Cookie: cookieHeader };
+  return Object.keys(out).length > 0 ? out : undefined;
 }

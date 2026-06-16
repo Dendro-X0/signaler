@@ -34,6 +34,7 @@ export type HelpRoutableCommand =
   | "export"
   | "ai"
   | "cortex"
+  | "auth"
   | "version"
   | "install-shim";
 
@@ -81,6 +82,7 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
     command === "export" ||
     command === "ai" ||
     command === "cortex" ||
+    command === "auth" ||
     command === "install-shim"
   ) {
     return command;

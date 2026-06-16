@@ -31,6 +31,8 @@ export interface ApexPageConfig {
   readonly label: string;
   readonly devices: readonly ApexDevice[];
   readonly scope?: ApexPageScope;
+  /** Named `auth.profiles` entry for this route (optional). */
+  readonly authProfile?: string;
 }
 
 /**
@@ -62,6 +64,25 @@ export interface ApexBudgets {
   readonly metrics?: MetricBudgetThresholds;
 }
 
+export interface ApexAuthLoginConfig {
+  readonly loginUrl?: string;
+  readonly email?: string;
+  readonly password?: string;
+  readonly emailEnv?: string;
+  readonly passwordEnv?: string;
+  readonly emailSelector?: string;
+  readonly passwordSelector?: string;
+  readonly submitSelector?: string;
+  readonly successPathPrefix?: string;
+}
+
+export interface ApexAuthProfileConfig {
+  readonly cookies?: string;
+  readonly cookieFile?: string;
+  readonly warmupUrl?: string;
+  readonly headers?: Readonly<Record<string, string>>;
+}
+
 export interface ApexAuthConfig {
   /** Raw Cookie header value, e.g. `session=abc; role=admin`. */
   readonly cookies?: string;
@@ -69,6 +90,18 @@ export interface ApexAuthConfig {
   readonly cookieFile?: string;
   /** GET this path before audit to obtain Set-Cookie (e.g. `/api/demo-auth`). */
   readonly warmupUrl?: string;
+  /** Extra request headers for preflight + Lighthouse (e.g. lab bypass secret). */
+  readonly headers?: Readonly<Record<string, string>>;
+  /** When true (or with `--lab-auth`), only allows localhost / 127.0.0.1 and validates probe path. */
+  readonly lab?: boolean;
+  /** Path to GET after warmup to confirm session (defaults to first requires-auth route). */
+  readonly probePath?: string;
+  /** Path prefixes checked for login HTML heuristics during preflight. */
+  readonly protectedPathPrefixes?: readonly string[];
+  /** Named auth sessions for pages with `authProfile`. */
+  readonly profiles?: Readonly<Record<string, ApexAuthProfileConfig>>;
+  /** Playwright form login (writes cookieFile); used by `signaler auth login` or auto with --lab-auth. */
+  readonly login?: ApexAuthLoginConfig;
 }
 
 /**
@@ -399,6 +432,11 @@ export interface RunMeta {
     readonly skipped: number;
     readonly expectedToScore: number;
     readonly rate: number;
+  };
+  readonly labAuth?: {
+    readonly enabled: boolean;
+    readonly mode: string;
+    readonly probeValidated?: boolean;
   };
 }
 

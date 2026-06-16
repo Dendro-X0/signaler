@@ -75,6 +75,47 @@ Optional fields:
 - `cookies` — raw `Cookie` header value sent on every probe and Lighthouse run.
 - `cookieFile` — path relative to config file; one `name=value` per line (`#` comments allowed).
 - `warmupUrl` — GET before audit to collect `Set-Cookie` (merged with `cookies` / file).
+- `headers` — extra request headers for preflight + Lighthouse (lab bypass secrets, etc.).
+- `lab` — when `true` (or with CLI `--lab-auth`), restricts to localhost / `127.0.0.1` and validates `probePath`.
+- `probePath` — GET after warmup to confirm session (defaults to first `requires-auth` route).
+- `protectedPathPrefixes` — path prefixes for login-HTML heuristics (default: `/dashboard/`, `/admin/`, `/account/`).
+- `profiles` — named sessions; pages may set `authProfile` to select one.
+- `login` — Playwright form login (`signaler auth login`); writes `cookieFile`.
+
+```json
+{
+  "auth": {
+    "lab": true,
+    "warmupUrl": "/api/demo-auth",
+    "cookieFile": ".signaler/audit.cookies.txt",
+    "protectedPathPrefixes": ["/dashboard/"],
+    "profiles": {
+      "user": { "warmupUrl": "/api/demo-auth" },
+      "admin": { "cookies": "role=admin" }
+    },
+    "login": {
+      "loginUrl": "/login",
+      "emailEnv": "SIGNALER_AUTH_EMAIL",
+      "passwordEnv": "SIGNALER_AUTH_PASSWORD"
+    }
+  }
+}
+```
+
+Per-page profile:
+
+```json
+{ "path": "/dashboard/admin", "label": "admin", "devices": ["desktop"], "authProfile": "admin" }
+```
+
+CLI:
+
+```bash
+signaler auth login --config signaler.config.json --base-url http://127.0.0.1:3000
+signaler auth probe --path /dashboard/user/wishlist --config signaler.config.json --lab-auth
+signaler audit --lab-auth --cwd . --base-url http://127.0.0.1:3000
+signaler run --lab-auth --config signaler.config.json
+```
 
 - `serveEnv`: ephemeral env vars injected into Signaler's **managed production `start` process only** (never written to project `.env`). Use this for audit-lab auth bypass flags your app already supports (e.g. `DEMO_AUTH_BYPASS=true`) while still auditing a production build.
 

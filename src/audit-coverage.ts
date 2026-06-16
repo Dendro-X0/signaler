@@ -40,6 +40,7 @@ export type AuditCoverageV1 = {
   };
   readonly runnerErrors: readonly CoverageRunnerErrorEntry[];
   readonly runnerStability?: RunMeta["runnerStability"];
+  readonly labAuth?: RunMeta["labAuth"];
   readonly guidance: {
     readonly authWall: string;
     readonly unreachable: string;
@@ -133,6 +134,7 @@ export function buildAuditCoverageV1(params: {
     },
     runnerErrors,
     ...(params.meta.runnerStability ? { runnerStability: params.meta.runnerStability } : {}),
+    ...(params.meta.labAuth ? { labAuth: params.meta.labAuth } : {}),
     guidance: {
       authWall:
         "Route was not audited (login required). Configure signaler.config.json auth cookies/warmup or extend lab auth bypass in the app.",

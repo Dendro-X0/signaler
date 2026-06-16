@@ -24,6 +24,7 @@ import { runJobCli } from "../job-cli.js";
 import { runInstallShimCli } from "../install-shim-cli.js";
 import { runFolderCli } from "../folder-cli.js";
 import { runCortexCli } from "../cortex-cli.js";
+import { runAuthCli } from "../auth-cli.js";
 import { ConfigCli, parseConfigArgs } from "../cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "../cli/export-cli.js";
 import type { ParsedShellArgs } from "./command-id.js";
@@ -151,6 +152,10 @@ export async function dispatchShellCommand(parsed: ParsedShellArgs): Promise<voi
   }
   if (parsed.command === "cortex") {
     await runCortexCli(parsed.argv);
+    return;
+  }
+  if (parsed.command === "auth") {
+    await runAuthCli(parsed.argv);
     return;
   }
   if (parsed.command === "install-shim") {

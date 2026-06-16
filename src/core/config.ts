@@ -213,14 +213,141 @@ function normaliseAuth(value: unknown, absolutePath: string): ApexAuthConfig | u
   if (typeof value !== "object") {
     throw new Error(`Invalid config at ${absolutePath}: auth must be an object`);
   }
-  const raw = value as { readonly cookies?: unknown; readonly cookieFile?: unknown; readonly warmupUrl?: unknown };
+  const raw = value as {
+    readonly cookies?: unknown;
+    readonly cookieFile?: unknown;
+    readonly warmupUrl?: unknown;
+    readonly headers?: unknown;
+    readonly lab?: unknown;
+    readonly probePath?: unknown;
+    readonly protectedPathPrefixes?: unknown;
+    readonly profiles?: unknown;
+    readonly login?: unknown;
+  };
   const cookies = typeof raw.cookies === "string" && raw.cookies.trim().length > 0 ? raw.cookies.trim() : undefined;
   const cookieFile = typeof raw.cookieFile === "string" && raw.cookieFile.trim().length > 0 ? raw.cookieFile.trim() : undefined;
   const warmupUrl = typeof raw.warmupUrl === "string" && raw.warmupUrl.trim().length > 0 ? raw.warmupUrl.trim() : undefined;
-  if (!cookies && !cookieFile && !warmupUrl) {
+  const lab = typeof raw.lab === "boolean" ? raw.lab : undefined;
+  const probePath = typeof raw.probePath === "string" && raw.probePath.trim().length > 0 ? raw.probePath.trim() : undefined;
+  const headers = normaliseStringRecord(raw.headers, `auth.headers`, absolutePath);
+  const protectedPathPrefixes = normaliseStringArray(raw.protectedPathPrefixes, "auth.protectedPathPrefixes", absolutePath);
+  const profiles = normaliseAuthProfiles(raw.profiles, absolutePath);
+  const login = normaliseAuthLogin(raw.login, absolutePath);
+  if (
+    !cookies
+    && !cookieFile
+    && !warmupUrl
+    && lab === undefined
+    && !headers
+    && !probePath
+    && !protectedPathPrefixes
+    && !profiles
+    && !login
+  ) {
     return undefined;
   }
-  return { cookies, cookieFile, warmupUrl };
+  return {
+    cookies,
+    cookieFile,
+    warmupUrl,
+    ...(lab !== undefined ? { lab } : {}),
+    ...(headers ? { headers } : {}),
+    ...(probePath ? { probePath } : {}),
+    ...(protectedPathPrefixes ? { protectedPathPrefixes } : {}),
+    ...(profiles ? { profiles } : {}),
+    ...(login ? { login } : {}),
+  };
+}
+
+function normaliseStringRecord(
+  value: unknown,
+  label: string,
+  absolutePath: string,
+): Readonly<Record<string, string>> | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid config at ${absolutePath}: ${label} must be an object`);
+  }
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw !== "string" || raw.length === 0) {
+      throw new Error(`Invalid config at ${absolutePath}: ${label}.${key} must be a non-empty string`);
+    }
+    out[key] = raw;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normaliseAuthLogin(value: unknown, absolutePath: string) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object") {
+    throw new Error(`Invalid config at ${absolutePath}: auth.login must be an object`);
+  }
+  const raw = value as Record<string, unknown>;
+  const pick = (key: string): string | undefined => {
+    const v = raw[key];
+    return typeof v === "string" && v.trim().length > 0 ? v.trim() : undefined;
+  };
+  const login = {
+    loginUrl: pick("loginUrl"),
+    email: pick("email"),
+    password: pick("password"),
+    emailEnv: pick("emailEnv"),
+    passwordEnv: pick("passwordEnv"),
+    emailSelector: pick("emailSelector"),
+    passwordSelector: pick("passwordSelector"),
+    submitSelector: pick("submitSelector"),
+    successPathPrefix: pick("successPathPrefix"),
+  };
+  if (Object.values(login).every((v) => v === undefined)) {
+    return undefined;
+  }
+  return login;
+}
+
+function normaliseAuthProfiles(value: unknown, absolutePath: string) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid config at ${absolutePath}: auth.profiles must be an object`);
+  }
+  const out: Record<string, {
+    readonly cookies?: string;
+    readonly cookieFile?: string;
+    readonly warmupUrl?: string;
+    readonly headers?: Readonly<Record<string, string>>;
+  }> = {};
+  for (const [name, profileValue] of Object.entries(value as Record<string, unknown>)) {
+    if (!profileValue || typeof profileValue !== "object" || Array.isArray(profileValue)) {
+      throw new Error(`Invalid config at ${absolutePath}: auth.profiles.${name} must be an object`);
+    }
+    const profile = profileValue as Record<string, unknown>;
+    const cookies = typeof profile.cookies === "string" && profile.cookies.trim().length > 0
+      ? profile.cookies.trim()
+      : undefined;
+    const cookieFile = typeof profile.cookieFile === "string" && profile.cookieFile.trim().length > 0
+      ? profile.cookieFile.trim()
+      : undefined;
+    const warmupUrl = typeof profile.warmupUrl === "string" && profile.warmupUrl.trim().length > 0
+      ? profile.warmupUrl.trim()
+      : undefined;
+    const headers = normaliseStringRecord(profile.headers, `auth.profiles.${name}.headers`, absolutePath);
+    if (!cookies && !cookieFile && !warmupUrl && !headers) {
+      throw new Error(`Invalid config at ${absolutePath}: auth.profiles.${name} must set cookies, cookieFile, warmupUrl, or headers`);
+    }
+    out[name] = {
+      ...(cookies ? { cookies } : {}),
+      ...(cookieFile ? { cookieFile } : {}),
+      ...(warmupUrl ? { warmupUrl } : {}),
+      ...(headers ? { headers } : {}),
+    };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function normaliseServeEnv(value: unknown, absolutePath: string): Readonly<Record<string, string>> | undefined {
@@ -641,6 +768,7 @@ function normalisePage(page: unknown, index: number, absolutePath: string) {
     readonly label?: unknown;
     readonly devices?: unknown;
     readonly scope?: unknown;
+    readonly authProfile?: unknown;
   };
   if (typeof maybePage.path !== "string" || !maybePage.path.startsWith("/")) {
     throw new Error(`Invalid page at index ${index} in ${absolutePath}: path must start with '/'`);
@@ -659,11 +787,15 @@ function normalisePage(page: unknown, index: number, absolutePath: string) {
     : ["mobile"];
   const rawScope: unknown = maybePage.scope;
   const scope: ApexPageScope | undefined = rawScope === "public" || rawScope === "requires-auth" ? rawScope : undefined;
+  const authProfile = typeof maybePage.authProfile === "string" && maybePage.authProfile.trim().length > 0
+    ? maybePage.authProfile.trim()
+    : undefined;
   return {
     path: maybePage.path,
     label,
     devices,
     scope,
+    ...(authProfile ? { authProfile } : {}),
   } as const;
 }
 

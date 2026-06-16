@@ -198,6 +198,7 @@ interface CliArgs {
   readonly managedServeSkipBuild: boolean;
   readonly managedServeReuse: boolean;
   readonly serveEnvOverrides: Readonly<Record<string, string>>;
+  readonly labAuth: boolean;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -2559,11 +2560,16 @@ function parseArgs(argv: readonly string[]): CliArgs {
   let machineTokenBudgetOverride: number | undefined;
   let perfIncludeYellow: boolean | undefined;
   const serveOptions: OrchestratorServeOptions = createOrchestratorServeDefaults();
+  let labAuth = false;
   for (let i = 2; i < argv.length; i += 1) {
     const arg: string = argv[i];
     const serveSkip = applyOrchestratorServeFlag(arg, argv, i, serveOptions);
     if (serveSkip >= 0) {
       i += serveSkip;
+      continue;
+    }
+    if (arg === "--lab-auth") {
+      labAuth = true;
       continue;
     }
     if ((arg === "--config" || arg === "-c") && i + 1 < argv.length) {
@@ -2912,6 +2918,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     managedServeSkipBuild: serveOptions.managedServeSkipBuild,
     managedServeReuse: serveOptions.managedServeReuse,
     serveEnvOverrides: serveOptions.serveEnvOverrides,
+    labAuth,
   };
 }
 
@@ -3126,6 +3133,7 @@ function printAuditFlags(): void {
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
       "  --serve-env KEY=VALUE  Ephemeral env for managed production start only (repeatable; overrides config)",
+      "  --lab-auth             Enable lab auth mode (localhost only; validates probe path)",
     ].join("\n"),
   );
 }
@@ -3855,6 +3863,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       onlyCategories,
       captureLevel,
       signal: abortController.signal,
+      labAuthFlag: args.labAuth,
       onAfterWarmUp: startAuditSpinner,
       onRustCoreMeta: (meta) => {
         rustCoreRunnerMeta = meta;

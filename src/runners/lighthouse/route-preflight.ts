@@ -14,7 +14,14 @@ export type RoutePreflightResult = {
 const AUTH_PATH_PATTERN =
   /\/(login|signin|sign-in|auth|oauth|session|account\/login)(\/|$)/i;
 
-const PROTECTED_ROUTE_PREFIXES = ["/dashboard/user/", "/dashboard/admin/"] as const;
+const DEFAULT_PROTECTED_ROUTE_PREFIXES = ["/dashboard/", "/admin/", "/account/"] as const;
+
+function isProtectedAppRoute(path: string, protectedPathPrefixes?: readonly string[]): boolean {
+  const prefixes = protectedPathPrefixes && protectedPathPrefixes.length > 0
+    ? protectedPathPrefixes
+    : DEFAULT_PROTECTED_ROUTE_PREFIXES;
+  return prefixes.some((prefix) => path.startsWith(prefix) || path === prefix.replace(/\/$/, ""));
+}
 
 const SERVER_ERROR_BODY_PATTERNS: readonly RegExp[] = [
   /Invalid auth environment variables/i,
@@ -41,9 +48,10 @@ type ProbeResponse = {
   readonly bodySample: string;
 };
 
-function isProtectedAppRoute(path: string): boolean {
-  return PROTECTED_ROUTE_PREFIXES.some((prefix) => path.startsWith(prefix));
-}
+type ProbeRequestOptions = {
+  readonly cookieHeader?: string;
+  readonly extraHeaders?: Readonly<Record<string, string>>;
+};
 
 function bodyIndicatesServerError(bodySample: string): boolean {
   return SERVER_ERROR_BODY_PATTERNS.some((pattern) => pattern.test(bodySample));
@@ -53,7 +61,11 @@ function bodyIndicatesAuthWall(bodySample: string): boolean {
   return AUTH_WALL_BODY_PATTERNS.some((pattern) => pattern.test(bodySample));
 }
 
-async function probeOnce(url: string, redirectHopsLeft: number, cookieHeader?: string): Promise<ProbeResponse> {
+async function probeOnce(
+  url: string,
+  redirectHopsLeft: number,
+  options?: ProbeRequestOptions,
+): Promise<ProbeResponse> {
   const parsed = new URL(url);
   const client = parsed.protocol === "https:" ? httpsRequest : httpRequest;
   return await new Promise<ProbeResponse>((resolve, reject) => {
@@ -66,7 +78,8 @@ async function probeOnce(url: string, redirectHopsLeft: number, cookieHeader?: s
         headers: {
           "User-Agent": "signaler-route-preflight",
           Accept: "text/html,application/xhtml+xml",
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+          ...(options?.extraHeaders ?? {}),
+          ...(options?.cookieHeader ? { Cookie: options.cookieHeader } : {}),
         },
       },
       (response) => {
@@ -91,7 +104,7 @@ async function probeOnce(url: string, redirectHopsLeft: number, cookieHeader?: s
             (statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308)
           ) {
             const nextUrl = new URL(location, url).toString();
-            void probeOnce(nextUrl, redirectHopsLeft - 1, cookieHeader).then(resolve).catch(reject);
+            void probeOnce(nextUrl, redirectHopsLeft - 1, options).then(resolve).catch(reject);
             return;
           }
           const finalUrlParsed = new URL(url);
@@ -115,6 +128,7 @@ async function probeOnce(url: string, redirectHopsLeft: number, cookieHeader?: s
 export function classifyPreflightProbe(params: {
   readonly requestedPath: string;
   readonly probe: ProbeResponse;
+  readonly protectedPathPrefixes?: readonly string[];
 }): RoutePreflightResult {
   const { requestedPath, probe } = params;
 
@@ -156,7 +170,7 @@ export function classifyPreflightProbe(params: {
       reason: `redirected to ${finalPath}`,
     };
   }
-  if (isProtectedAppRoute(requestedPath) && bodyIndicatesAuthWall(probe.bodySample)) {
+  if (isProtectedAppRoute(requestedPath, params.protectedPathPrefixes) && bodyIndicatesAuthWall(probe.bodySample)) {
     return {
       path: requestedPath,
       status: "auth-wall",
@@ -185,9 +199,13 @@ export function classifyPreflightProbe(params: {
 export async function probeAppHealth(params: {
   readonly baseUrl: string;
   readonly cookieHeader?: string;
+  readonly extraHeaders?: Readonly<Record<string, string>>;
 }): Promise<{ readonly ok: boolean; readonly reason?: string }> {
   try {
-    const probe = await probeOnce(new URL("/", params.baseUrl).toString(), 3, params.cookieHeader);
+    const probe = await probeOnce(new URL("/", params.baseUrl).toString(), 3, {
+      cookieHeader: params.cookieHeader,
+      extraHeaders: params.extraHeaders,
+    });
     if (bodyIndicatesServerError(probe.bodySample)) {
       return {
         ok: false,
@@ -212,14 +230,23 @@ export async function probeRoute(params: {
   readonly path: string;
   readonly query?: string;
   readonly cookieHeader?: string;
+  readonly extraHeaders?: Readonly<Record<string, string>>;
+  readonly protectedPathPrefixes?: readonly string[];
 }): Promise<RoutePreflightResult> {
   const url = new URL(params.path, params.baseUrl);
   if (params.query) {
     url.search = params.query.startsWith("?") ? params.query.slice(1) : params.query;
   }
   try {
-    const probe = await probeOnce(url.toString(), 5, params.cookieHeader);
-    return classifyPreflightProbe({ requestedPath: params.path, probe });
+    const probe = await probeOnce(url.toString(), 5, {
+      cookieHeader: params.cookieHeader,
+      extraHeaders: params.extraHeaders,
+    });
+    return classifyPreflightProbe({
+      requestedPath: params.path,
+      probe,
+      protectedPathPrefixes: params.protectedPathPrefixes,
+    });
   } catch (error) {
     return {
       path: params.path,
@@ -235,6 +262,8 @@ export async function probeRoutesParallel(params: {
   readonly query?: string;
   readonly concurrency?: number;
   readonly cookieHeader?: string;
+  readonly extraHeaders?: Readonly<Record<string, string>>;
+  readonly protectedPathPrefixes?: readonly string[];
 }): Promise<Map<string, RoutePreflightResult>> {
   const concurrency = Math.max(1, Math.min(16, params.concurrency ?? 8));
   const uniquePaths = [...new Set(params.paths)];
@@ -249,7 +278,14 @@ export async function probeRoutesParallel(params: {
         return;
       }
       const path = uniquePaths[current];
-      const result = await probeRoute({ baseUrl: params.baseUrl, path, query: params.query, cookieHeader: params.cookieHeader });
+      const result = await probeRoute({
+        baseUrl: params.baseUrl,
+        path,
+        query: params.query,
+        cookieHeader: params.cookieHeader,
+        extraHeaders: params.extraHeaders,
+        protectedPathPrefixes: params.protectedPathPrefixes,
+      });
       results.set(path, result);
     }
   }

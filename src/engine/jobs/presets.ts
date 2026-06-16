@@ -14,6 +14,7 @@ export type BuildPresetJobParams = {
   readonly incrementalSkipPassing?: boolean;
   readonly routesFile?: string;
   readonly parallel?: number;
+  readonly labAuth?: boolean;
 };
 
 const DEFAULT_AGENT_PARALLEL = 6;
@@ -110,6 +111,9 @@ export function buildAgentPresetJob(params: BuildPresetJobParams): EngineJobV1 {
     if (resolvedBuildId) {
       runArgs.push("--incremental", "--build-id", resolvedBuildId);
     }
+  }
+  if (params.labAuth) {
+    runArgs.push("--lab-auth");
   }
   const steps: EngineJobStepV1[] = [
     { command: "discover", args: discoverArgs },

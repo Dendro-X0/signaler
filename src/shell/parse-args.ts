@@ -49,6 +49,7 @@ export function parseShellArgs(argv: readonly string[]): ParsedShellArgs {
     rawCommand === "export" ||
     rawCommand === "ai" ||
     rawCommand === "cortex" ||
+    rawCommand === "auth" ||
     rawCommand === "install-shim"
   ) {
     const commandArgv: readonly string[] = ["node", "signaler", ...argv.slice(3)];
