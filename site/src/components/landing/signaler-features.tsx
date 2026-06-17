@@ -35,8 +35,8 @@ const FEATURES = [
         glow: "hover:shadow-red-500/20 dark:hover:shadow-red-500/10"
     },
     {
-        title: "AI Insights",
-        description: "Get smart, prioritized remediation suggestions powered by LLMs. Reduce token usage by 95% with optimized reports.",
+        title: "Agent Insights",
+        description: "Get smart, prioritized remediation suggestions for agent workflows. Reduce token usage with optimized, agent-ready reports.",
         icon: Brain,
         color: "emerald",
         bg: "bg-emerald-100 dark:bg-emerald-900/20",
@@ -94,7 +94,7 @@ export function SignalerFeatures() {
             <div className="text-center mb-16">
                 <h2 className="text-4xl font-bold mb-6">Complete Web Quality Platform</h2>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Signaler combines industry-standard tools with AI insights to give you a 360° view of your web application's health.
+                    Signaler combines industry-standard checks with agent-ready insights to give you a 360° view of your web application's health.
                 </p>
             </div>
 

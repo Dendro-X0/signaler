@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.6-blue.svg)
+![Version](http://img.shields.io/badge/version-5.1.9-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -24,15 +24,15 @@ Signaler is a **CLI for route-scale web quality audits** for teams shipping Next
 
 Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serve production builds when configured).
 
-1. **Install** — pick your shell ([install matrix](./docs/guides/install-matrix.md)):
+1. **Install** (works in Git Bash and PowerShell; Node 18+):
 
    ```bash
-   # Git Bash / macOS / Linux / WSL (Windows + Cursor: use this, not irm | iex)
-   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
-   source ~/.bashrc && signaler --version
+   node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"
    ```
 
-   Windows PowerShell: `irm …/install.ps1 | iex` — see [install matrix](./docs/guides/install-matrix.md).
+   Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.1.9`, PowerShell: `$env:SIGNALER_VERSION='5.1.9'`).
+
+   Then: `signaler --version`
 
 2. **Audit** from your project root:
 
@@ -54,40 +54,15 @@ First install takes **5–15 minutes** (npm pulls Lighthouse, Playwright, axe-co
 
 ## Installation
 
-→ [Installation guide](./docs/guides/installation.md) · [Install matrix (OS × shell)](./docs/guides/install-matrix.md)
+Signaler installs from **GitHub Release portable installers** only (not npm/JSR). For details, see [`/docs`](./docs/README.md).
 
-Install scripts default to **`latest`** from GitHub Releases. Pin `SIGNALER_VERSION` only for CI or reproducibility.
-
-| Your environment | Command |
-|------------------|---------|
-| **Windows + Git Bash** (Cursor, VS Code default) | `curl -fsSL …/install.sh \| bash` |
-| Windows PowerShell / CMD | `irm …/install.ps1 \| iex` |
-| macOS / Linux / WSL | `curl -fsSL …/install.sh \| bash` |
-| Windows GUI | `signaler-*-windows-setup.exe` from [Releases](https://github.com/Dendro-X0/signaler/releases) |
+Universal install (Git Bash + PowerShell; requires Node 18+):
 
 ```bash
-# Bash / Git Bash / macOS / Linux / WSL — installs latest release
-curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"
 ```
 
-```powershell
-# Windows PowerShell only — installs latest release
-irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
-```
-
-Optional pin: `SIGNALER_VERSION=5.1.6` (bash) or `$env:SIGNALER_VERSION = "5.1.6"` (PowerShell) before the command above.
-
-After install: `signaler --version` · compatibility alias: `signalar`
-
-**Update:** re-run the same install command, or `signaler upgrade`.
-
-**GitHub rate limit?** Set `GITHUB_TOKEN` to a read-only PAT and retry — see [installation guide](./docs/guides/installation.md).
-
-**Uninstall:** `signaler uninstall --global` — see [install matrix](./docs/guides/install-matrix.md) for PATH cleanup.
-
-**Requirements:** Node.js 18+. **npm and JSR are deprecated.**
-
-Portable releases may include a **native launcher** (`signaler-native` / `signalar-native`) that delegates to the bundled Node CLI. Build from source: `cd rust && cargo build --release -p signaler_launcher`.
+Optional pin: set `SIGNALER_VERSION` before running. Then: `signaler --version` (compat alias: `signalar`).
 
 ## Quick Start
 
@@ -241,29 +216,9 @@ signaler run --focus-worst 10
 # CI mode with budget enforcement
 signaler run --ci --fail-on-budget
 
-# Launch Cortex Dashboard (optional assistant surface)
-signaler cortex
-
 # Launch fullscreen interactive dashboard
 signaler tui
 ```
-
-### Optional Cortex Surface
-
-Cortex is optional. The preferred AI workflow is now direct agent usage through the CLI and canonical artifacts.
-
-If you still want the assistant surface, Cortex can help to:
-
-1.  **Diagnose**: Real-time analysis of your application with tech stack detection.
-2.  **Fix**: Interactive triage of audit issues with AI-suggested code patches.
-3.  **Test**: Auto-generation of Playwright tests to verify fixes.
-
-Supported providers:
-- **Google**: Gemini 3 Pro, Gemini 3 Flash
-- **Anthropic**: Claude 3.5 Sonnet, Claude 4.5 Opus
-- **OpenAI**: GPT-4o, GPT-5.2
-- **Local**: Ollama, DeepSeek
-
 
 ### Demos
 
@@ -445,31 +400,17 @@ For more solutions, see [Troubleshooting Guide](./docs/guides/troubleshooting.md
 - **🔍 SEO**: Meta tags, structured data, canonical URLs, heading hierarchy
 - **📱 Mobile UX**: Touch targets, viewport validation, responsive design
 - **🎯 Third-Party Analysis**: Performance impact of external scripts
-- **🧠 AI-Optimized Reports**: 95% token reduction for AI analysis
+- **🧠 Agent-ready reports**: token-efficient summaries for agent workflows
 - **🔄 CI/CD Ready**: GitHub Actions, GitLab CI, Jenkins integration
 
 ## Documentation
 
-Comprehensive guides available in [`/docs`](./docs):
-
-- [**Install matrix**](./docs/guides/install-matrix.md) — OS × shell install commands
-- [**v5 Showcase**](./docs/guides/v5-showcase.md) — quality profiles, tree layout, agent vs CI flows
-- [Docs Index](./docs/README.md)
-- [Getting Started](./docs/guides/getting-started.md)
+Technical details live in [`/docs`](./docs):
 - [Agent Quickstart](./docs/guides/agent-quickstart.md)
 - [CLI Reference](./docs/reference/cli.md)
 - [Configuration Reference](./docs/reference/configuration.md)
-- [API Documentation](./docs/reference/api.md)
-- [Features Guide](./docs/reference/features.md)
-- [Troubleshooting](./docs/guides/troubleshooting.md)
-- [Known Limits](./docs/guides/known-limits.md)
-- [Production Playbook](./docs/operations/production-playbook.md)
-- [Launch Checklist](./docs/operations/launch-checklist.md)
-- [Release Playbook](./docs/operations/release-playbook.md)
-- [Release Notes](./docs/operations/release-notes.md)
-- [Active Roadmap](./docs/roadmap/active-roadmap.md)
-- [Migration Guide](./docs/guides/migration.md)
-- [Contracts (V3)](./docs/reference/contracts-v3.md)
+- [Lab semantics](./docs/guides/lab-semantics.md)
+- [Install matrix](./docs/guides/install-matrix.md)
 
 ## Contributing
 

@@ -3,15 +3,11 @@
 import React, { useState } from "react"
 import { Copy, Check, Terminal } from "lucide-react"
 
-const INSTALL_BASH =
-  "curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
-
-const INSTALL_PS =
-  "irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex"
+const INSTALL_ANY = `node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"`
 
 export function HeroStartCommand(): React.ReactElement {
   const [copied, setCopied] = useState<boolean>(false)
-  const cmd: string = INSTALL_BASH
+  const cmd: string = INSTALL_ANY
 
   async function copy(): Promise<void> {
     try {
@@ -43,9 +39,10 @@ export function HeroStartCommand(): React.ReactElement {
         </span>
       </button>
       <p className="text-sm text-muted-foreground max-w-2xl text-center">
-        Installs <strong>latest</strong> from GitHub Releases. PowerShell:{" "}
-        <code className="text-xs">{INSTALL_PS}</code> — see{" "}
-        <a href="/docs/signaler/install-matrix" className="underline hover:text-foreground">install matrix</a>.
+        Installs <strong>latest</strong> from GitHub Releases (works in Git Bash and PowerShell; requires Node 18+).{" "}
+        See{" "}
+        <a href="/docs/signaler/install-matrix" className="underline hover:text-foreground">install matrix</a>{" "}
+        for details.
       </p>
     </div>
   )

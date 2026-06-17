@@ -5,19 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Copy, Check } from "lucide-react"
 
 type Cmd = { readonly key: string; readonly label: string; readonly code: string }
-type Shell = "bash" | "powershell"
 
-const INSTALL_BASH =
-  "curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash"
-
-const INSTALL_PS =
-  "irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex"
+const INSTALL_ANY = `node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"`
 
 export function SignalerQuickStart(): React.ReactElement {
   const [copiedKey, setCopiedKey] = useState<string>("")
-  const [shell, setShell] = useState<Shell>("bash")
-
-  const installCmd = shell === "bash" ? INSTALL_BASH : INSTALL_PS
+  const installCmd = INSTALL_ANY
 
   const commands: ReadonlyArray<Cmd> = [
     { key: "install", label: "# 1. Install latest (GitHub Release)", code: installCmd },
@@ -58,21 +51,6 @@ export function SignalerQuickStart(): React.ReactElement {
             <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Signaler Quick Start</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 mr-4">
-              {(["bash", "powershell"] as Shell[]).map((s) => (
-                <Button
-                  key={s}
-                  type="button"
-                  variant={shell === s ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => setShell(s)}
-                  aria-pressed={shell === s}
-                >
-                  {s === "bash" ? "Bash / Git Bash" : "PowerShell"}
-                </Button>
-              ))}
-            </div>
             <Button
               variant="outline"
               size="sm"
