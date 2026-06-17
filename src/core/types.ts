@@ -438,6 +438,13 @@ export interface RunMeta {
     readonly mode: string;
     readonly probeValidated?: boolean;
   };
+  readonly excludedAtInit?: readonly {
+    readonly label: string;
+    readonly path: string;
+    readonly status: "auth-wall" | "unreachable";
+    readonly reason: string;
+  }[];
+  readonly excludedAtInitCombos?: number;
 }
 
 /**

@@ -12,6 +12,7 @@ import type {
   ApexCategory,
   ApexConfig,
   ApexDevice,
+  ApexPageConfig,
   ApexPageScope,
   ApexThrottlingMethod,
   ApexThroughputBackoffPolicy,
@@ -32,14 +33,18 @@ import {
 } from "./runners/lighthouse/runner-failure-policy.js";
 import {
   auditScoreCoverage,
-  formatPreflightSkipMessage,
   MIN_AUDIT_SCORE_COVERAGE_RATE,
   probeAppHealth,
-  type RoutePreflightResult,
 } from "./runners/lighthouse/route-preflight.js";
 import { buildLighthouseExtraHeaders } from "./runners/lighthouse/auth-session.js";
 import { prepareLabAuth, resolveSessionForPage } from "./lab-auth/resolve-auth-session.js";
-import { probePagesWithSessions } from "./lab-auth/probe-pages.js";
+import {
+  countExcludedCombos,
+  formatExcludedAtInitLog,
+  partitionPagesByPreflight,
+  probePagesForAuditability,
+  type ExcludedPageAtInit,
+} from "./engine/route-auditability.js";
 import { usesInProcessParallelRunner } from "./runners/lighthouse/in-process-parallel-policy.js";
 import { Spinner } from "./utils/progress.js";
 import { runRustCorePipeline, type RustCoreRunAttempt } from "./rust/core-adapter.js";
@@ -130,21 +135,20 @@ function buildFailureSummary(task: AuditTask, errorMessage: string): PageDeviceS
   };
 }
 
-function buildPreflightSkipSummary(task: AuditTask, preflight: RoutePreflightResult): PageDeviceSummary {
-  return buildFailureSummary(task, formatPreflightSkipMessage(preflight));
-}
-
 function formatAuditPlanEstimate(params: {
   readonly totalCombos: number;
   readonly routeCount: number;
   readonly tasksToRun: number;
-  readonly skippedPreflight: number;
+  readonly excludedAtInit: number;
   readonly parallel: number;
 }): string {
   const secondsPerCombo = 28;
   const estSeconds = Math.ceil((params.tasksToRun / Math.max(1, params.parallel)) * secondsPerCombo);
   const estMinutes = Math.max(1, Math.round(estSeconds / 60));
-  return `Audit plan: ${params.totalCombos} combos (${params.routeCount} routes), ${params.tasksToRun} Lighthouse tasks, ${params.skippedPreflight} preflight skip(s), parallel ${params.parallel}, est. ~${estMinutes} min`;
+  const excludedNote = params.excludedAtInit > 0
+    ? `, ${params.excludedAtInit} combo(s) excluded at init`
+    : "";
+  return `Audit plan: ${params.totalCombos} combos (${params.routeCount} routes), ${params.tasksToRun} Lighthouse tasks${excludedNote}, parallel ${params.parallel}, est. ~${estMinutes} min`;
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -1427,8 +1431,35 @@ export async function runAuditsForConfig({
   const cache: IncrementalCache | undefined = incrementalEnabled ? await loadIncrementalCache({ outputDir }) : undefined;
   const cacheEntries: Record<string, PageDeviceSummary> = cache?.entries ?? {};
 
-  // Build list of all audit tasks using deterministic round-robin order (page/device).
-  const perPageTasks: readonly (readonly AuditTask[])[] = config.pages.map((page) => {
+  const routePreflightEnabled = config.routePreflight !== false;
+  let excludedAtInit: readonly ExcludedPageAtInit[] = [];
+  let auditablePages: readonly ApexPageConfig[] = config.pages;
+  if (routePreflightEnabled && config.pages.length > 0) {
+    const preflightByPath = await probePagesForAuditability({
+      config,
+      configDir,
+      labAuthPlan,
+      pages: config.pages,
+    });
+    const partition = partitionPagesByPreflight(config.pages, preflightByPath);
+    auditablePages = partition.auditable;
+    excludedAtInit = partition.excluded;
+    if (excludedAtInit.length > 0) {
+      const excludedCombos = countExcludedCombos(config.pages, excludedAtInit);
+      logLinePreservingProgress(
+        `Init: excluded ${excludedAtInit.length} route(s) (${excludedCombos} combo(s)) that cannot be audited.`,
+      );
+      for (const line of formatExcludedAtInitLog(excludedAtInit)) {
+        logLinePreservingProgress(line);
+      }
+      if (excludedAtInit.length > 8) {
+        logLinePreservingProgress(`  ... and ${excludedAtInit.length - 8} more`);
+      }
+    }
+  }
+
+  // Build list of audit tasks using deterministic round-robin order (page/device).
+  const perPageTasks: readonly (readonly AuditTask[])[] = auditablePages.map((page) => {
     const url: string = buildUrl({ baseUrl: config.baseUrl, path: page.path, query: config.query });
     const pageSession = resolveSessionForPage({ plan: labAuthPlan, authProfile: page.authProfile });
     return page.devices.map((device) => ({
@@ -1464,55 +1495,16 @@ export async function runAuditsForConfig({
   }
   const queueBuildMs: number = Date.now() - queueBuildStartedAtMs;
 
-  const routePreflightEnabled = config.routePreflight !== false;
-  let preflightByPath = new Map<string, RoutePreflightResult>();
-  if (routePreflightEnabled && tasks.length > 0) {
-    preflightByPath = await probePagesWithSessions({
-      baseUrl: config.baseUrl,
-      pages: config.pages,
-      query: config.query,
-      plan: labAuthPlan,
-      concurrency: 12,
-    });
-    const skippedPreflight = [...preflightByPath.values()].filter((entry) => entry.status !== "ok");
-    if (skippedPreflight.length > 0) {
-      logLinePreservingProgress(
-        `Route preflight: skipping ${skippedPreflight.length} path(s) (${skippedPreflight.filter((entry) => entry.status === "auth-wall").length} auth-wall).`,
-      );
-      for (const entry of skippedPreflight.slice(0, 6)) {
-        logLinePreservingProgress(`  ${formatPreflightSkipMessage(entry)}`);
-      }
-      if (skippedPreflight.length > 6) {
-        logLinePreservingProgress(`  ... and ${skippedPreflight.length - 6} more`);
-      }
-    }
-  }
-
   const results: PageDeviceSummary[] = new Array(tasks.length);
   const tasksToRun: AuditTask[] = [];
   const taskIndexByRunIndex: number[] = [];
   let cachedSteps = 0;
   let cachedCombos = 0;
-  let preflightSkippedCombos = 0;
-
-  const assignPreflightSkipIfNeeded = (task: AuditTask, index: number): boolean => {
-    const preflight = preflightByPath.get(task.path);
-    if (!preflight || preflight.status === "ok") {
-      return false;
-    }
-    results[index] = buildPreflightSkipSummary(task, preflight);
-    cachedSteps += task.runs;
-    cachedCombos += 1;
-    preflightSkippedCombos += 1;
-    return true;
-  };
+  const excludedAtInitCombos = countExcludedCombos(config.pages, excludedAtInit);
 
   if (incrementalEnabled) {
     for (let i = 0; i < tasks.length; i += 1) {
       const task: AuditTask = tasks[i];
-      if (assignPreflightSkipIfNeeded(task, i)) {
-        continue;
-      }
       const key: string = buildCacheKey({
         buildId: config.buildId as string,
         url: task.url,
@@ -1536,9 +1528,6 @@ export async function runAuditsForConfig({
     }
   } else {
     for (let i = 0; i < tasks.length; i += 1) {
-      if (assignPreflightSkipIfNeeded(tasks[i], i)) {
-        continue;
-      }
       taskIndexByRunIndex.push(i);
       tasksToRun.push(tasks[i]);
     }
@@ -1553,9 +1542,9 @@ export async function runAuditsForConfig({
   logLinePreservingProgress(
     formatAuditPlanEstimate({
       totalCombos: tasks.length,
-      routeCount: config.pages.length,
+      routeCount: auditablePages.length,
       tasksToRun: tasksToRun.length,
-      skippedPreflight: preflightSkippedCombos,
+      excludedAtInit: excludedAtInitCombos,
       parallel: parallelCount,
     }),
   );
@@ -1805,6 +1794,17 @@ export async function runAuditsForConfig({
               mode: labAuthPlan.mode,
               ...(labAuthPlan.probeValidated !== undefined ? { probeValidated: labAuthPlan.probeValidated } : {}),
             },
+          }
+        : {}),
+      ...(excludedAtInit.length > 0
+        ? {
+            excludedAtInit: excludedAtInit.map((entry) => ({
+              label: entry.label,
+              path: entry.path,
+              status: entry.status,
+              reason: entry.reason,
+            })),
+            excludedAtInitCombos: excludedAtInitCombos,
           }
         : {}),
     },

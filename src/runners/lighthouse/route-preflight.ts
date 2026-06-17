@@ -170,6 +170,21 @@ export function classifyPreflightProbe(params: {
       reason: `redirected to ${finalPath}`,
     };
   }
+  // Redirect-only index routes: in-app redirect to a non-auth path is auditable (Lighthouse follows).
+  if (
+    finalPath !== requestedPath
+    && !AUTH_PATH_PATTERN.test(finalPath)
+    && probe.statusCode > 0
+    && probe.statusCode < 400
+  ) {
+    return {
+      path: requestedPath,
+      status: "ok",
+      httpStatus: probe.statusCode,
+      finalPath,
+      reason: `redirect resolved to ${finalPath}`,
+    };
+  }
   if (isProtectedAppRoute(requestedPath, params.protectedPathPrefixes) && bodyIndicatesAuthWall(probe.bodySample)) {
     return {
       path: requestedPath,

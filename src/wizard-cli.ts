@@ -10,6 +10,9 @@ import { buildDiscoveryCoverage, formatDiscoveryCoverageLine, type DiscoveryCove
 import { pathExists } from "./infrastructure/filesystem/utils.js";
 import { discoverNextProjects, type DiscoveredProject } from "./project-discovery.js";
 import type { ApexConfig, ApexDevice, ApexPageConfig } from "./core/types.js";
+import { loadConfig } from "./core/config.js";
+import { mergeDiscoveredConfigWithPreserved } from "./config-discover-preserve.js";
+import { filterAuditablePagesAtDiscover, formatExcludedAtInitLog } from "./engine/route-auditability.js";
 
 interface WizardArgs {
   readonly configPath: string;
@@ -39,11 +42,17 @@ export interface DiscoverySummary {
     readonly excludedDynamic: number;
     readonly excludedByFilter: number;
     readonly excludedByScope: number;
+    readonly excludedByPreflight?: number;
   };
   readonly coverage: DiscoveryCoverage;
   readonly routes: {
     readonly selected: readonly string[];
     readonly excludedDynamic: readonly string[];
+    readonly excludedPreflight?: readonly {
+      readonly path: string;
+      readonly status: string;
+      readonly reason: string;
+    }[];
   };
   readonly strategy: {
     readonly routeCap: number;
@@ -1273,7 +1282,7 @@ function printDiscoveryStrategySummary(summary: DiscoverySummary): void {
   console.log("Discovery summary:");
   console.log(`  - scope: requested=${summary.scopeRequested}, resolved=${summary.scopeResolved}`);
   console.log(`  - status: ${summary.status}`);
-  console.log(`  - totals: detected=${summary.totals.detected}, selected=${summary.totals.selected}, excludedDynamic=${summary.totals.excludedDynamic}, excludedByFilter=${summary.totals.excludedByFilter}, excludedByScope=${summary.totals.excludedByScope}`);
+  console.log(`  - totals: detected=${summary.totals.detected}, selected=${summary.totals.selected}, excludedDynamic=${summary.totals.excludedDynamic}, excludedByFilter=${summary.totals.excludedByFilter}, excludedByScope=${summary.totals.excludedByScope}${typeof summary.totals.excludedByPreflight === "number" ? `, excludedByPreflight=${summary.totals.excludedByPreflight}` : ""}`);
   console.log(`  - coverage: ${formatDiscoveryCoverageLine({ detected: summary.totals.detected, selected: summary.totals.selected, coverage: summary.coverage })}`);
   console.log(
     `  - excluded: scope=${summary.coverage.excludedReasons.scope}, filter=${summary.coverage.excludedReasons.filter}, dynamic=${summary.coverage.excludedReasons.dynamic}`,
@@ -1482,6 +1491,18 @@ export function buildWizardFirstAuditArgv(params: {
   ];
 }
 
+async function loadPreservedDiscoverConfig(absolutePath: string): Promise<ApexConfig | undefined> {
+  if (!await pathExists(absolutePath)) {
+    return undefined;
+  }
+  try {
+    const loaded = await loadConfig({ configPath: absolutePath });
+    return loaded.config;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Run the interactive configuration wizard CLI.
  */
@@ -1521,14 +1542,52 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
       yes: args.yes,
       nonInteractive: args.nonInteractive,
     });
-    const config = built.config;
-    if (args.nonInteractive && config.pages.length === 0) {
+    const config = mergeDiscoveredConfigWithPreserved(
+      built.config,
+      await loadPreservedDiscoverConfig(absolutePath),
+    );
+    let discoverySummary = built.discovery;
+    const audibility = await filterAuditablePagesAtDiscover({
+      config,
+      configPath: absolutePath,
+      labAuthFlag: config.auth?.lab,
+    });
+    let finalConfig = config;
+    if (audibility.probed && audibility.excluded.length > 0) {
+      finalConfig = { ...config, pages: [...audibility.auditable] };
+      const excludedPreflight = audibility.excluded.map((entry) => ({
+        path: entry.path,
+        status: entry.status,
+        reason: entry.reason,
+      }));
+      discoverySummary = {
+        ...discoverySummary,
+        totals: {
+          ...discoverySummary.totals,
+          selected: finalConfig.pages.length,
+          excludedByPreflight: audibility.excluded.length,
+        },
+        routes: {
+          ...discoverySummary.routes,
+          excludedPreflight,
+        },
+        warnings: [
+          ...(discoverySummary.warnings ?? []),
+          `Init preflight excluded ${audibility.excluded.length} route(s) that cannot be audited.`,
+        ],
+      };
+      console.log(`Init preflight: excluded ${audibility.excluded.length} un-auditable route(s) from config.`);
+      for (const line of formatExcludedAtInitLog(audibility.excluded)) {
+        console.log(line);
+      }
+    }
+    if (args.nonInteractive && finalConfig.pages.length === 0) {
       throw new Error("Non-interactive discovery produced zero selected routes. Provide --scope/--routes-file or valid filters.");
     }
-    await writeFile(absolutePath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+    await writeFile(absolutePath, `${JSON.stringify(finalConfig, null, 2)}\n`, "utf8");
     console.log(`Saved Signaler config to ${absolutePath}`);
-    await writeDiscoverySummary({ configPath: absolutePath, summary: built.discovery });
-    printDiscoveryStrategySummary(built.discovery);
+    await writeDiscoverySummary({ configPath: absolutePath, summary: discoverySummary });
+    printDiscoveryStrategySummary(discoverySummary);
     const runNow: boolean = args.runAfterInit
       ? true
       : args.nonInteractive
@@ -1540,7 +1599,7 @@ export async function runWizardCli(argv: readonly string[]): Promise<void> {
           "Run first audit now? (starts dev server with pnpm dev when possible, then run → analyze)",
         initial: true,
       })).value;
-    const projectRoot: string = built.discovery.repoRoot;
+    const projectRoot: string = discoverySummary.repoRoot;
     if (runNow) {
       const { runAuditOrchestratorCli } = await import("./shell/audit-orchestrator-cli.js");
       const auditArgv: readonly string[] = buildWizardFirstAuditArgv({

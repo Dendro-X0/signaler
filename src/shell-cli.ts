@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -493,6 +494,22 @@ async function runDiff(projectRoot: string): Promise<void> {
   console.log(formatChanges(prev, curr));
 }
 
+function configRequestsLabAuth(configPath: string): boolean {
+  try {
+    const raw = readFileSync(configPath, "utf8");
+    const parsed = JSON.parse(raw) as { readonly auth?: { readonly lab?: boolean; readonly warmupUrl?: string } };
+    return parsed.auth?.lab === true || Boolean(parsed.auth?.warmupUrl?.trim());
+  } catch {
+    return false;
+  }
+}
+
+function appendLabAuthIfConfigured(args: string[], configPath: string): void {
+  if (configRequestsLabAuth(configPath) && !args.includes("--lab-auth")) {
+    args.push("--lab-auth");
+  }
+}
+
 function buildRunArgvFromSession(session: ShellSessionState): readonly string[] {
   const args: string[] = ["node", "signaler", "run", "--config", session.configPath, "--managed-serve"];
   if (session.preset === "overview") {
@@ -516,6 +533,7 @@ function buildRunArgvFromSession(session: ShellSessionState): readonly string[] 
   if (session.buildIdStrategy === "manual" && session.buildIdManual) {
     args.push("--build-id", session.buildIdManual);
   }
+  appendLabAuthIfConfigured(args, session.configPath);
   return args;
 }
 
@@ -537,6 +555,7 @@ function buildOrchestratorArgv(projectRoot: string, session: ShellSessionState, 
   if (session.incremental) {
     args.push("--incremental", "--incremental-skip");
   }
+  appendLabAuthIfConfigured(args, session.configPath);
   return [...args, ...passthroughArgs];
 }
 

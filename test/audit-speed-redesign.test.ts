@@ -94,6 +94,20 @@ describe("route preflight", () => {
     });
     expect(result.status).toBe("auth-wall");
   });
+
+  it("passes redirect-only index routes that resolve to in-app paths", () => {
+    const result = classifyPreflightProbe({
+      requestedPath: "/dashboard/admin",
+      probe: {
+        statusCode: 200,
+        finalPath: "/dashboard/admin/dashboard/overview",
+        finalUrl: "http://127.0.0.1:3000/dashboard/admin/dashboard/overview",
+        bodySample: "<html><body>Admin overview</body></html>",
+      },
+    });
+    expect(result.status).toBe("ok");
+    expect(result.reason).toContain("redirect resolved");
+  });
 });
 
 describe("audit score coverage", () => {

@@ -3467,6 +3467,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   const loadedBenchmarkSignals = benchmarkRustAttempt.loaded;
   const startTimeMs: number = Date.now();
   const { configPath, config } = await loadConfig({ configPath: args.configPath });
+  const labAuthEnabled = args.labAuth || config.auth?.lab === true;
   if (benchmarkRustAttempt.enabled && !benchmarkRustAttempt.used && typeof benchmarkRustAttempt.fallbackReason === "string") {
     // eslint-disable-next-line no-console
     console.log(`Rust benchmark fallback: ${benchmarkRustAttempt.fallbackReason}`);
@@ -3863,7 +3864,7 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
       onlyCategories,
       captureLevel,
       signal: abortController.signal,
-      labAuthFlag: args.labAuth,
+      labAuthFlag: labAuthEnabled,
       onAfterWarmUp: startAuditSpinner,
       onRustCoreMeta: (meta) => {
         rustCoreRunnerMeta = meta;

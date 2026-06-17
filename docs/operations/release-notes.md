@@ -4,10 +4,11 @@ Use this page as the canonical entrypoint for release notes.
 
 ## Current Line
 
-- Active package line: Signaler CLI `5.1.8` (2026-06-15)
+- Active package line: Signaler CLI `5.1.9` (2026-06-17)
 - Current release note:
-  - [`../archive/release-notes/RELEASE-NOTES-v5.1.8.md`](../archive/release-notes/RELEASE-NOTES-v5.1.8.md)
+  - [`../archive/release-notes/RELEASE-NOTES-v5.1.9.md`](../archive/release-notes/RELEASE-NOTES-v5.1.9.md)
 - Previous shipped:
+  - [`../archive/release-notes/RELEASE-NOTES-v5.1.8.md`](../archive/release-notes/RELEASE-NOTES-v5.1.8.md)
   - [`../archive/release-notes/RELEASE-NOTES-v5.1.5.md`](../archive/release-notes/RELEASE-NOTES-v5.1.5.md)
   - [`../archive/release-notes/RELEASE-NOTES-v5.1.2.md`](../archive/release-notes/RELEASE-NOTES-v5.1.2.md)
   - [`../archive/release-notes/RELEASE-NOTES-v5.1.0.md`](../archive/release-notes/RELEASE-NOTES-v5.1.0.md)

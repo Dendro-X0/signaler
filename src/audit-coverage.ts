@@ -33,7 +33,16 @@ export type AuditCoverageV1 = {
     readonly partial: number;
     readonly expectedToScore: number;
     readonly scoreRate: number;
+    readonly excludedAtInit?: number;
+    readonly excludedAtInitRoutes?: number;
   };
+  readonly excludedAtInit?: readonly {
+    readonly label: string;
+    readonly path: string;
+    readonly status: "auth-wall" | "unreachable";
+    readonly reason: string;
+    readonly pointer: string;
+  }[];
   readonly skippedByReason: {
     readonly authWall: readonly CoverageSkipEntry[];
     readonly unreachable: readonly CoverageSkipEntry[];
@@ -46,6 +55,7 @@ export type AuditCoverageV1 = {
     readonly unreachable: string;
     readonly runnerError: string;
     readonly partial: string;
+    readonly excludedAtInit?: string;
   };
 };
 
@@ -114,6 +124,9 @@ export function buildAuditCoverageV1(params: {
     }
   });
 
+  const excludedAtInitEntries = params.meta.excludedAtInit ?? [];
+  const excludedAtInitCombos = params.meta.excludedAtInitCombos ?? 0;
+
   return {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -127,7 +140,21 @@ export function buildAuditCoverageV1(params: {
       partial: partialCount,
       expectedToScore: coverage.expectedToScore,
       scoreRate: coverage.rate,
+      ...(excludedAtInitCombos > 0
+        ? {
+            excludedAtInit: excludedAtInitCombos,
+            excludedAtInitRoutes: excludedAtInitEntries.length,
+          }
+        : {}),
     },
+    ...(excludedAtInitEntries.length > 0
+      ? {
+          excludedAtInit: excludedAtInitEntries.map((entry, index) => ({
+            ...entry,
+            pointer: `coverage.json#/excludedAtInit/${index}`,
+          })),
+        }
+      : {}),
     skippedByReason: {
       authWall,
       unreachable,
@@ -144,6 +171,12 @@ export function buildAuditCoverageV1(params: {
         "Lighthouse failed for this combo. Re-run with --parallel 1 or inspect runtimeErrorMessage; visit the page for browser console errors.",
       partial:
         "Lighthouse reported a runtime error but partial audit data exists. Treat issue counts as incomplete; prefer re-run or manual verification.",
+      ...(excludedAtInitEntries.length > 0
+        ? {
+            excludedAtInit:
+              "Route excluded during init preflight (not auditable). Listed in coverage.json#/excludedAtInit; child redirect targets may still be audited separately.",
+          }
+        : {}),
     },
   };
 }

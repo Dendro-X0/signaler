@@ -81,11 +81,11 @@ async function applyQualityPackExitCode(params: {
   return exitCode;
 }
 
-function patchDiscoverBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
+function patchJobStepBaseUrl(job: EngineJobV1, baseUrl: string, commands: readonly string[]): EngineJobV1 {
   return {
     ...job,
     steps: job.steps.map((step) => {
-      if (step.command !== "discover") {
+      if (!commands.includes(step.command)) {
         return step;
       }
       const nextArgs = [...(step.args ?? [])];
@@ -98,6 +98,14 @@ function patchDiscoverBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
       return { ...step, args: nextArgs };
     }),
   };
+}
+
+function patchDiscoverBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
+  return patchJobStepBaseUrl(job, baseUrl, ["discover"]);
+}
+
+function patchRunBaseUrl(job: EngineJobV1, baseUrl: string): EngineJobV1 {
+  return patchJobStepBaseUrl(job, baseUrl, ["run"]);
 }
 
 export function patchBundleStepArgs(job: EngineJobV1, params: {
@@ -153,7 +161,20 @@ export function patchJobRunStepArgs(
   };
 }
 
+async function resolveEffectiveLabAuth(params: RunPresetJobParams, cwd: string): Promise<boolean> {
+  if (params.labAuth) {
+    return true;
+  }
+  const resolvedConfigPath = resolve(cwd, params.configPath ?? "signaler.config.json");
+  if (!existsSync(resolvedConfigPath)) {
+    return false;
+  }
+  const loaded = await loadConfig({ configPath: resolvedConfigPath });
+  return loaded.config.auth?.lab === true;
+}
+
 export async function runPresetJob(params: RunPresetJobParams): Promise<RunPresetJobOutcome> {
+  const labAuth = await resolveEffectiveLabAuth(params, params.cwd);
   let job: EngineJobV1;
   if (params.jobFile) {
     const raw = await readFile(params.jobFile, "utf8");
@@ -163,13 +184,13 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
     }
     job = parsed;
   } else if (params.qualityProfile) {
-    job = buildQualityProfileJob({ ...params, qualityProfile: params.qualityProfile });
+    job = buildQualityProfileJob({ ...params, qualityProfile: params.qualityProfile, labAuth });
   } else if (params.runProfile) {
-    job = buildRunProfileJob({ ...params, runProfile: params.runProfile });
+    job = buildRunProfileJob({ ...params, runProfile: params.runProfile, labAuth });
   } else if (params.preset) {
-    job = buildPresetJob({ ...params, preset: params.preset });
+    job = buildPresetJob({ ...params, preset: params.preset, labAuth });
   } else {
-    job = buildAgentPresetJob(params);
+    job = buildAgentPresetJob({ ...params, labAuth });
   }
 
   if (params.skipDiscover) {
@@ -210,6 +231,7 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
       if (managedServer.startedBySignaler) {
         job = patchDiscoverBaseUrl(job, managedServer.baseUrl);
       }
+      job = patchRunBaseUrl(job, managedServer.baseUrl);
       try {
         const stepRunner = params.inProcess
           ? createInProcessEngineJobStepRunner()
