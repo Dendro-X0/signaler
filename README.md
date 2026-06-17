@@ -267,22 +267,19 @@ Supported providers:
 
 ### Demos
 
-> **GIFs below are from v2.6.4.** v5.1.6 recording script (monorepo audit, dashboard, fix-queue, coverage): [docs/guides/gif-demo-script.md](./docs/guides/gif-demo-script.md)
+Four short clips showing the modern v5+ flow (init → audit → artifacts → dashboard).
 
-| Clip | Status | v5.1.6 equivalent |
-|------|--------|-------------------|
-| Init & audit | Legacy GIF | Monorepo `signaler audit` (~90 combos / ~2 min) |
-| File tree | Legacy GIF | `query --view coverage` + tree `INDEX.md` |
-| HTML report | Partially current | `developer/report.html` dashboard (KPI + triage) |
+![Init](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init.gif)
+*Initialize a project with `signaler discover`*
 
-![Init and Audit Workflow](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif)
-*Legacy: init/wizard — use `signaler audit` or `discover` today*
+![Audit](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/audit.gif)
+*One command: `signaler audit` (discover → run → analyze)*
 
-![File Tree Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/file_tree_report.gif)
-*Legacy: flat `.signaler/` root — v4.5+ uses tree layout (see INDEX.md)*
+![Artifacts](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/artifacts.gif)
+*Tree layout under `.signaler/` (start at `INDEX.md` → `developer/report.html`)*
 
-![HTML Report](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/HTML_report.gif)
-*Developer report — `developer/report.html` in tree layout*
+![Analytics dashboard](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/analytics_dashboard.gif)
+*Developer report triage: KPI strip + issue-count performance view*
 
 ### Output layout (v4.5+ tree)
 

@@ -1,27 +1,15 @@
 # Demo assets
 
-## Current status
+## Current set (used by README + website)
 
-The three GIFs linked from `README.md` and the marketing site were recorded on **v2.6.4** UI and flat artifact layout. They remain for continuity but **do not reflect v5.1.6**:
+These four GIFs are the canonical demo set:
 
-| File | Issue |
-|------|-------|
-| `init_and_audit.gif` | Legacy init/wizard flow |
-| `file_tree_report.gif` | Flat root dump, not tree `INDEX.md` |
-| `HTML_report.gif` | Concept still valid (`developer/report.html`) |
-
-## v5.1.6 replacement (primary guide)
-
-**Use:** [gif-demo-script.md](../guides/gif-demo-script.md)
-
-Suggested output filenames (save here after recording):
-
-| GIF | Filename | Replaces |
-|-----|----------|----------|
-| Monorepo audit (~1m 45s) | `audit-monorepo-5.1.6.gif` | `init_and_audit.gif` |
-| Dashboard triage KPIs | `dashboard-triage-5.1.6.gif` | `HTML_report.gif` |
-| Fix queue + explain | `agent-fix-queue-5.1.6.gif` | (new) |
-| Coverage honesty | `coverage-honesty-5.1.6.gif` | `file_tree_report.gif` |
+| File | What it shows |
+|------|---------------|
+| `init.gif` | `signaler discover` initialization |
+| `audit.gif` | `signaler audit` end-to-end run |
+| `artifacts.gif` | `.signaler/` tree layout + entrypoints |
+| `analytics_dashboard.gif` | `developer/report.html` KPI + triage dashboard |
 
 Settings: **1280×720**, 12–15 fps, &lt;8 MB per GIF after `gifsicle -O3`.
 
@@ -39,9 +27,8 @@ Show `gates/quality-pack.json` + one `developer/reports/*.report.md`.
 ## After recording
 
 1. Optimize with `gifsicle -O3 --lossy=30`
-2. Update `README.md` Demos section with new GIFs and captions from the script
+2. Update `README.md` Demos section
 3. Update `site/src/components/landing/demo-section.tsx` tab labels and sources
-4. Remove the “recorded on older CLI” disclaimer once all clips are replaced
 
 ## Static fallbacks
 

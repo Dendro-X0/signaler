@@ -17,18 +17,19 @@ export function DemoSection() {
 
                 <Tabs defaultValue="init" className="w-full">
                     <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-full max-w-md grid-cols-3">
-                            <TabsTrigger value="init">Init & Audit</TabsTrigger>
-                            <TabsTrigger value="report">Interactive Reporting</TabsTrigger>
-                            <TabsTrigger value="filetree">File Tree</TabsTrigger>
+                        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+                            <TabsTrigger value="init">Init</TabsTrigger>
+                            <TabsTrigger value="audit">Audit</TabsTrigger>
+                            <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
+                            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                         </TabsList>
                     </div>
 
                     <TabsContent value="init" className="mt-0">
                         <div className="rounded-xl overflow-hidden shadow-2xl border border-border bg-card aspect-video relative flex items-center justify-center">
                             <Image
-                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init_and_audit.gif"
-                                alt="Signaler Init and Audit Demo"
+                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init.gif"
+                                alt="Signaler init demo"
                                 width={1200}
                                 height={675}
                                 className="w-full h-full object-cover"
@@ -36,15 +37,15 @@ export function DemoSection() {
                             />
                         </div>
                         <p className="text-center mt-4 text-sm text-muted-foreground">
-                            Initializing a project and running an audit in interactive mode
+                            Initialize a project with `signaler discover`
                         </p>
                     </TabsContent>
 
-                    <TabsContent value="report" className="mt-0">
+                    <TabsContent value="audit" className="mt-0">
                         <div className="rounded-xl overflow-hidden shadow-2xl border border-border bg-card aspect-video relative flex items-center justify-center">
                             <Image
-                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/HTML_report.gif"
-                                alt="Signaler HTML Report Demo"
+                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/audit.gif"
+                                alt="Signaler audit demo"
                                 width={1200}
                                 height={675}
                                 className="w-full h-full object-cover"
@@ -52,15 +53,15 @@ export function DemoSection() {
                             />
                         </div>
                         <p className="text-center mt-4 text-sm text-muted-foreground">
-                            Interactive HTML report with AI insights and deep metrics
+                            One command: discover → run → analyze with `signaler audit`
                         </p>
                     </TabsContent>
 
-                    <TabsContent value="filetree" className="mt-0">
+                    <TabsContent value="artifacts" className="mt-0">
                         <div className="rounded-xl overflow-hidden shadow-2xl border border-border bg-card aspect-video relative flex items-center justify-center">
                             <Image
-                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/file_tree_report.gif"
-                                alt="Signaler File Tree Report Demo"
+                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/artifacts.gif"
+                                alt="Signaler artifacts demo"
                                 width={1200}
                                 height={675}
                                 className="w-full h-full object-cover"
@@ -68,7 +69,23 @@ export function DemoSection() {
                             />
                         </div>
                         <p className="text-center mt-4 text-sm text-muted-foreground">
-                            Comprehensive file tree generation for project structure analysis
+                            Tree layout artifacts under `.signaler/` (start at `INDEX.md`)
+                        </p>
+                    </TabsContent>
+
+                    <TabsContent value="dashboard" className="mt-0">
+                        <div className="rounded-xl overflow-hidden shadow-2xl border border-border bg-card aspect-video relative flex items-center justify-center">
+                            <Image
+                                src="https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/analytics_dashboard.gif"
+                                alt="Signaler dashboard demo"
+                                width={1200}
+                                height={675}
+                                className="w-full h-full object-cover"
+                                unoptimized
+                            />
+                        </div>
+                        <p className="text-center mt-4 text-sm text-muted-foreground">
+                            Developer dashboard triage: KPI strip + issue-count performance view
                         </p>
                     </TabsContent>
                 </Tabs>
