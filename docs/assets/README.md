@@ -27,7 +27,7 @@ Show `gates/quality-pack.json` + one `developer/reports/*.report.md`.
 ## After recording
 
 1. Optimize with `gifsicle -O3 --lossy=30`
-2. Update `README.md` Demos section
+2. Update `README.md` **See it in action** section (relative `./docs/assets/*.gif` paths)
 3. Update `site/src/components/landing/demo-section.tsx` tab labels and sources
 
 ## Static fallbacks

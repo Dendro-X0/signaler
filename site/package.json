@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "sync:cli-docs": "node scripts/sync-cli-docs.mjs",
-    "predev": "node scripts/sync-cli-docs.mjs",
+    "sync:search-index": "node scripts/generate-search-index.mjs",
+    "predev": "node scripts/sync-cli-docs.mjs && node scripts/generate-search-index.mjs",
     "dev": "next dev --turbopack",
-    "prebuild": "node scripts/sync-cli-docs.mjs",
+    "prebuild": "node scripts/sync-cli-docs.mjs && node scripts/generate-search-index.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
@@ -14,6 +15,7 @@
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-roving-focus": "^1.1.11",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",

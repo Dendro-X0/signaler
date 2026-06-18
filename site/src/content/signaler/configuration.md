@@ -31,6 +31,8 @@ Common fields:
 - `sessionIsolation` (optional; `shared` or `per-audit`)
 - `throughputBackoff` (optional; `auto`, `aggressive`, or `off`)
 - `warmUp` (optional)
+- `perfIncludeYellow` (optional, default `false` on lean profile) — include yellow performance issues in triage and TUI. `false` = red-only (recommended for production optimization rounds).
+- `routePreflight` (optional, default true)
 - `auditTimeoutMs` (optional per-audit timeout)
 - `incremental` + `buildId` (optional cache reuse)
 - `gitIgnoreSignalerDir` (optional; when true, Signaler appends `.signaler/` to `.gitignore` if a `.gitignore` exists)
@@ -58,7 +60,82 @@ Optional fields:
 
 - `scope`: `public` (default) or `requires-auth`
 
+- `auth`: optional session cookies for protected routes (preflight + Lighthouse)
+
+```json
+{
+  "auth": {
+    "cookies": "session_token=...",
+    "cookieFile": ".signaler/audit.cookies.txt",
+    "warmupUrl": "/api/demo-auth?callbackUrl=/admin"
+  }
+}
+```
+
+- `cookies` — raw `Cookie` header value sent on every probe and Lighthouse run.
+- `cookieFile` — path relative to config file; one `name=value` per line (`#` comments allowed).
+- `warmupUrl` — GET before audit to collect `Set-Cookie` (merged with `cookies` / file).
+- `headers` — extra request headers for preflight + Lighthouse (lab bypass secrets, etc.).
+- `lab` — when `true` (or with CLI `--lab-auth`), restricts to localhost / `127.0.0.1` and validates `probePath`.
+- `probePath` — GET after warmup to confirm session (defaults to first `requires-auth` route).
+- `protectedPathPrefixes` — path prefixes for login-HTML heuristics (default: `/dashboard/`, `/admin/`, `/account/`).
+- `profiles` — named sessions; pages may set `authProfile` to select one.
+- `login` — Playwright form login (`signaler auth login`); writes `cookieFile`.
+
+```json
+{
+  "auth": {
+    "lab": true,
+    "warmupUrl": "/api/demo-auth",
+    "cookieFile": ".signaler/audit.cookies.txt",
+    "protectedPathPrefixes": ["/dashboard/"],
+    "profiles": {
+      "user": { "warmupUrl": "/api/demo-auth" },
+      "admin": { "cookies": "role=admin" }
+    },
+    "login": {
+      "loginUrl": "/login",
+      "emailEnv": "SIGNALER_AUTH_EMAIL",
+      "passwordEnv": "SIGNALER_AUTH_PASSWORD"
+    }
+  }
+}
+```
+
+Per-page profile:
+
+```json
+{ "path": "/dashboard/admin", "label": "admin", "devices": ["desktop"], "authProfile": "admin" }
+```
+
+CLI:
+
+```bash
+signaler auth login --config signaler.config.json --base-url http://127.0.0.1:3000
+signaler auth probe --path /dashboard/user/wishlist --config signaler.config.json --lab-auth
+signaler audit --lab-auth --cwd . --base-url http://127.0.0.1:3000
+signaler run --lab-auth --config signaler.config.json
+```
+
+- `serveEnv`: ephemeral env vars injected into Signaler's **managed production `start` process only** (never written to project `.env`). Use this for audit-lab auth bypass flags your app already supports (e.g. `DEMO_AUTH_BYPASS=true`) while still auditing a production build.
+
+```json
+{
+  "serveEnv": {
+    "DEMO_AUTH_BYPASS": "true"
+  },
+  "auth": {
+    "warmupUrl": "/api/demo-auth?callbackUrl=/admin"
+  }
+}
+```
+
 Notes:
+
+- `serveEnv` applies only when `--managed-serve` starts the app (production `build` + `start` by default). It does not affect `pnpm dev` or your committed env files.
+- Combine with `auth.warmupUrl` / `cookies` when the bypass still needs a session cookie or demo-auth handshake.
+- CLI override (repeatable): `--serve-env DEMO_AUTH_BYPASS=true`
+- CI without config edits: `SIGNALER_SERVE_ENV='{"DEMO_AUTH_BYPASS":"true"}'` (merged before config; CLI wins over both)
 
 - Pages marked `requires-auth` are still audited and appear in per-combo outputs, but they are excluded from global suite scoring and aggregated issue counts.
 

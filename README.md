@@ -20,19 +20,44 @@ Signaler is a **CLI for route-scale web quality audits** for teams shipping Next
 
 **Distribution:** GitHub Release installers only — not npm or JSR. See [Install matrix](./docs/guides/install-matrix.md).
 
+## See it in action
+
+Four short clips: CLI workflow → artifacts → **interactive HTML dashboard** (`developer/report.html`).
+
+![Init](./docs/assets/init.gif)
+*Discover routes and write `signaler.config.json`*
+
+![Audit](./docs/assets/audit.gif)
+*One command: `signaler audit` (discover → run → analyze)*
+
+![Artifacts](./docs/assets/artifacts.gif)
+*Tree layout under `.signaler/` — agents use `query` / `explain`*
+
+![HTML dashboard](./docs/assets/analytics_dashboard.gif)
+*Interactive HTML report: KPI strip, issue-count performance triage, category scores — open `.signaler/developer/report.html`*
+
 ## Try it in 15 minutes
 
 Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serve production builds when configured).
 
-1. **Install** (works in Git Bash and PowerShell; Node 18+):
+1. **Install** — pick the command for **your shell** ([install matrix](./docs/guides/install-matrix.md); Node 18+):
+
+   **Bash / Git Bash / macOS / Linux / WSL:**
 
    ```bash
-   node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"
+   curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+   source ~/.bashrc   # or open a new terminal
+   signaler --version
+   ```
+
+   **Windows PowerShell:**
+
+   ```powershell
+   irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+   signaler --version
    ```
 
    Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.1.9`, PowerShell: `$env:SIGNALER_VERSION='5.1.9'`).
-
-   Then: `signaler --version`
 
 2. **Audit** from your project root:
 
@@ -56,13 +81,24 @@ First install takes **5–15 minutes** (npm pulls Lighthouse, Playwright, axe-co
 
 Signaler installs from **GitHub Release portable installers** only (not npm/JSR). For details, see [`/docs`](./docs/README.md).
 
-Universal install (Git Bash + PowerShell; requires Node 18+):
+Pick **one** command for your shell — see [Install matrix](./docs/guides/install-matrix.md).
+
+**Bash / Git Bash / macOS / Linux / WSL:**
 
 ```bash
-node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"
+curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+source ~/.bashrc
+signaler --version
 ```
 
-Optional pin: set `SIGNALER_VERSION` before running. Then: `signaler --version` (compat alias: `signalar`).
+**Windows PowerShell:**
+
+```powershell
+irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
+signaler --version
+```
+
+Optional pin: set `SIGNALER_VERSION` before running. Compat alias: `signalar`.
 
 ## Quick Start
 
@@ -219,22 +255,6 @@ signaler run --ci --fail-on-budget
 # Launch fullscreen interactive dashboard
 signaler tui
 ```
-
-### Demos
-
-Four short clips showing the modern v5+ flow (init → audit → artifacts → dashboard).
-
-![Init](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/init.gif)
-*Initialize a project with `signaler discover`*
-
-![Audit](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/audit.gif)
-*One command: `signaler audit` (discover → run → analyze)*
-
-![Artifacts](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/artifacts.gif)
-*Tree layout under `.signaler/` (start at `INDEX.md` → `developer/report.html`)*
-
-![Analytics dashboard](https://raw.githubusercontent.com/Dendro-X0/signaler/main/docs/assets/analytics_dashboard.gif)
-*Developer report triage: KPI strip + issue-count performance view*
 
 ### Output layout (v4.5+ tree)
 

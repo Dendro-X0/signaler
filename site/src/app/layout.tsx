@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Signaler CLI • Docs",
   description:
-    "The AI-powered web quality platform. Audit performance, accessibility, security, and SEO in a single CLI command. CI/CD ready with actionable insights.",
+    "Agent-first web quality audits from the terminal. Route discovery, Lighthouse labs, side runners, and an interactive HTML dashboard. Built for coding agents and CI.",
 };
 
 export const viewport: Viewport = {

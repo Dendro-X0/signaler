@@ -40,6 +40,9 @@ if (!derivedVersion) {
 }
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   pageExtensions: ["ts", "tsx", "md", "mdx"],
   // Expose basePath to client so components can prefix static assets reliably on GitHub Pages
   env: {

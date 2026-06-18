@@ -74,7 +74,7 @@ export default function HomePage() {
             </h1>
 
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-              The AI-powered platform for modern web teams. Audit performance, accessibility, security, and SEO in a single CLI command.
+              Agent-first web quality audits from the terminal. Route discovery, Lighthouse labs, side runners, and an interactive HTML dashboard — one CLI command.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -148,7 +148,7 @@ export default function HomePage() {
             {[
               { step: 1, title: "Detect", desc: "Auto-detects your framework (Next.js, Nuxt, SvelteKit) and crawls your routes to build a comprehensive audit plan.", color: "bg-blue-600" },
               { step: 2, title: "Audit", desc: "Runs parallel audits using headless Chrome, checking Core Web Vitals, accessibility compliance, and security headers.", color: "bg-purple-600" },
-              { step: 3, title: "Improve", desc: "Generates AI-powered remediation guides and visual reports to help you fix issues faster and prevent regressions.", color: "bg-green-600" }
+              { step: 3, title: "Improve", desc: "Agents triage with `query` / `explain`; humans open the HTML dashboard at `developer/report.html` for KPIs and issue drill-down.", color: "bg-green-600" }
             ].map((item, i) => (
               <motion.div
                 key={item.step}

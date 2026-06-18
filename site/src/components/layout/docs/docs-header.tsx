@@ -1,12 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Github, ExternalLink, Menu, Package, Terminal, BookOpen } from "lucide-react"
+import { Github, Menu, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggleSwitch } from "@/components/theme/ThemeToggleSwitch"
 import VERSION from "@/lib/version"
+import { DocsSearch } from "@/components/layout/docs/docs-search"
 
 interface DocsHeaderProps {
   onMenuClick?: () => void
@@ -68,11 +68,7 @@ export function DocsHeader({ onMenuClick, sidebarOpen }: DocsHeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-4 min-w-0">
-          {/* Search */}
-          <div className="relative max-w-sm w-full hidden sm:block" role="search">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" aria-label="Search documentation" placeholder="Search documentation..." className="pl-9 h-9" />
-          </div>
+          <DocsSearch />
 
           {/* Navigation (hidden on mobile to avoid overlap; visible from sm+) */}
           <nav className="hidden sm:flex items-center gap-2" aria-label="Header navigation">

@@ -1,33 +1,44 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Copy, Check } from "lucide-react"
+import {
+  INSTALL_QUICK_START,
+  type InstallShell,
+} from "@/lib/install-commands"
+import { ShellTabBar } from "@/components/landing/shell-tab-bar"
 
 type Cmd = { readonly key: string; readonly label: string; readonly code: string }
 
-const INSTALL_ANY = `node -e "(async()=>{const {spawnSync}=require('child_process');const fs=require('fs');const os=require('os');const path=require('path');const isWin=process.platform==='win32';const looksLikeBash=isWin && !!process.env.MSYSTEM;const url=isWin?(looksLikeBash?'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh':'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1'):'https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh';const suffix=url.endsWith('.ps1')?'.ps1':'.sh';const file=path.join(os.tmpdir(),'signaler-install-'+Date.now()+suffix);const res=await fetch(url);if(!res.ok) throw new Error('download failed: '+res.status);const txt=await res.text();fs.writeFileSync(file,txt,'utf8');if(suffix==='.ps1'){spawnSync('powershell',['-NoProfile','-ExecutionPolicy','Bypass','-File',file],{stdio:'inherit'});} else {spawnSync('bash',[file],{stdio:'inherit'});} })().catch(e=>{console.error(e);process.exit(1);});"`
-
 export function SignalerQuickStart(): React.ReactElement {
+  const [shell, setShell] = useState<InstallShell>("bash")
   const [copiedKey, setCopiedKey] = useState<string>("")
-  const installCmd = INSTALL_ANY
 
-  const commands: ReadonlyArray<Cmd> = [
-    { key: "install", label: "# 1. Install latest (GitHub Release)", code: installCmd },
-    { key: "version", label: "# 2. Verify", code: "signaler --version" },
-    {
-      key: "audit",
-      label: "# 3. Audit your app",
-      code: "signaler audit --cwd . --base-url http://127.0.0.1:3000",
-    },
-    {
-      key: "query",
-      label: "# 4. Agent triage",
-      code: "signaler query --view perf --dir .signaler",
-    },
-  ]
+  const commands: ReadonlyArray<Cmd> = useMemo(
+    () => [
+      {
+        key: "install",
+        label: "# 1. Install latest (GitHub Release)",
+        code: INSTALL_QUICK_START[shell],
+      },
+      { key: "version", label: "# 2. Verify", code: "signaler --version" },
+      {
+        key: "audit",
+        label: "# 3. Audit your app",
+        code: "signaler audit --cwd . --base-url http://127.0.0.1:3000",
+      },
+      {
+        key: "query",
+        label: "# 4. Agent triage",
+        code: "signaler query --view perf --dir .signaler",
+      },
+    ],
+    [shell],
+  )
 
-  const all: string = commands.map((c) => `${c.label}\n${c.code}`).join("\n\n") + "\n"
+  const all =
+    commands.map((c) => `${c.label}\n${c.code}`).join("\n\n") + "\n"
 
   async function copy(text: string, key: string): Promise<void> {
     try {
@@ -43,14 +54,20 @@ export function SignalerQuickStart(): React.ReactElement {
     <div className="relative max-w-4xl mx-auto mt-16">
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 blur-3xl -z-10" />
       <div className="text-left rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-50/80 text-gray-900 dark:bg-gray-950/60 backdrop-blur-md dark:text-gray-100">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-between gap-2" aria-live="polite">
+        <div
+          className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex flex-wrap items-center justify-between gap-3"
+          aria-live="polite"
+        >
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Signaler Quick Start</span>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+              Signaler Quick Start
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <ShellTabBar active={shell} onChange={setShell} />
             <Button
               variant="outline"
               size="sm"
@@ -72,11 +89,14 @@ export function SignalerQuickStart(): React.ReactElement {
         </div>
         <div className="p-6 font-mono text-sm leading-7 space-y-4">
           <div className="text-xs text-muted-foreground pb-2">
-            // Latest release from GitHub — not npm/JSR. First install: 5–15 min. Pin with SIGNALER_VERSION for CI.
+            // GitHub Release only — not npm/JSR. Pin with SIGNALER_VERSION for CI.
           </div>
 
           {commands.map((c) => (
-            <div key={c.key} className="flex items-start justify-between gap-3 group">
+            <div
+              key={c.key}
+              className="flex items-start justify-between gap-3 group"
+            >
               <div
                 role="button"
                 tabIndex={0}
@@ -88,8 +108,12 @@ export function SignalerQuickStart(): React.ReactElement {
                 }}
                 className="flex-1 cursor-pointer rounded-lg p-2 -m-2 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition-colors"
               >
-                <div className="text-gray-500 dark:text-gray-400 mb-1">{c.label}</div>
-                <div className="whitespace-pre-wrap break-all text-gray-900 dark:text-gray-100">{c.code}</div>
+                <div className="text-gray-500 dark:text-gray-400 mb-1">
+                  {c.label}
+                </div>
+                <div className="whitespace-pre-wrap break-all text-gray-900 dark:text-gray-100">
+                  {c.code}
+                </div>
               </div>
               <Button
                 variant="ghost"
@@ -98,7 +122,11 @@ export function SignalerQuickStart(): React.ReactElement {
                 onClick={async () => copy(c.code, c.key)}
                 aria-label={`Copy ${c.key}`}
               >
-                {copiedKey === c.key ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedKey === c.key ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
           ))}

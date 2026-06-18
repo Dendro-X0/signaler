@@ -12,39 +12,85 @@ import { navigationItems, resourceItems, type NavLeaf, type NavSubGroup, type Na
 
 // Navigation is sourced from ./nav to keep sidebar, pager, and other consumers in sync.
 
+const STORAGE_KEY = "docs:expanded"
+const DEFAULT_EXPANDED = ["Getting Started", "Core"] as const
+
+function urlBase(url: string): string {
+  return url.split("#")[0]
+}
+
+function flattenUrls(items: ReadonlyArray<NavLeaf | NavSubGroup>): readonly string[] {
+  const out: string[] = []
+  for (const it of items) {
+    if ("url" in it) out.push(urlBase(it.url))
+    else for (const leaf of it.items) out.push(urlBase(leaf.url))
+  }
+  return out
+}
+
+/** SSR-safe expansion: defaults + section containing the active route. */
+function expandedForPath(pathname: string): string[] {
+  const expanded = new Set<string>(DEFAULT_EXPANDED)
+
+  for (const item of navigationItems) {
+    if (!("items" in item)) continue
+
+    if (flattenUrls(item.items).some((u) => pathname === u)) {
+      expanded.add(item.title)
+    }
+
+    for (const sub of item.items) {
+      if (!("items" in sub)) continue
+      const key = `${item.title}:${sub.title}`
+      if (sub.items.some((leaf) => pathname === urlBase(leaf.url))) {
+        expanded.add(item.title)
+        expanded.add(key)
+      }
+    }
+  }
+
+  return [...expanded]
+}
+
 interface DocsSidebarProps { onItemClick?: () => void }
 
 export function DocsSidebar({ onItemClick }: DocsSidebarProps) {
   const pathname = usePathname()
-  const STORAGE_KEY: string = "docs:expanded"
-  const [expandedSections, setExpandedSections] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = window.localStorage.getItem(STORAGE_KEY)
-        if (raw) {
-          const arr = JSON.parse(raw) as unknown
-          if (Array.isArray(arr)) return arr.filter((x): x is string => typeof x === "string")
-        }
-      } catch { }
-    }
-    return ["Getting Started", "Core"]
-  })
-  useEffect(() => { try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(expandedSections)) } catch { } }, [expandedSections])
+  const [expandedSections, setExpandedSections] = useState<string[]>(() =>
+    expandedForPath(pathname),
+  )
+
+  // Restore user preference after mount — never read localStorage during SSR/first paint.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      if (!raw) return
+      const arr = JSON.parse(raw) as unknown
+      if (Array.isArray(arr)) {
+        setExpandedSections(arr.filter((x): x is string => typeof x === "string"))
+      }
+    } catch { }
+  }, [])
+
+  useEffect(() => {
+    setExpandedSections((prev) => {
+      const merged = new Set([...prev, ...expandedForPath(pathname)])
+      return [...merged]
+    })
+  }, [pathname])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(expandedSections))
+    } catch { }
+  }, [expandedSections])
 
   const toggleSection = (title: string): void => {
     setExpandedSections(prev => (prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]))
   }
 
-  const base = (url: string): string => url.split('#')[0]
+  const base = urlBase
   const isActive = (url: string): boolean => pathname === base(url)
-  const flattenUrls = (items: ReadonlyArray<NavLeaf | NavSubGroup>): readonly string[] => {
-    const out: string[] = []
-    for (const it of items) {
-      if ('url' in it) out.push(base(it.url))
-      else for (const leaf of it.items) out.push(base(leaf.url))
-    }
-    return out
-  }
   const isParentActive = (items: ReadonlyArray<NavLeaf | NavSubGroup>): boolean => {
     const urls = flattenUrls(items)
     return urls.some(u => pathname === u)

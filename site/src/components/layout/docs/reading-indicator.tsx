@@ -3,20 +3,9 @@
 import type React from "react"
 import { useEffect, useMemo, useRef, useState, type RefObject, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
+import { slugify } from "@/lib/slugify"
 
 type Heading = { id: string; title: string; level: number }
-
-/**
- * Convert heading text into a URL-safe slug id.
- * Ensures lower-case, trims, strips non-word characters and collapses spaces to dashes.
- */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-}
 
 interface ReadingIndicatorProps {
   contentRef: RefObject<HTMLElement | null>

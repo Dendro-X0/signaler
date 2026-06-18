@@ -35,11 +35,11 @@ signaler --version
 ### Pin a version (optional)
 
 ```bash
-SIGNALER_VERSION=5.1.6 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
+SIGNALER_VERSION=5.1.9 curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.sh | bash
 ```
 
 ```powershell
-$env:SIGNALER_VERSION = "5.1.6"
+$env:SIGNALER_VERSION = "5.1.9"
 irm https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-assets/install.ps1 | iex
 ```
 
