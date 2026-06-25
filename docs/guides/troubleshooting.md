@@ -171,7 +171,25 @@ curl -fsSL https://raw.githubusercontent.com/Dendro-X0/signaler/main/release-ass
 
 ### Base URL Connection Issues
 
-**Problem:** `ECONNREFUSED` or `ERR_CONNECTION_REFUSED` errors.
+**Problem:** `ECONNREFUSED` or `ERR_CONNECTION_REFUSED` errors — or (v5.2+) Signaler exits with **exit code 0** and prints *"No dev server detected"* instead of a hard error.
+
+**v5.2 attach-first default:** `signaler audit` and `job run` no longer start your dev server automatically. Start the app first, then rerun:
+
+```bash
+pnpm dev   # terminal 1
+signaler audit --cwd . --base-url http://127.0.0.1:3000
+```
+
+Or opt into managed serve (CI / production lab):
+
+```bash
+signaler audit --managed-serve
+# or
+export SIGNALER_MANAGED_SERVE=1
+# or in signaler.config.json: "serve": { "mode": "production" }
+```
+
+When attach fails, Signaler writes `.signaler/server-not-ready.json` with suggested commands and port hints.
 
 **Solutions:**
 

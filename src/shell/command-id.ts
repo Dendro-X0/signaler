@@ -30,6 +30,8 @@ export type ShellCommandId =
   | "help"
   | "init"
   | "discover"
+  | "explore"
+  | "bootstrap"
   | "config"
   | "export"
   | "ai"

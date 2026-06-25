@@ -89,11 +89,15 @@ function printCommandHelp(topic: string): boolean {
       "  signaler audit [--cwd <path>] [--base-url <url>] [--scope <quick|full>] [flags]",
       "",
       "Description:",
-      "  End-to-end orchestrator: discover → run (v3) → analyze (v6).",
-      "  Defaults: --scope full (all static routes), managed serve (auto: dev first), in-process steps.",
+      "  End-to-end orchestrator: explore → discover → run (v3) → analyze (v6).",
+      "  Defaults: attach-first (reuse loopback server), --scope full, in-process steps.",
       "",
       "Key flags:",
-      "  --managed-serve | --no-managed-serve",
+      "  --managed-serve | --no-managed-serve  Opt in/out of starting a server (default attach)",
+      "  --serve-env KEY=VALUE  Lab env for managed serve child (not written to repo)",
+      "  --no-audit-bypass      Skip inferred auth bypass env",
+      "  --yes, -y              Auto-confirm lab env injection prompt",
+      "  --non-interactive      Skip inferred lab env unless --yes",
       "  --in-process | --no-in-process",
       "  --skip-discover (requires --config)",
       "  --summary           Print one-screen summary after completion",
@@ -144,6 +148,47 @@ function printCommandHelp(topic: string): boolean {
       "",
       "Example:",
       "  signaler discover --scope full --non-interactive --yes --base-url http://127.0.0.1:3000",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "explore") {
+    print([
+      "Usage:",
+      "  signaler explore [--cwd <path>] [--base-url <url>] [--dir <path>] [--json]",
+      "",
+      "Description:",
+      "  Offline local probe: scan routes, port hints, and loopback servers.",
+      "  Writes .signaler/explore.json for agents and audit prelude.",
+      "",
+      "Key flags:",
+      "  --cwd <path>           Project root (default cwd)",
+      "  --base-url <url>       Preferred loopback URL for port hints",
+      "  --route-limit <n>      Cap route scan (default 200)",
+      "  --json                 Print manifest to stdout",
+    ]);
+    return true;
+  }
+
+  if (normalizedTopic === "bootstrap") {
+    print([
+      "Usage:",
+      "  signaler bootstrap [--cwd <path>] [--audit] [--yes]",
+      "",
+      "Description:",
+      "  Zero-config onboarding for any web stack: scan directory, detect routes and ports,",
+      "  write signaler.config.json, optionally run the first audit.",
+      "",
+      "Key flags:",
+      "  --cwd <path>           Project root (default cwd)",
+      "  --audit                Run audit after auto-config (skip discover)",
+      "  --managed-serve        Start server when loopback attach fails",
+      "  --yes, -y              Auto-confirm prompts",
+      "  --json                 Machine-readable output",
+      "",
+      "Examples:",
+      "  signaler bootstrap --cwd ./my-app --audit --yes",
+      "  signaler quickstart --cwd ./my-app   # alias with --audit --yes",
     ]);
     return true;
   }
@@ -254,7 +299,13 @@ function printCommandHelp(topic: string): boolean {
   if (normalizedTopic === "quickstart") {
     print([
       "Usage:",
-      "  signaler quickstart --base-url <url> [--project-root <path>] [--scope <quick|full|file>]",
+      "  signaler quickstart [--cwd <path>] [--base-url <url>] [--managed-serve]",
+      "",
+      "Description:",
+      "  Alias for `signaler bootstrap --audit --yes` — zero-config first audit for any web stack.",
+      "",
+      "Example:",
+      "  signaler quickstart --cwd ./my-app",
     ]);
     return true;
   }
@@ -601,7 +652,8 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "    wizard     Run interactive config wizard",
       "    discover   Primary route discovery/setup command",
       "    guide      Same as wizard, with inline tips for non-technical users",
-      "    quickstart Detect routes and run a one-off audit with sensible defaults",
+      "    bootstrap  Zero-config: scan project, write config, optional audit",
+      "    quickstart Alias: bootstrap --audit --yes",
       "",
       "  Audits and checks:",
       "    run        Primary Lighthouse runner (requires config)",
@@ -640,13 +692,20 @@ function printHelp(topic?: string, options: HelpRenderOptions = { json: false })
       "  --routes-file <path>   Explicit route list file (scope file)",
       "  --incremental-skip     Skip combos that passed prior run criteria",
       "  --incremental          Reuse cache for unchanged combos (requires --build-id)",
-      "  --managed-serve        Start server when base URL is down (default on; auto mode tries dev first)",
-      "  --no-managed-serve     Use existing server only",
+      "  --managed-serve        Start server when loopback attach fails (default: attach only)",
+      "  --no-managed-serve     Attach only; fail if no healthy loopback server",
       "  --managed-serve-mode <dev|production|auto>  Serve strategy (default production)",
+      "  --serve-env KEY=VALUE  Lab env for managed serve child (repeatable; not written to repo)",
+      "  --no-audit-bypass      Skip inferred auth bypass env (DEMO_AUTH_BYPASS, etc.)",
+      "  --yes, -y              Auto-confirm prompts including lab env injection",
+      "  --non-interactive      Skip inferred lab env unless --yes (CI-safe default)",
       "  --in-process           Run job steps in-process (default on)",
       "  --skip-discover        Skip discover when config already exists",
       "  --summary              Print one-screen summary after completion",
       "  --json",
+      "",
+      "  signaler explore [--cwd <path>] [--base-url <url>] [--json]",
+      "    Probe loopback servers, scan routes, write .signaler/explore.json (offline, local only).",
       "",
       "Options (run):",
       "  --ci               Enable CI mode with budgets and non-zero exit code on failure",

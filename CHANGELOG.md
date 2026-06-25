@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## 5.2.0 - 2026-06-17
+
+### Added
+
+- **`signaler bootstrap`** — zero-config onboarding: scan project, auto-write `signaler.config.json`, optional `--audit` (stack-agnostic route + port detection).
+- **`signaler explore`** — offline loopback probe; writes `.signaler/explore.json` (routes, port hints, running servers).
+- **Auto-config on first audit** — when `signaler.config.json` is missing, `signaler audit` writes config from explore and skips redundant discover.
+- **Transparent lab env consent** — interactive prompt (with security disclosure) before inferred `serveEnv` injection; `--yes` / `--non-interactive` paths for CI.
+- **`serve` config block** — `mode` (`attach` | `managed` | `dev` | `production`), `portHints`, `healthPath` in `signaler.config.json`.
+- **Gentle server-not-ready guidance** — when no dev server is reachable, prints suggested `pnpm dev` / `npm run dev` and writes `.signaler/server-not-ready.json` (exit 0, no hard error).
+- **Streamed managed-serve logs** — child stdout/stderr prefixed `[serve]` when Signaler starts a server.
+
+### Changed
+
+- **Attach-first default** — `signaler audit` and `signaler job run` attach to a running loopback server by default; managed serve is opt-in (`--managed-serve`, `serve.mode`, or `SIGNALER_MANAGED_SERVE=1`).
+- **`signaler quickstart`** — alias for `signaler bootstrap --audit --yes`.
+- **Intelligent audit prelude** — explore runs before attach/managed serve; port hints from `.env`, `package.json`, and config.
+
+### Fixed
+
+- **Monorepo / auth apps** — inferred audit-lab env (`DEMO_AUTH_BYPASS`, etc.) with user consent; local-server discovery probes configured ports before managed serve.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.2.0.md`](docs/archive/release-notes/RELEASE-NOTES-v5.2.0.md). Spec: [`docs/specs/intelligent-audit-redesign.md`](docs/specs/intelligent-audit-redesign.md).
 
 ## 5.1.6 - 2026-06-14
 

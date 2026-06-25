@@ -13,6 +13,8 @@ import {
   type ProductionServePlan,
 } from "./resolve-serve-plan.js";
 import { formatManagedServePortConflict, formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
+import { spawnPackageScriptProcess } from "./managed-serve-lifecycle.js";
+import { discoverLocalServer } from "../explore/local-server-discovery.js";
 import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedProductionServerOptions = {
@@ -173,29 +175,6 @@ function formatProductionBuildFailureMessage(params: {
   return lines.join("\n");
 }
 
-function spawnStartProcess(params: {
-  readonly cwd: string;
-  readonly packageManager: PackageManagerId;
-  readonly script: string;
-  readonly port: number;
-  readonly serveEnv?: Readonly<Record<string, string>>;
-}): ChildProcess {
-  const command = packageManagerCommand(params.packageManager);
-  return spawn(command, ["run", params.script], {
-    cwd: params.cwd,
-    stdio: "ignore",
-    env: {
-      ...process.env,
-      ...params.serveEnv,
-      PORT: String(params.port),
-      HOSTNAME: "127.0.0.1",
-      HOST: "127.0.0.1",
-    },
-    shell: process.platform === "win32",
-    detached: process.platform !== "win32",
-  });
-}
-
 /**
  * Ensure a production-like server is reachable. Starts `build` + `start` when needed and
  * stops the child on cleanup (audit completion or CLI termination).
@@ -208,6 +187,36 @@ export async function ensureManagedProductionServer(
   const requestedBaseUrl = normalizeLoopbackBaseUrl(options.baseUrl ?? "http://127.0.0.1:3000");
   let baseUrl = requestedBaseUrl;
   let healthUrl = `${baseUrl}/`;
+  const preferredPort = parseBaseUrlPort(requestedBaseUrl);
+
+  const existing = await discoverLocalServer({
+    projectRoot: options.projectRoot,
+    preferredPort,
+  });
+  if (existing) {
+    const existingHealth = `${existing.baseUrl}/`;
+    const healthy = await probeUrlReachable(existingHealth);
+    if (healthy || options.reuseUnhealthy) {
+      if (!healthy) {
+        const probe = await probeUrl({ url: existingHealth });
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Managed serve: reusing server at ${existing.baseUrl} (HTTP ${probe.statusCode ?? "?"}; not healthy). Audits may reflect a broken app.`,
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Managed serve: reusing existing server at ${existing.baseUrl} (port ${existing.port}, ${existing.source}).`,
+        );
+      }
+      return {
+        baseUrl: existing.baseUrl,
+        startedBySignaler: false,
+        builtBySignaler: false,
+        stop: async () => {},
+      };
+    }
+  }
 
   if (await probeUrlReachable(healthUrl)) {
     return {
@@ -232,14 +241,14 @@ export async function ensureManagedProductionServer(
     };
   }
 
-  const preferredPort = parseBaseUrlPort(requestedBaseUrl);
-  if (!(await isPortAvailable(preferredPort)) && !(await probeUrlReachable(healthUrl))) {
-    throw new Error(formatManagedServePortConflict({ port: preferredPort, baseUrl }));
+  const preferredPortAfterReuse = parseBaseUrlPort(requestedBaseUrl);
+  if (!(await isPortAvailable(preferredPortAfterReuse)) && !(await probeUrlReachable(healthUrl))) {
+    throw new Error(formatManagedServePortConflict({ port: preferredPortAfterReuse, baseUrl }));
   }
-  const port = await findAvailablePort(preferredPort);
-  if (port !== preferredPort) {
+  const port = await findAvailablePort(preferredPortAfterReuse);
+  if (port !== preferredPortAfterReuse) {
     // eslint-disable-next-line no-console
-    console.log(`Managed serve: port ${preferredPort} unavailable; using ${port} instead.`);
+    console.log(`Managed serve: port ${preferredPortAfterReuse} unavailable; using ${port} instead.`);
     baseUrl = buildLoopbackBaseUrl(port);
     healthUrl = `${baseUrl}/`;
   }
@@ -260,9 +269,11 @@ export async function ensureManagedProductionServer(
   if (options.serveEnv && Object.keys(options.serveEnv).length > 0) {
     const keys = Object.keys(options.serveEnv).join(", ");
     // eslint-disable-next-line no-console
-    console.log(`Managed serve: audit lab env on start process only (${keys}) — production build unchanged.`);
+    console.log(
+      `Managed serve: injecting lab env into local child only (${keys}) — not written to repo; cleaned up when Signaler stops the server.`,
+    );
   }
-  const child = spawnStartProcess({
+  const child = spawnPackageScriptProcess({
     cwd: plan.projectRoot,
     packageManager: plan.packageManager,
     script: plan.startScript,

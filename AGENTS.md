@@ -8,13 +8,31 @@ Use Signaler to identify the highest-impact web quality issues and drive fix ver
 
 ## Canonical CLI Flow
 
-**Preferred (v4+): one-shot audit orchestrator (all routes by default)**
+**New users — zero config (any stack)**
+
+```bash
+cd /path/to/your/web-app
+signaler bootstrap --audit --yes
+```
+
+Signaler scans the directory (routes, ports, auth signals), writes `signaler.config.json`, attaches to a running loopback server, and runs the first audit. Works across Next.js, Nuxt, Remix, SvelteKit, and static SPAs without manual setup.
+
+**One command when config already exists or after bootstrap**
 
 ```bash
 signaler audit --cwd /path/to/project --base-url http://127.0.0.1:3000
 ```
 
-Defaults: discover (**full** — all static routes) → run → analyze; **managed production serve** and **in-process** steps on by default. Opt out with `--no-managed-serve` / `--no-in-process` or use `--managed-serve-mode dev` for dev-server audits.
+If `signaler.config.json` is missing, `signaler audit` auto-writes it from explore (same algorithm as `bootstrap`).
+
+**Bootstrap (explore + config only)**
+
+```bash
+signaler explore --cwd /path/to/project
+signaler bootstrap --cwd /path/to/project
+```
+
+Defaults: **attach** to a running loopback server; discover (**full**) routes via native scan; **in-process** steps. If no server is running, Signaler prints a gentle start command and exits without treating it as a hard error. Opt in to managed serve with `--managed-serve` or `"serve": { "mode": "production" }`. Legacy CI: `SIGNALER_MANAGED_SERVE=1`.
 
 After fixes, rerun with incremental skip:
 
@@ -30,7 +48,7 @@ signaler audit --quality-profile web-quality --cwd /path/to/project --base-url h
 
 Side runners in quality profiles: **headers**, **links**, **health**, **console**, **measure**, **accessibility**, **bundle** (outputs under `.signaler/runners/` in tree layout).
 
-**Alternative: explicit job preset** (same managed-serve / in-process defaults as `audit`)
+**Alternative: explicit job preset** (same attach-first / in-process defaults as `audit`)
 
 ```bash
 signaler job run --preset agent \
@@ -55,6 +73,8 @@ signaler query --view perf --json
 
 ## Route selection (`signaler.config.json`)
 
+- **`serve.mode`**: `attach` (default) — probe loopback only; `managed` / `production` / `dev` — Signaler may start a server.
+- **`serve.portHints`**: extra ports for `explore` and attach probes.
 - **`pages`**: explicit list of paths/devices to audit (written by discover or edited manually).
 - **`routes.includePaths` / `routes.excludePaths`**: glob-like filters (`/blog/*`) applied before each run.
 - **`discover --scope file --routes-file paths.json`**: replace discovery with a fixed route list.

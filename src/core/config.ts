@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ApexAuthConfig, ApexBudgets, ApexConfig, ApexPageScope, ApexThrottlingMethod, ApexThroughputBackoffPolicy, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
+import type { ApexAuthConfig, ApexBudgets, ApexConfig, ApexPageScope, ApexServeConfig, ApexThrottlingMethod, ApexThroughputBackoffPolicy, CategoryBudgetThresholds, MetricBudgetThresholds } from "./types.js";
 
 /**
  * Load and minimally validate the Signaler configuration file.
@@ -98,6 +98,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     readonly routePreflight?: unknown;
     readonly auth?: unknown;
     readonly serveEnv?: unknown;
+    readonly serve?: unknown;
     readonly perfIncludeYellow?: unknown;
     readonly incremental?: unknown;
     readonly throughputBackoff?: unknown;
@@ -166,6 +167,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     typeof maybeConfig.routePreflight === "boolean" ? maybeConfig.routePreflight : undefined;
   const auth = normaliseAuth(maybeConfig.auth, absolutePath);
   const serveEnv = normaliseServeEnv(maybeConfig.serveEnv, absolutePath);
+  const serve = normaliseServe(maybeConfig.serve, absolutePath);
   const perfIncludeYellow: boolean | undefined =
     typeof maybeConfig.perfIncludeYellow === "boolean" ? maybeConfig.perfIncludeYellow : undefined;
   const incremental: boolean | undefined =
@@ -194,6 +196,7 @@ function normaliseConfig(input: unknown, absolutePath: string): ApexConfig {
     routePreflight,
     auth,
     serveEnv,
+    serve,
     perfIncludeYellow,
     incremental,
     pages,
@@ -367,6 +370,56 @@ function normaliseServeEnv(value: unknown, absolutePath: string): Readonly<Recor
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function normaliseServe(value: unknown, absolutePath: string): ApexServeConfig | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid config at ${absolutePath}: serve must be an object`);
+  }
+  const raw = value as {
+    readonly mode?: unknown;
+    readonly portHints?: unknown;
+    readonly healthPath?: unknown;
+    readonly root?: unknown;
+    readonly start?: unknown;
+  };
+  let mode: ApexServeConfig["mode"];
+  if (raw.mode !== undefined) {
+    if (
+      raw.mode !== "attach" &&
+      raw.mode !== "managed" &&
+      raw.mode !== "dev" &&
+      raw.mode !== "production"
+    ) {
+      throw new Error(
+        `Invalid config at ${absolutePath}: serve.mode must be attach, managed, dev, or production`,
+      );
+    }
+    mode = raw.mode;
+  }
+  let portHints: number[] | undefined;
+  if (raw.portHints !== undefined) {
+    if (!Array.isArray(raw.portHints)) {
+      throw new Error(`Invalid config at ${absolutePath}: serve.portHints must be an array of port numbers`);
+    }
+    portHints = raw.portHints.map((port, index) => {
+      if (typeof port !== "number" || !Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error(`Invalid config at ${absolutePath}: serve.portHints[${index}] must be an integer 1-65535`);
+      }
+      return port;
+    });
+  }
+  const healthPath =
+    typeof raw.healthPath === "string" && raw.healthPath.length > 0 ? raw.healthPath : undefined;
+  const root = typeof raw.root === "string" && raw.root.length > 0 ? raw.root : undefined;
+  const start = typeof raw.start === "string" && raw.start.length > 0 ? raw.start : undefined;
+  if (mode === undefined && portHints === undefined && healthPath === undefined && root === undefined && start === undefined) {
+    return undefined;
+  }
+  return { mode, portHints, healthPath, root, start };
+}
+
 export function parseServeEnvPair(raw: string): { readonly key: string; readonly value: string } {
   const trimmed = raw.trim();
   const eq = trimmed.indexOf("=");
@@ -381,7 +434,7 @@ export function parseServeEnvPair(raw: string): { readonly key: string; readonly
   return { key, value };
 }
 
-function readServeEnvFromProcessEnv(): Readonly<Record<string, string>> | undefined {
+export function readServeEnvFromProcessEnv(): Readonly<Record<string, string>> | undefined {
   const raw = process.env.SIGNALER_SERVE_ENV?.trim();
   if (!raw) {
     return undefined;

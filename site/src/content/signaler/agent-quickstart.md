@@ -16,7 +16,15 @@ Use Signaler as an **agent-first web lab runner**:
 
 ## 1. Fast start commands
 
-**Recommended: one-shot job**
+**New users (zero config, any stack)**
+
+```bash
+pnpm dev   # terminal 1
+signaler bootstrap --audit --yes
+signaler query --view agent --dir .signaler
+```
+
+**Recommended: one-shot job** (requires running dev server or `--managed-serve`)
 
 ```bash
 signaler job run --preset agent --base-url http://127.0.0.1:3000

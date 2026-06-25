@@ -5,7 +5,8 @@ import { openLocalPath } from "./open-local-path.js";
 import { createHash } from "node:crypto";
 import { cpus, freemem } from "node:os";
 import { gzipSync } from "node:zlib";
-import { loadConfig, resolveServeEnv } from "./core/config.js";
+import { loadConfig } from "./core/config.js";
+import { resolveServeEnvWithConsent } from "./engine/explore/resolve-serve-env.js";
 import {
   applyConfigRoutePlan,
   applyRouteListFilter,
@@ -41,6 +42,7 @@ import {
   createOrchestratorServeDefaults,
   type OrchestratorServeOptions,
 } from "./shell/orchestrator-serve-options.js";
+import { resolveEffectiveOrchestratorServe } from "./shell/resolve-orchestrator-serve.js";
 import { buildExportBundle } from "./build-export-bundle.js";
 import { buildHtmlReport } from "./report-html.js";
 import {
@@ -199,6 +201,8 @@ interface CliArgs {
   readonly managedServeReuse: boolean;
   readonly serveEnvOverrides: Readonly<Record<string, string>>;
   readonly labAuth: boolean;
+  readonly noAuditBypass: boolean;
+  readonly serveOptions: OrchestratorServeOptions;
 }
 
 type RunnerMode = "fidelity" | "throughput";
@@ -2919,6 +2923,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
     managedServeReuse: serveOptions.managedServeReuse,
     serveEnvOverrides: serveOptions.serveEnvOverrides,
     labAuth,
+    noAuditBypass: serveOptions.noAuditBypass,
+    serveOptions,
   };
 }
 
@@ -3128,7 +3134,7 @@ function printAuditFlags(): void {
       "  --machine-token-budget <n> Strict token budget for machine-facing outputs (default by profile)",
       "  --external-signals <path>  Merge local external signal files into suggestion ranking (repeatable)",
       "  --benchmark-signals <path>  Merge local benchmark-signal fixtures into bounded suggestion ranking + metadata (repeatable)",
-      "  --managed-serve | --auto-serve | --no-managed-serve  Start server when base URL is down (default on; SIGNALER_MANAGED_SERVE=0 to disable)",
+      "  --managed-serve | --auto-serve | --no-managed-serve  Attach-first by default; pass --managed-serve to start a server (SIGNALER_MANAGED_SERVE=1 for legacy CI)",
       "  --managed-serve-mode <mode>  dev | production | auto (default production)",
       "  --managed-serve-skip-build  Skip build step when starting managed production server",
       "  --managed-serve-reuse  Reuse an existing server on the port even when it returns HTTP 4xx/5xx",
@@ -3840,14 +3846,26 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   } | undefined;
   let managedServer: Awaited<ReturnType<typeof ensureManagedServer>> | undefined;
   let auditConfig: ApexConfig = resolvedConfigForRun;
-  if (args.managedServe) {
+  const effectiveServe = resolveEffectiveOrchestratorServe({
+    options: args.serveOptions,
+    configServe: resolvedConfigForRun.serve,
+  });
+  if (effectiveServe.managedServe) {
+    const { serveEnv } = await resolveServeEnvWithConsent({
+      projectRoot: dirname(configPath),
+      fromConfig: auditConfig.serveEnv,
+      fromCli: args.serveEnvOverrides,
+      auditBypass: args.noAuditBypass ? false : undefined,
+      yes: args.yes,
+      nonInteractive: !process.stdin.isTTY,
+    });
     managedServer = await ensureManagedServer({
       projectRoot: dirname(configPath),
       baseUrl: auditConfig.baseUrl ?? "http://127.0.0.1:3000",
-      mode: args.managedServeMode,
+      mode: effectiveServe.managedServeMode,
       skipBuild: args.managedServeSkipBuild,
       reuseUnhealthy: args.managedServeReuse,
-      serveEnv: resolveServeEnv({ fromConfig: auditConfig.serveEnv, fromCli: args.serveEnvOverrides }),
+      serveEnv,
     });
     auditConfig = { ...auditConfig, baseUrl: managedServer.baseUrl };
     if (managedServer.startedBySignaler) {
@@ -3908,7 +3926,9 @@ export async function runAuditCli(argv: readonly string[], options?: { readonly 
   } finally {
     if (managedServer?.startedBySignaler) {
       // eslint-disable-next-line no-console
-      console.log(`Managed serve: stopping ${managedServer.mode} server...`);
+      console.log(
+        `Managed serve: stopping ${managedServer.mode} server (lab env cleanup if injected)...`,
+      );
       await managedServer.stop();
     }
     process.removeListener("SIGINT", onSigInt);

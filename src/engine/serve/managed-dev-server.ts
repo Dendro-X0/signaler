@@ -11,6 +11,7 @@ import {
   stopManagedServeChild,
 } from "./managed-serve-lifecycle.js";
 import { formatManagedServeStartTimeout } from "./managed-serve-diagnostics.js";
+import { discoverLocalServer } from "../explore/local-server-discovery.js";
 import { probeUrl, probeUrlListening, probeUrlReachable, waitForUrlReachable } from "./url-probe.js";
 
 export type ManagedDevServerOptions = {
@@ -37,6 +38,36 @@ export async function ensureManagedDevServer(
   const requestedBaseUrl = normalizeLoopbackBaseUrl(options.baseUrl ?? "http://127.0.0.1:3000");
   let baseUrl = requestedBaseUrl;
   let healthUrl = `${baseUrl}/`;
+  const preferredPort = parseBaseUrlPort(requestedBaseUrl);
+
+  const existing = await discoverLocalServer({
+    projectRoot: options.projectRoot,
+    preferredPort,
+  });
+  if (existing) {
+    const existingHealth = `${existing.baseUrl}/`;
+    const healthy = await probeUrlReachable(existingHealth);
+    if (healthy || options.reuseUnhealthy) {
+      if (!healthy) {
+        const probe = await probeUrl({ url: existingHealth });
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Managed serve (dev): reusing server at ${existing.baseUrl} (HTTP ${probe.statusCode ?? "?"}; not healthy).`,
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Managed serve (dev): reusing existing server at ${existing.baseUrl} (port ${existing.port}, ${existing.source}).`,
+        );
+      }
+      return {
+        baseUrl: existing.baseUrl,
+        startedBySignaler: false,
+        mode: "dev",
+        stop: async () => {},
+      };
+    }
+  }
 
   if (await probeUrlReachable(healthUrl)) {
     return {
@@ -61,7 +92,6 @@ export async function ensureManagedDevServer(
     };
   }
 
-  const preferredPort = parseBaseUrlPort(requestedBaseUrl);
   const port = await findAvailablePort(preferredPort);
   if (port !== preferredPort) {
     // eslint-disable-next-line no-console

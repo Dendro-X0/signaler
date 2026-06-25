@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.1.9-blue.svg)
+![Version](http://img.shields.io/badge/version-5.2.0-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -13,8 +13,9 @@
 Signaler is a **CLI for route-scale web quality audits** for teams shipping Next.js (and similar) apps — and for the coding agents that fix them.
 
 - **One command** — `signaler audit` discovers routes, runs Lighthouse (+ optional side runners), and writes agent-ready artifacts.
+- **Zero-config onboarding** — `signaler bootstrap` scans any web stack and writes `signaler.config.json` automatically.
+- **Attach-first** — reuses your running dev server; gentle guidance when it is not up yet (no hard error).
 - **Fix loop** — `query`, `explain`, and `verify` give agents and CI pass/fail without ingesting all of `.signaler/`.
-- **Production-like defaults** — managed production serve, parallel 6, tree artifact layout.
 
 **Not a DevTools score clone.** Throughput-mode performance uses **issue-count triage** (P(ref)), not manual Lighthouse parity. See [Lab semantics](./docs/guides/lab-semantics.md).
 
@@ -38,7 +39,7 @@ Four short clips: CLI workflow → artifacts → **interactive HTML dashboard** 
 
 ## Try it in 15 minutes
 
-Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serve production builds when configured).
+Prerequisites: Node.js 18+, a web app (start your dev server before auditing — Signaler attaches to loopback by default).
 
 1. **Install** — pick the command for **your shell** ([install matrix](./docs/guides/install-matrix.md); Node 18+):
 
@@ -57,12 +58,19 @@ Prerequisites: Node.js 18+, a web app at a stable URL (Signaler can managed-serv
    signaler --version
    ```
 
-   Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.1.9`, PowerShell: `$env:SIGNALER_VERSION='5.1.9'`).
+   Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.2.0`, PowerShell: `$env:SIGNALER_VERSION='5.2.0'`).
 
-2. **Audit** from your project root:
+2. **Bootstrap** (zero config — any Next.js, Nuxt, Remix, SPA, etc.):
 
    ```bash
    cd /path/to/your-app
+   pnpm dev   # separate terminal
+   signaler bootstrap --audit --yes
+   ```
+
+   Or if you already have a config:
+
+   ```bash
    signaler audit --cwd . --base-url http://127.0.0.1:3000
    ```
 
@@ -102,14 +110,29 @@ Optional pin: set `SIGNALER_VERSION` before running. Compat alias: `signalar`.
 
 ## Quick Start
 
+### New users (zero config)
+
+```bash
+pnpm dev   # terminal 1
+signaler bootstrap --audit --yes   # terminal 2 — or: signaler quickstart --cwd .
+```
+
 ### Agent fix loop (default)
 
-Discover → run → analyze. Managed serve starts your app when needed.
+Attach to your running dev server, then audit:
 
 ```bash
 signaler audit --cwd . --base-url http://127.0.0.1:3000
 signaler query --view perf --dir .signaler
 signaler explain --id <issue-id> --dir .signaler
+```
+
+If the server is not running, Signaler prints a gentle suggestion (e.g. `pnpm dev`) and writes `.signaler/server-not-ready.json` — no stack trace.
+
+**Opt-in managed production serve** (build + start when you need it):
+
+```bash
+signaler audit --managed-serve --cwd . --base-url http://127.0.0.1:3000
 ```
 
 ### Full web quality (v5 — recommended for CI)

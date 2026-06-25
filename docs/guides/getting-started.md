@@ -6,7 +6,14 @@ If you are using an editor or terminal agent, start with [`agent-quickstart.md`]
 
 This remastered release is designed to be installed and run as a CLI (`signaler`, with `signalar` as a compatibility alias).
 
-Canonical workflow:
+Canonical workflow (v5.2+):
+
+1. `bootstrap` or `explore` (zero-config scan)
+2. Start your dev server (`pnpm dev`, etc.)
+3. `audit` (attach-first) or `job run --preset agent`
+4. `query` / `explain` / `verify`
+
+Legacy step-by-step:
 
 1. `discover`
 2. `run --mode throughput|fidelity`
@@ -16,6 +23,8 @@ Canonical workflow:
 
 CLI onboarding shortcut:
 
+- **New users:** `signaler bootstrap --audit --yes` (or `signaler quickstart`)
+- **Probe only:** `signaler explore --cwd .`
 - Run `signaler help agent` for copy/paste agent workflow commands, artifact order, and automation exit codes.
 - Use `signaler help agent --json` when your agent runtime prefers structured onboarding metadata.
 - Optional benchmark fixture helper: `pnpm run bench:fixture:accessibility -- --summary .signaler/accessibility-summary.json --issues .signaler/issues.json --out .signaler/benchmark-accessibility.json`

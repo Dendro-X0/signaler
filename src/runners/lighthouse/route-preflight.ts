@@ -225,7 +225,7 @@ export async function probeAppHealth(params: {
       return {
         ok: false,
         reason:
-          "App returned a server error page at /. Configure apps/web/.env.local (see ENV_SETUP.md) — BETTER_AUTH_SECRET is required for ecommercekit.",
+          "App returned a server error page at /. The dev server may be missing auth/env secrets. Signaler can inject audit bypass env on managed serve when the repo supports it (serveEnv / auditBypass), or start the app with your local .env.local and rerun with --no-managed-serve.",
       };
     }
     if (probe.statusCode >= 500) {

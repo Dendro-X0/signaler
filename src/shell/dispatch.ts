@@ -29,8 +29,18 @@ import { ConfigCli, parseConfigArgs } from "../cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "../cli/export-cli.js";
 import type { ParsedShellArgs } from "./command-id.js";
 import { runAuditOrchestratorCli } from "./audit-orchestrator-cli.js";
+import { runExploreCli } from "../explore-cli.js";
+import { runBootstrapCli } from "../bootstrap-cli.js";
 
 export async function dispatchShellCommand(parsed: ParsedShellArgs): Promise<void> {
+  if (parsed.command === "bootstrap") {
+    await runBootstrapCli(parsed.argv);
+    return;
+  }
+  if (parsed.command === "explore") {
+    await runExploreCli(parsed.argv);
+    return;
+  }
   if (parsed.command === "audit") {
     await runAuditOrchestratorCli(parsed.argv);
     return;

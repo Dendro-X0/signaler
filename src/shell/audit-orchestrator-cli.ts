@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { loadConfig } from "../core/config.js";
 import { parseQualityProfileName, type QualityProfileName } from "../engine/jobs/quality-profiles.js";
 import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
@@ -10,6 +12,7 @@ import {
   createOrchestratorServeDefaults,
   type OrchestratorServeOptions,
 } from "./orchestrator-serve-options.js";
+import { resolveEffectiveOrchestratorServe } from "./resolve-orchestrator-serve.js";
 
 export type AuditOrchestratorCliArgs = {
   readonly cwd: string;
@@ -34,6 +37,10 @@ export type AuditOrchestratorCliArgs = {
   readonly artifactLayout: ArtifactLayoutMode;
   readonly serveEnvOverrides: Readonly<Record<string, string>>;
   readonly labAuth: boolean;
+  readonly yes: boolean;
+  readonly nonInteractive: boolean;
+  readonly noAuditBypass: boolean;
+  readonly serveOptions: OrchestratorServeOptions;
 };
 
 export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrchestratorCliArgs {
@@ -55,6 +62,8 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
   let summary = false;
   let artifactLayout: ArtifactLayoutMode = resolveArtifactLayoutFromEnv();
   let labAuth = false;
+  let yes = false;
+  let nonInteractive = false;
 
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
@@ -131,6 +140,14 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
       labAuth = true;
       continue;
     }
+    if (arg === "--yes" || arg === "-y") {
+      yes = true;
+      continue;
+    }
+    if (arg === "--non-interactive") {
+      nonInteractive = true;
+      continue;
+    }
     if (arg === "--json") {
       json = true;
       continue;
@@ -176,11 +193,28 @@ export function parseAuditOrchestratorArgs(argv: readonly string[]): AuditOrches
     artifactLayout,
     serveEnvOverrides: serveOptions.serveEnvOverrides,
     labAuth,
+    yes,
+    nonInteractive: nonInteractive || !process.stdin.isTTY,
+    noAuditBypass: serveOptions.noAuditBypass,
+    serveOptions,
   };
 }
 
 export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<void> {
-  const args = parseAuditOrchestratorArgs(argv);
+  const parsed = parseAuditOrchestratorArgs(argv);
+  const resolvedConfigPath = resolve(parsed.cwd, parsed.configPath ?? "signaler.config.json");
+  const configServe = existsSync(resolvedConfigPath)
+    ? (await loadConfig({ configPath: resolvedConfigPath })).config.serve
+    : undefined;
+  const effectiveServe = resolveEffectiveOrchestratorServe({
+    options: parsed.serveOptions,
+    configServe,
+  });
+  const args = {
+    ...parsed,
+    managedServe: effectiveServe.managedServe,
+    managedServeMode: effectiveServe.managedServeMode,
+  };
   const outcome = await runPresetJob({
     cwd: args.cwd,
     outputDir: args.outputDir,
@@ -203,10 +237,15 @@ export async function runAuditOrchestratorCli(argv: readonly string[]): Promise<
     artifactLayout: args.artifactLayout,
     serveEnvOverrides: args.serveEnvOverrides,
     labAuth: args.labAuth,
+    yes: args.yes,
+    nonInteractive: args.nonInteractive,
+    noAuditBypass: args.noAuditBypass,
   });
 
   if (args.json) {
-    console.log(JSON.stringify(outcome.result, null, 2));
+    console.log(JSON.stringify({ ...outcome.result, serverNotReady: outcome.serverNotReady ?? false }, null, 2));
+  } else if (outcome.serverNotReady) {
+    // Guidance already printed by runPresetJob.
   } else {
     console.log(`Audit ${outcome.result.jobId}: ${outcome.result.status} (${outcome.result.elapsedMs}ms)`);
     console.log(`Artifacts: ${resolve(args.cwd, args.outputDir)}`);

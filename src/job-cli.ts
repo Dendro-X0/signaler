@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadConfig } from "./core/config.js";
 import type { EngineJobResultV1, EngineJobV1 } from "./engine-contracts/jobs/index.js";
 import { isEngineJobResultV1, isEngineJobV1 } from "./engine-contracts/jobs/index.js";
 import {
@@ -22,6 +24,7 @@ import {
   createOrchestratorServeDefaults,
   type OrchestratorServeOptions,
 } from "./shell/orchestrator-serve-options.js";
+import { resolveEffectiveOrchestratorServe } from "./shell/resolve-orchestrator-serve.js";
 
 export type JobCliArgs = BuildPresetJobParams & {
   readonly subcommand: "run" | "status" | "show";
@@ -37,6 +40,10 @@ export type JobCliArgs = BuildPresetJobParams & {
   readonly artifactLayout: ArtifactLayoutMode;
   readonly json: boolean;
   readonly serveEnvOverrides: Readonly<Record<string, string>>;
+  readonly yes: boolean;
+  readonly nonInteractive: boolean;
+  readonly noAuditBypass: boolean;
+  readonly serveOptions: OrchestratorServeOptions;
 };
 
 function parsePreset(value: string): EngineJobPreset {
@@ -65,6 +72,8 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
   let artifactLayout: ArtifactLayoutMode = resolveArtifactLayoutFromEnv();
   let parallel: number | undefined;
   let json = false;
+  let yes = false;
+  let nonInteractive = false;
 
   const tokens = argv.slice(2);
   if (tokens[0] === "run" || tokens[0] === "status" || tokens[0] === "show") {
@@ -160,6 +169,14 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
       json = true;
       continue;
     }
+    if (arg === "--yes" || arg === "-y") {
+      yes = true;
+      continue;
+    }
+    if (arg === "--non-interactive") {
+      nonInteractive = true;
+      continue;
+    }
     if (arg === "--artifact-layout" && i + 1 < argv.length) {
       artifactLayout = parseArtifactLayoutMode(argv[i + 1]);
       i += 1;
@@ -197,6 +214,10 @@ export function parseJobCliArgs(argv: readonly string[]): JobCliArgs {
     routesFile,
     json,
     serveEnvOverrides: serveOptions.serveEnvOverrides,
+    yes,
+    nonInteractive: nonInteractive || !process.stdin.isTTY,
+    noAuditBypass: serveOptions.noAuditBypass,
+    serveOptions,
   };
 }
 
@@ -214,7 +235,20 @@ function resolveJob(args: JobCliArgs): EngineJobV1 {
 }
 
 export async function runJobCli(argv: readonly string[]): Promise<void> {
-  const args = parseJobCliArgs(argv);
+  const parsed = parseJobCliArgs(argv);
+  const resolvedConfigPath = resolve(parsed.cwd, parsed.configPath ?? "signaler.config.json");
+  const configServe = existsSync(resolvedConfigPath)
+    ? (await loadConfig({ configPath: resolvedConfigPath })).config.serve
+    : undefined;
+  const effectiveServe = resolveEffectiveOrchestratorServe({
+    options: parsed.serveOptions,
+    configServe,
+  });
+  const args = {
+    ...parsed,
+    managedServe: effectiveServe.managedServe,
+    managedServeMode: effectiveServe.managedServeMode,
+  };
 
   if (args.subcommand === "show") {
     const presetJob = resolveJob(args);
@@ -255,10 +289,15 @@ export async function runJobCli(argv: readonly string[]): Promise<void> {
     managedServeReuse: args.managedServeReuse,
     artifactLayout: args.artifactLayout,
     serveEnvOverrides: args.serveEnvOverrides,
+    yes: args.yes,
+    nonInteractive: args.nonInteractive,
+    noAuditBypass: args.noAuditBypass,
   });
 
   if (args.json) {
     console.log(JSON.stringify(outcome.result, null, 2));
+  } else if (outcome.serverNotReady) {
+    // Guidance already printed.
   } else {
     console.log(`Job ${outcome.result.jobId}: ${outcome.result.status} (${outcome.result.elapsedMs}ms)`);
     console.log(`Artifacts: ${resolve(outcome.job.cwd, outcome.job.outputDir, "jobs", outcome.job.jobId)}`);

@@ -4,6 +4,7 @@ import { buildAgentPresetJob } from "../src/engine/jobs/presets.js";
 import { patchJobRunStepArgs } from "../src/engine/jobs/run-preset-job.js";
 import { createOrchestratorServeDefaults } from "../src/shell/orchestrator-serve-options.js";
 import { parseAuditOrchestratorArgs } from "../src/shell/audit-orchestrator-cli.js";
+import { resolveEffectiveOrchestratorServe } from "../src/shell/resolve-orchestrator-serve.js";
 
 function withCleanServeEnv(run: () => void): void {
   const prevDiscover = process.env.SIGNALER_DISCOVER_SCOPE;
@@ -48,15 +49,18 @@ function withCleanServeEnv(run: () => void): void {
 }
 
 describe("orchestrator serve defaults", () => {
-  it("enables managed serve, in-process, and production mode by default", () => {
+  it("defaults to attach-first (managed serve off) with in-process steps", () => {
     withCleanServeEnv(() => {
       expect(createOrchestratorServeDefaults()).toEqual({
         inProcess: true,
-        managedServe: true,
+        managedServe: false,
+        managedServeSetByCli: false,
         managedServeMode: "production",
+        managedServeModeSetByCli: false,
         managedServeSkipBuild: false,
         managedServeReuse: false,
         serveEnvOverrides: {},
+        noAuditBypass: false,
       });
     });
   });
@@ -72,20 +76,62 @@ describe("orchestrator serve defaults", () => {
   });
 });
 
+describe("resolveEffectiveOrchestratorServe", () => {
+  it("enables managed serve when config serve.mode is production", () => {
+    const options = createOrchestratorServeDefaults();
+    const resolved = resolveEffectiveOrchestratorServe({
+      options,
+      configServe: { mode: "production" },
+    });
+    expect(resolved.managedServe).toBe(true);
+    expect(resolved.managedServeMode).toBe("production");
+  });
+
+  it("CLI --managed-serve overrides config attach mode", () => {
+    const options = createOrchestratorServeDefaults();
+    options.managedServe = true;
+    options.managedServeSetByCli = true;
+    const resolved = resolveEffectiveOrchestratorServe({
+      options,
+      configServe: { mode: "attach" },
+    });
+    expect(resolved.managedServe).toBe(true);
+  });
+
+  it("defaults to attach when no config or env", () => {
+    withCleanServeEnv(() => {
+      const resolved = resolveEffectiveOrchestratorServe({
+        options: createOrchestratorServeDefaults(),
+      });
+      expect(resolved.managedServe).toBe(false);
+    });
+  });
+
+  it("honors SIGNALER_MANAGED_SERVE=1 for legacy CI opt-in", () => {
+    withCleanServeEnv(() => {
+      process.env.SIGNALER_MANAGED_SERVE = "1";
+      const resolved = resolveEffectiveOrchestratorServe({
+        options: createOrchestratorServeDefaults(),
+      });
+      expect(resolved.managedServe).toBe(true);
+    });
+  });
+});
+
 describe("audit and job serve flag parity", () => {
-  it("audit defaults to managed serve, production mode, and in-process", () => {
+  it("audit defaults to attach-first (managed serve off)", () => {
     withCleanServeEnv(() => {
       const args = parseAuditOrchestratorArgs(["node", "signaler", "audit"]);
-      expect(args.managedServe).toBe(true);
+      expect(args.managedServe).toBe(false);
       expect(args.managedServeMode).toBe("production");
       expect(args.inProcess).toBe(true);
     });
   });
 
-  it("job run matches audit defaults", () => {
+  it("job run matches audit attach-first defaults", () => {
     withCleanServeEnv(() => {
       const args = parseJobCliArgs(["node", "signaler", "job", "run"]);
-      expect(args.managedServe).toBe(true);
+      expect(args.managedServe).toBe(false);
       expect(args.managedServeMode).toBe("production");
       expect(args.inProcess).toBe(true);
     });
@@ -97,12 +143,12 @@ describe("audit and job serve flag parity", () => {
       "signaler",
       "job",
       "run",
-      "--no-managed-serve",
+      "--managed-serve",
       "--managed-serve-mode",
       "production",
       "--no-in-process",
     ]);
-    expect(args.managedServe).toBe(false);
+    expect(args.managedServe).toBe(true);
     expect(args.managedServeMode).toBe("production");
     expect(args.inProcess).toBe(false);
   });

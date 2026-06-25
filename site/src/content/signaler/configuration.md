@@ -119,8 +119,15 @@ signaler run --lab-auth --config signaler.config.json
 
 - `serveEnv`: ephemeral env vars injected into Signaler's **managed production `start` process only** (never written to project `.env`). Use this for audit-lab auth bypass flags your app already supports (e.g. `DEMO_AUTH_BYPASS=true`) while still auditing a production build.
 
+- `serve`: attach vs managed-serve policy (v5.2+). Default `attach` — probe loopback only; Signaler does not start your dev server unless you opt in.
+
 ```json
 {
+  "serve": {
+    "mode": "attach",
+    "portHints": [3000, 3001],
+    "healthPath": "/"
+  },
   "serveEnv": {
     "DEMO_AUTH_BYPASS": "true"
   },
@@ -130,9 +137,16 @@ signaler run --lab-auth --config signaler.config.json
 }
 ```
 
+`serve.mode` values:
+
+- `attach` (default) — reuse a running loopback server; gentle guidance if none is up.
+- `managed` / `production` / `dev` — Signaler may start a managed server (`--managed-serve` behavior).
+
+Lab env consent (v5.2+): when Signaler infers bypass env from your repo (e.g. `better-auth`), it prompts interactively with a security disclosure. Auto-confirm with `--yes`; skip inferred injection in CI with `--non-interactive` unless `--yes`. Opt out with `--no-audit-bypass`.
+
 Notes:
 
-- `serveEnv` applies only when `--managed-serve` starts the app (production `build` + `start` by default). It does not affect `pnpm dev` or your committed env files.
+- `serveEnv` applies only when `--managed-serve` starts the app. It does not affect `pnpm dev` or your committed env files.
 - Combine with `auth.warmupUrl` / `cookies` when the bypass still needs a session cookie or demo-auth handshake.
 - CLI override (repeatable): `--serve-env DEMO_AUTH_BYPASS=true`
 - CI without config edits: `SIGNALER_SERVE_ENV='{"DEMO_AUTH_BYPASS":"true"}'` (merged before config; CLI wins over both)

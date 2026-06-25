@@ -4,7 +4,20 @@ import { resolve } from "node:path";
 import { markAgentIndexPartialSuccess } from "../../agent-artifacts.js";
 import type { EngineJobResultV1, EngineJobV1 } from "../../engine-contracts/jobs/index.js";
 import { isEngineJobV1 } from "../../engine-contracts/jobs/index.js";
-import { loadConfig, resolveServeEnv } from "../../core/config.js";
+import { loadConfig } from "../../core/config.js";
+import { resolveServeEnvWithConsent } from "../explore/resolve-serve-env.js";
+import {
+  resolveAttachBaseUrl,
+} from "../explore/attach-first.js";
+import { reportServerNotReady, type ServerNotReadyReason } from "../explore/server-not-ready-guidance.js";
+import type { RepoExploreManifest } from "../explore/repo-explore.js";
+import {
+  pickBaseUrlFromExplore,
+  runRepoExplore,
+  writeExploreManifest,
+} from "../explore/repo-explore.js";
+import { writeAutoConfigIfMissing } from "../explore/ensure-project-config.js";
+import { parseBaseUrlPort, resolveNextAppRoot } from "../serve/resolve-serve-plan.js";
 import {
   buildAgentPresetJob,
   buildPresetJob,
@@ -23,7 +36,6 @@ import { executeEngineJob, writeJobLatestFailure } from "./run-job.js";
 import { finalizeArtifactLayout } from "../../artifact-layout/index.js";
 import type { ArtifactLayoutMode } from "../../artifact-layout/index.js";
 import { ensureManagedServer, type ManagedServeMode } from "../serve/index.js";
-import { resolveNextAppRoot } from "../serve/resolve-serve-plan.js";
 import type { EngineJobPreset } from "./types.js";
 
 export type RunPresetJobParams = BuildPresetJobParams & {
@@ -43,6 +55,10 @@ export type RunPresetJobParams = BuildPresetJobParams & {
   readonly routesFile?: string;
   readonly serveEnvOverrides?: Readonly<Record<string, string>>;
   readonly labAuth?: boolean;
+  readonly yes?: boolean;
+  readonly nonInteractive?: boolean;
+  readonly noAuditBypass?: boolean;
+  readonly skipExplore?: boolean;
 };
 
 export type RunPresetJobOutcome = {
@@ -50,7 +66,47 @@ export type RunPresetJobOutcome = {
   readonly result: EngineJobResultV1;
   readonly job: EngineJobV1;
   readonly managedBaseUrl?: string;
+  /** Audit did not run — app server not reachable; user should start dev server and rerun. */
+  readonly serverNotReady?: boolean;
 };
+
+function buildBlockedJobResult(job: EngineJobV1): EngineJobResultV1 {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: 1,
+    jobId: job.jobId,
+    status: "success",
+    startedAt: now,
+    completedAt: now,
+    elapsedMs: 0,
+    steps: [],
+    primaryArtifacts: [],
+    exitCode: 0,
+  };
+}
+
+async function finishServerNotReady(params: {
+  readonly job: EngineJobV1;
+  readonly projectRoot: string;
+  readonly baseUrl: string;
+  readonly outputDir: string;
+  readonly explore?: RepoExploreManifest;
+  readonly reason: ServerNotReadyReason;
+}): Promise<RunPresetJobOutcome> {
+  await reportServerNotReady({
+    projectRoot: params.projectRoot,
+    baseUrl: params.baseUrl,
+    outputDir: params.outputDir,
+    explore: params.explore,
+    reason: params.reason,
+  });
+  return {
+    exitCode: 0,
+    serverNotReady: true,
+    result: buildBlockedJobResult(params.job),
+    job: params.job,
+  };
+}
 
 function withoutDiscoverStep(job: EngineJobV1): EngineJobV1 {
   return {
@@ -161,6 +217,26 @@ export function patchJobRunStepArgs(
   };
 }
 
+export function patchJobConfigPath(job: EngineJobV1, configPath: string): EngineJobV1 {
+  const commands = ["discover", "run", "analyze", "verify"] as const;
+  return {
+    ...job,
+    steps: job.steps.map((step) => {
+      if (!commands.includes(step.command as (typeof commands)[number])) {
+        return step;
+      }
+      const nextArgs = [...(step.args ?? [])];
+      const configIndex = nextArgs.findIndex((value) => value === "--config" || value === "-c");
+      if (configIndex >= 0 && configIndex + 1 < nextArgs.length) {
+        nextArgs[configIndex + 1] = configPath;
+      } else {
+        nextArgs.push("--config", configPath);
+      }
+      return { ...step, args: nextArgs };
+    }),
+  };
+}
+
 async function resolveEffectiveLabAuth(params: RunPresetJobParams, cwd: string): Promise<boolean> {
   if (params.labAuth) {
     return true;
@@ -210,82 +286,190 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
   job = patchJobRunStepArgs(job, { noManagedServe: true });
 
   let managedBaseUrl: string | undefined;
-  if (params.managedServe) {
-    try {
-      let fromConfig: Readonly<Record<string, string>> | undefined;
-      const resolvedConfigPath = resolve(job.cwd, params.configPath ?? "signaler.config.json");
-      if (existsSync(resolvedConfigPath)) {
-        const loaded = await loadConfig({ configPath: resolvedConfigPath });
-        fromConfig = loaded.config.serveEnv;
-      }
-      const serveEnv = resolveServeEnv({ fromConfig, fromCli: params.serveEnvOverrides });
-      const managedServer = await ensureManagedServer({
+  const resolvedConfigPath = resolve(job.cwd, params.configPath ?? "signaler.config.json");
+  let fromConfigServeEnv: Readonly<Record<string, string>> | undefined;
+  let configPortHints: readonly number[] | undefined;
+  if (existsSync(resolvedConfigPath)) {
+    const loaded = await loadConfig({ configPath: resolvedConfigPath });
+    fromConfigServeEnv = loaded.config.serveEnv;
+    configPortHints = loaded.config.serve?.portHints;
+  }
+
+  let requestedBaseUrl = params.baseUrl ?? "http://127.0.0.1:3000";
+  let effectiveBaseUrl = requestedBaseUrl;
+  let managedServer: Awaited<ReturnType<typeof ensureManagedServer>> | undefined;
+
+  const runJob = async (): Promise<RunPresetJobOutcome> => {
+    const stepRunner = params.inProcess
+      ? createInProcessEngineJobStepRunner()
+      : createDefaultEngineJobStepRunner();
+    const outcome = await executeEngineJob({ job, stepRunner });
+    if (outcome.exitCode === 2) {
+      await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
+    }
+    const exitCode = await applyQualityPackExitCode({
+      job,
+      priorExitCode: outcome.exitCode,
+      configPath: params.configPath ?? resolvedConfigPath,
+    });
+    await finalizeJobArtifacts({ job, artifactLayout: params.artifactLayout });
+    return {
+      exitCode,
+      result: outcome.result,
+      job,
+      managedBaseUrl,
+    };
+  };
+
+  try {
+    const configMissing = !existsSync(resolvedConfigPath);
+    const shouldExplore = !params.skipExplore || configMissing;
+    let exploreManifest: RepoExploreManifest | undefined;
+
+    if (shouldExplore) {
+      const explore = await runRepoExplore({
         projectRoot: job.cwd,
-        baseUrl: params.baseUrl ?? "http://127.0.0.1:3000",
-        mode: params.managedServeMode ?? "production",
-        skipBuild: params.managedServeSkipBuild ?? false,
-        reuseUnhealthy: params.managedServeReuse ?? false,
-        serveEnv,
+        preferredPort: parseBaseUrlPort(requestedBaseUrl),
+        extraPortHints: configPortHints,
       });
+      exploreManifest = explore;
+      const explorePath = await writeExploreManifest({
+        outputDir: resolve(job.cwd, job.outputDir),
+        manifest: explore,
+      });
+      // eslint-disable-next-line no-console
+      console.log(
+        `Explore: ${explore.routes.length} routes, ${explore.runningServers.length} loopback server(s), ${explore.elapsedMs}ms → ${explorePath}`,
+      );
+
+      const autoConfig = await writeAutoConfigIfMissing({
+        configPath: resolvedConfigPath,
+        manifest: explore,
+        baseUrlOverride: params.baseUrl,
+      });
+      if (autoConfig.wrote) {
+        job = patchJobConfigPath(job, resolvedConfigPath);
+        job = withoutDiscoverStep(job);
+        const loaded = await loadConfig({ configPath: resolvedConfigPath });
+        fromConfigServeEnv = loaded.config.serveEnv;
+        configPortHints = loaded.config.serve?.portHints;
+        effectiveBaseUrl = loaded.config.baseUrl;
+        requestedBaseUrl = loaded.config.baseUrl;
+      }
+
+      if (params.managedServe) {
+        const picked = pickBaseUrlFromExplore(explore, params.baseUrl);
+        if (picked) {
+          effectiveBaseUrl = picked;
+          if (picked !== requestedBaseUrl) {
+            // eslint-disable-next-line no-console
+            console.log(`Explore: using detected base URL ${picked}`);
+          }
+        }
+      } else {
+        const attach = await resolveAttachBaseUrl({
+          explore,
+          requestedBaseUrl,
+          allowUnhealthy: params.managedServeReuse,
+        });
+        if (!attach) {
+          return finishServerNotReady({
+            job,
+            projectRoot: job.cwd,
+            baseUrl: requestedBaseUrl,
+            outputDir: resolve(job.cwd, job.outputDir),
+            explore: exploreManifest,
+            reason: "no-server",
+          });
+        }
+        effectiveBaseUrl = attach.baseUrl;
+        // eslint-disable-next-line no-console
+        console.log(`Attach: using ${attach.source} server at ${attach.baseUrl}`);
+        job = patchDiscoverBaseUrl(job, effectiveBaseUrl);
+        job = patchRunBaseUrl(job, effectiveBaseUrl);
+      }
+    } else if (!params.managedServe) {
+      const attach = await resolveAttachBaseUrl({
+        explore: {
+          schemaVersion: 1,
+          status: "ok",
+          projectRoot: job.cwd,
+          routes: [],
+          portHints: [...(configPortHints ?? [])],
+          runningServers: [],
+          recommendAuditBypass: false,
+          elapsedMs: 0,
+        },
+        requestedBaseUrl,
+        allowUnhealthy: params.managedServeReuse,
+      });
+      if (!attach) {
+        return finishServerNotReady({
+          job,
+          projectRoot: job.cwd,
+          baseUrl: requestedBaseUrl,
+          outputDir: resolve(job.cwd, job.outputDir),
+          reason: "no-server",
+        });
+      }
+      effectiveBaseUrl = attach.baseUrl;
+      job = patchDiscoverBaseUrl(job, effectiveBaseUrl);
+      job = patchRunBaseUrl(job, effectiveBaseUrl);
+    }
+
+    if (params.managedServe) {
+      const { serveEnv } = await resolveServeEnvWithConsent({
+        projectRoot: job.cwd,
+        fromConfig: fromConfigServeEnv,
+        fromCli: params.serveEnvOverrides,
+        auditBypass: params.noAuditBypass ? false : undefined,
+        yes: params.yes,
+        nonInteractive: params.nonInteractive,
+      });
+
+      try {
+        managedServer = await ensureManagedServer({
+          projectRoot: job.cwd,
+          baseUrl: effectiveBaseUrl,
+          mode: params.managedServeMode ?? "production",
+          skipBuild: params.managedServeSkipBuild ?? false,
+          reuseUnhealthy: params.managedServeReuse ?? false,
+          serveEnv,
+        });
+      } catch {
+        return finishServerNotReady({
+          job,
+          projectRoot: job.cwd,
+          baseUrl: effectiveBaseUrl,
+          outputDir: resolve(job.cwd, job.outputDir),
+          explore: exploreManifest,
+          reason: "managed-serve-failed",
+        });
+      }
       managedBaseUrl = managedServer.baseUrl;
       if (managedServer.startedBySignaler) {
         job = patchDiscoverBaseUrl(job, managedServer.baseUrl);
       }
       job = patchRunBaseUrl(job, managedServer.baseUrl);
-      try {
-        const stepRunner = params.inProcess
-          ? createInProcessEngineJobStepRunner()
-          : createDefaultEngineJobStepRunner();
-        const outcome = await executeEngineJob({ job, stepRunner });
-        if (outcome.exitCode === 2) {
-          await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
-        }
-        const exitCode = await applyQualityPackExitCode({
-          job,
-          priorExitCode: outcome.exitCode,
-          configPath: params.configPath,
-        });
-        await finalizeJobArtifacts({ job, artifactLayout: params.artifactLayout });
-        return {
-          exitCode,
-          result: outcome.result,
-          job,
-          managedBaseUrl,
-        };
-      } finally {
-        if (managedServer.startedBySignaler) {
-          console.log(`Managed serve: stopping ${managedServer.mode} server...`);
-          await managedServer.stop();
-        }
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await writeJobLatestFailure({
-        job,
-        failureReason: "managed-serve",
-        failureMessage: message,
-      });
-      throw error;
+    }
+
+    return await runJob();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await writeJobLatestFailure({
+      job,
+      failureReason: params.managedServe ? "managed-serve" : "attach",
+      failureMessage: message,
+    });
+    throw error;
+  } finally {
+    if (managedServer?.startedBySignaler) {
+      console.log(
+        `Managed serve: stopping ${managedServer.mode} server (lab env cleanup if injected)...`,
+      );
+      await managedServer.stop();
     }
   }
-
-  const stepRunner = params.inProcess ? createInProcessEngineJobStepRunner() : createDefaultEngineJobStepRunner();
-  const outcome = await executeEngineJob({ job, stepRunner });
-  if (outcome.exitCode === 2) {
-    await markAgentIndexPartialSuccess(resolve(job.cwd, job.outputDir));
-  }
-  const exitCode = await applyQualityPackExitCode({
-    job,
-    priorExitCode: outcome.exitCode,
-    configPath: params.configPath,
-  });
-  await finalizeJobArtifacts({ job, artifactLayout: params.artifactLayout });
-  return {
-    exitCode,
-    result: outcome.result,
-    job,
-    managedBaseUrl,
-  };
 }
 
 async function finalizeJobArtifacts(params: {

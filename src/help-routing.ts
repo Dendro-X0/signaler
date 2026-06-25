@@ -30,6 +30,8 @@ export type HelpRoutableCommand =
   | "help"
   | "init"
   | "discover"
+  | "explore"
+  | "bootstrap"
   | "config"
   | "export"
   | "ai"
@@ -63,6 +65,8 @@ export function resolveCommandHelpTopic(command: HelpRoutableCommand): string | 
     command === "job" ||
     command === "quickstart" ||
     command === "quick" ||
+    command === "explore" ||
+    command === "bootstrap" ||
     command === "measure" ||
     command === "bundle" ||
     command === "folder" ||

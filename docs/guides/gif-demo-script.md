@@ -1,9 +1,9 @@
-# GIF Demo Script (v5.1.9)
+# GIF Demo Script (v5.2.0)
 
 Record on your **real dev workspace** — no staging required. Technical audiences trust terminal + browser captures from a monorepo more than a narrated promo.
 
 **Demo app (recommended):** `next-ecommercekit-monorepo-main` — 45 routes, 90 combos, pnpm + turbo.  
-**Signaler:** pin **v5.1.9** (GitHub Release install or local `pnpm run build`).
+**Signaler:** pin **v5.2.0** (GitHub Release install or local `pnpm run build`).
 
 ## Canonical output files
 
@@ -136,7 +136,7 @@ Or:
 1. Optimize: `gifsicle -O3 --lossy=30 -o out.gif raw.gif`
 2. Save to `docs/assets/` as `init.gif`, `audit.gif`, `artifacts.gif`, `analytics_dashboard.gif`
 3. Update `README.md` Demos section and `site/src/components/landing/demo-section.tsx`
-4. Pin install: `SIGNALER_VERSION=5.1.9`
+4. Pin install: `SIGNALER_VERSION=5.2.0`
 
 ## Troubleshooting recordings
 
@@ -145,4 +145,4 @@ Or:
 | `Missing fix-queue.json` | Use full `$ART` path; run `analyze` after `run` |
 | Audit fails ECONNREFUSED | Kill zombie on `:3000`; use `127.0.0.1` |
 | Most routes `skip:auth` | Add `--lab-auth` and `auth.lab` + `serveEnv` in config |
-| Stale CLI | `$SIGNALER --version` must show **5.1.9** |
+| Stale CLI | `$SIGNALER --version` must show **5.2.0** |

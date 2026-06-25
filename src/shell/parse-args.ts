@@ -45,6 +45,8 @@ export function parseShellArgs(argv: readonly string[]): ParsedShellArgs {
     rawCommand === "tui" ||
     rawCommand === "init" ||
     rawCommand === "discover" ||
+    rawCommand === "explore" ||
+    rawCommand === "bootstrap" ||
     rawCommand === "config" ||
     rawCommand === "export" ||
     rawCommand === "ai" ||

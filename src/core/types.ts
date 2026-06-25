@@ -105,6 +105,25 @@ export interface ApexAuthConfig {
 }
 
 /**
+ * Managed serve / attach policy for orchestrator commands (`audit`, `job run`).
+ * Default mode is **attach** — reuse a running loopback server; opt in to managed serve.
+ */
+export type ApexServeMode = "attach" | "managed" | "dev" | "production";
+
+export interface ApexServeConfig {
+  /** attach (default): probe loopback only; managed|dev|production: Signaler may start a server. */
+  readonly mode?: ApexServeMode;
+  /** Extra ports to probe before audit (merged with .env and package.json hints). */
+  readonly portHints?: readonly number[];
+  /** Health check path appended to baseUrl (default `/`). */
+  readonly healthPath?: string;
+  /** Monorepo app root relative to project cwd (reserved; used by future serve planner). */
+  readonly root?: string;
+  /** Custom start script name when managed serve starts the app (reserved). */
+  readonly start?: string;
+}
+
+/**
  * Top-level configuration for an audit run.
  */
 export interface ApexConfig {
@@ -163,6 +182,8 @@ export interface ApexConfig {
    * Use app audit-bypass flags (e.g. DEMO_AUTH_BYPASS) without editing project .env or using dev mode.
    */
   readonly serveEnv?: Readonly<Record<string, string>>;
+  /** Attach-first vs managed-serve policy for orchestrator workflows. */
+  readonly serve?: ApexServeConfig;
   /**
    * Include yellow performance issues in triage and TUI (default: off on lean / when omitted).
    * `false` = red-only — recommended for production optimization rounds.

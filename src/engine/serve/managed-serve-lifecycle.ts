@@ -4,6 +4,30 @@ import type { PackageManagerId } from "./resolve-serve-plan.js";
 let registeredShutdown = false;
 const activeChildren = new Set<ChildProcess>();
 
+function pipeManagedServeOutput(child: ChildProcess): void {
+  const emitLine = (line: string, isErr: boolean): void => {
+    const trimmed = line.trimEnd();
+    if (!trimmed) {
+      return;
+    }
+    if (isErr) {
+      // eslint-disable-next-line no-console
+      console.error(`[serve] ${trimmed}`);
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[serve] ${trimmed}`);
+  };
+  const onChunk = (chunk: Buffer | string, isErr: boolean): void => {
+    String(chunk)
+      .split(/\r?\n/)
+      .filter((line) => line.length > 0)
+      .forEach((line) => emitLine(line, isErr));
+  };
+  child.stdout?.on("data", (chunk) => onChunk(chunk, false));
+  child.stderr?.on("data", (chunk) => onChunk(chunk, true));
+}
+
 export function registerManagedServeShutdown(): void {
   if (registeredShutdown) {
     return;
@@ -34,13 +58,15 @@ export function spawnPackageScriptProcess(params: {
   readonly packageManager: PackageManagerId;
   readonly script: string;
   readonly port: number;
+  readonly serveEnv?: Readonly<Record<string, string>>;
 }): ChildProcess {
   const command = packageManagerCommand(params.packageManager);
   const child = spawn(command, ["run", params.script], {
     cwd: params.cwd,
-    stdio: "ignore",
+    stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
+      ...params.serveEnv,
       PORT: String(params.port),
       HOSTNAME: "127.0.0.1",
       HOST: "127.0.0.1",
@@ -48,6 +74,7 @@ export function spawnPackageScriptProcess(params: {
     shell: process.platform === "win32",
     detached: process.platform !== "win32",
   });
+  pipeManagedServeOutput(child);
   activeChildren.add(child);
   child.once("exit", () => activeChildren.delete(child));
   return child;

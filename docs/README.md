@@ -4,6 +4,7 @@ This folder is organized around stable documentation categories first, with vers
 
 ## Start Here
 
+- [**v5.2 Intelligent audit**](specs/intelligent-audit-redesign.md) — bootstrap, explore, attach-first, lab env consent
 - [**v5.0 Showcase**](guides/v5-showcase.md) — quality profiles, tree artifacts, demos to record
 - [Getting Started](guides/getting-started.md)
 - [Install matrix (OS × shell)](guides/install-matrix.md)
