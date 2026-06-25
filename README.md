@@ -2,7 +2,7 @@
 
 > Agent-first web quality audits: route discovery, Lighthouse lab runs, side runners, and a unified CI gate — in one command.
 
-![Version](http://img.shields.io/badge/version-5.2.0-blue.svg)
+![Version](http://img.shields.io/badge/version-5.2.1-blue.svg)
 ![License](http://img.shields.io/badge/license-MIT-green.svg)
 
 **v5.0** adds **`--quality-profile web-quality`**: Lighthouse (ci-strict) plus headers, links, health, console, measure, accessibility, and bundle, with a single **`gates/quality-pack.json`** exit code. Artifacts use the **tree layout** (`.signaler/INDEX.md`, `agent/`, `runners/`, `gates/`).  
@@ -58,7 +58,7 @@ Prerequisites: Node.js 18+, a web app (start your dev server before auditing —
    signaler --version
    ```
 
-   Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.2.0`, PowerShell: `$env:SIGNALER_VERSION='5.2.0'`).
+   Optional pin: set `SIGNALER_VERSION` before running (bash: `export SIGNALER_VERSION=5.2.1`, PowerShell: `$env:SIGNALER_VERSION='5.2.1'`).
 
 2. **Bootstrap** (zero config — any Next.js, Nuxt, Remix, SPA, etc.):
 

@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "Agent-first web quality CLI: Lighthouse audits, quality profiles (headers, links, health, console, measure, accessibility, bundle), tree artifacts, and CI gates.",
   "keywords": [
     "performance",

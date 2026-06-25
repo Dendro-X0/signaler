@@ -1,9 +1,7 @@
 import { runAuditCli } from "../cli.js";
 import { runUpgradeCli } from "../upgrade-cli.js";
 import { runWizardCli } from "../wizard-cli.js";
-import { runQuickstartCli } from "../quickstart-cli.js";
 import { runAiCli } from "../ai-cli.js";
-import { runShellCli } from "../shell-cli.js";
 import { runMeasureCli } from "../measure-cli.js";
 import { runAccessibilityCli } from "../accessibility-cli.js";
 import { runBundleCli } from "../bundle-cli.js";
@@ -28,6 +26,7 @@ import { runAuthCli } from "../auth-cli.js";
 import { ConfigCli, parseConfigArgs } from "../cli/config-cli.js";
 import { ExportCli, parseExportArgs } from "../cli/export-cli.js";
 import type { ParsedShellArgs } from "./command-id.js";
+import { warnCompatibilityAlias } from "./compatibility-alias.js";
 import { runAuditOrchestratorCli } from "./audit-orchestrator-cli.js";
 import { runExploreCli } from "../explore-cli.js";
 import { runBootstrapCli } from "../bootstrap-cli.js";
@@ -82,7 +81,10 @@ export async function dispatchShellCommand(parsed: ParsedShellArgs): Promise<voi
     return;
   }
   if (parsed.command === "review") {
-    console.log("Compatibility alias: 'review' maps to primary 'report' (planned removal in v4.0).");
+    warnCompatibilityAlias(
+      "review",
+      "Compatibility alias: 'review' maps to primary 'report' (removal planned for v5.3.0).",
+    );
     await runReportCli(parsed.argv);
     return;
   }
@@ -136,7 +138,10 @@ export async function dispatchShellCommand(parsed: ParsedShellArgs): Promise<voi
   }
   if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide" || parsed.command === "discover") {
     if (parsed.command === "init" || parsed.command === "wizard" || parsed.command === "guide") {
-      console.log("Compatibility alias: use 'discover' as the primary setup command (init planned removal in v4.0).");
+      warnCompatibilityAlias(
+        "init",
+        "Compatibility alias: use 'discover' as the primary setup command (init removal planned for v5.3.0).",
+      );
     }
     const hasScope: boolean = parsed.argv.some((arg) => arg === "--scope" || arg.startsWith("--scope="));
     const discoverArgv: readonly string[] =

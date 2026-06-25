@@ -63,6 +63,8 @@ export type ServerNotReadyArtifact = {
   readonly reason: ServerNotReadyReason;
   readonly guidance: string;
   readonly rerunCommand: string;
+  readonly portHints?: readonly number[];
+  readonly serveRoot?: string;
 };
 
 export async function writeServerNotReadyArtifact(params: {
@@ -91,6 +93,11 @@ export async function reportServerNotReady(params: ServerNotReadyParams & {
       reason: params.reason ?? "no-server",
       guidance,
       rerunCommand: `signaler audit --cwd "${cwd}" --base-url ${params.baseUrl}`,
+      portHints:
+        params.explore && params.explore.portHints.length > 0
+          ? params.explore.portHints
+          : undefined,
+      serveRoot: params.explore?.nextAppRoot,
     },
   });
   // eslint-disable-next-line no-console

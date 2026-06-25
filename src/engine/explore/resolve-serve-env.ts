@@ -94,16 +94,3 @@ export async function resolveServeEnvWithConsent(
     inferredDeclined: true,
   };
 }
-
-/** @deprecated Prefer resolveServeEnvWithConsent for managed serve flows. */
-export async function resolveServeEnvForProject(params: {
-  readonly projectRoot: string;
-  readonly fromConfig?: Readonly<Record<string, string>>;
-  readonly fromCli?: Readonly<Record<string, string>>;
-  readonly auditBypass?: boolean;
-  readonly yes?: boolean;
-  readonly nonInteractive?: boolean;
-}): Promise<Readonly<Record<string, string>> | undefined> {
-  const result = await resolveServeEnvWithConsent(params);
-  return result.serveEnv;
-}

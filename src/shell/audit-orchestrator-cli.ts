@@ -5,7 +5,7 @@ import { parseQualityProfileName, type QualityProfileName } from "../engine/jobs
 import { parseRunProfileName, type RunProfileName } from "../engine/jobs/run-profiles.js";
 import { runPresetJob } from "../engine/jobs/run-preset-job.js";
 import { parseArtifactLayoutMode, resolveArtifactLayoutFromEnv, type ArtifactLayoutMode } from "../artifact-layout/index.js";
-import { type ManagedServeMode } from "../engine/serve/index.js";
+import type { ManagedServeMode } from "../engine/serve/index.js";
 import { printAuditSummary } from "../report-summary.js";
 import {
   applyOrchestratorServeFlag,

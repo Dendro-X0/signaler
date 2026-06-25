@@ -1,5 +1,35 @@
 # Changelog
 
+## 5.2.1 - 2026-06-18
+
+### Added
+
+- **Explore manifest cache** — reuse fresh `.signaler/explore.json` (5 min TTL) on attach retries; `loadOrRunRepoExplore` API.
+- **Lint scaffold** — Biome + `pnpm run lint` on `src/engine/explore`, `src/shell`, `src/cli/run-args.ts`.
+- **Richer `server-not-ready.json`** — includes `portHints` and `serveRoot` when inferred from explore.
+
+### Changed
+
+- **`cli.ts` decomposition (slice 1)** — `parseRunCliArgs` extracted to `src/cli/run-args.ts` (~500 LOC slimmer monolith).
+- **Deprecation messaging** — `init` / `review` aliases warn once per process; removal planned for **v5.3.0** (was stale “v4.0” copy).
+- **`signaler --version`** quick start — bootstrap / explore / audit first.
+- **CI docs** — agent quickstart documents `--managed-serve` for headless pipelines.
+
+### Removed
+
+- Dead re-exports: `measure-runner.ts`, `measure-types.ts`, deprecated `resolveServeEnvForProject`.
+
+### Fixed
+
+- **`explore --cwd`** — manifest and `.signaler/` output now resolve under the target project, not the caller's working directory.
+
+### Deprecated (warn in 5.2.1; removal in 5.3.0)
+
+- Implicit `--contract legacy` default — prefer `--contract v3`.
+- `.apex-auditor` output directory fallback — migrate to `.signaler`.
+
+See [`docs/archive/release-notes/RELEASE-NOTES-v5.2.1.md`](docs/archive/release-notes/RELEASE-NOTES-v5.2.1.md). Plan: [`docs/roadmap/phase5.2.1-cleanup.md`](docs/roadmap/phase5.2.1-cleanup.md).
+
 ## 5.2.0 - 2026-06-17
 
 ### Added

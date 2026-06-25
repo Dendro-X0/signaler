@@ -12,8 +12,9 @@ import {
 import { reportServerNotReady, type ServerNotReadyReason } from "../explore/server-not-ready-guidance.js";
 import type { RepoExploreManifest } from "../explore/repo-explore.js";
 import {
+  loadOrRunRepoExplore,
   pickBaseUrlFromExplore,
-  runRepoExplore,
+  readExploreManifestIfFresh,
   writeExploreManifest,
 } from "../explore/repo-explore.js";
 import { writeAutoConfigIfMissing } from "../explore/ensure-project-config.js";
@@ -327,20 +328,29 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
     let exploreManifest: RepoExploreManifest | undefined;
 
     if (shouldExplore) {
-      const explore = await runRepoExplore({
+      const outputDir = resolve(job.cwd, job.outputDir);
+      const { manifest: explore, fromCache } = await loadOrRunRepoExplore({
         projectRoot: job.cwd,
+        outputDir,
         preferredPort: parseBaseUrlPort(requestedBaseUrl),
         extraPortHints: configPortHints,
       });
       exploreManifest = explore;
-      const explorePath = await writeExploreManifest({
-        outputDir: resolve(job.cwd, job.outputDir),
-        manifest: explore,
-      });
-      // eslint-disable-next-line no-console
-      console.log(
-        `Explore: ${explore.routes.length} routes, ${explore.runningServers.length} loopback server(s), ${explore.elapsedMs}ms → ${explorePath}`,
-      );
+      if (!fromCache) {
+        const explorePath = await writeExploreManifest({
+          outputDir,
+          manifest: explore,
+        });
+        // eslint-disable-next-line no-console
+        console.log(
+          `Explore: ${explore.routes.length} routes, ${explore.runningServers.length} loopback server(s), ${explore.elapsedMs}ms → ${explorePath}`,
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Explore: reusing cached manifest (${explore.routes.length} routes, ${explore.runningServers.length} loopback server(s))`,
+        );
+      }
 
       const autoConfig = await writeAutoConfigIfMissing({
         configPath: resolvedConfigPath,
@@ -389,17 +399,28 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
         job = patchRunBaseUrl(job, effectiveBaseUrl);
       }
     } else if (!params.managedServe) {
+      const outputDir = resolve(job.cwd, job.outputDir);
+      const cachedExplore = await readExploreManifestIfFresh({
+        outputDir,
+        projectRoot: job.cwd,
+      });
+      const exploreForAttach: RepoExploreManifest = cachedExplore ?? {
+        schemaVersion: 1,
+        status: "ok",
+        projectRoot: job.cwd,
+        routes: [],
+        portHints: [...(configPortHints ?? [])],
+        runningServers: [],
+        recommendAuditBypass: false,
+        elapsedMs: 0,
+      };
+      if (cachedExplore) {
+        exploreManifest = cachedExplore;
+        // eslint-disable-next-line no-console
+        console.log("Explore: reusing cached manifest for attach probe");
+      }
       const attach = await resolveAttachBaseUrl({
-        explore: {
-          schemaVersion: 1,
-          status: "ok",
-          projectRoot: job.cwd,
-          routes: [],
-          portHints: [...(configPortHints ?? [])],
-          runningServers: [],
-          recommendAuditBypass: false,
-          elapsedMs: 0,
-        },
+        explore: exploreForAttach,
         requestedBaseUrl,
         allowUnhealthy: params.managedServeReuse,
       });
@@ -408,7 +429,8 @@ export async function runPresetJob(params: RunPresetJobParams): Promise<RunPrese
           job,
           projectRoot: job.cwd,
           baseUrl: requestedBaseUrl,
-          outputDir: resolve(job.cwd, job.outputDir),
+          outputDir,
+          explore: exploreManifest,
           reason: "no-server",
         });
       }

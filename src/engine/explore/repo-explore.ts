@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { detectRoutesWithRust } from "../../rust/discovery-adapter.js";
 import {
@@ -126,6 +126,61 @@ export async function readExploreManifest(outputDir: string): Promise<RepoExplor
   } catch {
     return undefined;
   }
+}
+
+/** Default explore cache TTL for attach retries (5 minutes). */
+export const EXPLORE_MANIFEST_MAX_AGE_MS = 5 * 60 * 1000;
+
+export async function readExploreManifestIfFresh(params: {
+  readonly outputDir: string;
+  readonly projectRoot: string;
+  readonly maxAgeMs?: number;
+}): Promise<RepoExploreManifest | undefined> {
+  const path = join(resolve(params.outputDir), "explore.json");
+  try {
+    const fileStat = await stat(path);
+    const maxAge = params.maxAgeMs ?? EXPLORE_MANIFEST_MAX_AGE_MS;
+    if (Date.now() - fileStat.mtimeMs > maxAge) {
+      return undefined;
+    }
+    const manifest = await readExploreManifest(params.outputDir);
+    if (!manifest || manifest.schemaVersion !== 1) {
+      return undefined;
+    }
+    if (resolve(manifest.projectRoot) !== resolve(params.projectRoot)) {
+      return undefined;
+    }
+    return manifest;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function loadOrRunRepoExplore(params: {
+  readonly projectRoot: string;
+  readonly outputDir: string;
+  readonly routeLimit?: number;
+  readonly preferredPort?: number;
+  readonly extraPortHints?: readonly number[];
+  readonly forceRefresh?: boolean;
+}): Promise<{ readonly manifest: RepoExploreManifest; readonly fromCache: boolean }> {
+  if (!params.forceRefresh) {
+    const cached = await readExploreManifestIfFresh({
+      outputDir: params.outputDir,
+      projectRoot: params.projectRoot,
+    });
+    if (cached) {
+      return { manifest: cached, fromCache: true };
+    }
+  }
+
+  const manifest = await runRepoExplore({
+    projectRoot: params.projectRoot,
+    routeLimit: params.routeLimit,
+    preferredPort: params.preferredPort,
+    extraPortHints: params.extraPortHints,
+  });
+  return { manifest, fromCache: false };
 }
 
 export function pickBaseUrlFromExplore(

@@ -47,6 +47,20 @@ signaler analyze --contract v6 --artifact-profile lean
 signaler query --view agent
 ```
 
+**Headless CI (no dev server in the job)**
+
+Since v5.2, attach-first is the default. Pipelines that start the app inside the job must pass managed serve:
+
+```bash
+signaler audit --managed-serve --cwd . --base-url http://127.0.0.1:3000
+# or
+signaler job run --preset ci --managed-serve --base-url http://127.0.0.1:3000
+```
+
+Alternatively set `"serve": { "mode": "production" }` in `signaler.config.json` or `SIGNALER_MANAGED_SERVE=1`.
+
+If the server is not up yet, Signaler writes `.signaler/server-not-ready.json` (exit 0) with port hints and a suggested dev command.
+
 If the project already has `signaler.config.json`, the minimum path is:
 
 ```bash

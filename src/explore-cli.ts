@@ -12,6 +12,7 @@ export type ExploreCliArgs = {
 
 export function parseExploreCliArgs(argv: readonly string[]): ExploreCliArgs {
   let cwd = process.cwd();
+  let outputDirExplicit = false;
   let outputDir = resolve(cwd, ".signaler");
   let baseUrl: string | undefined;
   let json = false;
@@ -26,6 +27,7 @@ export function parseExploreCliArgs(argv: readonly string[]): ExploreCliArgs {
     }
     if ((arg === "--dir" || arg === "--output-dir") && i + 1 < argv.length) {
       outputDir = resolve(argv[i + 1] ?? outputDir);
+      outputDirExplicit = true;
       i += 1;
       continue;
     }
@@ -47,6 +49,10 @@ export function parseExploreCliArgs(argv: readonly string[]): ExploreCliArgs {
       json = true;
       continue;
     }
+  }
+
+  if (!outputDirExplicit) {
+    outputDir = resolve(cwd, ".signaler");
   }
 
   return { cwd, outputDir, baseUrl, json, routeLimit };

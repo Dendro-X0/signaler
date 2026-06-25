@@ -1,6 +1,6 @@
 {
   "name": "@signaler/cli",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "private": false,
   "description": "Comprehensive web quality platform with AI-powered insights: performance, accessibility (WCAG 2.1/2.2), security (OWASP Top 10), SEO audits, and enterprise-grade CI/CD integration",
   "keywords": [
@@ -90,6 +90,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "lint": "biome check src/engine/explore src/shell src/cli/run-args.ts",
     "build:optimized": "pnpm run build && node scripts/optimize-build.js",
     "prepare:jsr": "pnpm run build:optimized && node scripts/prepare-jsr.js",
     "release:portable": "node scripts/create-portable-release.js",
@@ -175,6 +176,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@types/node": "^22.0.0",
     "@types/prompts": "^2.4.9",
     "@types/ws": "^8.18.1",

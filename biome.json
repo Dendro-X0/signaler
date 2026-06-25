@@ -1,0 +1,29 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "files": {
+    "ignore": ["dist/**", "node_modules/**", "benchmarks/out/**"]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noUselessEmptyExport": "error"
+      },
+      "correctness": {
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn"
+      },
+      "style": {
+        "noInferrableTypes": "off",
+        "useNumberNamespace": "off"
+      }
+    }
+  },
+  "organizeImports": {
+    "enabled": false
+  }
+}

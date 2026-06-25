@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { warnLegacyOutputDirFallback } from "../../shell/legacy-sunset.js";
 
 type ResolvedOutputDir = {
   readonly outputDir: string;
@@ -45,6 +46,7 @@ export function hasLegacyOutputDir(): boolean {
  */
 export function getCompatibleOutputDir(): string {
   if (hasLegacyOutputDir()) {
+    warnLegacyOutputDirFallback();
     return resolve(".apex-auditor");
   }
   return resolve(".signaler");
